@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: motion-web
+  namespace: motion-production
+  labels:
+    app: motion-web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: motion-web
+  template:
+    metadata:
+      labels:
+        app: motion-web
+    spec:
+      containers:
+      - name: web
+        image: motion/web:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://api.motion.com"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: motion-web-service
+  namespace: motion-production
+spec:
+  selector:
+    app: motion-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
