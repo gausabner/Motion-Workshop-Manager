@@ -24,8 +24,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from core.config import settings
 from models.base import Base
-from models.tenant import Tenant
-from models.user import User
+# Import all models so their tables register on Base.metadata for autogenerate
+import models  # noqa: F401 — triggers models/__init__.py which imports all 13 model files
 
 target_metadata = Base.metadata
 
