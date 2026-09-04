@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+
 import { useState } from "react";
 import { Search, X, Plus, Pencil, User, MessageSquare, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +18,7 @@ const MOCK_MECHANICS = [
 ];
 
 export function MechanicList() {
+    const { tenant } = useParams<{ tenant: string }>();
     const [searchTerm, setSearchTerm] = useState("");
     const [showActiveOnly, setShowActiveOnly] = useState(true);
 
@@ -64,7 +67,7 @@ export function MechanicList() {
                             size="icon"
                             variant="outline"
                             className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm"
-                            onClick={() => window.location.href = '/demo-tenant/admin/mechanics/new'}
+                            onClick={() => window.location.href = `/${tenant}/admin/mechanics/new`}
                         >
                             <Plus className="w-5 h-5" />
                         </Button>
@@ -96,7 +99,7 @@ export function MechanicList() {
                                             <Button
                                                 size="icon"
                                                 variant="outline"
-                                                onClick={() => window.location.href = `/demo-tenant/admin/mechanics/${mechanic.id}`}
+                                                onClick={() => window.location.href = `/${tenant}/admin/mechanics/${mechanic.id}`}
                                                 className="w-8 h-7 px-0 rounded-sm border-teal-500 text-teal-500 hover:bg-teal-50 shadow-sm"
                                             >
                                                 <Pencil className="w-4 h-4" />

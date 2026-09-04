@@ -7,23 +7,24 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 interface UserEditFormProps {
     email: string;
 }
 
 export function UserEditForm({ email }: UserEditFormProps) {
+    const { tenant } = useParams<{ tenant: string }>();
     const router = useRouter();
 
     const handleSave = () => {
         // In a real app, this would update via API
-        router.push("/demo-tenant/admin/users");
+        router.push(`/${tenant}/admin/users`);
     };
 
     const handleDelete = () => {
         // In a real app, this would delete via API
-        router.push("/demo-tenant/admin/users");
+        router.push(`/${tenant}/admin/users`);
     };
 
     return (
@@ -177,7 +178,7 @@ export function UserEditForm({ email }: UserEditFormProps) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => router.push("/demo-tenant/admin/users")}
+                                onClick={() => router.push(`/${tenant}/admin/users`)}
                                 className="bg-white border-slate-300 text-slate-700 h-9 px-6 rounded-sm shadow-sm"
                             >
                                 Cancel

@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Star, Plus, AlertTriangle } from "lucide-react";
@@ -199,6 +201,7 @@ function DayView() {
 // --- Main Component ---
 
 export function BookingCalendar() {
+    const { tenant } = useParams<{ tenant: string }>();
     const [viewMode, setViewMode] = useState<ViewMode>('month');
 
     const getSubHeaderTitle = () => {
@@ -242,7 +245,7 @@ export function BookingCalendar() {
                             </div>
                         )}
                         <Star className="w-5 h-5 cursor-pointer hover:text-slate-900" />
-                        <Link href="/demo-tenant/dashboard/schedule/bookings/new">
+                        <Link href={`/${tenant}/dashboard/schedule/bookings/new`}>
                             <Plus className="w-5 h-5 cursor-pointer hover:text-slate-900" />
                         </Link>
                     </div>

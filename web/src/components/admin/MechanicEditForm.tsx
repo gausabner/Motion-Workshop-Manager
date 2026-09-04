@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 // Schedule Days
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -18,17 +18,18 @@ interface MechanicEditFormProps {
 }
 
 export function MechanicEditForm({ id }: MechanicEditFormProps) {
+    const { tenant } = useParams<{ tenant: string }>();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("Monday");
 
     const handleSave = () => {
         // In a real app, this would post to an API
-        router.push("/demo-tenant/admin/mechanics");
+        router.push(`/${tenant}/admin/mechanics`);
     };
 
     const handleDelete = () => {
         // API delete trigger goes here
-        router.push("/demo-tenant/admin/mechanics");
+        router.push(`/${tenant}/admin/mechanics`);
     };
 
     return (
@@ -218,7 +219,7 @@ export function MechanicEditForm({ id }: MechanicEditFormProps) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => router.push("/demo-tenant/admin/mechanics")}
+                                onClick={() => router.push(`/${tenant}/admin/mechanics`)}
                                 className="bg-white border-slate-300 text-slate-700 h-9 px-6 rounded-sm shadow-sm"
                             >
                                 Cancel

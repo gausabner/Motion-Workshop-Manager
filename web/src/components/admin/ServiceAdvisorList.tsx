@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+
 import { User, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +13,7 @@ const MOCK_ADVISORS = [
 ];
 
 export function ServiceAdvisorList() {
+    const { tenant } = useParams<{ tenant: string }>();
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
             <Card className="rounded-none shadow-none border border-slate-200">
@@ -25,7 +28,7 @@ export function ServiceAdvisorList() {
                         {/* Plus Button */}
                         <button
                             className="text-slate-500 hover:text-slate-700 bg-transparent p-1"
-                            onClick={() => window.location.href = '/demo-tenant/admin/service-advisors/new'}
+                            onClick={() => window.location.href = `/${tenant}/admin/service-advisors/new`}
                         >
                             <Plus className="w-5 h-5 font-bold" />
                         </button>
@@ -59,7 +62,7 @@ export function ServiceAdvisorList() {
                                             <Button
                                                 size="icon"
                                                 variant="outline"
-                                                onClick={() => window.location.href = `/demo-tenant/admin/service-advisors/${advisor.id}`}
+                                                onClick={() => window.location.href = `/${tenant}/admin/service-advisors/${advisor.id}`}
                                                 className="w-7 h-6 px-0 bg-white rounded-sm border-teal-500 text-teal-500 hover:bg-teal-50 shadow-sm"
                                             >
                                                 <Pencil className="w-3.5 h-3.5" />

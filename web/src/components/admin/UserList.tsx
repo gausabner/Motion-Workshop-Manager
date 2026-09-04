@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+
 import { useState } from "react";
 import { X, Plus, Pencil, ChevronDown, ChevronLeft, ChevronRight, Asterisk } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +15,7 @@ const MOCK_USERS = [
 ];
 
 export function UserList() {
+    const { tenant } = useParams<{ tenant: string }>();
     const [userSearchTerm, setUserSearchTerm] = useState("");
 
     return (
@@ -48,7 +51,7 @@ export function UserList() {
                         {/* Plus Button */}
                         <button
                             className="text-slate-500 hover:text-slate-700 bg-transparent p-1"
-                            onClick={() => window.location.href = '/demo-tenant/admin/users/new'}
+                            onClick={() => window.location.href = `/${tenant}/admin/users/new`}
                         >
                             <Plus className="w-4 h-4 font-bold" />
                         </button>
@@ -87,7 +90,7 @@ export function UserList() {
                                             <Button
                                                 size="icon"
                                                 variant="outline"
-                                                onClick={() => window.location.href = `/demo-tenant/admin/users/${user.id}`}
+                                                onClick={() => window.location.href = `/${tenant}/admin/users/${user.id}`}
                                                 className="w-7 h-6 px-0 bg-white rounded-sm border-teal-500 text-teal-500 hover:bg-teal-50 shadow-sm"
                                             >
                                                 <Pencil className="w-3.5 h-3.5" />

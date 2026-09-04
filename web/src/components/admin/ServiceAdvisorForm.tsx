@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 export function ServiceAdvisorForm() {
+    const { tenant } = useParams<{ tenant: string }>();
     const router = useRouter();
 
     const handleSave = () => {
         // In a real app, this would post to an API
-        router.push("/demo-tenant/admin/service-advisors");
+        router.push(`/${tenant}/admin/service-advisors`);
     };
 
     return (
@@ -106,7 +107,7 @@ export function ServiceAdvisorForm() {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.push("/demo-tenant/admin/service-advisors")}
+                            onClick={() => router.push(`/${tenant}/admin/service-advisors`)}
                             className="bg-white border-slate-300 text-slate-700 h-9 px-6 rounded-sm shadow-sm"
                         >
                             Cancel

@@ -42,8 +42,8 @@ export function VehicleForm({ tenant, vehicle, customers, defaultCustomerId }: P
 
             <Section title="Vehicle">
                 <SelectField label="Owner" name="customerId" defaultValue={v?.customerId ?? defaultCustomerId} errors={errors} allowEmpty="— no owner —" options={customers} className="lg:col-span-2" />
-                <TextField label="Plate number" name="plate" defaultValue={v?.plate} errors={errors} required autoFocus={!v} placeholder="N 12345 W" className="uppercase" />
-                <TextField label="VIN" name="vin" defaultValue={v?.vin} errors={errors} maxLength={17} hint="17 characters" className="font-mono" />
+                <TextField label="Plate number" name="plate" defaultValue={v?.plate} errors={errors} required autoFocus={!v} placeholder="N 12345 W" />
+                <TextField label="VIN" name="vin" defaultValue={v?.vin} errors={errors} maxLength={17} hint="17 characters" />
                 <TextField label="Make" name="make" defaultValue={v?.make} errors={errors} required />
                 <TextField label="Model" name="model" defaultValue={v?.model} errors={errors} required />
                 <TextField label="Series / variant" name="modelSeries" defaultValue={v?.modelSeries} errors={errors} />
