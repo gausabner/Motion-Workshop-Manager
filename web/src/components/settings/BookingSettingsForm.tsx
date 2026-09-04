@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -47,7 +47,6 @@ const defaultValues: Partial<BookingFormValues> = {
 
 export function BookingSettingsForm() {
     // Client-side hydration safety
-    const [isMounted, setIsMounted] = useState(false);
 
     // UI Expand State (all true by default for better visibility)
     const [openUrl, setOpenUrl] = useState(true);
@@ -60,13 +59,6 @@ export function BookingSettingsForm() {
         defaultValues,
     });
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    if (!isMounted) {
-        return <div className="min-h-screen" />; // Prevent SSR hydration mismatch
-    }
 
     function onSubmit(data: BookingFormValues) {
         console.log("Bookings Settings Update Submitted:", data);

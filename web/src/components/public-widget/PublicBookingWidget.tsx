@@ -62,7 +62,7 @@ export function PublicBookingWidget({ tenantName }: { tenantName: string }) {
                     <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
                     <h2 className="text-2xl font-bold mb-2">Request Sent!</h2>
                     <p className="text-slate-500 mb-6">
-                        Thanks for booking with {tenantName}. We've received your request and will be in touch shortly to confirm your appointment time.
+                        Thanks for booking with {tenantName}. We&apos;ve received your request and will be in touch shortly to confirm your appointment time.
                     </p>
                     <Button onClick={() => window.location.reload()} variant="outline">Book Another Vehicle</Button>
                 </CardContent>

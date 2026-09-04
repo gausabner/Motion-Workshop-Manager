@@ -1,0 +1,832 @@
+// MOTION Workshop Manager — data model v2 (PRD §7)
+// One transaction document (quote → booking → job card → invoice → credit),
+// tenant-scoped everything, money as Decimal, nothing hard-deleted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── enums ─────────────────────────
+
+enum UserGroup {
+  OWNER
+  ADMIN
+  SERVICE_ADVISOR
+  MECHANIC
+  INVOICE_PAY
+  READ_ONLY
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ContactMethod {
+  EMAIL
+  SMS
+  WHATSAPP
+  OPT_OUT
+}
+
+enum PriceType {
+  RETAIL
+  PRICE2
+  PRICE3
+  PRICE4
+}
+
+enum ProductType {
+  STOCK
+  LABOUR
+  SUBLET
+  CONSUMABLE
+  ACCESSORY
+  TYRE
+}
+
+enum DocumentType {
+  QUOTE
+  BOOKING
+  JOB_CARD
+  INVOICE
+  CASH_SALE
+  CREDIT
+}
+
+enum DocumentState {
+  DRAFT
+  PROCESSED
+  VOID
+}
+
+enum JobStatus {
+  BOOKED_IN
+  WORK_IN_PROGRESS
+  WAITING_FOR_PARTS
+  INSPECTION_IN_PROGRESS
+  WAITING_FOR_CUSTOMER_APPROVAL
+  JOB_COMPLETE
+  CUSTOMER_NOTIFIED
+  AWAITING_FINALISE
+  FINALISED
+}
+
+enum LineType {
+  STOCK
+  LABOUR
+  SUBLET
+  CONSUMABLE
+  ACCESSORY
+  TYRE
+  FREIGHT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum CreditKind {
+  DEPOSIT
+  CREDIT_NOTE
+}
+
+enum TimeEntrySource {
+  MANUAL
+  CLOCK
+}
+
+enum TemplateKind {
+  INVOICE_NOTE
+  JOB_CARD_NOTE
+  INVOICE_FOOTER
+  QUOTE_FOOTER
+  JOB_CARD_FOOTER
+  STATEMENT_FOOTER
+  EMAIL
+  SMS
+}
+
+enum SequenceKey {
+  QUOTE
+  JOB
+  INVOICE
+  CREDIT
+  RECEIPT
+  PURCHASE_ORDER
+  SUPPLIER_PAYMENT
+}
+
+// ───────────────────────── tenancy & people ─────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  // Company profile (PRD SET-01)
+  registrationNumber String?
+  vatNumber          String?
+  address1  String?
+  address2  String?
+  suburb    String?
+  city      String?
+  region    String?
+  postcode  String?
+  country   String   @default("NA")
+  phone     String?
+  mobile    String?
+  whatsapp  String?
+  email     String?
+  web       String?
+  timezone  String   @default("Africa/Windhoek")
+  currency  String   @default("NAD")
+  locale    String   @default("en-NA")
+  // Tax defaults (PRD SET-02) — rates are percentages, e.g. 15.00
+  taxName          String  @default("VAT")
+  salesTaxRate     Decimal @default(15.00) @db.Decimal(5, 2)
+  purchaseTaxRate  Decimal @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax Boolean @default(true)
+  defaultPaymentTermsDays Int @default(0)
+  // Everything else lives in a typed JSON blob validated by zod (PRD SET-09)
+  settings  Json     @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships      Membership[]
+  invitations      Invitation[]
+  sessions         Session[]
+  customers        Customer[]
+  contacts         Contact[]
+  vehicles         Vehicle[]
+  suppliers        Supplier[]
+  productGroups    ProductGroup[]
+  productCategories ProductCategory[]
+  products         Product[]
+  customerSources  CustomerSource[]
+  paymentMethods   PaymentMethod[]
+  appointmentTypes AppointmentType[]
+  sequences        Sequence[]
+  templates        Template[]
+  documents        Document[]
+  documentLines    DocumentLine[]
+  statusEvents     DocumentStatusEvent[]
+  timeEntries      TimeEntry[]
+  payments         Payment[]
+  allocations      PaymentAllocation[]
+  credits          Credit[]
+  attachments      Attachment[]
+  auditEvents      AuditEvent[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  mobile       String?
+  isSuperuser  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+  invitationsSent Invitation[] @relation("InvitedBy")
+  auditEvents AuditEvent[]
+}
+
+/// A person inside a workshop. Advisors, mechanics and document authors all
+/// point here, never at User, so a user can belong to several workshops.
+model Membership {
+  id        String           @id @default(cuid())
+  tenantId  String
+  userId    String
+  group     UserGroup        @default(SERVICE_ADVISOR)
+  status    MembershipStatus @default(ACTIVE)
+  isMechanic        Boolean @default(false)
+  isServiceAdvisor  Boolean @default(false)
+  dashboardPrivileges Boolean @default(false)
+  limitCustomerInfo   Boolean @default(false)
+  showOnDiary         Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  advisedDocuments   Document[]            @relation("DocumentAdvisor")
+  mechanicDocuments  Document[]            @relation("DocumentMechanic")
+  createdDocuments   Document[]            @relation("DocumentCreatedBy")
+  processedDocuments Document[]            @relation("DocumentProcessedBy")
+  statusEvents       DocumentStatusEvent[]
+  timeEntries        TimeEntry[]
+  paymentsTaken      Payment[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId, status])
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  email       String
+  group       UserGroup @default(SERVICE_ADVISOR)
+  token       String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime  @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  invitedBy User   @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([tenantId, email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String?
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+}
+
+// ───────────────────────── master data ─────────────────────────
+
+model Customer {
+  id         String  @id @default(cuid())
+  tenantId   String
+  firstName  String
+  lastName   String
+  isBusiness Boolean @default(false)
+  /// Parent account that gets the invoice (PRD CUST-02 "biller")
+  billerId   String?
+  businessNumber String?
+  vatNumber      String?
+  // Street + postal address (WS dual addressing)
+  streetAddress1 String?
+  streetAddress2 String?
+  streetSuburb   String?
+  streetCity     String?
+  streetRegion   String?
+  streetCountry  String?
+  streetPostcode String?
+  postalAddress1 String?
+  postalAddress2 String?
+  postalSuburb   String?
+  postalCity     String?
+  postalRegion   String?
+  postalCountry  String?
+  postalPostcode String?
+  phone   String?
+  mobile  String?
+  email   String?
+  fax     String?
+  web     String?
+  preferredContact ContactMethod @default(WHATSAPP)
+  // Pricing & terms
+  hourlyRate      Decimal?  @db.Decimal(12, 2)
+  discountPercent Decimal   @default(0) @db.Decimal(5, 2)
+  markupPercent   Decimal   @default(0) @db.Decimal(5, 2)
+  priceType       PriceType @default(RETAIL)
+  paymentTermsDays Int?
+  creditLimit     Decimal?  @db.Decimal(12, 2)
+  vatExempt       Boolean   @default(false)
+  customerSourceId String?
+  importedId  String?
+  note        String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  biller         Customer?       @relation("Biller", fields: [billerId], references: [id])
+  billedAccounts Customer[]      @relation("Biller")
+  customerSource CustomerSource? @relation(fields: [customerSourceId], references: [id])
+  contacts  Contact[]
+  vehicles  Vehicle[]
+  documents Document[]
+  payments  Payment[]
+  credits   Credit[]
+
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, mobile])
+  @@index([tenantId, archivedAt])
+}
+
+model Contact {
+  id         String  @id @default(cuid())
+  tenantId   String
+  customerId String?
+  supplierId String?
+  firstName  String
+  lastName   String?
+  position   String?
+  phone      String?
+  mobile     String?
+  email      String?
+  sortOrder  Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([supplierId])
+}
+
+model Vehicle {
+  id         String  @id @default(cuid())
+  tenantId   String
+  customerId String?
+  plate      String
+  vin        String?
+  make       String
+  model      String
+  modelSeries String?
+  year        Int?
+  engineNumber  String?
+  chassisNumber String?
+  engineCode    String?
+  fleetCode     String?
+  vehicleGroup  String?
+  bodyType      String?
+  transmission  String?
+  driveType     String?
+  fuelType      String?
+  cylinders     Int?
+  litres        Decimal? @db.Decimal(4, 1)
+  hasAc         Boolean  @default(false)
+  seating       Int?
+  colour        String?
+  tyreSize      String?
+  keyCode       String?
+  radioPin      String?
+  buildDate     DateTime? @db.Date
+  odometer      Int?
+  engineHours   Decimal?  @db.Decimal(10, 1)
+  // Compliance (localised: licence disc + roadworthy, PRD VEH-02)
+  licenceExpiry    DateTime? @db.Date
+  roadworthyExpiry DateTime? @db.Date
+  // Servicing
+  lastInDate        DateTime? @db.Date
+  lastServiceDate   DateTime? @db.Date
+  nextServiceDate   DateTime? @db.Date
+  nextServiceKm     Int?
+  serviceIntervalMonths Int?
+  importedId String?
+  note       String?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  customer  Customer?  @relation(fields: [customerId], references: [id])
+  documents Document[]
+
+  @@index([tenantId, plate])
+  @@index([tenantId, vin])
+  @@index([tenantId, customerId])
+}
+
+model Supplier {
+  id          String  @id @default(cuid())
+  tenantId    String
+  companyName String
+  accountNumber String?
+  vatNumber   String?
+  address1    String?
+  address2    String?
+  suburb      String?
+  city        String?
+  region      String?
+  country     String?
+  postcode    String?
+  phone       String?
+  mobile      String?
+  email       String?
+  fax         String?
+  web         String?
+  paymentTermsDays Int?
+  importedId  String?
+  note        String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  contacts Contact[]
+  products Product[]
+
+  @@index([tenantId, companyName])
+}
+
+model ProductGroup {
+  id              String  @id @default(cuid())
+  tenantId        String
+  name            String
+  salesAccount    String?
+  purchaseAccount String?
+  sortOrder       Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model ProductCategory {
+  id        String @id @default(cuid())
+  tenantId  String
+  name      String
+  sortOrder Int    @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  tenantId    String
+  itemCode    String
+  description String
+  description2 String?
+  tags        String?
+  groupId     String?
+  categoryId  String?
+  supplierId  String?
+  brand       String?
+  type        ProductType @default(STOCK)
+  isService   Boolean     @default(false)
+  vatExempt   Boolean     @default(false)
+  dontUpdateQty     Boolean @default(false)
+  requiresSerial    Boolean @default(false)
+  defaultLabourQty  Decimal? @db.Decimal(8, 2)
+  qtyOnHand   Decimal @default(0) @db.Decimal(12, 2)
+  qtyReserved Decimal @default(0) @db.Decimal(12, 2)
+  minQty      Decimal @default(0) @db.Decimal(12, 2)
+  maxQty      Decimal @default(0) @db.Decimal(12, 2)
+  location    String?
+  costExTax   Decimal @default(0) @db.Decimal(12, 2)
+  costIncTax  Decimal @default(0) @db.Decimal(12, 2)
+  retailPrice Decimal @default(0) @db.Decimal(12, 2)
+  price2      Decimal @default(0) @db.Decimal(12, 2)
+  price3      Decimal @default(0) @db.Decimal(12, 2)
+  price4      Decimal @default(0) @db.Decimal(12, 2)
+  importedId  String?
+  comment     String?
+  jobCardComment String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id])
+  group    ProductGroup?    @relation(fields: [groupId], references: [id])
+  category ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplier Supplier?        @relation(fields: [supplierId], references: [id])
+  lines    DocumentLine[]
+
+  @@unique([tenantId, itemCode])
+  @@index([tenantId, description])
+}
+
+// ───────────────────────── lists & config (PRD SET-06/07/08) ─────────────────────────
+
+model CustomerSource {
+  id        String @id @default(cuid())
+  tenantId  String
+  name      String
+  sortOrder Int    @default(0)
+  active    Boolean @default(true)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  customers Customer[]
+  documents Document[]
+
+  @@unique([tenantId, name])
+}
+
+model PaymentMethod {
+  id           String  @id @default(cuid())
+  tenantId     String
+  name         String
+  code         String
+  isEft        Boolean @default(false)
+  isIntegrated Boolean @default(false)
+  active       Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  payments Payment[]
+
+  @@unique([tenantId, code])
+}
+
+model AppointmentType {
+  id             String  @id @default(cuid())
+  tenantId       String
+  description    String
+  estimatedHours Decimal @default(1) @db.Decimal(5, 2)
+  active         Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, description])
+}
+
+model Sequence {
+  id       String      @id @default(cuid())
+  tenantId String
+  key      SequenceKey
+  prefix   String      @default("")
+  next     Int         @default(1)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+}
+
+model Template {
+  id        String       @id @default(cuid())
+  tenantId  String
+  kind      TemplateKind
+  name      String
+  body      String
+  sortOrder Int          @default(0)
+  active    Boolean      @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, kind])
+}
+
+// ───────────────────────── the transaction document (PRD §6.4) ─────────────────────────
+
+model Document {
+  id        String        @id @default(cuid())
+  tenantId  String
+  type      DocumentType
+  state     DocumentState @default(DRAFT)
+  jobStatus JobStatus?
+  statusComment String?
+  /// Type-specific number: Q-1001, JC-1001, INV-1001, CR-1001 (PRD DOC-11)
+  number    String?
+  /// Job card number carried from job to invoice
+  jobNumber String?
+  customerId  String?
+  isCashSale  Boolean @default(false)
+  vehicleId   String?
+  serviceAdvisorId String?
+  mechanicId       String?
+  reference           String?
+  customerOrderNumber String?
+  postDate     DateTime  @default(now()) @db.Date
+  dueDate      DateTime? @db.Date
+  followUpDate DateTime? @db.Date
+  // Booking / diary fields
+  scheduledAt    DateTime?
+  scheduledEnd   DateTime?
+  dueBy          DateTime?
+  estimatedHours Decimal?  @db.Decimal(5, 2)
+  // Vehicle capture on the job (PRD DOC-01)
+  odometer       Int?
+  engineHours    Decimal?  @db.Decimal(10, 1)
+  nextServiceKm  Int?
+  nextServiceDate DateTime? @db.Date
+  isInternal       Boolean @default(false)
+  paymentTermsDays Int?
+  customerSourceId String?
+  // Money — all stored, recomputed by the service layer on every line change
+  subtotal        Decimal @default(0) @db.Decimal(12, 2)
+  discountPercent Decimal? @db.Decimal(5, 2)
+  discountAmount  Decimal @default(0) @db.Decimal(12, 2)
+  freight         Decimal @default(0) @db.Decimal(12, 2)
+  vatTotal        Decimal @default(0) @db.Decimal(12, 2)
+  total           Decimal @default(0) @db.Decimal(12, 2)
+  amountPaid      Decimal @default(0) @db.Decimal(12, 2)
+  // Notes
+  eventNotes   String?
+  jobCardNotes String?
+  invoiceNotes String?
+  contactedAt  DateTime?
+  // Lifecycle
+  processedAt   DateTime?
+  processedById String?
+  voidedAt      DateTime?
+  voidReason    String?
+  /// Copy / convert / credit origin
+  sourceDocumentId String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  customer       Customer?       @relation(fields: [customerId], references: [id])
+  vehicle        Vehicle?        @relation(fields: [vehicleId], references: [id])
+  serviceAdvisor Membership?     @relation("DocumentAdvisor", fields: [serviceAdvisorId], references: [id])
+  mechanic       Membership?     @relation("DocumentMechanic", fields: [mechanicId], references: [id])
+  createdBy      Membership?     @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  processedBy    Membership?     @relation("DocumentProcessedBy", fields: [processedById], references: [id])
+  customerSource CustomerSource? @relation(fields: [customerSourceId], references: [id])
+  sourceDocument Document?       @relation("DocumentSource", fields: [sourceDocumentId], references: [id])
+  derivedDocuments Document[]    @relation("DocumentSource")
+  lines        DocumentLine[]
+  statusEvents DocumentStatusEvent[]
+  timeEntries  TimeEntry[]
+  allocations  PaymentAllocation[]
+  credits      Credit[]
+
+  @@index([tenantId, type, state])
+  @@index([tenantId, number])
+  @@index([tenantId, customerId])
+  @@index([tenantId, vehicleId])
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, jobStatus])
+}
+
+model DocumentLine {
+  id         String   @id @default(cuid())
+  tenantId   String
+  documentId String
+  sortOrder  Int      @default(0)
+  productId  String?
+  lineType   LineType @default(STOCK)
+  description String
+  quantity   Decimal @default(1) @db.Decimal(12, 2)
+  unitPrice  Decimal @default(0) @db.Decimal(12, 2)
+  unitCost   Decimal @default(0) @db.Decimal(12, 2)
+  /// Percentage, e.g. 15.00; 0 for exempt lines
+  vatRate    Decimal @default(0) @db.Decimal(5, 2)
+  discountPercent Decimal @default(0) @db.Decimal(5, 2)
+  lineSubtotal Decimal @default(0) @db.Decimal(12, 2)
+  vatAmount    Decimal @default(0) @db.Decimal(12, 2)
+  lineTotal    Decimal @default(0) @db.Decimal(12, 2)
+  serialNumbers String?
+  isCustomerSupplied Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id])
+
+  @@index([documentId, sortOrder])
+  @@index([tenantId, productId])
+}
+
+model DocumentStatusEvent {
+  id         String     @id @default(cuid())
+  tenantId   String
+  documentId String
+  fromStatus JobStatus?
+  toStatus   JobStatus
+  comment    String?
+  byId       String?
+  at         DateTime   @default(now())
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  document Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  by       Membership? @relation(fields: [byId], references: [id])
+
+  @@index([documentId, at])
+}
+
+model TimeEntry {
+  id         String          @id @default(cuid())
+  tenantId   String
+  documentId String
+  mechanicId String
+  source     TimeEntrySource @default(MANUAL)
+  startedAt  DateTime
+  endedAt    DateTime?
+  minutes    Int?
+  note       String?
+  createdAt  DateTime        @default(now())
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  document Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  mechanic Membership @relation(fields: [mechanicId], references: [id])
+
+  @@index([tenantId, mechanicId, startedAt])
+  @@index([documentId])
+}
+
+// ───────────────────────── money in (PRD §6.11) ─────────────────────────
+
+model Payment {
+  id         String        @id @default(cuid())
+  tenantId   String
+  customerId String
+  methodId   String
+  amount     Decimal       @db.Decimal(12, 2)
+  receivedAt DateTime      @default(now())
+  reference  String?
+  status     PaymentStatus @default(COMPLETED)
+  receiptNumber String?
+  proofAttachmentId String?
+  note       String?
+  takenById  String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id])
+  customer    Customer            @relation(fields: [customerId], references: [id])
+  method      PaymentMethod       @relation(fields: [methodId], references: [id])
+  takenBy     Membership?         @relation(fields: [takenById], references: [id])
+  allocations PaymentAllocation[]
+  credits     Credit[]
+
+  @@index([tenantId, customerId, receivedAt])
+  @@index([tenantId, status])
+}
+
+model PaymentAllocation {
+  id         String  @id @default(cuid())
+  tenantId   String
+  paymentId  String
+  documentId String
+  amount     Decimal @db.Decimal(12, 2)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@unique([paymentId, documentId])
+  @@index([documentId])
+}
+
+/// Deposits and credit notes held on a customer's account (PRD PAY-04)
+model Credit {
+  id         String     @id @default(cuid())
+  tenantId   String
+  customerId String
+  kind       CreditKind
+  amount     Decimal    @db.Decimal(12, 2)
+  remaining  Decimal    @db.Decimal(12, 2)
+  sourceDocumentId String?
+  paymentId  String?
+  note       String?
+  createdAt  DateTime   @default(now())
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  sourceDocument Document? @relation(fields: [sourceDocumentId], references: [id])
+  payment        Payment?  @relation(fields: [paymentId], references: [id])
+
+  @@index([tenantId, customerId])
+}
+
+// ───────────────────────── files & audit ─────────────────────────
+
+model Attachment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  ownerType  String
+  ownerId    String
+  storageKey String
+  fileName   String
+  mimeType   String
+  size       Int
+  uploadedById String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, ownerType, ownerId])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  entityType  String
+  entityId    String
+  action      String
+  diff        Json?
+  at          DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  actor  User?  @relation(fields: [actorUserId], references: [id])
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, at])
+}

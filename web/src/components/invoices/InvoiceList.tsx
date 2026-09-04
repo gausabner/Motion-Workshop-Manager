@@ -96,7 +96,7 @@ export function InvoiceList({ tenant }: { tenant: string }) {
                         {filteredInvoices.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-32 text-center text-slate-500">
-                                    No invoices found matching "{searchTerm}"
+                                    No invoices found matching &quot;{searchTerm}&quot;
                                 </TableCell>
                             </TableRow>
                         )}

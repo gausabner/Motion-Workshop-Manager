@@ -67,7 +67,7 @@ export function ReportsDashboard() {
                         <Briefcase className="w-5 h-5 text-teal-600" strokeWidth={1.5} />
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Today's Jobs</p>
+                        <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Today&apos;s Jobs</p>
                         <h3 className="text-2xl font-bold text-slate-800 mt-0.5">0</h3>
                     </div>
                 </Card>

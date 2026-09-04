@@ -133,7 +133,7 @@ export function CustomerPortalView({ tenant, customerId }: { tenant: string, cus
                         <Card>
                             <CardHeader>
                                 <CardTitle>Health Reports</CardTitle>
-                                <CardDescription>Digital inspection records detailing your vehicle's condition.</CardDescription>
+                                <CardDescription>Digital inspection records detailing your vehicle&apos;s condition.</CardDescription>
                             </CardHeader>
                             <CardContent className="p-0">
                                 <div className="divide-y">

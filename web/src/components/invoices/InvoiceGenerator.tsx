@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -58,7 +57,7 @@ const DEFAULT_INVOICE: Partial<InvoiceFormValues> = {
 };
 
 export function InvoiceGenerator({ invoiceId, tenant }: { invoiceId: string, tenant: string }) {
-    const form = useForm<InvoiceFormValues>({
+    const form = useForm<z.input<typeof invoiceSchema>, unknown, InvoiceFormValues>({
         resolver: zodResolver(invoiceSchema),
         defaultValues: DEFAULT_INVOICE,
         mode: "onChange",
@@ -195,17 +194,17 @@ export function InvoiceGenerator({ invoiceId, tenant }: { invoiceId: string, ten
                                                             </TableCell>
                                                             <TableCell className="p-2">
                                                                 <FormField control={form.control} name={`lineItems.${index}.quantity`} render={({ field }) => (
-                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} className="h-8" /></FormControl></FormItem>
+                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} value={field.value as string | number} className="h-8" /></FormControl></FormItem>
                                                                 )} />
                                                             </TableCell>
                                                             <TableCell className="p-2">
                                                                 <FormField control={form.control} name={`lineItems.${index}.unitPrice`} render={({ field }) => (
-                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} className="h-8" /></FormControl></FormItem>
+                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} value={field.value as string | number} className="h-8" /></FormControl></FormItem>
                                                                 )} />
                                                             </TableCell>
                                                             <TableCell className="p-2">
                                                                 <FormField control={form.control} name={`lineItems.${index}.taxRate`} render={({ field }) => (
-                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} className="h-8" /></FormControl></FormItem>
+                                                                    <FormItem><FormControl><Input type="number" step="0.01" {...field} value={field.value as string | number} className="h-8" /></FormControl></FormItem>
                                                                 )} />
                                                             </TableCell>
                                                             <TableCell className="text-right p-2 font-medium">
@@ -224,7 +223,7 @@ export function InvoiceGenerator({ invoiceId, tenant }: { invoiceId: string, ten
                                     </div>
                                     {fields.length === 0 && (
                                         <div className="text-center py-6 text-slate-500 text-sm border-t border-b border-dashed my-4 mx-6">
-                                            No line items listed. Click 'Add Item' to begin.
+                                            No line items listed. Click &lsquo;Add Item&rsquo; to begin.
                                         </div>
                                     )}
                                 </CardContent>
@@ -247,7 +246,7 @@ export function InvoiceGenerator({ invoiceId, tenant }: { invoiceId: string, ten
                                             <span>${totals.subtotal.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Dynamic Tax ({watchLineItems?.[0]?.taxRate || 0}%)</span>
+                                            <span>Dynamic Tax ({Number(watchLineItems?.[0]?.taxRate) || 0}%)</span>
                                             <span>${totals.totalTax.toFixed(2)}</span>
                                         </div>
                                     </div>

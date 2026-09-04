@@ -1,13 +1,12 @@
 import { CustomerForm } from "@/components/customers/CustomerForm";
+import { requireTenant } from "@/lib/auth/session";
+import { listCustomerSources } from "@/lib/customers/queries";
 
-export const metadata = {
-    title: "New Customer | MOTION Workshop Manager",
-};
+export const metadata = { title: "New customer | MOTION Workshop Manager" };
 
-export default function NewCustomerPage() {
-    return (
-        <div className="flex flex-col h-full bg-slate-50 p-6 overflow-hidden overflow-y-auto">
-            <CustomerForm />
-        </div>
-    );
+export default async function NewCustomerPage({ params }: { params: Promise<{ tenant: string }> }) {
+    const { tenant: slug } = await params;
+    const { db } = await requireTenant(slug);
+    const sources = await listCustomerSources(db);
+    return <CustomerForm tenant={slug} sources={sources} />;
 }

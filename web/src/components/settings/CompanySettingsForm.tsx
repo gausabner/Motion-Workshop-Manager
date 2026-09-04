@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -187,7 +187,6 @@ const defaultValues: Partial<CompanyFormValues> = {
 
 export function CompanySettingsForm() {
     // Client-side hydration safety
-    const [isMounted, setIsMounted] = useState(false);
 
     // UI Expand State (all true by default for better visibility)
     const [openCompany, setOpenCompany] = useState(true);
@@ -205,13 +204,6 @@ export function CompanySettingsForm() {
         defaultValues,
     });
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    if (!isMounted) {
-        return <div className="min-h-screen" />; // Prevent SSR hydration mismatch
-    }
 
     function onSubmit(data: CompanyFormValues) {
         console.log("Settings Update Submitted:", data);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,8 +40,7 @@ const defaultValues: Partial<TaxFormValues> = {
 };
 
 export function TaxSettingsForm() {
-    const form = useForm<TaxFormValues>({
-        // @ts-expect-error Zod coercion inference mismatch with react-hook-form
+    const form = useForm<z.input<typeof taxFormSchema>, unknown, TaxFormValues>({
         resolver: zodResolver(taxFormSchema),
         defaultValues,
     });
@@ -109,7 +107,7 @@ export function TaxSettingsForm() {
                                     <FormItem>
                                         <FormLabel>Sales Tax Rate (%)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
+                                            <Input type="number" step="0.01" {...field} value={field.value as string | number} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -123,7 +121,7 @@ export function TaxSettingsForm() {
                                     <FormItem>
                                         <FormLabel>Purchases Tax Rate (%)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
+                                            <Input type="number" step="0.01" {...field} value={field.value as string | number} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

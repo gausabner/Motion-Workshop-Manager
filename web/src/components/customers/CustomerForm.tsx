@@ -1,282 +1,113 @@
 "use client";
 
-import { User, ExternalLink, ChevronDown, Check, Save, MessageSquare, Mail } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useActionState, useRef } from "react";
+import Link from "next/link";
+import { Save, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Customer } from "@/types/customer";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Field, TextField, SelectField, CheckField, Section } from "@/components/forms/fields";
+import { saveCustomer } from "@/lib/customers/actions";
+import { initialActionState } from "@/lib/forms";
+import type { CustomerRecord } from "@/lib/customers/queries";
 
-interface CustomerFormProps {
-    initialData?: Customer;
-}
+const REGIONS = ["Khomas", "Erongo", "Oshana", "Otjozondjupa", "Hardap", "ǁKaras", "Kunene", "Omaheke", "Omusati", "Ohangwena", "Oshikoto", "Kavango East", "Kavango West", "Zambezi"];
 
-export function CustomerForm({ initialData }: CustomerFormProps) {
-    const router = useRouter();
+type Props = {
+    tenant: string;
+    customer?: CustomerRecord | null;
+    sources: { id: string; name: string }[];
+};
 
-    // Status Toggles state (simulating the pills)
-    const [isCash, setIsCash] = useState(initialData?.is_cash ?? true);
-    const [isIndividual, setIsIndividual] = useState(initialData?.is_individual ?? true);
-    const [isNonBiller, setIsNonBiller] = useState(initialData?.is_non_biller ?? true);
+export function CustomerForm({ tenant, customer, sources }: Props) {
+    const action = saveCustomer.bind(null, tenant, customer?.id ?? null);
+    const [state, formAction, pending] = useActionState(action, initialActionState);
+    const formRef = useRef<HTMLFormElement>(null);
+    const c = customer;
+    const errors = state.errors;
 
-    const handleSave = () => {
-        // In a real app, this would post to an API
-        router.push("/demo-tenant/dashboard/customers");
-    };
+    function copyStreetToPostal() {
+        const f = formRef.current;
+        if (!f) return;
+        for (const k of ["Address1", "Address2", "Suburb", "City", "Region", "Country", "Postcode"]) {
+            const from = f.elements.namedItem(`street${k}`) as HTMLInputElement | HTMLSelectElement | null;
+            const to = f.elements.namedItem(`postal${k}`) as HTMLInputElement | HTMLSelectElement | null;
+            if (from && to) to.value = from.value;
+        }
+    }
 
     return (
-        <div className="w-full max-w-7xl mx-auto h-full flex flex-col pb-12">
-            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-                <Card className="rounded-none shadow-none border border-slate-200">
-                    {/* Header Section */}
-                    <CardHeader className="bg-slate-50 border-b py-3 px-6 flex flex-row items-center justify-between space-y-0 relative">
-                        <div className="flex items-center gap-3">
-                            <User className="w-6 h-6 text-slate-400" />
-                            <CardTitle className="text-xl text-slate-800 font-bold">Customer Details:</CardTitle>
-                        </div>
-
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-700">Unapplied Credit:</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-700">Account Balance:</span>
-                            </div>
-                            <div className="flex items-center gap-1 border-l pl-4 border-slate-300">
-                                <button type="button" className="p-1 px-2 text-slate-500 hover:text-slate-800 transition-colors">
-                                    <ExternalLink className="w-4 h-4" />
-                                </button>
-                                <button type="button" className="p-1 px-2 text-slate-500 hover:text-slate-800 transition-colors bg-slate-200/50 rounded-sm">
-                                    <ChevronDown className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Status Pills aligned bottom right of header area - rendered absolutely for exact mockup mapping or flex col */}
-                        <div className="absolute right-6 -bottom-5 flex items-center gap-2">
-                            {/* Cash Pill */}
-                            <button type="button" onClick={() => setIsCash(!isCash)} className={`flex items-center rounded-full border border-teal-600 text-[10px] font-bold tracking-wider overflow-hidden transition-colors ${isCash ? 'bg-teal-600 text-white' : 'bg-white text-teal-600'}`}>
-                                <span className="px-3 py-0.5">CASH</span>
-                                <div className={`w-5 h-5 rounded-full border border-teal-600 flex items-center justify-center bg-white ml-0.5 mr-[1px] my-[1px] ${isCash ? 'opacity-100' : 'opacity-0'}`}>
-                                </div>
-                            </button>
-                            {/* Individual Pill */}
-                            <button type="button" onClick={() => setIsIndividual(!isIndividual)} className={`flex items-center rounded-full border border-slate-400 text-[10px] font-bold tracking-wider overflow-hidden transition-colors ${isIndividual ? 'bg-slate-400 text-white' : 'bg-white text-slate-400'}`}>
-                                <span className="px-3 py-0.5">INDIVIDUAL</span>
-                                <div className={`w-5 h-5 rounded-full border border-slate-400 flex items-center justify-center bg-white ml-0.5 mr-[1px] my-[1px] ${isIndividual ? 'opacity-100' : 'opacity-0'}`}>
-                                </div>
-                            </button>
-                            {/* Non Biller Pill */}
-                            <button type="button" onClick={() => setIsNonBiller(!isNonBiller)} className={`flex items-center rounded-full border border-slate-400 text-[10px] font-bold tracking-wider overflow-hidden transition-colors ${isNonBiller ? 'bg-slate-400 text-white' : 'bg-white text-slate-400'}`}>
-                                <span className="px-3 py-0.5">NON-BILLER</span>
-                                <div className={`w-5 h-5 rounded-full border border-slate-400 flex items-center justify-center bg-white ml-0.5 mr-[1px] my-[1px] ${isNonBiller ? 'opacity-100' : 'opacity-0'}`}>
-                                </div>
-                            </button>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="p-8 pt-12 space-y-6 bg-white">
-                        {/* Row 1: Names and Biller */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <Label className="text-xs text-slate-600 font-medium">First Name</Label>
-                                    <span className="text-[10px] text-slate-400">required</span>
-                                </div>
-                                <Input required defaultValue={initialData?.first_name} className="bg-white border-slate-200 h-10 rounded-sm focus-visible:ring-1 focus-visible:ring-teal-500 shadow-none border-b-2 border-b-teal-500" />
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <Label className="text-xs text-slate-600 font-medium">Last Name</Label>
-                                    <span className="text-[10px] text-slate-400">required</span>
-                                </div>
-                                <Input required defaultValue={initialData?.last_name} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Biller</Label>
-                                <Select defaultValue={initialData?.biller || ""}>
-                                    <SelectTrigger className="bg-slate-50 border-transparent hover:border-slate-200 h-10 rounded-sm shadow-none">
-                                        <SelectValue placeholder="Choose A Biller..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Row 2: Street Addresses */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Street Address 1</Label>
-                                <Input defaultValue={initialData?.street_address_1 || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Street Address 2</Label>
-                                <Input defaultValue={initialData?.street_address_2 || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                        </div>
-
-                        {/* Row 3: Street Suburb etc */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Street Suburb</Label>
-                                <Input defaultValue={initialData?.street_suburb || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Street State</Label>
-                                <Select defaultValue={initialData?.street_state || ""}>
-                                    <SelectTrigger className="bg-slate-50 border-transparent hover:border-slate-200 h-10 rounded-sm shadow-none">
-                                        <SelectValue placeholder="Select state..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="nsw">New South Wales</SelectItem>
-                                        <SelectItem value="vic">Victoria</SelectItem>
-                                        <SelectItem value="qld">Queensland</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postcode</Label>
-                                <Input defaultValue={initialData?.street_postcode || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                        </div>
-
-                        {/* Row 4: Postal Addresses */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postal Address 1</Label>
-                                <Input defaultValue={initialData?.postal_address_1 || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postal Address 2</Label>
-                                <Input defaultValue={initialData?.postal_address_2 || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                        </div>
-
-                        {/* Row 5: Postal Suburb etc */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postal Suburb</Label>
-                                <Input defaultValue={initialData?.postal_suburb || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postal State</Label>
-                                <Select defaultValue={initialData?.postal_state || ""}>
-                                    <SelectTrigger className="bg-slate-50 border-transparent hover:border-slate-200 h-10 rounded-sm shadow-none">
-                                        <SelectValue placeholder="Select state..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="nsw">New South Wales</SelectItem>
-                                        <SelectItem value="vic">Victoria</SelectItem>
-                                        <SelectItem value="qld">Queensland</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Postcode</Label>
-                                <Input defaultValue={initialData?.postal_postcode || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                        </div>
-
-                        {/* Row 6: Phones & Fax */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Phone</Label>
-                                <Input defaultValue={initialData?.phone || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1 relative">
-                                <Label className="text-xs text-slate-600 font-medium">Mobile</Label>
-                                <div className="relative">
-                                    <Input defaultValue={initialData?.mobile || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none pr-10" />
-                                    <div className="absolute right-0 top-0 h-full w-10 bg-slate-400 rounded-r-sm flex items-center justify-center">
-                                        <MessageSquare className="w-4 h-4 text-white" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Fax</Label>
-                                <Input defaultValue={initialData?.fax || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                        </div>
-
-                        {/* Row 7: Digital / Web */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1 relative">
-                                <Label className="text-xs text-slate-600 font-medium">Email</Label>
-                                <div className="relative">
-                                    <Input defaultValue={initialData?.email || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none pr-10" />
-                                    <div className="absolute right-0 top-0 h-full w-10 border-l border-slate-200 flex items-center justify-center pointer-events-none">
-                                        <Mail className="w-4 h-4 text-slate-400" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Web</Label>
-                                <Input defaultValue={initialData?.web || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-xs text-slate-600 font-medium">Preferred Method Of Contact</Label>
-                                <Select defaultValue={initialData?.preferred_contact_method || ""}>
-                                    <SelectTrigger className="bg-slate-50 border-transparent hover:border-slate-200 h-10 rounded-sm shadow-none">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="email">Email</SelectItem>
-                                        <SelectItem value="phone">Phone</SelectItem>
-                                        <SelectItem value="sms">SMS</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Row 8: Rates */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-1 relative">
-                                <Label className="text-xs text-slate-600 font-medium">Hourly Rate</Label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
-                                    <Input type="number" defaultValue={initialData?.hourly_rate || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none pl-7" />
-                                </div>
-                            </div>
-                            <div className="space-y-1 relative">
-                                <Label className="text-xs text-slate-600 font-medium">Discount</Label>
-                                <div className="relative">
-                                    <Input type="number" defaultValue={initialData?.discount || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none pr-8" />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">%</span>
-                                </div>
-                            </div>
-                            <div className="space-y-1 relative">
-                                <Label className="text-xs text-slate-600 font-medium">Markup</Label>
-                                <div className="relative">
-                                    <Input type="number" defaultValue={initialData?.markup || ""} className="bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white h-10 rounded-sm shadow-none pr-8" />
-                                    <div className="absolute right-0 top-0 h-full w-10 bg-teal-600 rounded-r-sm flex items-center justify-center pointer-events-none cursor-pointer">
-                                        <span className="text-white font-medium">%</span>
-                                    </div>
-                                    {/* Question mark tool tip indicator in mockup next to it - appending a small absolutely positioned circle */}
-                                    <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-teal-700 flex items-center justify-center text-white text-xs font-bold cursor-help shadow-md">
-                                        ?
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Floating Save Bar (mimicking form actions in SaaS) 
-                    Not strictly in the screenshot (it might be cut off), but vital for user flow
-                */}
-                <div className="flex justify-end gap-3 mt-6 mr-10">
-                    <Button type="button" variant="outline" onClick={() => router.push("/demo-tenant/dashboard/customers")} className="bg-white border-slate-300 text-slate-700">Cancel</Button>
-                    <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white">
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Customer
+        <form ref={formRef} action={formAction} className="space-y-4 max-w-7xl mx-auto pb-12">
+            <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-500">{c ? "Edit customer" : "New customer"}</p>
+                <div className="flex items-center gap-2">
+                    {state.message && !state.ok && <span className="text-sm text-red-600" role="alert">{state.message}</span>}
+                    <Button asChild variant="outline" size="sm"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
+                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={pending}>
+                        <Save className="w-4 h-4 mr-1" /> {pending ? "Saving…" : "Save"}
                     </Button>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <Section title="Customer">
+                <TextField label="First name" name="firstName" defaultValue={c?.firstName} errors={errors} required autoFocus={!c} />
+                <TextField label="Last name / company" name="lastName" defaultValue={c?.lastName} errors={errors} required />
+                <TextField label="Business registration no." name="businessNumber" defaultValue={c?.businessNumber} errors={errors} />
+                <TextField label="VAT number" name="vatNumber" defaultValue={c?.vatNumber} errors={errors} />
+                <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
+                    <CheckField label="Business / fleet account" name="isBusiness" defaultChecked={c?.isBusiness} hint="Order numbers required on invoices" />
+                    <CheckField label="VAT exempt" name="vatExempt" defaultChecked={c?.vatExempt} />
+                </div>
+            </Section>
+
+            <Section title="Contact">
+                <TextField label="Mobile (WhatsApp)" name="mobile" type="tel" defaultValue={c?.mobile} errors={errors} placeholder="+264 81 …" />
+                <TextField label="Phone" name="phone" type="tel" defaultValue={c?.phone} errors={errors} />
+                <TextField label="Email" name="email" type="email" defaultValue={c?.email} errors={errors} />
+                <SelectField label="Preferred contact" name="preferredContact" defaultValue={c?.preferredContact ?? "WHATSAPP"} errors={errors}
+                    options={[{ value: "WHATSAPP", label: "WhatsApp" }, { value: "SMS", label: "SMS" }, { value: "EMAIL", label: "Email" }, { value: "OPT_OUT", label: "Opted out of messages" }]} />
+                <TextField label="Fax" name="fax" defaultValue={c?.fax} errors={errors} />
+                <TextField label="Website" name="web" defaultValue={c?.web} errors={errors} />
+                <SelectField label="Customer source" name="customerSourceId" defaultValue={c?.customerSourceId} errors={errors} allowEmpty="—" options={sources.map((s) => ({ value: s.id, label: s.name }))} />
+            </Section>
+
+            <Section title="Street address">
+                <TextField label="Address 1" name="streetAddress1" defaultValue={c?.streetAddress1} errors={errors} className="lg:col-span-2" />
+                <TextField label="Address 2" name="streetAddress2" defaultValue={c?.streetAddress2} errors={errors} className="lg:col-span-2" />
+                <TextField label="Suburb" name="streetSuburb" defaultValue={c?.streetSuburb} errors={errors} />
+                <TextField label="City / town" name="streetCity" defaultValue={c?.streetCity ?? (c ? "" : "Windhoek")} errors={errors} />
+                <SelectField label="Region" name="streetRegion" defaultValue={c?.streetRegion ?? (c ? "" : "Khomas")} errors={errors} allowEmpty="—" options={REGIONS.map((r) => ({ value: r, label: r }))} />
+                <TextField label="Postcode" name="streetPostcode" defaultValue={c?.streetPostcode} errors={errors} />
+                <input type="hidden" name="streetCountry" value={c?.streetCountry ?? "NA"} />
+            </Section>
+
+            <Section title="Postal address">
+                <div className="lg:col-span-4 -mt-1">
+                    <Button type="button" variant="ghost" size="sm" onClick={copyStreetToPostal} className="text-teal-700 h-7 px-2"><ArrowDownToLine className="w-3.5 h-3.5 mr-1" />Same as street address</Button>
+                </div>
+                <TextField label="Address 1" name="postalAddress1" defaultValue={c?.postalAddress1} errors={errors} className="lg:col-span-2" />
+                <TextField label="Address 2" name="postalAddress2" defaultValue={c?.postalAddress2} errors={errors} className="lg:col-span-2" />
+                <TextField label="Suburb" name="postalSuburb" defaultValue={c?.postalSuburb} errors={errors} />
+                <TextField label="City / town" name="postalCity" defaultValue={c?.postalCity} errors={errors} />
+                <SelectField label="Region" name="postalRegion" defaultValue={c?.postalRegion} errors={errors} allowEmpty="—" options={REGIONS.map((r) => ({ value: r, label: r }))} />
+                <TextField label="Postcode" name="postalPostcode" defaultValue={c?.postalPostcode} errors={errors} />
+                <input type="hidden" name="postalCountry" value={c?.postalCountry ?? "NA"} />
+            </Section>
+
+            <Section title="Pricing & terms">
+                <SelectField label="Price level" name="priceType" defaultValue={c?.priceType ?? "RETAIL"} errors={errors}
+                    options={[{ value: "RETAIL", label: "Retail" }, { value: "PRICE2", label: "Price 2" }, { value: "PRICE3", label: "Price 3" }, { value: "PRICE4", label: "Price 4" }]} />
+                <TextField label="Hourly rate override (N$)" name="hourlyRate" type="number" step="0.01" min="0" defaultValue={c?.hourlyRate} errors={errors} hint="Blank = workshop default" />
+                <TextField label="Discount %" name="discountPercent" type="number" step="0.01" min="0" max="100" defaultValue={c?.discountPercent ?? 0} errors={errors} />
+                <TextField label="Markup %" name="markupPercent" type="number" step="0.01" min="0" defaultValue={c?.markupPercent ?? 0} errors={errors} />
+                <SelectField label="Payment terms" name="paymentTermsDays" defaultValue={c?.paymentTermsDays != null ? String(c.paymentTermsDays) : ""} errors={errors} allowEmpty="Workshop default"
+                    options={[{ value: "0", label: "Cash on delivery" }, { value: "7", label: "7 days" }, { value: "14", label: "14 days" }, { value: "30", label: "30 days" }, { value: "60", label: "60 days" }]} />
+                <TextField label="Credit limit (N$)" name="creditLimit" type="number" step="0.01" min="0" defaultValue={c?.creditLimit} errors={errors} />
+            </Section>
+
+            <Section title="Notes">
+                <Field label="Internal note" name="note" errors={errors} className="lg:col-span-4">
+                    <textarea id="note" name="note" defaultValue={c?.note ?? ""} rows={3} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                </Field>
+            </Section>
+        </form>
     );
 }

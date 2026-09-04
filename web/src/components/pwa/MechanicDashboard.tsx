@@ -155,7 +155,7 @@ export function MechanicDashboard({ tenant }: { tenant: string }) {
             <main className="flex-1 p-4 pb-24 overflow-auto">
 
                 <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-1">Today's Bayes</h2>
+                    <h2 className="text-2xl font-bold mb-1">Today&apos;s Bays</h2>
                     <p className="text-slate-400 text-sm">{format(new Date(), "EEEE, MMMM do")}</p>
                 </div>
 
