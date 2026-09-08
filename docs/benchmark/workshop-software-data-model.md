@@ -376,3 +376,121 @@ Reports are rendered by **JasperReports**: `GET /reports/jasper_mechanic_times_l
 
 ### Test data left in the account
 `ZZTEST Probe Customer` · vehicle `ZZTEST001` · invoice **50000** (closed) · payments **30000** and **30001** · one draft inspection. Delete in that reverse order if you want the account clean; the invoice cannot be deleted while payments are allocated to it.
+
+---
+
+## 10. Payables, observed end to end
+
+*(8 September 2026. A stock order was raised and processed, a supplier invoice received against stock, and the supplier paid — all in the live trial account, every figure read back from the API.)*
+
+### The supplier record mirrors the customer record exactly
+Header carries **Unapplied Credit** and **Account Balance**, a `NON-BILLER` pill, then accordions: *Supplier Stock Orders · Supplier Invoices · Supplier Payments · Activity Log*. Suppliers have a `biller` parent, the same as customers. Payables is receivables reflected.
+
+The sample data is **South-African localised** — Kuruman, Vanderbijlpark, Soweto, Krugersdorp, Welkom. They are already seeding this region.
+
+### Stock order (purchase order)
+
+`purchase_orders` is **11 columns** — refreshingly small:
+
+```
+id · vendor_id · order_number · order_date · due_date · total · status · note
+gsf_order_number · purchase_order_items_attributes · itemsToDelete
+```
+
+Items (`purchase_order_items`):
+
+```
+id · purchase_order_id · product_id · item_code · description
+quantity_ordered · unit_cost · cost_including_tax · total
+item_due_date · note · gst_free
+```
+
+Three things matter:
+
+- **The line grid carries `Job Card No.` and a per-line `Due Date`.** Parts are ordered against a specific job, and each line can arrive on its own date.
+- The quantity field is **`quantity_ordered`**, implying receipt is counted elsewhere — it is (see below).
+- **The order number is allocated on `Save`, not on `Process`** — the opposite of customer invoices. Our test PO became **20000** while still a draft.
+
+**Status flow: `S` Suggested → `O` On Order.** A new order starts *Suggested*, which is the reorder-suggestion state; processing commits it. Processing shows one confirm — *"Are you sure you want to save and process this order?"* with **Cancel / Yes** (note: `Cancel`, not `No` — inconsistent with the invoice dialog's `No / Yes`).
+
+**Processing a purchase order does not touch stock.** `quantity_on_hand` was unchanged at −1.0 before and after. A PO is a commitment, nothing more.
+
+### Supplier invoice — this is what receives goods
+
+`vendor_invoices` is **25 columns**, against the customer invoice's 96:
+
+```
+id · vendor_id · vendor_invoice_number · other_reference · post_date
+invoice_type · invoice_status · cash_or_account · vendor_invoice_payment_terms
+price_includes_tax · purchase_tax_rate · rounding
+subtotal · gst · total · freight · cost · balance_due
+purchase_order_id · description · note
+vendor_invoice_items_attributes · itemsToDelete · savedBalance · savedTotal
+```
+
+Items:
+
+```
+id · vendor_invoice_id · product_id · item_code · description
+quantity · unit_cost · gst · gst_free · total
+purchase_order_item_id · requires_serial_number · note · ordering
+```
+
+The important findings:
+
+- **`price_includes_tax` is a per-document toggle here**, not just a company setting — because suppliers quote differently from one another. And **`purchase_tax_rate` is snapshotted separately from the sales rate**. They snapshot tax on the payables side too.
+- **`vendor_invoice_number` is the *supplier's* number**, with `other_reference` alongside — we are not numbering their document, they are.
+- **`purchase_order_item_id` on each line** — receipt is matched at **line level**, so one PO line can be fulfilled across several supplier invoices. That is the partial-receipt mechanism.
+- `purchase_order_id` on the header links the invoice to one order. Creating a supplier invoice standalone leaves it **null**, and the PO stays *On Order* — the link is only made when the invoice is started **from** the order (the `acquisition_id` route parameter).
+- The totals block reads *Subtotal · Freight · Sales Tax (15.0%) · Invoice Total · **Paid To Date** · **Balance Due***, with the **rate shown inline in the label** — a small, good UI detail.
+- Each line gains a **`$` action** once saved — "change sell price", letting the buyer reprice the product from the cost just received.
+
+**Processing moved stock: `quantity_on_hand` −1.0 → 4.0** (five received). Status `O` → `P`, and the **supplier's denormalised `balance` was written to 3,133.75** — the same pattern as customers.
+
+So the stock ledger is: **customer invoice processes → stock out. Supplier invoice processes → stock in.** The purchase order sits between them as a commitment only.
+
+### Supplier payment — deliberately simpler than a customer payment
+
+`vendor_payments` is **10 columns**:
+
+```
+id · vendor_id · amount · applied_amount · reference · post_date · note
+vendor_payment_number · status · vendor_payment_items_attributes
+```
+
+**There is no tender collection.** A customer payment has both allocations *and* `customer_payment_methods_attributes`; a supplier payment has allocations only. That asymmetry is deliberate and correct — money coming in over a counter is split across cash, card and EFT, money going out is one transfer.
+
+The allocation carries `vendor_name` alongside the invoice snapshot, and the grid has a **Supplier column** — so **one payment can span several suppliers**, which a customer payment cannot.
+
+Settlement: supplier invoice `P` → **`C`**, supplier `balance` 3,133.75 → **0.0**.
+
+### A bug in their system worth not copying
+
+On the customer side, settling an invoice set `balance_due` to `0.0`. On the payables side it did **not** — the supplier invoice still reports `balance_due: 3133.75` while its status is `C` and the supplier balance is correctly zero. The *allocation row* snapshot holds the right figure (`vendor_invoice_balance_due: 0.0`); the invoice header is stale.
+
+**Consequence:** on their payables side, `invoice_status` is the source of truth and `balance_due` cannot be trusted. Any report joining on `vendor_invoices.balance_due` overstates what is owed. This is exactly the failure mode a denormalised balance invites, and the argument for deriving ours from allocations.
+
+### Number sequences, complete
+
+| Document | Starts at | Allocated |
+|:--|--:|:--|
+| Job card / customer invoice | 50000 | job number on create, invoice number on **process** (equal by default) |
+| Purchase order | 20000 | on **save** |
+| Customer payment | 30000 | on process |
+| Supplier payment | 40000 | on process |
+
+### Consequences for our build
+
+| # | Change | Why |
+|:--|:--|:--|
+| 1 | **Stock moves on invoice processing, both directions** — customer invoice out, supplier invoice in; the PO is a commitment only | Verified in both directions |
+| 2 | **Line-level receipt matching** (`purchaseOrderLineId` on the supplier-invoice line) | The only way partial receipt works |
+| 3 | **`pricesIncludeTax` and the tax rate snapshotted per supplier document**, with a purchase rate distinct from the sales rate | Suppliers quote differently; verified they do this |
+| 4 | **Job reference on purchase-order and supplier-invoice lines** | This is what makes true job costing possible — parts bought are attributed to the job |
+| 5 | **Supplier payments need no tender lines**, but should allow **multiple suppliers** on one payment | Matches the real shape of paying out |
+| 6 | **Derive the supplier balance from allocations, do not denormalise it onto the invoice** | Their stale `balance_due` is the cautionary tale |
+| 7 | Per-line **due date** on orders, and a **"change sell price"** action on receipt | Both are small and both are real workshop behaviour |
+| 8 | Keep our confirm dialogs **consistently worded** | Theirs say `No / Yes` in one place and `Cancel / Yes` in another |
+
+### Test data added
+Supplier **Vlok Group**: purchase order **20000** (On Order, unfulfilled), supplier invoice **ZZTEST-SI-001** (Closed), supplier payment **40000**. Product `NPN03` now shows **4** on hand.
