@@ -1,223 +1,239 @@
 # MOTION — build roadmap
 
-> **What this is:** how we get from where the code is today to a product that beats Workshop Software in our market, and the reasoning behind the order.
+> **The end goal:** a Namibian or South African workshop runs its entire day in MOTION — books the car in, works the job, takes the money, orders the parts, pays the supplier, and knows what it made — on one modern codebase, in its own currency and tax regime, talking to customers on WhatsApp. Feature-comparable to Workshop Software's Gold tier, better on everything local, and without thirty years of accumulated schema debt.
+>
+> **Where to start:** §5, R1c. Two of those items are live correctness bugs.
+>
 > **Basis:** [feature inventory](benchmark/workshop-software-feature-inventory.md) · [screen flows](benchmark/workshop-software-flows.md) · [API & data model](benchmark/workshop-software-data-model.md) · [PRD](../PRD.md)
-> **Date:** 8 September 2026
+> **Revised:** 8 September 2026, after running the complete money path — receivables and payables — through the live benchmark.
 
 ---
 
-## 1. Confidence in the benchmark findings
+## 1. What we now know, and how well
 
-Not everything in those three documents is equally well established. Before committing to a plan, here is what we actually know.
+The benchmark work went through three rounds: reading 35 saved pages, walking the live app, then **transacting in it**. That last round is what makes this plan trustworthy.
 
-### Verified directly — build on these without hesitation
+### Verified by transacting — build on these without hesitation
 
-| Finding | How it was established |
+A priced invoice was created, processed and settled by two part-payments; a purchase order was raised and processed; a supplier invoice received stock; the supplier was paid; a credit note was raised and processed. Every figure below was read back from their API.
+
+| Behaviour | What we saw |
 |:--|:--|
-| The nine job statuses and their codes | Read from `/system/job_status_types` |
-| Invoice status `Open / Processed / Closed`, with `voided` a separate flag | Read from `/system/invoice_status_types` |
-| Inspection status `Draft / Requested Approval / Approved / Refused / Finalized` | Read from `/system/inspection_status_types` |
-| Table widths — vehicles 151, invoices 148, customers 104, products 83, company 338 | Enumerated field-by-field from live records |
-| Tax settings, cost and balance are stored on the invoice header | Column list of a real invoice record |
-| Per-item inspection approval (`approved_on`, `approved_by`) and item→invoice linkage | Column list of a real inspection's items |
-| Template items are snapshotted (44 copied, each with `template_item_id`) | Created a real inspection and read it back |
-| Lines save with the document, not individually | Adding a line produced zero network traffic |
-| Lists stream as SSE; paging/sorting in the URL path | Response headers and URL patterns |
-| `company_id` is the tenant key; `created_by`/`updated_by`/`is_deletable` on every row | Diffed single-record vs list responses |
-| Each accordion section is its own paginated endpoint | 19 requests observed on one customer open |
-| Backend is Ruby on Rails | `*_attributes` + `_destroy` nested-attribute markers |
-| The full IA, every menu, and the 134 routes | Walked every screen; read the router state table |
+| **Document lifecycle** | `O` Open → `P` Processed → `C` Closed. `C` is set automatically when `balance_due` reaches zero; a partial payment leaves it at `P` |
+| **Process is a flow, not a button** | Prompted *Update Renewal Dates* modal → dedicated `PATCH …/update_vehicle_details_on_process_invoice` → *"Are you sure"* confirm |
+| **Numbering** | Job number on create, invoice number on process, and by default **they are the same number**. Clean 10 000-blocks: credits 10000 · POs 20000 · customer payments 30000 · supplier payments 40000 · jobs/invoices 50000. POs number on **save**, everything else on process |
+| **Stock ledger** | Customer invoice out · credit **in** · supplier invoice **in** · purchase order **not at all**. Negative stock allowed silently |
+| **Payments** | Two child collections — allocations *and* **tender lines**. Tenders carry their own reference; `payment_type` is a string; `amount` vs `applied_amount` is the unapplied-credit mechanism; allocations must balance tenders before posting |
+| **Payables** | Supplier invoice receives goods, matched at **line level** via `purchase_order_item_id`. `price_includes_tax` and `purchase_tax_rate` snapshotted per document. Supplier payments have **no** tender lines but **can span suppliers** |
+| **Credits** | Same `invoices` table, `invoice_type` ∈ `I`/`C`/`Q`. Own sequence. Returns stock. Does **not** auto-post to the customer balance |
+| **Tax** | `tax_rate`, `tax_group_id`, `discount_includes_tax`, `gst_before_discount` all snapshotted onto the document |
+| **Multi-tenancy** | `company_id` on every row, stripped from list responses. `created_by` / `updated_by` / `is_deletable` everywhere |
+| **Inspections** | Per-**item** approval (`approved_on`/`approved_by`); items snapshotted from the template; approved items carry the `invoice_id` they became |
+| **Their stack** | Ruby on Rails (nested attributes, `_destroy`), AngularJS mid-migration to Angular, JasperReports for PDFs, SSE for list endpoints |
 
-### Inferred with good evidence — likely right, cheap if wrong
+### Two of their bugs we must not inherit
 
-- **Why** they denormalise `cost` and `balance_due` onto headers: almost certainly to make the dashboard and receivables queries fast. The alternative explanation — that it is simply old code — does not change what we should do.
-- `stock_variance_performed` is an idempotency guard on stock movement at process time. Named clearly, but I never processed an invoice to watch it fire.
-- The portal is a separate front end. Strong evidence (no route, no other host in the bundles) but not proven; I declined to probe their web server for it.
-- `Closed` means fully settled. Reasonable from the name and from `balance_due`, not confirmed against a paid invoice.
-
-### Now verified — the money path *(updated 8 September 2026)*
-
-The three largest gaps below have since been closed by running a priced invoice through process and settling it with two part-payments. See [§9 of the data-model document](benchmark/workshop-software-data-model.md). In summary:
-
-- **Process** is a three-step flow — a prompted *Update Renewal Dates* modal, a dedicated `PATCH …/update_vehicle_details_on_process_invoice`, then a confirm. It numbers from the JOB sequence (invoice number **equals** job card number by default), jumps `job_status` straight to Finalised, auto-fills the description from line 1, writes the denormalised customer balance, and **decrements stock, allowing it to go negative silently**.
-- **Payments** are documents with **two** child collections — allocations and **tender lines**. Tenders carry their own `reference`, `payment_type` is a string not an FK, and `amount` vs `applied_amount` is the unapplied-credit mechanism. Allocations must balance tenders before posting.
-- **Settlement**: partial payment leaves the invoice at `P`; full settlement flips it to `C` with `balance_due` 0. `stock_variance_performed` was **not** present on the invoice record — that earlier note was wrong, and stock movement is not guarded by a flag on the invoice.
-
-This adds three schema changes to R1c/R2 that were not in the original plan: **tender lines on the payment**, **`reference` per tender**, and **`amount` separate from `allocated`**.
+1. **Settling a supplier invoice leaves `balance_due` stale** at the full amount while the status flips to `C` and the supplier balance correctly zeroes. Any payables report joining on `balance_due` overstates what is owed. This is the denormalised-balance failure mode, caught in the act.
+2. **The renewal-dates modal fires when processing a credit note**, prompting for odometer on a document returning parts. The invoice flow applied indiscriminately.
 
 ### Still not established — do not plan around these
 
-- **The portal's customer-facing side.** Everything in §8 is the *workshop* side. What the customer sees, how they authenticate, and whether it can take payment remain unknown — the portal is a separate application reached only by a link inside a sent email.
-- Inspection → invoice conversion; credit notes, refunds and apply-credit.
-- The entire payables side: supplier invoices, purchase orders, supplier payments.
-- Stock take, price matrix internals, bundles.
-- Report output, BI dashboards, statements.
-- **The mobile app was not examined at all.**
-- Booking-diary drag-and-drop, and public booking request approval.
-- Multi-tax combination and rounding behaviour when enabled.
+- **The portal's customer-facing side.** Auth, what is exposed, whether it takes payment. Reaching it means sending mail.
+- **Inspection → invoice conversion**; **Apply Credits / Refund Credit** end to end; where unapplied credit is actually computed.
+- **Stock-take variance application** — the count cell resisted automation, so this is inference from the variance report, not observation.
+- **Split** and **Rework** — two document operations we have no model for.
+- **The mobile app** — entirely unexamined.
+- Price matrix internals, bundle expansion, serial numbers, loan-car cycle, diary drag-and-drop, public-booking approval queue, multi-tax and rounding, supplier credits.
 
-> **Consequence for planning:** the schema changes in §3 rest almost entirely on verified findings and are safe to commit to now. Process and payment allocation have since been observed directly, so R2 no longer needs a spike. The portal still does — and it is the one slice where we should expect surprises.
-
-### Confidence in the schema changes themselves
-
-| Change | Confidence | Why |
-|:--|:--|:--|
-| Snapshot tax settings onto the document | **High** | Verified they do it, and it fixes a live correctness bug in ours regardless of what they do |
-| Add `CLOSED` document state | **High** | Verified enum; receivables needs it |
-| `external_refs` table instead of per-integration columns | **High** | Their 148-column invoice is the counter-example, in evidence |
-| Store discount decomposition | **High** | Verified columns; needed for the printed document |
-| Per-item inspection approval + item→product join | **High** | Verified from a real inspection |
-| Vehicle extras as typed JSON by group | **Medium-high** | The problem is verified; our specific remedy is a judgement call |
-| Rework and invoice-split modelling | **Medium** | Columns verified, semantics inferred. Cheap now, so worth doing |
-| `rounding` / `unroundedTotal` | **Medium** | Verified columns; matters only once a tenant turns rounding on |
-| Cached customer balance | **Medium** | They do it; whether we need it depends on our query volume. Defer until measured |
+> **Consequence:** everything R1c and R2 need is now specified from observation. R5 (portal, inspections, mobile) is where the unknowns cluster — probe those closer to the time, not now.
 
 ---
 
-## 2. What took them thirty years, and what we can skip
+## 2. Where the code stands today
 
-Workshop Software accreted in the order the market pulled it, on the technology of each era:
+On `r1/foundation`, verified end to end in a browser:
 
-| Era | What they added | Cost to them |
-|:--|:--|:--|
-| 1990s | Job cards, invoicing, customers, vehicles — desktop | The core domain, learned from scratch |
-| 2000s | Stock, suppliers, purchasing, reporting | Warehouse and accounting complexity |
-| ~2010 | Rewrite to a web app (AngularJS), multi-tenant SaaS | A full rewrite |
-| 2010s | Accounting and parts integrations, native mobile app | Column sprawl across every core table |
-| Late 2010s | Inspections, public booking, reminders | The customer-facing turn |
-| 2020s | Payments, portal, BI, multi-site, two-way SMS, website builder | A second rewrite, still unfinished (AngularJS → Angular) |
-
-**We inherit the domain model for free.** The three benchmark documents are thirty years of hard-won domain knowledge — the nine job statuses, the single transaction document, cost on every line, per-item inspection approval — recovered in a day. That is the single largest saving available to us, and it is already banked.
-
-**What we skip entirely:** the DOS-era migration, the AngularJS rewrite, the second rewrite they are in the middle of now, twenty years of AU/US parts-catalogue integrations, and the discovery cost of learning what a workshop needs.
-
-**What we must still earn:** trust, data migration from incumbents, support, and the long tail of small correctness details that only real workshops surface.
-
-**The asymmetry to exploit:** their architecture cannot absorb new integrations or verticals without widening core tables, and they are mid-rewrite. Our foundational bets — `external_refs`, typed JSON extras, normalised contacts, row-level tenancy, snapshotted tax — cost us days now and are effectively impossible for them to retrofit.
-
----
-
-## 3. Where the code stands today
-
-Done and verified on `r1/foundation`:
-
-- One codebase: Next.js 16 + Prisma 6 + PostgreSQL 15
-- Session auth (bcrypt, DB sessions, httpOnly cookie), workshop registration, six user groups, action-based permission matrix
-- `forTenant()` scoping on every tenant-owned query, verified to hold inside transactions
+- One codebase — Next.js 16 + Prisma 6 + PostgreSQL 15
+- Session auth, workshop registration, six user groups, action-based permissions
+- `forTenant()` scoping on every tenant-owned query, holding inside transactions
 - Customers and vehicles: list, search, archive, create/edit, on real data
-- The transaction document: quote → booking → job card → invoice → credit, with lines, per-line cost, VAT-inclusive and exclusive maths (14 unit tests), atomic per-tenant numbering, process / void / copy / convert / credit-note, nine job statuses with history
+- The transaction document: quote → booking → job card → invoice → credit, with per-line cost, VAT-inclusive and exclusive maths (14 unit tests), atomic numbering, process / void / copy / convert / credit-note, nine job statuses with history
 - Transaction Centre and jobs board on real data
-- Verified end to end in the browser: booking → job card → invoice `INV-1001`, vehicle service record updated, credit note negated
 
-Known gaps carried forward: customer/vehicle pickers are `<select>` and will not scale; no payments; no diary; no documents leave the building (no PDF, no send).
+**Known gaps carried forward:** customer/vehicle pickers are `<select>` and will not scale; no payments; no diary; nothing leaves the building (no PDF, no send).
 
 ---
 
-## 4. The build sequence
+## 3. What took them thirty years, and what we skip
 
-The order is dependency-driven, not feature-driven. Each phase is chosen because it unlocks the next.
+| Era | Them | Us |
+|:--|:--|:--|
+| 1990s | Job cards, invoicing, customers, vehicles — desktop | **Inherited free** from the benchmark documents |
+| 2000s | Stock, suppliers, purchasing, reporting | Inherited; mechanics now observed, not guessed |
+| ~2010 | Rewrite to AngularJS SaaS | Skipped |
+| 2010s | Accounting + parts integrations, native mobile | Skipped the column sprawl; `external_refs` from day one |
+| Late 2010s | Inspections, public booking, reminders | Design known in advance |
+| 2020s | Payments, portal, BI, multi-site, two-way SMS, website builder | Still mid-rewrite — our opening |
 
-### R1c — Foundation repair *(1–2 weeks)*
-**Why first:** two of these are correctness bugs, and the picker blocks every screen built after it.
+**The asymmetry:** they cannot absorb a new integration or vertical without widening core tables (invoice 96–148 columns, vehicle 151, company 338), and they are mid-rewrite. Our foundational bets cost days now and are effectively impossible for them to retrofit.
 
-- Searchable customer and vehicle pickers with inline create — replaces `<select>` everywhere
-- **Snapshot `pricesIncludeTax` + tax rate onto the document** — today a tenant changing VAT silently rewrites history
-- Add `CLOSED` to the document state machine
-- Store the discount decomposition; add `rounding` / `unroundedTotal`
-- Introduce `external_refs`; move vehicle vertical fields to typed JSON extras
-- Line `hours` column and per-line time entries
+**What we must still earn:** trust, migration from incumbents, support, and the long tail of correctness only real workshops surface.
+
+---
+
+## 4. The shape of the plan
+
+```
+R1c  Foundation repair      1–2 wks   ← START HERE
+R2   Money in               3–4 wks   the product becomes worth paying for
+R3   Documents leave        2–3 wks   the customer sees us
+R4   Time and capacity      3–4 wks   the workshop runs its day
+R5   Customer-facing turn   4–5 wks   the commercial upside
+R6   Margin                 3–4 wks   the owner sees profit
+R7   Management and scale   ongoing
+```
+
+Each phase is chosen because it unlocks the next, not because it is the next-biggest feature.
+
+---
+
+## 5. R1c — Foundation repair · **start here**
+
+Two correctness bugs and one blocker. Nothing else should be built on top until these are done.
+
+**1. Searchable customer and vehicle pickers, with inline create.**
+Our `<select>` works for nine seeded customers and is unusable at three thousand. Their pattern is two side-by-side panels with search and a `+`. Replaces the picker everywhere, including in the document editor already built.
+
+**2. Snapshot the tax settings onto the document.** *(correctness bug)*
+Today a tenant changing their VAT rate silently rewrites every historical invoice. Store `taxRate`, `pricesIncludeTax` and the tax-group reference on the document at creation, as they do.
+
+**3. Derive balances, never denormalise them onto the document.** *(correctness bug in the making)*
+Their stale supplier `balance_due` is the cautionary tale. Compute `amountDue` from allocations. Cache on the *customer* later only if measurement demands it.
+
+**4. Complete the document state machine.** Add `CLOSED`, derived when the balance reaches zero; `PROCESSED` while partly paid.
+
+**5. Payment model, corrected before it is built.**
+- `PaymentTender` child collection — a payment holds many, each with **its own reference**
+- `amount` separate from `allocated`; the difference is unapplied credit
+- Invariant: allocations must equal tenders before posting
+
+**6. Schema decisions that are expensive to reverse.** All of these while there are no users:
+- `external_refs` table instead of per-integration columns
+- Vehicle vertical fields → typed JSON extras per group
+- Deposits as a child collection of the document
+- Line `hours` and per-line time entries
+- Discount decomposition; `rounding` / `unroundedTotal`
 
 **Done when:** a workshop with 3,000 customers can raise an invoice without a dropdown, and changing the VAT rate leaves last month's invoices untouched.
 
-### R2 — Money in *(3–4 weeks)*
-**Why now:** the product currently records work but cannot take money. This is the shortest path to a system a workshop would actually pay for.
+---
 
-- Payment methods; payment as a document (`Save` / `Process`)
-- **Tender lines** — a payment holds many, each with its own reference; allocations must balance tenders before posting
-- Allocation grid across open invoices; the picker auto-applies the full outstanding balance and offers **All**
-- `amount` separate from `allocated`, so money taken but unallocated becomes unapplied credit
-- `CLOSED` derived when `balance_due` reaches zero; partial payment leaves the invoice `PROCESSED`
-- EFT proof-of-payment attachment and reference; receipt numbering and PDF
-- Deposits and credit notes; apply-credits as its own screen
+## 6. R2 — Money in *(3–4 weeks)*
+
+The product currently records work but cannot take money. **No spike needed — the whole path was observed on 8 September.**
+
+- Payment methods; payment as a document with `Save` / `Process`
+- Allocation grid; picker **auto-applies the full outstanding balance** and offers **All**
+- Tender lines with per-tender reference; EFT proof-of-payment attachment
+- Receipt numbering and PDF
+- Credit notes: return stock, own sequence, **explicit** apply-or-refund — with unapplied credit surfaced on the customer, which they leave hard to derive
+- Refund with a **Change** calculation for cash, plus an EFT path
+- **Gate actions by state** — no credit on a settled invoice
 - Customer `Account Balance` and `Unapplied Credit` in the header
-- Statements with 30/60/90 ageing
-- Unpaid tab and receivables reports go live
-
-**No spike needed** — the whole path was observed on 8 September 2026 and is specified in §9 of the data-model document.
+- Statements with 30/60/90 ageing; Unpaid tab and receivables reports go live
 
 **Done when:** a workshop can invoice, take a part payment by EFT, see who owes what, and send a statement.
 
-### R3 — Documents that leave the building *(2–3 weeks)*
-**Why now:** everything above is invisible to the customer until this exists.
+---
 
-- PDF rendering for quote, job card, invoice, receipt, credit note, statement — letterhead, footers, templates
-- Email and WhatsApp send, with per-document delivery state (`emailSentAt`, `smsSentAt`, `contactedAt`)
-- Message templates with merge fields (`{{customer_first_name}}` and the rest of their 34-template set)
+## 7. R3 — Documents that leave the building *(2–3 weeks)*
+
+Everything above is invisible to the customer until this exists.
+
+- PDF for quote, job card, invoice, receipt, credit note, statement — letterhead, footers, templates
+- Email and **WhatsApp** send, with per-document delivery state (`emailSentAt`, `whatsappSentAt`, `contactedAt`)
+- Message templates with merge fields — their 34-template set is the checklist
 - Communication log per customer and document
+- **Auto-fill the document description from line 1** (their trick; free readability everywhere)
 
 **Done when:** the customer receives a branded invoice on WhatsApp and the workshop can see it was sent.
 
-### R4 — Time and capacity *(3–4 weeks)*
-- Booking diary: month/week/day, one column per mechanic, drag to reschedule
-- Mechanic schedule (working hours, exceptions), capacity and "diary full at %"
+---
+
+## 8. R4 — Time and capacity *(3–4 weeks)*
+
+- Booking diary: month/week/day, **one column per mechanic**, drag to reschedule, mechanic-lane paging
+- Mechanic schedule, capacity, "diary full at %"
 - Public booking page → **approval queue**, not straight into the diary
-- Clock on/off from the PWA; time entries roll up to `hoursWorked` vs `hoursCharged`
+- Clock on/off from the PWA; time entries roll up to hours worked vs charged
 - Appointment types shared by internal and public booking
+- **Prompt for odometer / renewal dates at process time** — branched by document type, unlike theirs
 
 **Done when:** the front desk runs the day from the diary instead of a whiteboard.
 
-### R5 — The customer-facing turn *(4–5 weeks)*
-**Why here:** this is where the commercial upside is, and it depends on documents, sending and the diary already working.
+---
 
-- Inspection groups, templates, and the template builder
-- Inspections on the PWA with camera; RAG as two flags; four input slots per item
-- **Per-item approval** with `approvedAt` / `approvedBy`, and approved items converting to job lines via the item→product join
-- Customer portal — invoices, inspections to approve, next service, rebook — **with actual configuration**: branding, what to expose, per-tenant activation
+## 9. R5 — The customer-facing turn *(4–5 weeks)*
+
+The commercial upside. Depends on documents, sending and the diary all working. **Probe the benchmark again before starting** — this is where the unknowns are.
+
+- Inspection groups, templates, template builder
+- Inspections on the PWA with camera; **RAG as two flags**; **four input slots** per item; separate urgent/soon estimates
+- **Per-item approval** with `approvedAt`/`approvedBy`; approved items convert to job lines via the item→product join and record the `documentId` they became
+- Customer portal — invoices, inspections to approve, next service, rebook — **with actual configuration**: branding, what to expose, per-tenant activation. Theirs is a bare on/off flag; this is a cheap place to be visibly ahead
 - Automated reminders: service due, licence disc, roadworthy, booking, quote follow-up, with sent-flags on the vehicle
 - Communication Centre: segmentation and bulk send
 
 **Done when:** a customer approves a red brake finding on their phone and it lands on the job card.
 
-### R6 — Margin *(3–4 weeks)*
-- Stock movements ledger; process moves stock, guarded for idempotency
-- Stock take as draft → process
-- Supplier orders, supplier invoices and payments
+---
+
+## 10. R6 — Margin *(3–4 weeks)*
+
+- Stock movements ledger — **customer invoice out · credit in · supplier invoice in · PO not at all**
+- Deliberate negative-stock policy (they allow it silently; we should at least warn)
+- Purchase orders: `Suggested` → `On Order`, per-line due dates, **job reference on the line**
+- Supplier invoices: line-level receipt via `purchaseOrderLineId`, per-document tax flags, "change sell price" on receipt
+- Supplier payments: no tenders, but **multi-supplier** in one payment
+- Stock take with **Save Draft**, filtered by location and item range
 - Bundles / canned services; price matrix; serial numbers
 - Item sales and margin reports
 
 **Done when:** the owner can see gross profit per job and per product, and stock on hand is trustworthy.
 
-### R7 — Management and scale *(ongoing)*
-- The full report catalogue; BI dashboards; accounting export then API sync
+---
+
+## 11. R7 — Management and scale *(ongoing)*
+
+- Full report catalogue; BI dashboards; accounting export then API sync
 - CSV import suite, including a **Workshop Software migration pack** — the switching path
-- Public API, multi-site, offline PWA
+- **Split** (divide an invoice — insurer/customer, fleet) and **Rework** (warranty redo linked to the original)
+- Public API, multi-site, offline PWA, loan cars
 
 ---
 
-## 5. Where we deliberately beat them
-
-These are not "nice to have". They are the reasons a Namibian or South African workshop would choose us.
+## 12. Where we deliberately beat them
 
 | # | Ours | Theirs |
 |:--|:--|:--|
-| 1 | **Localised from the schema up** — VAT 15%, N$/R, licence disc, roadworthy, 14 Namibian regions, Afrikaans document labels | WOF, rego, GST, AMS/Capricorn — bolted on for AU/NZ, meaningless here |
+| 1 | **Localised from the schema up** — VAT 15 %, N$/R, licence disc, roadworthy, 14 Namibian regions | WOF, rego, GST, AMS/Capricorn — meaningless here |
 | 2 | **WhatsApp as a first-class channel** | SMS and email only |
-| 3 | **Integrated payments that actually work here** — EFT with proof-of-payment now, a local gateway later | WorkshopPay is **not available in Africa** |
-| 4 | **`external_refs`** so integrations never widen core tables | 148-column invoice, ~40 of them sync bookkeeping |
+| 3 | **Payments that work here** — EFT with proof-of-payment now, local gateway later | WorkshopPay is **not available in Africa** |
+| 4 | **`external_refs`** so integrations never widen core tables | ~40 sync columns on the invoice alone |
 | 5 | **Typed JSON vehicle extras per group** | 151-column vehicle carrying marine, trailer and instrument fields |
-| 6 | **Portal with configuration** — branding, what to expose | A bare on/off licence flag |
-| 7 | **Action-based permissions** — invoice but not void; hide cost from mechanics | 28 entity on/off toggles that cannot express either |
-| 8 | **One modern codebase** | Mid-rewrite, AngularJS and Angular on the same page |
-| 9 | **Offline-tolerant PWA** for the workshop floor | Native app requiring connectivity |
-| 10 | **Normalised contacts, allocations and audit** | `contact1_*`, `contact2_*` inline; balances denormalised |
+| 6 | **Balances derived from allocations** | Stale `balance_due` on settled supplier invoices — observed |
+| 7 | **Portal with configuration** | A bare on/off licence flag |
+| 8 | **Action-based permissions** — invoice but not void; hide cost from mechanics | 28 entity on/off toggles that express neither |
+| 9 | **One modern codebase** | Mid-rewrite, two Angulars on the same page |
+| 10 | **Offline-tolerant PWA**; consistent confirm dialogs; process flow branched by document type | Native app needing connectivity; `No/Yes` here, `Cancel/Yes` there; renewal prompt on a credit note |
 
 ---
 
-## 6. Sequencing rules we will hold to
+## 13. Sequencing rules we hold to
 
 1. **Correctness before features.** The tax snapshot ships before payments, because posted history must be immutable.
 2. **Every slice reaches a staging URL with real data before the next begins.** No slice is done because it compiles.
-3. **Spike behaviour we have not observed.** Payments, process-time stock, and the portal each begin with an hour against the live benchmark, with data in it.
-4. **Schema decisions that are expensive to reverse get made now.** `external_refs`, JSON extras, snapshotting, normalised children — all in R1c, while there are no users.
-5. **Copy the flow, never the widget.** Their interaction model is 2010-era AngularJS; the *shape* of the flow is what thirty years bought them.
-6. **Anything that touches money gets a unit test before it gets a screen.** The document maths has 14; payments and stock will get the same treatment.
+3. **Schema decisions that are expensive to reverse get made in R1c**, while there are no users.
+4. **Copy the flow, never the widget.** Their interaction model is 2010-era AngularJS; the *shape* of the flow is what thirty years bought them.
+5. **Anything touching money gets a unit test before it gets a screen.** The document maths has 14; payments and stock get the same.
+6. **Probe before designing what we have not observed** — R5 only.
