@@ -494,3 +494,114 @@ On the customer side, settling an invoice set `balance_due` to `0.0`. On the pay
 
 ### Test data added
 Supplier **Vlok Group**: purchase order **20000** (On Order, unfulfilled), supplier invoice **ZZTEST-SI-001** (Closed), supplier payment **40000**. Product `NPN03` now shows **4** on hand.
+
+---
+
+## 11. Credit notes, deposits and stock take
+
+*(8 September 2026, same live account.)*
+
+### Credits are invoices with a different type
+A credit note was raised and processed. It landed in the **same `invoices` table**, distinguished only by `invoice_type`:
+
+```
+50000 · type I · status C · total 2518.50 · balance 0.00
+10000 · type C · status P · total 1023.50 · balance 0.00
+```
+
+`invoice_type` is a three-value enum — **`I` Invoice · `C` Credit · `Q` Quote** — read straight off the dropdown. This is the single-document model in its purest form, and it is what our schema already does.
+
+**Processing a credit returns stock**: `NPN03` went **4.0 → 5.0**. So the stock ledger is symmetric — invoice out, credit in, supplier invoice in, and (presumably) supplier credit out.
+
+**Credits get their own number sequence, starting at 10000.** With that, the full scheme is a clean 10 000-block per document class:
+
+| Block | Document |
+|--:|:--|
+| 10000 | Credit notes |
+| 20000 | Purchase orders |
+| 30000 | Customer payments |
+| 40000 | Supplier payments |
+| 50000 | Job cards / customer invoices |
+
+**A processed credit does not post to the customer's balance.** Both `balance` and `credit_balance` were unchanged after processing, and the credit's own `balance_due` is `0.00`. The credit sits as a document awaiting an explicit **Apply Credits** (offset against an invoice) or **Refund Credit** (pay it out). Nothing happens automatically — which is defensible, but it means *unapplied credit is not derivable from the credit document alone*.
+
+### Refund Credit is a till transaction
+The refund panel found in the DOM reads:
+
+```
+Total Due: $1,023.50
+Payment Method | Reference | Amount
+Cash                         $1,023.50
+Balance  $0.00      Change  $1,023.50
+Cancel   Process
+```
+
+A **Change** field — so refunding a credit is modelled as a counter cash-out, not a bank transfer. Worth copying for cash-heavy workshops; worth pairing with an EFT option for ours.
+
+### The Actions menu is contextual
+The DOM contains the full superset — *Analysis, Split, Mechanic Time Log, Copy Invoice, Edit Invoice, Create Credit, Apply Credits, Refund Credit, Add To Order, Create Order, Create Loan Car, Rework, Convert to Job Card, Add Discount, Enter Mechanic Times, Use Serial Numbers, Add Deposit, Hide Cost Field, Create Inspection* — but only a subset renders for a given state.
+
+On a **Closed** (fully paid) invoice the live menu was: Analysis · Split · Mechanic Time Log · Copy Invoice · Edit Invoice · Create Inspection · Create Order · Create Loan Car · Rework · Hide Cost Field.
+
+**`Create Credit` is absent once an invoice is fully paid.** That is a real business rule: credit an unpaid invoice, refund a paid one. Two other entries worth naming: **`Split`** (divide one invoice into several — insurer/customer contributions, or a fleet split) and **`Rework`** (redo a job under warranty, keeping the link to the original). Neither is in our model.
+
+### Deposits hang off the invoice
+The invoice scope carries **`customer_deposits_attributes`** and `depositsToDelete` — deposits are a child collection of the invoice, not a standalone credit record. That matches the *Add Deposit* action and their recently shipped "Customer Deposits" feature.
+
+### A defect not to copy
+The **Update Renewal Dates** modal fires when processing a **credit note**, prompting for odometer and rego due date on a document that is returning parts. It is the invoice process flow applied indiscriminately. Ours should branch on document type.
+
+### Stock take
+Structure fully mapped:
+
+- **Filters:** Product Type · Group · Supplier · **Location** · **Begin Item / End Item** (a product-code range) · **Hide Zero Stock** toggle
+- **Columns:** Item Code · Description · Group · Supplier · Location · **On Hand** · **Count**
+- **Actions:** Cancel · **Save Draft** · Process — the only screen in the product with a distinct *Save Draft*, because a physical count spans hours or days
+- A **print icon** for the count sheet
+
+The intended flow is plainly: filter a range → print the sheet → count on paper → key the counts → Process to apply the variance. `NPN03` correctly showed **On Hand 5.0**, matching the ledger after invoice, receipt and credit.
+
+> **Not verified:** I could not get a value into the `Count` cell — the ui-grid inline editor did not accept synthetic clicks — so **I did not observe Process applying a variance**. The behaviour is strongly implied by the *Stocktake Variance* report and the *Stock Take Log* tab on the product record, but it is inference, not observation.
+
+### Consequences for our build
+
+| # | Change | Why |
+|:--|:--|:--|
+| 1 | Credits as `type = CREDIT` on the document, **own number sequence** | Verified; matches our model already |
+| 2 | **Processing a credit returns stock** | Keeps the ledger symmetric |
+| 3 | **Credit → unapplied balance must be explicit**, via apply or refund | Do not auto-post; but *do* surface unapplied credit on the customer, which they leave hard to derive |
+| 4 | **Refund with a Change calculation** for cash, plus an EFT path | Cash-heavy market |
+| 5 | **Gate actions by state** — no credit on a settled invoice | Real business rule |
+| 6 | Add **Split** and **Rework** to the roadmap | Insurer splits and warranty redos are ordinary workshop events we have no answer for |
+| 7 | **Save Draft** on stock take | A count is not a single sitting |
+| 8 | Stock take filtered by **location and item range** | How a physical count is actually organised |
+| 9 | Branch the process flow **by document type** | Their renewal-dates prompt on a credit is a defect |
+
+---
+
+## 12. What remains unexplored
+
+After the probes in §9–§11, this is what is still unknown, roughly in order of how much it would change our plan.
+
+**High value — would likely change design**
+- **The customer portal's customer-facing side.** Authentication, what is exposed, whether it takes payment. Requires sending mail.
+- **Inspection → invoice conversion.** Per-item approval is understood; the conversion of approved items into billable lines is not observed.
+- **Apply Credits and Refund Credit end to end**, and where unapplied credit is actually computed.
+- **Stock take variance application** (above).
+- **Split** and **Rework** — two document operations with no equivalent in our model.
+- **The mobile app.** Not examined at all: clock-on, photos, inspections, the offline story.
+
+**Medium value — mechanics we would otherwise guess at**
+- Price Matrix internals (markup bands by cost range or supplier/group).
+- Bundles / canned services: how a kit expands onto a document.
+- Serial-number capture and the *Use Serial Numbers* action.
+- Loan car: the full create → start → return → review cycle and its diary.
+- Booking-diary drag-and-drop, and the **public booking request approval queue**.
+- Multi-tax combination and rounding once enabled.
+- Supplier credits (`apply_vendor_credit`) — the payables mirror of §11.
+
+**Lower value — output formats we can design ourselves**
+- Report output and the Jasper templates; BI dashboards; statements.
+- The Communication Centre's bulk send and segmentation.
+- Import/export column mappings (we will write our own migration pack anyway).
+- Multi-site / branches, franchise, dealership — all Platinum-tier and out of scope for R1–R6.
