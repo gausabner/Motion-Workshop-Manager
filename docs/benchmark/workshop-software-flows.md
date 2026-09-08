@@ -21,8 +21,9 @@ The redesign is visible in the information architecture too — see §1. Two imp
 
 The February capture had a different structure. The current one:
 
-**Top bar** (icon-only since the redesign): Dashboard · Booking Diary · Transaction Centre · global search · customer-message notifications · profile.
-The old ⚡ **Quickstart** menu is **gone**. Creation moved to a contextual `+` in each page header and in each customer accordion section.
+**Top bar** (icon-only since the redesign): Dashboard · Booking Diary · Transaction Centre · global search · 💬 customer messages · ⚡ Quickstart · 🕒 clock-on · profile.
+
+The ⚡ **Quickstart is still there**, unchanged from February — *Customer Booking · Customer Invoice · Customer Payment · Inspection · Supplier Stock Order · Supplier Invoice · Supplier Payment*. It renders only at wider window widths, which is why an earlier pass of this document wrongly recorded it as removed. Creation is therefore available **both** globally from the Quickstart and contextually from a `+` in each page header and accordion section.
 
 **Sidebar**
 
@@ -289,7 +290,7 @@ Payments: Assembly Payments, Stripe, Celero, TillPayments. Also: AMS Rewards, Ca
 |:--|:--|:--|:--|
 | 1 | Replace the customer/vehicle `<select>` with **searchable panels + inline create** | Ours breaks past ~200 customers. Blocks everything downstream | ~1 day |
 | 2 | Payments as a **document** (`Save`/`Process`) with an **allocation grid and `Apply`** | Confirmed by their screen; our model already supports it | in slice |
-| 3 | Adopt **CRM Tools vs Settings** split in our IA | Their redesign is right; our single Settings hub is not | small |
+| 3 | Adopt **CRM Tools vs Settings** split in our IA, and keep a global quick-create **as well as** contextual `+` | Their redesign is right; our single Settings hub is not | small |
 | 4 | Add the **date window** (Month/Week/Today) to the Transaction Centre | "What's on this week" is the real question | small |
 | 5 | **Hours column** on invoice lines + per-line time entries | Mechanic time is per line, not per job | medium |
 | 6 | **Product Code on inspection items** | Without it the inspection module has no commercial point | in R2 |

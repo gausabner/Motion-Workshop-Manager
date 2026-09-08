@@ -161,3 +161,82 @@ Labelled `ZZTEST` so they are easy to find and remove:
 | Invoice (draft, Open, zero value) | `882f83e4-ab8c-11f1-bfc5-cfc3abe8b2d2` |
 
 Delete order: invoice → vehicle → customer. The customer screen's `Delete` button removes it; the vehicle has `Delete` and `Archive`.
+
+---
+
+## 8. Customer Portal — how it actually works
+
+*(Probed 8 September 2026 after the account owner activated the module. A test inspection was created on the `ZZTEST` vehicle; nothing was sent to any customer.)*
+
+### Activation
+`Settings → CRM Tools → Customer Portal` is a bare on/off switch — `Customer Portal Support Active`, with `Cancel` and `Deactivate`. **There is no configuration at all**: no branding, no URL, no permissions, no choice of what to expose. It is a licence flag, not a settings screen.
+
+### It is a separate application
+There is no portal route among the 134 states in the admin app, and the only hosts appearing anywhere in the admin JS bundles are `my.workshopsoftware.com` and `api.workshopsoftware.com`. The portal is a distinct front end that the customer reaches by a link sent to them; the workshop never navigates to it.
+
+### The customer-facing state lives on the inspection
+The `inspections` record is small and clean — **30 columns**, in stark contrast to the 148-column invoice:
+
+```
+id · customer_id · vehicle_id · template_id · inspection_number · inspection_date
+inspection_status · description · service_adviser_id
+contact_name · contact_number · contact_email · customer_email
+customer_comments · customer_viewed · email_sent · sms_sent
+comment1 · comment2 · comment1_label · comment2_label
+event_id · invoice_id · invoice_job_card_number
+template_name · template_description · service_adviser_display_name
+vv_garage_appointment_id · partstech_session_id
+inspection_items_attributes
+```
+
+The four fields that make the portal work:
+
+| Field | Purpose |
+|:--|:--|
+| `customer_viewed` | **Read receipt** — the workshop can see the customer opened it |
+| `customer_comments` | The customer **writes back** from the portal |
+| `email_sent`, `sms_sent` | Delivery flags per channel |
+| `contact_*` + `customer_email` | Who the link goes to, separately from the account holder |
+
+### Approval is per item, not per inspection
+`inspection_items` — 26 columns:
+
+```
+id · inspection_id · template_item_id · inspection_group · ordering · group_ordering
+description · inspection_type · input1 · input2 · input3 · input4 · comment
+needs_attention_urgent · needs_attention_soon
+estimated_time · estimated_time_red · estimated_time_yellow
+estimated_cost · estimated_product_cost · estimated_product_price
+approved_on · approved_by · invoice_id · event_id · _destroy
+```
+
+- **`approved_on` / `approved_by` sit on the ITEM.** The customer ticks individual findings, not the whole report. This is the single most important design fact about their inspection module.
+- **RAG is two booleans, not an enum** — `needs_attention_urgent` (red) and `needs_attention_soon` (yellow); green is neither. Cheap to query, and it survives a third colour being added.
+- **`input1`–`input4`** are four generic slots on every item, so one INPUT-type item can capture four readings — brake pad depths across four wheels, tyre tread across four corners.
+- **`estimated_time_red` vs `estimated_time_yellow`** — a different repair estimate depending on how bad it is.
+- **`invoice_id` on the item** — once approved, the item records which invoice it turned into. That is the audit trail from "customer approved this" to "we charged for it".
+- A separate **`inspection_item_products`** endpoint (`/inspection_item_products/{inspection_id}/0/*/item_code/asc`) resolves each item's bound product. The template's Product Code is therefore a real join, and it is what converts an approval into billable lines.
+
+### Items are snapshotted from the template
+Selecting the `SERVICE` template instantiated **all 44 items immediately**, each carrying `template_item_id` back to its origin. Editing a template later cannot rewrite a historical inspection. We should do the same.
+
+### The backend is Ruby on Rails
+`inspection_items_attributes` and the `_destroy: "0"` marker are `accepts_nested_attributes_for` — so nested children are submitted inside the parent payload, which matches the observed behaviour of invoice lines saving with the document rather than individually.
+
+### Inspection lifecycle, as wired
+`D` Draft → `RA` Requested Approval → `A` Approved / `R` Refused → `F` Finalized. On a saved draft the buttons are `Cancel · Delete · Finalise · Save`.
+
+### What this means for our R2 inspection module
+
+| # | Requirement | Note |
+|:--|:--|:--|
+| 1 | **Per-item approval** with `approvedAt` / `approvedBy` | Not per-inspection. Everything else follows from this |
+| 2 | Item → product binding as a **join**, plus `documentId` on the item once billed | The upsell path, and its audit trail |
+| 3 | **Snapshot template items** onto the inspection at creation, keeping `templateItemId` | Template edits must not rewrite history |
+| 4 | Two booleans for RAG (`needsAttentionUrgent`, `needsAttentionSoon`) | Simpler and more extensible than a 3-value enum |
+| 5 | Four generic input slots per item | Four wheels, four corners — a real workshop shape |
+| 6 | Separate repair estimates for urgent vs soon | Drives the quote the customer sees |
+| 7 | `customerViewedAt` and `customerComments` on the inspection | Read receipt and reply — both are what make the portal feel alive |
+| 8 | Contact fields **separate from the account holder** | The person approving is often not the account holder — fleet especially |
+
+And one thing to do **better**: their portal has no configuration whatsoever. Ours should at minimum carry branding, a choice of what the portal exposes (invoices, inspections, bookings, next service), and per-tenant activation — this is a cheap place to be visibly ahead.
