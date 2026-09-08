@@ -240,3 +240,139 @@ Selecting the `SERVICE` template instantiated **all 44 items immediately**, each
 | 8 | Contact fields **separate from the account holder** | The person approving is often not the account holder — fleet especially |
 
 And one thing to do **better**: their portal has no configuration whatsoever. Ours should at minimum carry branding, a choice of what the portal exposes (invoices, inspections, bookings, next service), and per-tenant activation — this is a cheap place to be visibly ahead.
+
+---
+
+## 9. The money path, observed end to end
+
+*(8 September 2026. A priced invoice was created, processed, and settled by two part-payments in the live trial account. Every figure below was read back from the API, not inferred.)*
+
+### The test
+Invoice on `ZZTEST Probe Customer` / vehicle `ZZTEST001`, two lines:
+
+| Line | Product | Qty | Unit price | Unit cost | Hours |
+|:--|:--|--:|--:|--:|--:|
+| 1 | `LAB` (labour) | 2 | 650.00 | 0.00 | 2 |
+| 2 | `NPN03` (stock) | 1 | 890.00 | 545.00 | 0 |
+
+Subtotal **2,190.00** · tax **328.50** · total **2,518.50** · cost **545.00**. This tenant is tax-**exclusive** at 15 %.
+
+### What `Save` does on a draft
+Totals are computed and **stored on the draft**, before any posting:
+
+```
+subtotal 2190.00 · gst 328.50 · total 2518.50 · balance_due 2518.50 · cost 545.00
+tax_rate 15.0 · invoice_number null · job_card_number 50000 · invoice_status "O"
+```
+
+Two things matter here. `balance_due` and the rolled-up `cost` exist on an unposted draft — so their receivables and profit queries never join to lines. And **`tax_rate` is stamped on the invoice**, which is the snapshot behaviour our schema is missing.
+
+Server-side validation is real: a line carrying a stale `product_id` was rejected with *"Product with id no longer exists."*
+
+### What `Process` does
+It is **not** a single button. The sequence is:
+
+1. **`Process`** opens a modal, *"Update Renewal Dates"* — Rego Due Date, Odometer (pre-filled from the vehicle), Hours.
+2. Saving that modal fires `PATCH /invoice/update_vehicle_details_on_process_invoice` — a **dedicated endpoint**, separate from the invoice save.
+3. A second confirm: *"Are you sure you want to save and process this invoice?"* → No / Yes.
+
+The vehicle write is therefore a **prompted, confirmed step**, not a silent side effect. Ours writes silently; theirs is better and we should copy it.
+
+The exact diff on the invoice:
+
+| Field | Before | After |
+|:--|:--|:--|
+| `invoice_number` | `null` | **50000** |
+| `invoice_status` | `O` | **`P`** |
+| `job_status` | `B` | **`F`** (Finalised) |
+| `description` | `""` | *"Diagnostic and brake inspection labour"* |
+| `odometer` | 0 | 124500 |
+
+Four behaviours worth naming:
+
+- **The invoice number equals the job card number** (both 50000). The *Invoice Number Equals Job Number* company setting is on by default, and the number comes from the job sequence.
+- **Processing an invoice finalises the job** — `job_status` jumps straight to `F`, skipping the intervening statuses.
+- **`description` is auto-filled from the first line**, giving every list a human-readable summary for free. A small, cheap, genuinely good idea.
+- `balance_due` did **not** change — it was already correct on the draft.
+
+Elsewhere:
+
+- **Vehicle**: `odometer` 124500, `last_in_date` set. `last_service` and `next_service` stayed **null** — they are taken from the invoice's Next Service fields, which were blank, not derived.
+- **Customer**: `balance` written to **2518.50**. The denormalised balance is maintained at post time.
+- **Stock**: `NPN03.quantity_on_hand` went from `null` to **−1.0**. Processing decrements stock for `product_type: 'S'` lines, and **negative stock is allowed** — no block, no warning.
+
+### Payments
+
+A payment is a **document with the same Save / Process lifecycle**, and it has *two* child collections:
+
+```
+customer_payment
+├── customer_payment_items_attributes    → allocations to invoices
+└── customer_payment_methods_attributes  → tender lines
+```
+
+The header is only **14 columns**:
+
+```
+id · customer_id · amount · applied_amount · reference · post_date · note
+customer_payment_number · status
+stripe_status · payment_processing_id · tillpayments_terminal_payment_intent_id
+customer_payment_items_attributes · customer_payment_methods_attributes
+```
+
+**Allocation** (`customer_payment_items`): `invoice_id`, `amount`, plus `invoice_number`, `invoice_total`, `invoice_post_date`, `invoice_balance_due` denormalised for display.
+
+**Tender** (`customer_payment_methods`): `payment_type`, `amount`, `reference`, `use_eftpos`.
+
+Five design facts we did not have:
+
+1. **A payment carries many tender lines** — split payment across cash, card and EFT on one receipt. Our model has a single `methodId` and cannot express this.
+2. **The reference belongs to the tender line, not the payment.** The EFT reference is per method, so a split payment carries one reference per tender. Ours puts it on the header.
+3. **`payment_type` is a plain string** ("Direct Deposit"), not a foreign key to the payment-methods list.
+4. **`amount` and `applied_amount` are separate.** Money taken but not allocated is unapplied credit — this is the mechanism behind *Unapplied Credit* in the customer header.
+5. **Allocations must balance against tenders.** The screen shows a running `Applied Total` and a `Balance`, and `Balance` must reach zero before Process.
+
+The flow: 🔍 opens *"Please Select an Invoice"* (with an **All** button for bulk) → selecting **auto-applies the full outstanding balance** and pre-fills the tender amount → editing the applied amount **recomputes the row's remaining balance and re-syncs the tender** → `Apply` records the tender line → `Process` posts, behind the same *"Are you sure"* confirm.
+
+Payment numbers come from **their own sequence starting at 30000**, and a processed payment's `status` is **`C`** — the payment vocabulary differs from the invoice's.
+
+### Settlement, verified
+
+| After | `invoice_status` | `balance_due` | customer `balance` |
+|:--|:--|--:|--:|
+| Process | `P` | 2518.50 | 2518.50 |
+| Part payment 1,500.00 (Direct Deposit, ref `EFT-ZZTEST-001`) | **`P`** | **1018.50** | **1018.50** |
+| Part payment 1,018.50 (Direct Deposit, ref `EFT-ZZTEST-002`) | **`C`** | **0.00** | **0.00** |
+
+So `C` means *fully settled*, set automatically when `balance_due` reaches zero. A partial payment leaves the invoice at `P`. The invoice picker on a later payment shows the **remaining** balance, not the original total. `job_status` stayed `F` throughout — payment does not touch the job.
+
+### Incidental
+Reports are rendered by **JasperReports**: `GET /reports/jasper_mechanic_times_log/{invoice_id}`. Invoice actions are Print → Invoice, Email → Invoice, and a secondary menu carrying Send SMS.
+
+### Consequences for our build
+
+| # | Change | Why |
+|:--|:--|:--|
+| 1 | **Payment gets tender lines** — a `PaymentTender` child, with `reference` per tender | Split payment is normal at a workshop counter; our single-method model cannot represent it |
+| 2 | **Separate `amount` from `allocated`** on the payment | Unapplied credit falls out of the difference |
+| 3 | **Enforce allocations = tenders before posting** | Their `Balance` must be zero to Process; ours needs the same invariant |
+| 4 | **Derive `CLOSED` when the balance reaches zero**, keep `PROCESSED` while partly paid | Verified transition |
+| 5 | **Prompt for odometer / renewal dates at process time** rather than writing silently | Their confirmed modal is better UX and produces better data |
+| 6 | **Auto-fill the document description from line 1** | Free readability in every list |
+| 7 | **Decide our negative-stock policy deliberately** | They allow it silently; we should at least warn |
+| 8 | **Snapshot the tax rate onto the document** | Confirmed they do; ours does not |
+| 9 | Invoice-picker with **auto-apply full balance** and an **All** button | The interaction that makes allocation fast |
+
+### Still not verified
+- **The customer portal's customer-facing side.** Activation is a licence flag; the workshop-side fields (`customer_viewed`, `customer_comments`, per-item `approved_by`) are known, but the portal is a separate application reached only by a link inside a sent email. Seeing it requires sending mail, which was out of scope for this probe.
+- Inspection → invoice conversion (needs a finalised inspection with approved items).
+- Credit notes, refunds and `apply_credit`.
+- Supplier invoices and purchase orders — the whole payables side.
+- Stock take, price matrix internals, bundles.
+- Report output, BI dashboards, statements.
+- The mobile app.
+- Booking-diary drag-and-drop and public booking request approval.
+- Multi-tax combination, and rounding behaviour when enabled.
+
+### Test data left in the account
+`ZZTEST Probe Customer` · vehicle `ZZTEST001` · invoice **50000** (closed) · payments **30000** and **30001** · one draft inspection. Delete in that reverse order if you want the account clean; the invoice cannot be deleted while payments are allocated to it.
