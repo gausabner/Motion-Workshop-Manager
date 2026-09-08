@@ -1,31 +1,26 @@
-import { JobKanbanBoard } from "@/components/jobs/JobKanbanBoard";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { JobBoard } from "@/components/jobs/JobBoard";
+import { NewDocumentButtons } from "@/components/documents/NewDocumentButtons";
+import { requireTenant } from "@/lib/auth/session";
+import { can } from "@/lib/auth/permissions";
+import { getJobBoard } from "@/lib/documents/queries";
 
-export default async function JobsDashboardPage({
-    params,
-}: {
-    params: Promise<{ tenant: string }>;
-}) {
-    const resolvedParams = await params;
+export const metadata = { title: "Jobs | MOTION Workshop Manager" };
 
+export default async function JobsPage({ params }: { params: Promise<{ tenant: string }> }) {
+    const { tenant: slug } = await params;
+    const { db, membership } = await requireTenant(slug);
+    const jobs = await getJobBoard(db);
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Active Jobs (WIP)</h1>
-                    <p className="text-sm text-slate-500">Track and manage vehicle repair orders across the workshop.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Jobs on the floor</h1>
+                    <p className="text-sm text-slate-500">{jobs.length} open job card{jobs.length === 1 ? "" : "s"}. Move a card with the selector at its foot.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline">Filter</Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                        <Plus className="w-4 h-4 mr-2" /> New Job Card
-                    </Button>
-                </div>
+                <NewDocumentButtons tenant={slug} />
             </div>
-
             <div className="flex-1 overflow-hidden">
-                <JobKanbanBoard tenant={resolvedParams.tenant} />
+                <JobBoard tenant={slug} jobs={jobs} showCost={can(membership, "documents:see_cost")} />
             </div>
         </div>
     );

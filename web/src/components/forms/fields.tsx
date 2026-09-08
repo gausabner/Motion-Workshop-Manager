@@ -27,13 +27,19 @@ export function TextField({ label, name, errors, defaultValue, type = "text", cl
     );
 }
 
-export function SelectField({ label, name, errors, defaultValue, options, allowEmpty, className }: { label: string; name: string; errors?: Errors; defaultValue?: string | null; options: { value: string; label: string }[]; allowEmpty?: string; className?: string }) {
+type SelectFieldProps = {
+    label: string; name: string; errors?: Errors; options: { value: string; label: string }[]; allowEmpty?: string; className?: string; disabled?: boolean;
+} & ({ defaultValue?: string | null; value?: never; onChange?: never } | { value: string; onChange: (value: string) => void; defaultValue?: never });
+
+export function SelectField({ label, name, errors, defaultValue, options, allowEmpty, className, disabled, value, onChange }: SelectFieldProps) {
+    const controlled = value !== undefined;
     return (
         <Field label={label} name={name} errors={errors} className={className}>
             <select
                 id={name}
                 name={name}
-                defaultValue={defaultValue ?? ""}
+                disabled={disabled}
+                {...(controlled ? { value, onChange: (e) => onChange?.(e.target.value) } : { defaultValue: defaultValue ?? "" })}
                 className="flex h-8 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
             >
                 {allowEmpty !== undefined && <option value="">{allowEmpty}</option>}

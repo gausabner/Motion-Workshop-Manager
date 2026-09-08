@@ -1,3 +1,4 @@
+import type { ITXClientDenyList } from "@prisma/client/runtime/library";
 import { prisma } from "@/lib/db";
 
 /**
@@ -80,3 +81,6 @@ export function forTenant(tenantId: string) {
 }
 
 export type TenantDb = ReturnType<typeof forTenant>;
+
+/** The client handed to a `db.$transaction(async (tx) => …)` callback: still tenant-scoped. */
+export type TenantTx = Omit<TenantDb, ITXClientDenyList>;

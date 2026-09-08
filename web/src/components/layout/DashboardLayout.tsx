@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Headphones, Car, LogOut, ClipboardList } from "lucide-react";
+import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Headphones, Car, LogOut, ClipboardList, ListChecks } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
@@ -34,6 +34,7 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                 <nav className="grid items-start px-2 text-[11px] font-medium">
                     <Link href={`${base}/dashboard`} className={linkBase}><LayoutDashboard className="h-[12px] w-[12px]" />Dashboard</Link>
                     <Link href={`${base}/dashboard/schedule`} className={linkBase}><CalendarDays className="h-[12px] w-[12px]" />Booking Diary</Link>
+                    <Link href={`${base}/dashboard/transactions`} className={linkBase}><ListChecks className="h-[12px] w-[12px]" />Transactions</Link>
                     <Link href={`${base}/dashboard/jobs`} className={linkBase}><ClipboardList className="h-[12px] w-[12px]" />Jobs</Link>
                     <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
                     <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
