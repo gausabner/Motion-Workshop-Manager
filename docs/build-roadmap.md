@@ -35,16 +35,28 @@ Not everything in those three documents is equally well established. Before comm
 - The portal is a separate front end. Strong evidence (no route, no other host in the bundles) but not proven; I declined to probe their web server for it.
 - `Closed` means fully settled. Reasonable from the name and from `balance_due`, not confirmed against a paid invoice.
 
-### Not established — do not plan around these
+### Now verified — the money path *(updated 8 September 2026)*
 
-- **I never processed an invoice with lines.** The trial account was empty; my test invoice had no items and was left as a draft. So the actual behaviour of `Process` — what it writes to stock, how it numbers, what it locks — is inferred from column names, not observed.
-- **I never applied a payment.** The allocation grid and the `Apply` button are described from the screen, not from watching an allocation land.
-- **I never saw the portal itself.** Everything in §8 of the data-model document is the *workshop side* of the portal. What the customer sees, how they authenticate, and whether it can take payment are unknown.
+The three largest gaps below have since been closed by running a priced invoice through process and settling it with two part-payments. See [§9 of the data-model document](benchmark/workshop-software-data-model.md). In summary:
+
+- **Process** is a three-step flow — a prompted *Update Renewal Dates* modal, a dedicated `PATCH …/update_vehicle_details_on_process_invoice`, then a confirm. It numbers from the JOB sequence (invoice number **equals** job card number by default), jumps `job_status` straight to Finalised, auto-fills the description from line 1, writes the denormalised customer balance, and **decrements stock, allowing it to go negative silently**.
+- **Payments** are documents with **two** child collections — allocations and **tender lines**. Tenders carry their own `reference`, `payment_type` is a string not an FK, and `amount` vs `applied_amount` is the unapplied-credit mechanism. Allocations must balance tenders before posting.
+- **Settlement**: partial payment leaves the invoice at `P`; full settlement flips it to `C` with `balance_due` 0. `stock_variance_performed` was **not** present on the invoice record — that earlier note was wrong, and stock movement is not guarded by a flag on the invoice.
+
+This adds three schema changes to R1c/R2 that were not in the original plan: **tender lines on the payment**, **`reference` per tender**, and **`amount` separate from `allocated`**.
+
+### Still not established — do not plan around these
+
+- **The portal's customer-facing side.** Everything in §8 is the *workshop* side. What the customer sees, how they authenticate, and whether it can take payment remain unknown — the portal is a separate application reached only by a link inside a sent email.
+- Inspection → invoice conversion; credit notes, refunds and apply-credit.
+- The entire payables side: supplier invoices, purchase orders, supplier payments.
+- Stock take, price matrix internals, bundles.
+- Report output, BI dashboards, statements.
 - **The mobile app was not examined at all.**
-- Price Matrix internals, multi-tax combination, and report output are unexamined.
-- Booking-diary drag-and-drop behaviour was not tested.
+- Booking-diary drag-and-drop, and public booking request approval.
+- Multi-tax combination and rounding behaviour when enabled.
 
-> **Consequence for planning:** the schema changes in §3 rest almost entirely on verified findings and are safe to commit to now. The *behavioural* specifications for Process, payment allocation and the portal rest on weaker evidence, so each of those slices should begin with a short spike against the live account — with data in it — before the interface is frozen.
+> **Consequence for planning:** the schema changes in §3 rest almost entirely on verified findings and are safe to commit to now. Process and payment allocation have since been observed directly, so R2 no longer needs a spike. The portal still does — and it is the one slice where we should expect surprises.
 
 ### Confidence in the schema changes themselves
 
@@ -121,14 +133,17 @@ The order is dependency-driven, not feature-driven. Each phase is chosen because
 **Why now:** the product currently records work but cannot take money. This is the shortest path to a system a workshop would actually pay for.
 
 - Payment methods; payment as a document (`Save` / `Process`)
-- Allocation grid across open invoices, with an `Apply` that distributes an amount
+- **Tender lines** — a payment holds many, each with its own reference; allocations must balance tenders before posting
+- Allocation grid across open invoices; the picker auto-applies the full outstanding balance and offers **All**
+- `amount` separate from `allocated`, so money taken but unallocated becomes unapplied credit
+- `CLOSED` derived when `balance_due` reaches zero; partial payment leaves the invoice `PROCESSED`
 - EFT proof-of-payment attachment and reference; receipt numbering and PDF
 - Deposits and credit notes; apply-credits as its own screen
 - Customer `Account Balance` and `Unapplied Credit` in the header
 - Statements with 30/60/90 ageing
 - Unpaid tab and receivables reports go live
 
-**Spike first:** put data in the trial account and watch a real allocation before freezing the interface.
+**No spike needed** — the whole path was observed on 8 September 2026 and is specified in §9 of the data-model document.
 
 **Done when:** a workshop can invoice, take a part payment by EFT, see who owes what, and send a statement.
 
