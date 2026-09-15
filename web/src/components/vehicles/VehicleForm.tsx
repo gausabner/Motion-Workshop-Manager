@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, TextField, SelectField, CheckField, Section } from "@/components/forms/fields";
+import { CustomerPicker } from "@/components/forms/CustomerPicker";
+import type { PickerHit } from "@/lib/search/types";
 import { saveVehicle } from "@/lib/vehicles/actions";
 import { initialActionState } from "@/lib/forms";
 import { dateInput } from "@/lib/format";
@@ -14,16 +16,17 @@ import type { VehicleRecord } from "@/lib/vehicles/queries";
 type Props = {
     tenant: string;
     vehicle?: VehicleRecord | null;
-    customers: { value: string; label: string }[];
-    defaultCustomerId?: string;
+    /** The owner to preselect: the vehicle's current owner, or the customer it is being added for. */
+    initialOwner?: PickerHit | null;
 };
 
 const opts = (list: readonly string[]) => list.map((v) => ({ value: v, label: v }));
 
-export function VehicleForm({ tenant, vehicle, customers, defaultCustomerId }: Props) {
+export function VehicleForm({ tenant, vehicle, initialOwner }: Props) {
     const action = saveVehicle.bind(null, tenant, vehicle?.id ?? null);
     const [state, formAction, pending] = useActionState(action, initialActionState);
     const [advanced, setAdvanced] = useState(!!(vehicle?.engineNumber || vehicle?.chassisNumber || vehicle?.keyCode || vehicle?.radioPin));
+    const [owner, setOwner] = useState<PickerHit | null>(initialOwner ?? null);
     const v = vehicle;
     const errors = state.errors;
 
@@ -41,7 +44,7 @@ export function VehicleForm({ tenant, vehicle, customers, defaultCustomerId }: P
             </div>
 
             <Section title="Vehicle">
-                <SelectField label="Owner" name="customerId" defaultValue={v?.customerId ?? defaultCustomerId} errors={errors} allowEmpty="— no owner —" options={customers} className="lg:col-span-2" />
+                <CustomerPicker tenant={tenant} name="customerId" label="Owner" value={owner} onChange={setOwner} error={errors?.customerId?.[0]} className="lg:col-span-2" />
                 <TextField label="Plate number" name="plate" defaultValue={v?.plate} errors={errors} required autoFocus={!v} placeholder="N 12345 W" />
                 <TextField label="VIN" name="vin" defaultValue={v?.vin} errors={errors} maxLength={17} hint="17 characters" />
                 <TextField label="Make" name="make" defaultValue={v?.make} errors={errors} required />

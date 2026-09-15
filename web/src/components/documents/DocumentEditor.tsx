@@ -4,7 +4,11 @@ import { useActionState, useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, TextField, SelectField, CheckField } from "@/components/forms/fields";
-import { LineGrid, newLine, type EditorLine } from "@/components/documents/LineGrid";
+import { LineGrid, type EditorLine } from "@/components/documents/LineGrid";
+import { CustomerPicker } from "@/components/forms/CustomerPicker";
+import { VehiclePicker } from "@/components/forms/VehiclePicker";
+import { customerHit, vehicleHit } from "@/lib/search/hits";
+import type { PickerHit, VehicleHit } from "@/lib/search/types";
 import { saveDocument } from "@/lib/documents/actions";
 import { initialActionState } from "@/lib/forms";
 import { calculateTotals } from "@/lib/documents/totals";
@@ -52,8 +56,8 @@ export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
     const action = saveDocument.bind(null, tenant, doc.id);
     const [state, formAction, pending] = useActionState(action, initialActionState);
     const [lines, setLines] = useState<EditorLine[]>(() => toEditorLines(doc));
-    const [customerId, setCustomerId] = useState(doc.customerId ?? "");
-    const [vehicleId, setVehicleId] = useState(doc.vehicleId ?? "");
+    const [customer, setCustomer] = useState<PickerHit | null>(() => (doc.customer ? customerHit(doc.customer) : null));
+    const [vehicle, setVehicle] = useState<VehicleHit | null>(() => (doc.vehicle ? vehicleHit(doc.vehicle) : null));
     const [isCashSale, setIsCashSale] = useState(doc.isCashSale);
     const [discountPercent, setDiscountPercent] = useState(doc.discountPercent ?? 0);
     const [freight, setFreight] = useState(doc.freight ?? 0);
@@ -67,15 +71,22 @@ export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
         [lines, pricesIncludeTax, discountPercent, freight, taxRate],
     );
 
-    // Only this customer's vehicles, unless none is chosen yet.
-    const vehicleOptions = useMemo(() => {
-        const list = customerId ? options.vehicles.filter((v) => v.customerId === customerId) : options.vehicles;
-        return list.map((v) => ({ value: v.id, label: `${v.plate} · ${v.year ? `${v.year} ` : ""}${v.make} ${v.model}` }));
-    }, [customerId, options.vehicles]);
+    // A different customer drops a vehicle that isn't theirs.
+    function chooseCustomer(hit: PickerHit | null) {
+        setCustomer(hit);
+        if (hit && vehicle?.customerId && vehicle.customerId !== hit.id) setVehicle(null);
+    }
+
+    // The counter usually starts from the plate, so choosing a vehicle first fills in its owner.
+    function chooseVehicle(hit: VehicleHit | null) {
+        setVehicle(hit);
+        if (hit?.customerId && hit.ownerLabel && !customer) setCustomer({ id: hit.customerId, label: hit.ownerLabel, sublabel: null });
+    }
 
     return (
         <form action={formAction} className="space-y-4">
-            <input type="hidden" name="lines" value={JSON.stringify(lines.map(({ key, ...rest }) => ({ ...rest, id: rest.id })))} />
+            {/* `key` is editor-only; JSON.stringify drops undefined, so it never reaches the server. */}
+            <input type="hidden" name="lines" value={JSON.stringify(lines.map((line) => ({ ...line, key: undefined })))} />
 
             <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-slate-500">
@@ -95,15 +106,24 @@ export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
             <section className="border border-slate-200 rounded-sm bg-white">
                 <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Details</h3>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
-                    <SelectField
-                        label="Customer" name="customerId" errors={errors} allowEmpty={isCashSale ? "Cash sale" : "— choose —"}
-                        value={customerId}
-                        onChange={(v) => { setCustomerId(v); if (v && !options.vehicles.some((veh) => veh.id === vehicleId && veh.customerId === v)) setVehicleId(""); }}
+                    <CustomerPicker
+                        tenant={tenant}
+                        value={customer}
+                        onChange={chooseCustomer}
+                        placeholder={isCashSale ? "Cash sale — no customer needed" : "Name, mobile, email or plate…"}
                         disabled={readOnly}
-                        options={options.customers.map((c) => ({ value: c.id, label: `${c.lastName}, ${c.firstName}${c.mobile ? ` · ${c.mobile}` : ""}` }))}
+                        error={errors?.customerId?.[0]}
                         className="lg:col-span-2"
                     />
-                    <SelectField label="Vehicle" name="vehicleId" errors={errors} value={vehicleId} onChange={setVehicleId} disabled={readOnly} allowEmpty="— none —" options={vehicleOptions} className="lg:col-span-2" />
+                    <VehiclePicker
+                        tenant={tenant}
+                        value={vehicle}
+                        onChange={chooseVehicle}
+                        customerId={customer?.id ?? null}
+                        disabled={readOnly}
+                        error={errors?.vehicleId?.[0]}
+                        className="lg:col-span-2"
+                    />
                     <TextField label="Reference" name="reference" defaultValue={doc.reference} errors={errors} />
                     <TextField label="Customer order no." name="customerOrderNumber" defaultValue={doc.customerOrderNumber} errors={errors} />
                     <SelectField label="Service advisor" name="serviceAdvisorId" defaultValue={doc.serviceAdvisorId} errors={errors} allowEmpty="—" options={options.advisors.map((a) => ({ value: a.id, label: a.name }))} />

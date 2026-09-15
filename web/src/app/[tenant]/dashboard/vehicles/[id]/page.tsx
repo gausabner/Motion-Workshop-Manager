@@ -4,14 +4,15 @@ import { Car, Archive, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VehicleForm } from "@/components/vehicles/VehicleForm";
 import { requireTenant } from "@/lib/auth/session";
-import { getVehicle, listCustomerOptions } from "@/lib/vehicles/queries";
+import { getVehicle } from "@/lib/vehicles/queries";
+import { customerHit } from "@/lib/search/hits";
 import { setVehicleArchived } from "@/lib/vehicles/actions";
 import { dateShort } from "@/lib/format";
 
 export default async function VehiclePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);
     const { db } = await requireTenant(slug);
-    const [vehicle, customers] = await Promise.all([getVehicle(db, id), listCustomerOptions(db)]);
+    const vehicle = await getVehicle(db, id);
     if (!vehicle) notFound();
     const archive = setVehicleArchived.bind(null, slug, vehicle.id, !vehicle.archivedAt);
     return (
@@ -39,7 +40,7 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
                     </form>
                 </div>
             </div>
-            <VehicleForm tenant={slug} vehicle={vehicle} customers={customers} />
+            <VehicleForm tenant={slug} vehicle={vehicle} initialOwner={vehicle.customer ? customerHit(vehicle.customer) : null} />
         </div>
     );
 }

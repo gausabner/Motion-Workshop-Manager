@@ -43,8 +43,3 @@ export async function getVehicle(db: TenantDb, id: string) {
 
 export type VehicleRecord = NonNullable<Awaited<ReturnType<typeof getVehicle>>>;
 
-/** Active customers as select options (name, mobile). */
-export async function listCustomerOptions(db: TenantDb) {
-    const rows = await db.customer.findMany({ where: { archivedAt: null }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }], select: { id: true, firstName: true, lastName: true, mobile: true } });
-    return rows.map((c) => ({ value: c.id, label: `${c.lastName}, ${c.firstName}${c.mobile ? ` · ${c.mobile}` : ""}` }));
-}
