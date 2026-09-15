@@ -12,7 +12,7 @@ import { dateShort, money } from "@/lib/format";
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string }> }) {
     const [{ tenant: slug, id }, { processed }] = await Promise.all([params, searchParams]);
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, membership } = await requireTenant(slug);
     const [doc, options] = await Promise.all([getDocument(db, id), getEditorOptions(db)]);
     if (!doc) notFound();
 
@@ -74,8 +74,6 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                 tenant={slug}
                 doc={doc}
                 options={options}
-                pricesIncludeTax={tenant.pricesIncludeTax}
-                salesTaxRate={tenant.salesTaxRate.toNumber()}
                 showCost={showCost}
             />
 

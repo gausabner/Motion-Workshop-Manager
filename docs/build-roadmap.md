@@ -115,7 +115,7 @@ Their stale supplier `balance_due` is the cautionary tale. Compute `amountDue` f
 **5. Payment model, corrected before it is built.**
 - `PaymentTender` child collection — a payment holds many, each with **its own reference**
 - `amount` separate from `allocated`; the difference is unapplied credit
-- Invariant: allocations must equal tenders before posting
+- Invariant: allocations may not exceed tenders; any remainder is unapplied credit. We deliberately relax their exact-balance rule so a payment can be taken on account
 
 **6. Schema decisions that are expensive to reverse.** All of these while there are no users:
 - `external_refs` table instead of per-integration columns

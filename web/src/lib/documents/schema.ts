@@ -16,7 +16,9 @@ export const documentLineSchema = z.object({
     productId: z.string().optional().nullable(),
     lineType: z.enum(LINE_TYPES).default("STOCK"),
     description: z.string().trim().min(1, "Description is required").max(255),
-    quantity: z.coerce.number().finite().min(0, "Cannot be negative"),
+    // Negative quantities are how a credit note returns goods, so no lower bound here.
+    quantity: z.coerce.number().finite(),
+    hours: z.preprocess((v) => (v === "" || v === undefined || v === null ? null : Number(v)), z.number().finite().min(0, "Cannot be negative").nullable()),
     unitPrice: z.coerce.number().finite().min(0, "Cannot be negative"),
     unitCost: z.coerce.number().finite().min(0).default(0),
     vatRate: z.coerce.number().finite().min(0).max(100).default(15),

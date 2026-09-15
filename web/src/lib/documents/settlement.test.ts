@@ -1,0 +1,73 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { paymentPostingError, stateAfterAllocation, stateOnProcess, unappliedAmount } from "./settlement";
+
+test("a normal invoice is PROCESSED when posted", () => {
+    assert.equal(stateOnProcess("INVOICE", 2518.5), "PROCESSED");
+});
+
+test("a zero-value invoice closes on process instead of sitting in Unpaid", () => {
+    assert.equal(stateOnProcess("INVOICE", 0), "CLOSED");
+    assert.equal(stateOnProcess("CASH_SALE", 0.004), "CLOSED");
+});
+
+test("a zero-value job card or quote is still just PROCESSED", () => {
+    assert.equal(stateOnProcess("JOB_CARD", 0), "PROCESSED");
+    assert.equal(stateOnProcess("QUOTE", 0), "PROCESSED");
+});
+
+test("the benchmark sequence: part payment stays PROCESSED, settlement closes", () => {
+    // Observed live: 2518.50 invoice, paid 1500.00 then 1018.50.
+    assert.equal(stateAfterAllocation("PROCESSED", "INVOICE", 2518.5, 1500), "PROCESSED");
+    assert.equal(stateAfterAllocation("PROCESSED", "INVOICE", 2518.5, 2518.5), "CLOSED");
+});
+
+test("float drift at the cent does not keep an invoice open", () => {
+    assert.equal(stateAfterAllocation("PROCESSED", "INVOICE", 0.3, 0.1 + 0.2), "CLOSED");
+});
+
+test("an overpayment still closes the invoice", () => {
+    assert.equal(stateAfterAllocation("PROCESSED", "INVOICE", 100, 150), "CLOSED");
+});
+
+test("voiding a payment re-opens a closed invoice", () => {
+    assert.equal(stateAfterAllocation("CLOSED", "INVOICE", 2518.5, 1500), "PROCESSED");
+});
+
+test("drafts, voids and job cards never move on allocation", () => {
+    assert.equal(stateAfterAllocation("DRAFT", "INVOICE", 100, 100), "DRAFT");
+    assert.equal(stateAfterAllocation("VOID", "INVOICE", 100, 100), "VOID");
+    assert.equal(stateAfterAllocation("PROCESSED", "JOB_CARD", 100, 100), "PROCESSED");
+});
+
+test("a credit note with a negative total settles on its absolute value", () => {
+    assert.equal(stateAfterAllocation("PROCESSED", "CREDIT", -890, -400), "PROCESSED");
+    assert.equal(stateAfterAllocation("PROCESSED", "CREDIT", -890, -890), "CLOSED");
+});
+
+test("unapplied credit is what was tendered but not allocated", () => {
+    assert.equal(unappliedAmount([1000, 500], [1200]), 300);
+    assert.equal(unappliedAmount([1500], [1500]), 0);
+    assert.equal(unappliedAmount([500], []), 500);
+});
+
+test("a split tender across cash, card and EFT can settle one invoice", () => {
+    assert.equal(paymentPostingError([200, 800, 1518.5], [2518.5]), null);
+});
+
+test("a payment taken on account with no allocation can post", () => {
+    assert.equal(paymentPostingError([500], []), null);
+});
+
+test("a payment cannot allocate more than was tendered", () => {
+    assert.match(paymentPostingError([1000], [1200]) ?? "", /more than the 1000\.00 tendered/);
+});
+
+test("a payment with nothing tendered cannot post", () => {
+    assert.match(paymentPostingError([], []) ?? "", /at least one tender/);
+    assert.match(paymentPostingError([0], []) ?? "", /at least one tender/);
+});
+
+test("negative tenders or allocations are rejected", () => {
+    assert.match(paymentPostingError([100, -20], []) ?? "", /cannot be negative/);
+});

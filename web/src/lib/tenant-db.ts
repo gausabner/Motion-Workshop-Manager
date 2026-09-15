@@ -18,7 +18,7 @@ const TENANT_MODELS = new Set([
     "ProductGroup", "ProductCategory", "Product", "CustomerSource", "PaymentMethod",
     "AppointmentType", "Sequence", "Template", "Document", "DocumentLine",
     "DocumentStatusEvent", "TimeEntry", "Payment", "PaymentAllocation", "Credit",
-    "Attachment", "AuditEvent",
+    "Attachment", "AuditEvent", "PaymentTender", "ExternalRef",
 ]);
 
 type AnyArgs = Record<string, unknown>;

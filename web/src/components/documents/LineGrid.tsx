@@ -15,6 +15,8 @@ export type EditorLine = {
     lineType: LineType;
     description: string;
     quantity: number;
+    /** Labour hours worked on this line; null when not tracked. */
+    hours: number | null;
     unitPrice: number;
     unitCost: number;
     vatRate: number;
@@ -29,7 +31,8 @@ type Props = {
     onChange: React.Dispatch<React.SetStateAction<EditorLine[]>>;
     products: EditorOptions["products"];
     pricesIncludeTax: boolean;
-    salesTaxRate: number;
+    /** The document's snapshotted rate, applied to standard-rated lines. */
+    taxRate: number;
     showCost: boolean;
     readOnly: boolean;
 };
@@ -44,6 +47,7 @@ export function newLine(vatRate: number): EditorLine {
         lineType: "STOCK",
         description: "",
         quantity: 1,
+        hours: null,
         unitPrice: 0,
         unitCost: 0,
         vatRate,
@@ -53,7 +57,7 @@ export function newLine(vatRate: number): EditorLine {
     };
 }
 
-export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTaxRate, showCost, readOnly }: Props) {
+export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate, showCost, readOnly }: Props) {
     function update(index: number, patch: Partial<EditorLine>) {
         onChange((prev) => prev.map((l, i) => (i === index ? { ...l, ...patch } : l)));
     }
@@ -74,7 +78,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTax
                           description: p.description,
                           unitPrice: p.retailPrice,
                           unitCost: p.costExTax,
-                          vatRate: p.vatExempt ? 0 : salesTaxRate,
+                          vatRate: p.vatExempt ? 0 : taxRate,
                           lineType: PRODUCT_TO_LINE_TYPE[p.type],
                           quantity: p.type === "LABOUR" && p.defaultLabourQty ? p.defaultLabourQty : l.quantity || 1,
                       }
@@ -90,7 +94,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTax
             <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Items</h3>
                 {!readOnly && (
-                    <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => onChange((prev) => [...prev, newLine(salesTaxRate)])}>
+                    <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => onChange((prev) => [...prev, newLine(taxRate)])}>
                         <Plus className="w-3.5 h-3.5 mr-1" />Add line
                     </Button>
                 )}
@@ -105,6 +109,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTax
                             <th className="text-left font-semibold px-2 py-1.5">Description</th>
                             <th className="text-left font-semibold px-2 py-1.5 w-28">Type</th>
                             <th className="text-right font-semibold px-2 py-1.5 w-20">Qty</th>
+                            <th className="text-right font-semibold px-2 py-1.5 w-16">Hours</th>
                             <th className="text-right font-semibold px-2 py-1.5 w-28">Unit price</th>
                             {showCost && <th className="text-right font-semibold px-2 py-1.5 w-28">Unit cost</th>}
                             <th className="text-right font-semibold px-2 py-1.5 w-16">Disc %</th>
@@ -115,7 +120,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTax
                     </thead>
                     <tbody>
                         {lines.length === 0 && (
-                            <tr><td colSpan={showCost ? 11 : 10} className="px-4 py-8 text-center text-sm text-slate-500">
+                            <tr><td colSpan={showCost ? 12 : 11} className="px-4 py-8 text-center text-sm text-slate-500">
                                 No items yet. {readOnly ? "" : "Add a line, or type a product code to pull in its price."}
                             </td></tr>
                         )}
@@ -145,6 +150,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, salesTax
                                         </select>
                                     </td>
                                     <td className="px-1 py-1"><input type="number" step="0.01" className={num} value={line.quantity} disabled={readOnly} onChange={(e) => update(i, { quantity: Number(e.target.value) })} aria-label={`Quantity, line ${i + 1}`} /></td>
+                                    <td className="px-1 py-1"><input type="number" step="0.25" min="0" className={num} value={line.hours ?? ""} placeholder="—" disabled={readOnly} onChange={(e) => update(i, { hours: e.target.value === "" ? null : Number(e.target.value) })} aria-label={`Hours, line ${i + 1}`} /></td>
                                     <td className="px-1 py-1"><input type="number" step="0.01" min="0" className={num} value={line.unitPrice} disabled={readOnly} onChange={(e) => update(i, { unitPrice: Number(e.target.value) })} aria-label={`Unit price, line ${i + 1}`} /></td>
                                     {showCost && (
                                         <td className="px-1 py-1">

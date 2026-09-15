@@ -16,8 +16,6 @@ type Props = {
     tenant: string;
     doc: DocumentRecord;
     options: EditorOptions;
-    pricesIncludeTax: boolean;
-    salesTaxRate: number;
     showCost: boolean;
 };
 
@@ -29,6 +27,7 @@ function toEditorLines(doc: DocumentRecord): EditorLine[] {
         lineType: l.lineType,
         description: l.description,
         quantity: Number(l.quantity),
+        hours: l.hours ?? null,
         unitPrice: Number(l.unitPrice),
         unitCost: Number(l.unitCost),
         vatRate: Number(l.vatRate),
@@ -45,7 +44,10 @@ const localDateTime = (d: Date | string | null | undefined) => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-export function DocumentEditor({ tenant, doc, options, pricesIncludeTax, salesTaxRate, showCost }: Props) {
+export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
+    // Tax comes from the document's own snapshot, so a draft keeps the rate it was raised at.
+    const pricesIncludeTax = doc.pricesIncludeTax;
+    const taxRate = doc.taxRate;
     const readOnly = doc.state !== "DRAFT";
     const action = saveDocument.bind(null, tenant, doc.id);
     const [state, formAction, pending] = useActionState(action, initialActionState);
@@ -61,8 +63,8 @@ export function DocumentEditor({ tenant, doc, options, pricesIncludeTax, salesTa
     const isFinancial = doc.type === "INVOICE" || doc.type === "CASH_SALE" || doc.type === "CREDIT";
 
     const totals = useMemo(
-        () => calculateTotals({ lines, pricesIncludeTax, discountPercent: Number(discountPercent) || 0, freight: Number(freight) || 0, freightVatRate: salesTaxRate }),
-        [lines, pricesIncludeTax, discountPercent, freight, salesTaxRate],
+        () => calculateTotals({ lines, pricesIncludeTax, discountPercent: Number(discountPercent) || 0, freight: Number(freight) || 0, freightVatRate: taxRate }),
+        [lines, pricesIncludeTax, discountPercent, freight, taxRate],
     );
 
     // Only this customer's vehicles, unless none is chosen yet.
@@ -142,7 +144,7 @@ export function DocumentEditor({ tenant, doc, options, pricesIncludeTax, salesTa
                 </div>
             </section>
 
-            <LineGrid lines={lines} onChange={setLines} products={options.products} pricesIncludeTax={pricesIncludeTax} salesTaxRate={salesTaxRate} showCost={showCost} readOnly={readOnly} />
+            <LineGrid lines={lines} onChange={setLines} products={options.products} pricesIncludeTax={pricesIncludeTax} taxRate={taxRate} showCost={showCost} readOnly={readOnly} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <section className="lg:col-span-2 border border-slate-200 rounded-sm bg-white">
@@ -168,7 +170,7 @@ export function DocumentEditor({ tenant, doc, options, pricesIncludeTax, salesTa
                         <dl className="pt-2 space-y-1.5 border-t border-slate-100">
                             <div className="flex justify-between"><dt className="text-slate-500">Subtotal (excl. VAT)</dt><dd className="tabular-nums">{money(totals.subtotal)}</dd></div>
                             {totals.discountApplied > 0 && <div className="flex justify-between text-amber-700"><dt>Discount</dt><dd className="tabular-nums">− {money(totals.discountApplied)}</dd></div>}
-                            <div className="flex justify-between"><dt className="text-slate-500">VAT</dt><dd className="tabular-nums">{money(totals.vatTotal)}</dd></div>
+                            <div className="flex justify-between"><dt className="text-slate-500">{doc.taxName} ({taxRate}%)</dt><dd className="tabular-nums">{money(totals.vatTotal)}</dd></div>
                             <div className="flex justify-between pt-1.5 border-t border-slate-200 text-base font-bold"><dt>Total</dt><dd className="tabular-nums">{money(totals.total)}</dd></div>
                             {showCost && (
                                 <div className="pt-2 mt-2 border-t border-dashed border-slate-200 space-y-1 text-xs">
@@ -181,9 +183,12 @@ export function DocumentEditor({ tenant, doc, options, pricesIncludeTax, salesTa
                             {doc.amountPaid > 0 && (
                                 <div className="pt-2 mt-2 border-t border-slate-200 space-y-1">
                                     <div className="flex justify-between text-slate-500"><dt>Paid</dt><dd className="tabular-nums">{money(doc.amountPaid)}</dd></div>
-                                    <div className="flex justify-between font-semibold"><dt>Due</dt><dd className="tabular-nums">{money(Math.max(doc.total - doc.amountPaid, 0))}</dd></div>
+                                    <div className="flex justify-between font-semibold"><dt>Due</dt><dd className="tabular-nums">{money(doc.amountDue)}</dd></div>
                                 </div>
                             )}
+                            <p className="pt-2 text-[11px] text-slate-400">
+                                Prices {pricesIncludeTax ? "include" : "exclude"} {doc.taxName} at {taxRate}% — fixed when this document was raised.
+                            </p>
                         </dl>
                     </div>
                 </section>

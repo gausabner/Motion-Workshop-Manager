@@ -9,6 +9,7 @@ import { assertCan } from "@/lib/auth/permissions";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { saveDocumentSchema } from "@/lib/documents/schema";
 import { calculateTotals } from "@/lib/documents/totals";
+import { stateOnProcess } from "@/lib/documents/settlement";
 import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { allocateNumber } from "@/lib/documents/numbering";
 
@@ -21,15 +22,25 @@ function editorPath(slug: string, id: string) {
     return `/${slug}/dashboard/documents/${id}`;
 }
 
-/** Recompute and store totals from the lines currently on the document. */
-async function recalculate(tx: TenantTx, documentId: string, pricesIncludeTax: boolean, freightVatRate: number) {
+/** The tenant's tax settings as they stand now, to stamp onto a new document. */
+function tenantTaxSnapshot(tenant: TenantContext["tenant"]) {
+    return { taxName: tenant.taxName, taxRate: tenant.salesTaxRate, pricesIncludeTax: tenant.pricesIncludeTax };
+}
+
+/**
+ * Recompute and store totals from the lines currently on the document.
+ *
+ * Tax settings come from the document's own snapshot, never from the tenant:
+ * a workshop changing its VAT rate must not rewrite history.
+ */
+async function recalculate(tx: TenantTx, documentId: string) {
     const doc = await tx.document.findUniqueOrThrow({
         where: { id: documentId },
-        select: { discountPercent: true, discountAmount: true, freight: true, lines: { select: { quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true } } },
+        select: { taxRate: true, pricesIncludeTax: true, discountPercent: true, discountAmount: true, freight: true, lines: { select: { quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true } } },
     });
     const totals = calculateTotals({
-        pricesIncludeTax,
-        freightVatRate,
+        pricesIncludeTax: doc.pricesIncludeTax,
+        freightVatRate: doc.taxRate.toNumber(),
         discountPercent: doc.discountPercent?.toNumber() ?? null,
         discountAmount: doc.discountAmount.toNumber(),
         freight: doc.freight.toNumber(),
@@ -43,7 +54,7 @@ async function recalculate(tx: TenantTx, documentId: string, pricesIncludeTax: b
     });
     await tx.document.update({
         where: { id: documentId },
-        data: { subtotal: totals.subtotal, vatTotal: totals.vatTotal, total: totals.total },
+        data: { subtotal: totals.subtotal, discountApplied: totals.discountApplied, vatTotal: totals.vatTotal, unroundedTotal: totals.total, rounding: 0, total: totals.total },
     });
     return totals;
 }
@@ -76,6 +87,7 @@ export async function createDocument(slug: string, type: DocumentType, seed?: { 
                 serviceAdvisorId: membership.isServiceAdvisor ? membership.id : null,
                 createdById: membership.id,
                 paymentTermsDays: tenant.defaultPaymentTermsDays,
+                ...tenantTaxSnapshot(tenant),
             },
             select: { id: true },
         });
@@ -192,6 +204,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                 lineType: line.lineType,
                 description: line.description,
                 quantity: line.quantity,
+                hours: line.hours ?? null,
                 unitPrice: line.unitPrice,
                 unitCost: line.unitCost,
                 vatRate: line.vatRate,
@@ -211,7 +224,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                 data: { tenantId: tenant.id, documentId: id, fromStatus: existing.jobStatus, toStatus: d.jobStatus, comment: d.statusComment ?? null, byId: membership.id },
             });
         }
-        await recalculate(tx, id, tenant.pricesIncludeTax, tenant.salesTaxRate.toNumber());
+        await recalculate(tx, id);
         await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "UPDATED" } });
     });
 
@@ -239,7 +252,7 @@ export async function processDocument(slug: string, id: string): Promise<void> {
     if (!doc.customerId && !doc.isCashSale) throw new Error("Choose a customer, or mark this as a cash sale");
 
     await db.$transaction(async (tx) => {
-        const totals = await recalculate(tx, id, tenant.pricesIncludeTax, tenant.salesTaxRate.toNumber());
+        const totals = await recalculate(tx, id);
         const number = await allocateNumber(tx, tenant.id, TYPE_SEQUENCE[doc.type]);
         const terms = doc.paymentTermsDays ?? tenant.defaultPaymentTermsDays;
         const dueDate = doc.dueDate ?? new Date(doc.postDate.getTime() + terms * 24 * 60 * 60 * 1000);
@@ -248,7 +261,7 @@ export async function processDocument(slug: string, id: string): Promise<void> {
             where: { id },
             data: {
                 number,
-                state: "PROCESSED",
+                state: stateOnProcess(doc.type, totals.total),
                 processedAt: new Date(),
                 processedById: membership.id,
                 dueDate: FINANCIAL.has(doc.type) ? dueDate : null,
@@ -288,10 +301,12 @@ export async function voidDocument(slug: string, id: string, formData: FormData)
     const reason = (formData.get("voidReason") as string | null)?.trim();
     if (!reason) throw new Error("A reason is required to void a document");
 
-    const doc = await db.document.findUnique({ where: { id }, select: { state: true, amountPaid: true } });
+    const doc = await db.document.findUnique({ where: { id }, select: { state: true } });
     if (!doc) throw new Error("Document not found");
     if (doc.state === "VOID") throw new Error("Already voided");
-    if (doc.amountPaid.toNumber() > 0) throw new Error("Payments are allocated to this document — refund or reallocate them first");
+    // Derived, not stored: any posted payment allocated here blocks the void.
+    const allocated = await db.paymentAllocation.aggregate({ where: { documentId: id, payment: { state: "PROCESSED" } }, _sum: { amount: true } });
+    if ((allocated._sum.amount?.toNumber() ?? 0) !== 0) throw new Error("Payments are allocated to this document — refund or reallocate them first");
 
     await db.$transaction(async (tx) => {
         await tx.document.update({ where: { id }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason, jobStatus: null } });
@@ -333,6 +348,8 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
                 nextServiceDate: source.nextServiceDate,
                 isInternal: source.isInternal,
                 paymentTermsDays: source.paymentTermsDays,
+                // A credit note must reverse the tax that was charged; a conversion or copy is a new transaction at today's rate.
+                ...(opts.negate ? { taxName: source.taxName, taxRate: source.taxRate, pricesIncludeTax: source.pricesIncludeTax } : tenantTaxSnapshot(tenant)),
                 discountPercent: source.discountPercent,
                 discountAmount: source.discountAmount,
                 freight: source.freight,
@@ -356,14 +373,16 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
                     quantity: opts.negate ? l.quantity.toNumber() * -1 : l.quantity,
                     unitPrice: l.unitPrice,
                     unitCost: l.unitCost,
-                    vatRate: l.vatRate,
+                    hours: l.hours,
+                    // Standard-rated lines follow the new document's rate; exempt and special-rate lines keep theirs.
+                    vatRate: !opts.negate && l.vatRate.equals(source.taxRate) ? tenant.salesTaxRate : l.vatRate,
                     discountPercent: l.discountPercent,
                     serialNumbers: l.serialNumbers,
                     isCustomerSupplied: l.isCustomerSupplied,
                 },
             });
         }
-        await recalculate(tx, doc.id, tenant.pricesIncludeTax, tenant.salesTaxRate.toNumber());
+        await recalculate(tx, doc.id);
         await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: doc.id, action: "CREATED", diff: { from: source.id, toType } } });
         return doc;
     });

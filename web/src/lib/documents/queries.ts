@@ -2,7 +2,7 @@ import "server-only";
 import type { DocumentType, JobStatus, Prisma } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
 import { BOARD_COLUMNS } from "@/lib/documents/types";
-import { round2 } from "@/lib/documents/totals";
+import { amountDue, round2 } from "@/lib/documents/totals";
 
 type Decimalish = { toNumber(): number };
 
@@ -24,9 +24,18 @@ function decimalsToNumbers<T extends Record<string, unknown>>(row: T): Numeric<T
     return out as Numeric<T>;
 }
 
+/** Only posted payments count towards what a document has been paid. */
+const PROCESSED_ALLOCATIONS = { where: { payment: { state: "PROCESSED" as const } }, select: { amount: true } };
+
+/** Paid and due are derived from allocations every time — never stored on the document. */
+function balances(total: number, allocations: { amount: Decimalish }[]) {
+    const amountPaid = round2(allocations.reduce((sum, a) => sum + a.amount.toNumber(), 0));
+    return { amountPaid, amountDue: amountDue(total, amountPaid) };
+}
+
 export type DocumentListParams = {
     types?: DocumentType[];
-    state?: "DRAFT" | "PROCESSED" | "VOID";
+    state?: "DRAFT" | "PROCESSED" | "CLOSED" | "VOID";
     jobStatus?: JobStatus;
     q?: string;
     from?: Date;
@@ -67,7 +76,8 @@ export async function listDocuments(db: TenantDb, p: DocumentListParams) {
             take: size,
             select: {
                 id: true, type: true, state: true, jobStatus: true, statusComment: true, number: true, jobNumber: true,
-                postDate: true, scheduledAt: true, dueDate: true, contactedAt: true, total: true, amountPaid: true,
+                postDate: true, scheduledAt: true, dueDate: true, contactedAt: true, total: true,
+                allocations: PROCESSED_ALLOCATIONS,
                 customer: { select: { id: true, firstName: true, lastName: true } },
                 vehicle: { select: { id: true, plate: true, make: true, model: true } },
                 mechanic: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
@@ -76,7 +86,10 @@ export async function listDocuments(db: TenantDb, p: DocumentListParams) {
         db.document.count({ where }),
     ]);
     return {
-        rows: rows.map((r) => ({ ...r, total: r.total.toNumber(), amountPaid: r.amountPaid.toNumber() })),
+        rows: rows.map(({ allocations, ...r }) => {
+            const total = r.total.toNumber();
+            return { ...r, total, ...balances(total, allocations) };
+        }),
         total,
         page,
         size,
@@ -97,11 +110,15 @@ export async function getDocument(db: TenantDb, id: string) {
             processedBy: { select: { user: { select: { firstName: true, lastName: true } } } },
             sourceDocument: { select: { id: true, type: true, number: true } },
             derivedDocuments: { select: { id: true, type: true, number: true, state: true } },
+            allocations: PROCESSED_ALLOCATIONS,
         },
     });
     if (!doc) return null;
+    // `allocations` holds Decimals and is only needed to derive the balance — keep it off the client.
+    const { allocations, ...rest } = doc;
     return {
-        ...decimalsToNumbers(doc),
+        ...decimalsToNumbers(rest),
+        ...balances(rest.total.toNumber(), allocations),
         customer: doc.customer ? { ...doc.customer, discountPercent: doc.customer.discountPercent.toNumber() } : null,
         lines: doc.lines.map((l) => decimalsToNumbers(l)),
     };
