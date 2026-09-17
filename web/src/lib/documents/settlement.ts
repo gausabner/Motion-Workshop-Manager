@@ -47,17 +47,38 @@ export function unappliedAmount(tendered: number[], allocated: number[]): number
 }
 
 /**
+ * Trim a requested allocation to what the document can actually take: never
+ * past its outstanding, and never against its sign. An invoice with N$400 left
+ * cannot absorb N$600, and nothing negative can be pushed onto it.
+ */
+export function clampAllocation(outstanding: number, requested: number): number {
+    const out = round2(outstanding);
+    const want = round2(requested);
+    if (out === 0 || want === 0) return 0;
+    if (out > 0) return Math.min(Math.max(want, 0), out);
+    return Math.max(Math.min(want, 0), out);
+}
+
+/**
  * Why a payment cannot be posted yet, or null when it can.
  *
- * The benchmark insists allocations exactly equal tenders. We deliberately
- * relax that to "may not exceed": a payment taken on account, before the
- * invoice exists, is exactly how unapplied credit legitimately arises.
+ * Allocations are signed the way the document's own outstanding is signed:
+ * positive against an invoice, negative against a credit note. Their sum is
+ * therefore the money the customer actually has to hand over, which is what
+ * the tenders must cover. Two consequences fall out of that:
+ *
+ *  - a receipt with no tenders at all is a pure credit application (+300 on
+ *    the invoice, −300 on the credit note, nothing changes hands);
+ *  - the benchmark insists allocations exactly equal tenders, and we
+ *    deliberately relax that to "may not exceed" — money taken on account,
+ *    before the invoice exists, is how unapplied credit legitimately arises.
  */
 export function paymentPostingError(tendered: number[], allocated: number[]): string | null {
     const tenderTotal = sum(tendered);
     const allocationTotal = sum(allocated);
-    if (tenderTotal <= 0) return "Add at least one tender with an amount.";
-    if (tendered.some((t) => Number(t) < 0) || allocated.some((a) => Number(a) < 0)) return "Amounts cannot be negative.";
+    if (tendered.some((t) => Number(t) < 0)) return "Tender amounts cannot be negative.";
+    if (tenderTotal === 0 && allocated.length === 0) return "Add at least one tender with an amount, or allocate a credit note.";
+    if (allocationTotal < 0) return "The allocations come to less than nothing. Paying a credit back out is a refund, not a receipt.";
     if (allocationTotal > tenderTotal) return `Allocated ${allocationTotal.toFixed(2)} is more than the ${tenderTotal.toFixed(2)} tendered.`;
     return null;
 }

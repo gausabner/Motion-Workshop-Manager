@@ -45,7 +45,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         </p>
                     </div>
                 </div>
-                <DocumentToolbar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} />
+                <DocumentToolbar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} />
             </div>
 
             {processed && (

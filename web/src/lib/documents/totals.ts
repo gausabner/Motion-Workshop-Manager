@@ -121,7 +121,15 @@ export function calculateTotals(input: DocumentTotalsInput): DocumentTotals {
     };
 }
 
-/** Amount still owed on a processed invoice. */
+/**
+ * What is still outstanding on a processed document.
+ *
+ * Signed, because a credit note carries a negative total and therefore a
+ * negative outstanding — money the workshop owes back. Clamping is one-sided:
+ * an overpaid invoice reads zero rather than negative, and an over-applied
+ * credit reads zero rather than positive.
+ */
 export function amountDue(total: number, amountPaid: number): number {
-    return round2(Math.max(total - amountPaid, 0));
+    const due = round2(total - amountPaid);
+    return total < 0 ? Math.min(due, 0) : Math.max(due, 0);
 }

@@ -12,6 +12,7 @@ import { calculateTotals } from "@/lib/documents/totals";
 import { stateOnProcess } from "@/lib/documents/settlement";
 import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { allocateNumber } from "@/lib/documents/numbering";
+import { businessToday } from "@/lib/tenant/today";
 
 /** Document types that put money on a customer's account when processed. */
 const FINANCIAL = new Set<DocumentType>(["INVOICE", "CASH_SALE", "CREDIT"]);
@@ -82,6 +83,7 @@ export async function createDocument(slug: string, type: DocumentType, seed?: { 
                 jobNumber,
                 customerId: seed?.customerId || null,
                 vehicleId: seed?.vehicleId || null,
+                postDate: businessToday(tenant.timezone),
                 scheduledAt: seed?.scheduledAt ? new Date(seed.scheduledAt) : null,
                 isCashSale: type === "CASH_SALE",
                 serviceAdvisorId: membership.isServiceAdvisor ? membership.id : null,
@@ -340,7 +342,7 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
                 mechanicId: source.mechanicId,
                 reference: source.reference,
                 customerOrderNumber: source.customerOrderNumber,
-                postDate: new Date(),
+                postDate: businessToday(tenant.timezone),
                 scheduledAt: source.scheduledAt,
                 estimatedHours: source.estimatedHours,
                 odometer: source.odometer,

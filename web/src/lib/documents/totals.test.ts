@@ -125,3 +125,11 @@ test("round2 does not lose the half cent to float error", () => {
     assert.equal(round2(1.005), 1.01);
     assert.equal(round2(2.675), 2.68);
 });
+
+test("a credit note's outstanding is negative until it is applied", () => {
+    assert.equal(amountDue(-890, 0), -890);
+    assert.equal(amountDue(-890, -400), -490);
+    assert.equal(amountDue(-890, -890), 0);
+    // Over-applying a credit reads as settled, never as money owed.
+    assert.equal(amountDue(-890, -1000), 0);
+});

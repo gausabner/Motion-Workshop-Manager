@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CustomerForm } from "@/components/customers/CustomerForm";
 import { ArchiveCustomerButton } from "@/components/customers/ArchiveCustomerButton";
+import { AccountSummary } from "@/components/payments/AccountSummary";
 import { requireTenant } from "@/lib/auth/session";
+import { can } from "@/lib/auth/permissions";
 import { getCustomer, listCustomerSources } from "@/lib/customers/queries";
+import { getCustomerAccount } from "@/lib/payments/queries";
+import { businessToday } from "@/lib/tenant/today";
 import { dateShort } from "@/lib/format";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);
-    const { db } = await requireTenant(slug);
-    const [customer, sources] = await Promise.all([getCustomer(db, id), listCustomerSources(db)]);
+    const { db, tenant, membership } = await requireTenant(slug);
+    const [customer, sources, account] = await Promise.all([getCustomer(db, id), listCustomerSources(db), getCustomerAccount(db, id, businessToday(tenant.timezone))]);
     if (!customer) notFound();
     const base = `/${slug}/dashboard`;
     const today = new Date();
@@ -36,6 +40,8 @@ export default async function CustomerPage({ params, searchParams }: { params: P
                     <ArchiveCustomerButton tenant={slug} id={customer.id} archived={!!customer.archivedAt} />
                 </div>
             </div>
+
+            <AccountSummary tenant={slug} customerId={customer.id} account={account} canTakePayment={can(membership, "payments:take")} />
 
             <section id="vehicles" className="border border-slate-200 rounded-sm bg-white">
                 <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">

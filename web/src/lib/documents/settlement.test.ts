@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { paymentPostingError, stateAfterAllocation, stateOnProcess, unappliedAmount } from "./settlement";
+import { clampAllocation, paymentPostingError, stateAfterAllocation, stateOnProcess, unappliedAmount } from "./settlement";
 
 test("a normal invoice is PROCESSED when posted", () => {
     assert.equal(stateOnProcess("INVOICE", 2518.5), "PROCESSED");
@@ -68,6 +68,28 @@ test("a payment with nothing tendered cannot post", () => {
     assert.match(paymentPostingError([0], []) ?? "", /at least one tender/);
 });
 
-test("negative tenders or allocations are rejected", () => {
+test("negative tenders are rejected — money cannot come in backwards", () => {
     assert.match(paymentPostingError([100, -20], []) ?? "", /cannot be negative/);
+});
+
+test("a credit note applied to an invoice posts with nothing tendered", () => {
+    // +300 onto the invoice, −300 off the credit note: no money changes hands.
+    assert.equal(paymentPostingError([], [300, -300]), null);
+});
+
+test("a credit that more than covers the invoice cannot be posted as a receipt", () => {
+    assert.match(paymentPostingError([], [300, -500]) ?? "", /refund, not a receipt/);
+});
+
+test("an allocation is trimmed to what the document can take", () => {
+    assert.equal(clampAllocation(400, 600), 400);
+    assert.equal(clampAllocation(400, 250), 250);
+    assert.equal(clampAllocation(400, -100), 0);
+    assert.equal(clampAllocation(0, 100), 0);
+});
+
+test("a credit note only absorbs negative allocations, down to its own outstanding", () => {
+    assert.equal(clampAllocation(-890, -1000), -890);
+    assert.equal(clampAllocation(-890, -400), -400);
+    assert.equal(clampAllocation(-890, 400), 0);
 });

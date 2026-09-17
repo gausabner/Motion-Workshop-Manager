@@ -25,7 +25,7 @@ function decimalsToNumbers<T extends Record<string, unknown>>(row: T): Numeric<T
 }
 
 /** Only posted payments count towards what a document has been paid. */
-const PROCESSED_ALLOCATIONS = { where: { payment: { state: "PROCESSED" as const } }, select: { amount: true } };
+export const PROCESSED_ALLOCATIONS = { where: { payment: { state: "PROCESSED" as const } }, select: { amount: true } };
 
 /** Paid and due are derived from allocations every time — never stored on the document. */
 function balances(total: number, allocations: { amount: Decimalish }[]) {

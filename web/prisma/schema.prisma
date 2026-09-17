@@ -750,7 +750,8 @@ model TimeEntry {
 model Payment {
   id          String       @id @default(cuid())
   tenantId    String
-  customerId  String
+  /// Null only while the receipt is still a draft on the counter.
+  customerId  String?
   state       PaymentState @default(DRAFT)
   /// Receipt number from the RECEIPT sequence, allocated on process
   number      String?
@@ -766,7 +767,7 @@ model Payment {
   updatedAt   DateTime     @updatedAt
 
   tenant      Tenant              @relation(fields: [tenantId], references: [id])
-  customer    Customer            @relation(fields: [customerId], references: [id])
+  customer    Customer?           @relation(fields: [customerId], references: [id])
   takenBy     Membership?         @relation(fields: [takenById], references: [id])
   tenders     PaymentTender[]
   allocations PaymentAllocation[]

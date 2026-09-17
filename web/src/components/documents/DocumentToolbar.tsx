@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle } from "lucide-react";
+import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { convertDocument, copyDocument, createCreditNote, markContacted, processDocument, voidDocument } from "@/lib/documents/actions";
+import { createPayment } from "@/lib/payments/actions";
 import type { DocumentRecord } from "@/lib/documents/queries";
 
 type Props = {
@@ -11,21 +12,29 @@ type Props = {
     doc: DocumentRecord;
     canProcess: boolean;
     canVoid: boolean;
+    canTakePayment: boolean;
 };
 
 /**
  * Lifecycle buttons. They sit outside the editor's form because each posts to
  * its own server action, and forms cannot nest.
  */
-export function DocumentToolbar({ tenant, doc, canProcess, canVoid }: Props) {
+export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayment }: Props) {
     const [voiding, setVoiding] = useState(false);
     const isDraft = doc.state === "DRAFT";
     const isProcessed = doc.state === "PROCESSED";
     const canInvoice = doc.type === "JOB_CARD" || doc.type === "QUOTE";
     const canStartJob = doc.type === "BOOKING" || doc.type === "QUOTE";
+    // Only an invoice with money still on it, and only for someone with an account to put it against.
+    const owing = isProcessed && (doc.type === "INVOICE" || doc.type === "CASH_SALE") && doc.amountDue > 0 && !!doc.customer;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
+            {owing && canTakePayment && (
+                <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
+                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>
+                </form>
+            )}
             {isDraft && canStartJob && (
                 <form action={convertDocument.bind(null, tenant, doc.id, "JOB_CARD")}>
                     <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Start job</Button>
