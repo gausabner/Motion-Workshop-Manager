@@ -122,6 +122,38 @@ enum TemplateKind {
   STATEMENT_FOOTER
   EMAIL
   SMS
+  /// The text that goes out with a document on WhatsApp or email. Built-in
+  /// defaults live in code; a row here is the workshop's own wording.
+  MESSAGE_QUOTE
+  MESSAGE_JOB_CARD
+  MESSAGE_INVOICE
+  MESSAGE_CREDIT
+  MESSAGE_RECEIPT
+  MESSAGE_REFUND
+  MESSAGE_STATEMENT
+}
+
+enum MessageChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+/// HANDED_OFF means the message was prepared and opened in the sender's own
+/// WhatsApp or mail app — we cannot know whether they pressed send. Whether
+/// the customer actually got it is answered by the share link being opened.
+enum MessageStatus {
+  HANDED_OFF
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ShareKind {
+  DOCUMENT
+  PAYMENT
+  STATEMENT
 }
 
 enum SequenceKey {
@@ -197,6 +229,8 @@ model Tenant {
   attachments       Attachment[]
   auditEvents       AuditEvent[]
   externalRefs      ExternalRef[]
+  shareLinks        ShareLink[]
+  messages          Message[]
 }
 
 model User {
@@ -242,6 +276,7 @@ model Membership {
   statusEvents       DocumentStatusEvent[]
   timeEntries        TimeEntry[]
   paymentsTaken      Payment[]
+  messages           Message[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -336,6 +371,7 @@ model Customer {
   documents      Document[]
   payments       Payment[]
   credits        Credit[]
+  messages       Message[]
 
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, mobile])
@@ -678,6 +714,7 @@ model Document {
   timeEntries      TimeEntry[]
   allocations      PaymentAllocation[]
   credits          Credit[]
+  messages         Message[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -784,6 +821,7 @@ model Payment {
   tenders     PaymentTender[]
   allocations PaymentAllocation[]
   credits     Credit[]
+  messages    Message[]
 
   @@index([tenantId, customerId, postDate])
   @@index([tenantId, state])
@@ -871,6 +909,63 @@ model Attachment {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, ownerType, ownerId])
+}
+
+/// A link a customer can open without an account. Only the hash of the token
+/// is stored, so the table leaking does not leak working links.
+model ShareLink {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tokenHash     String    @unique
+  kind          ShareKind
+  /// Document id, payment id, or — for a statement — the customer id.
+  targetId      String
+  /// The statement window, when kind is STATEMENT.
+  params        Json      @default("{}")
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  firstOpenedAt DateTime?
+  lastOpenedAt  DateTime?
+  openCount     Int       @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  messages Message[]
+
+  @@index([tenantId, kind, targetId])
+}
+
+/// Every message sent to a customer, whatever the channel — the communication log.
+model Message {
+  id          String         @id @default(cuid())
+  tenantId    String
+  customerId  String?
+  documentId  String?
+  paymentId   String?
+  shareLinkId String?
+  channel     MessageChannel
+  /// Which driver carried it: "whatsapp-link", "mailto", later a provider.
+  driver      String
+  status      MessageStatus
+  recipient   String
+  subject     String?
+  body        String
+  externalId  String?
+  error       String?
+  sentById    String?
+  createdAt   DateTime       @default(now())
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  customer  Customer?   @relation(fields: [customerId], references: [id])
+  document  Document?   @relation(fields: [documentId], references: [id])
+  payment   Payment?    @relation(fields: [paymentId], references: [id])
+  shareLink ShareLink?  @relation(fields: [shareLinkId], references: [id])
+  sentBy    Membership? @relation(fields: [sentById], references: [id])
+
+  @@index([tenantId, customerId, createdAt])
+  @@index([tenantId, documentId])
+  @@index([tenantId, paymentId])
 }
 
 model AuditEvent {

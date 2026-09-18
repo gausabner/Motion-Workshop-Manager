@@ -1,5 +1,7 @@
 /** Display helpers — locale defaults for Namibia (en-NA, N$). */
 
+import { toInternational } from "@/lib/messaging/phone";
+
 export function money(value: number | string | null | undefined, currency = "NAD"): string {
     const n = typeof value === "string" ? Number(value) : value ?? 0;
     const symbol = currency === "ZAR" ? "R" : "N$";
@@ -21,12 +23,16 @@ export function dateInput(d: Date | string | null | undefined): string {
     return date.toISOString().slice(0, 10);
 }
 
-/** wa.me link for an E.164-ish number; null when the number is unusable. */
-export function whatsappLink(mobile: string | null | undefined): string | null {
-    if (!mobile) return null;
-    const digits = mobile.replace(/[^\d]/g, "");
-    if (digits.length < 9) return null;
-    return `https://wa.me/${digits}`;
+/**
+ * wa.me link for a customer's number; null when the number is unusable.
+ *
+ * Numbers are normalised first: stripping non-digits alone turned the way
+ * Namibians actually write a number, "081 744 4912", into a link WhatsApp
+ * rejects.
+ */
+export function whatsappLink(mobile: string | null | undefined, country = "NA"): string | null {
+    const digits = toInternational(mobile, country);
+    return digits ? `https://wa.me/${digits}` : null;
 }
 
 export function fullName(p: { firstName: string; lastName?: string | null }): string {

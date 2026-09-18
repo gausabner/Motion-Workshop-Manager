@@ -5,6 +5,8 @@ import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer,
 import { Button } from "@/components/ui/button";
 import { convertDocument, copyDocument, createCreditNote, markContacted, processDocument, voidDocument } from "@/lib/documents/actions";
 import { createPayment, createRefund } from "@/lib/payments/actions";
+import { SendDialog } from "@/components/messaging/SendDialog";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import type { DocumentRecord } from "@/lib/documents/queries";
 
 type Props = {
@@ -13,13 +15,14 @@ type Props = {
     canProcess: boolean;
     canVoid: boolean;
     canTakePayment: boolean;
+    canSend: boolean;
 };
 
 /**
  * Lifecycle buttons. They sit outside the editor's form because each posts to
  * its own server action, and forms cannot nest.
  */
-export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayment }: Props) {
+export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayment, canSend }: Props) {
     const [voiding, setVoiding] = useState(false);
     const isDraft = doc.state === "DRAFT";
     const isProcessed = doc.state === "PROCESSED";
@@ -37,6 +40,9 @@ export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayme
                     <Printer className="w-4 h-4 mr-1" />Print
                 </a>
             </Button>
+            {canSend && doc.customer && doc.state !== "VOID" && (
+                <SendDialog tenant={tenant} target={{ kind: "DOCUMENT", id: doc.id }} label={`${DOCUMENT_TYPE_LABELS[doc.type].toLowerCase()} ${doc.number ?? doc.jobNumber ?? ""}`.trim()} />
+            )}
             {owing && canTakePayment && (
                 <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
                     <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>

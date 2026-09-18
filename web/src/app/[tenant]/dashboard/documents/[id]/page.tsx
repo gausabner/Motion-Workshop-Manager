@@ -7,13 +7,15 @@ import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getDocument, getEditorOptions } from "@/lib/documents/queries";
+import { deliverySummary, listMessages } from "@/lib/messaging/queries";
+import { MessageLog } from "@/components/messaging/MessageLog";
 import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string }> }) {
     const [{ tenant: slug, id }, { processed }] = await Promise.all([params, searchParams]);
     const { db, membership } = await requireTenant(slug);
-    const [doc, options] = await Promise.all([getDocument(db, id), getEditorOptions(db)]);
+    const [doc, options, messages] = await Promise.all([getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id })]);
     if (!doc) notFound();
 
     const showCost = can(membership, "documents:see_cost");
@@ -45,8 +47,10 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         </p>
                     </div>
                 </div>
-                <DocumentToolbar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} />
+                <DocumentToolbar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} />
             </div>
+
+            <DeliveryStrip messages={messages} />
 
             {processed && (
                 <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">
@@ -77,6 +81,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                 showCost={showCost}
             />
 
+            <MessageLog tenant={slug} rows={messages} showSubject={false} empty="Nothing sent about this document yet. Use Send to share it on WhatsApp or by email." />
+
             {doc.statusEvents.length > 0 && (
                 <section className="border border-slate-200 rounded-sm bg-white">
                     <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status history</h3>
@@ -97,5 +103,21 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                 </section>
             )}
         </div>
+    );
+}
+
+const when = (d: Date) => d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" });
+
+/** The one line a counter wants when the customer phones: did we send it, and did they look. */
+function DeliveryStrip({ messages }: { messages: Awaited<ReturnType<typeof listMessages>> }) {
+    const { latest, opened, count } = deliverySummary(messages);
+    if (!latest) return null;
+    const channel = latest.channel === "WHATSAPP" ? "WhatsApp" : latest.channel === "EMAIL" ? "email" : "SMS";
+    return (
+        <p className={`rounded-sm border px-4 py-2 text-sm ${opened ? "border-teal-300 bg-teal-50 text-teal-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>
+            {latest.status === "HANDED_OFF" ? `Handed to ${channel}` : `Sent by ${channel}`} {when(latest.createdAt)}
+            {count > 1 ? ` (${count} times)` : ""}
+            {opened ? <> · <strong>opened by the customer {when(opened)}</strong></> : " · not opened yet"}
+        </p>
     );
 }

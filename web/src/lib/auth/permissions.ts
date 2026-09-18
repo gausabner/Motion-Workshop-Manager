@@ -10,6 +10,7 @@ export type Permission =
     | "documents:void"
     | "documents:see_cost"
     | "payments:take"
+    | "messages:send"
     | "reports:view"
     | "settings:manage"
     | "users:manage"
@@ -17,7 +18,7 @@ export type Permission =
 
 const ALL: Permission[] = [
     "customers:write", "vehicles:write", "products:write", "documents:write", "documents:process",
-    "documents:void", "documents:see_cost", "payments:take", "reports:view", "settings:manage",
+    "documents:void", "documents:see_cost", "payments:take", "messages:send", "reports:view", "settings:manage",
     "users:manage", "billing:manage",
 ];
 
@@ -26,10 +27,10 @@ const MATRIX: Record<UserGroup, ReadonlySet<Permission>> = {
     ADMIN: new Set(ALL.filter((p) => p !== "billing:manage")),
     SERVICE_ADVISOR: new Set([
         "customers:write", "vehicles:write", "documents:write", "documents:process",
-        "documents:see_cost", "payments:take", "reports:view",
+        "documents:see_cost", "payments:take", "messages:send", "reports:view",
     ]),
     MECHANIC: new Set(["vehicles:write", "documents:write"]),
-    INVOICE_PAY: new Set(["documents:write", "documents:process", "payments:take"]),
+    INVOICE_PAY: new Set(["documents:write", "documents:process", "payments:take", "messages:send"]),
     READ_ONLY: new Set(["reports:view"]),
 };
 

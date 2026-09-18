@@ -61,17 +61,16 @@ export async function createTenantDefaults(tx: Tx, tenantId: string) {
         ],
     });
 
+    // Footers and document messages are not seeded: they fall back to the built-in
+    // wording in lib/templates/catalogue.ts, so a workshop that never edits them
+    // picks up every improvement to it. Only picklist notes and reminders live here.
     const existingTemplates = await tx.template.count({ where: { tenantId } });
     if (existingTemplates === 0) {
         await tx.template.createMany({
             data: [
-                { tenantId, kind: "INVOICE_FOOTER", name: "Default", body: "Thank you for your business. Payment is due on receipt unless terms are agreed.\nBanking details: {{bank_details}}\nVAT No. {{vat_number}}" },
-                { tenantId, kind: "QUOTE_FOOTER", name: "Default", body: "This quote is valid for 14 days. Prices include VAT unless stated. Parts subject to availability." },
-                { tenantId, kind: "JOB_CARD_FOOTER", name: "Default", body: "Vehicle left at owner's risk. Additional work will only be carried out with the customer's approval." },
-                { tenantId, kind: "STATEMENT_FOOTER", name: "Default", body: "Please quote your account name as the EFT reference. Queries: {{workshop_phone}}." },
                 { tenantId, kind: "INVOICE_NOTE", name: "Next service", body: "Next service due at {{next_service_km}} km or {{next_service_date}}, whichever comes first." },
                 { tenantId, kind: "JOB_CARD_NOTE", name: "Standard checks", body: "Check tyre pressures, all lights, wipers and fluid levels. Note any advisories for the customer." },
-                { tenantId, kind: "SMS", name: "Vehicle ready", body: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is ready for collection at {{workshop_name}}. Total N$ {{total}}." },
+                { tenantId, kind: "SMS", name: "Vehicle ready", body: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is ready for collection at {{workshop_name}}. Total {{total}}." },
                 { tenantId, kind: "SMS", name: "Booking confirmation", body: "Hi {{customer_first_name}}, your booking at {{workshop_name}} is confirmed for {{scheduled_at}}. Reply to change." },
             ],
         });

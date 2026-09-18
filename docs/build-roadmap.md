@@ -151,9 +151,9 @@ The product currently records work but cannot take money. **No spike needed — 
 Everything above is invisible to the customer until this exists.
 
 - PDF for quote, job card, invoice, receipt, credit note, statement — letterhead, footers, templates — **done** (pdfkit, one shared layout; company profile and tax settings made real, since a letterhead needs a workshop that can enter its own details)
-- Email and **WhatsApp** send, with per-document delivery state (`emailSentAt`, `whatsappSentAt`, `contactedAt`)
-- Message templates with merge fields — their 34-template set is the checklist
-- Communication log per customer and document
+- Email and **WhatsApp** send, with per-document delivery state — **done** as a driver seam: `wa.me` and `mailto` hand-off drivers need no account; documents travel as expiring, revocable share links, and *opening* the link is the delivery signal (we record it). Delivery state is derived from the message log rather than stored as `emailSentAt`/`whatsappSentAt` columns. Provider drivers (WhatsApp Cloud API, SMTP) still to come once providers are chosen.
+- Message templates with merge fields — their 34-template set is the checklist — **started**: document messages and printed footers are editable with a live preview; reminders and the rest of their set follow in R5
+- Communication log per customer and document — **done**
 - **Auto-fill the document description from line 1** (their trick; free readability everywhere) — **done**
 
 **Done when:** the customer receives a branded invoice on WhatsApp and the workshop can see it was sent.

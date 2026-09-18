@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Download, Printer } from "lucide-react";
+import { SendDialog } from "@/components/messaging/SendDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import type { Statement } from "@/lib/payments/queries";
@@ -10,7 +11,7 @@ import { dateShort, money } from "@/lib/format";
  * as negatives against the documents, so the closing balance is arithmetic the
  * customer can follow down the page rather than a number they have to trust.
  */
-export function StatementView({ tenant, statement, workshopName }: { tenant: string; statement: Statement; workshopName: string }) {
+export function StatementView({ tenant, statement, workshopName, canSend = false }: { tenant: string; statement: Statement; workshopName: string; canSend?: boolean }) {
     const { customer, rows, opening, closing, ageing, unapplied, from, to } = statement;
 
     return (
@@ -43,6 +44,7 @@ export function StatementView({ tenant, statement, workshopName }: { tenant: str
                     >
                         <Download className="w-3.5 h-3.5" />PDF
                     </a>
+                    {canSend && <SendDialog tenant={tenant} target={{ kind: "STATEMENT", customerId: customer.id, from, to }} label="statement" />}
                 </div>
             </div>
 

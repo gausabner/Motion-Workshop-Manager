@@ -10,13 +10,17 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getCustomer, listCustomerSources } from "@/lib/customers/queries";
 import { getCustomerAccount } from "@/lib/payments/queries";
+import { listMessages } from "@/lib/messaging/queries";
+import { MessageLog } from "@/components/messaging/MessageLog";
 import { businessToday } from "@/lib/tenant/today";
 import { dateShort } from "@/lib/format";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    const [customer, sources, account] = await Promise.all([getCustomer(db, id), listCustomerSources(db), getCustomerAccount(db, id, businessToday(tenant.timezone))]);
+    const [customer, sources, account, messages] = await Promise.all([
+        getCustomer(db, id), listCustomerSources(db), getCustomerAccount(db, id, businessToday(tenant.timezone)), listMessages(db, { customerId: id }, 25),
+    ]);
     if (!customer) notFound();
     const base = `/${slug}/dashboard`;
     const today = new Date();
@@ -73,6 +77,8 @@ export default async function CustomerPage({ params, searchParams }: { params: P
                     </Table>
                 )}
             </section>
+
+            <MessageLog tenant={slug} rows={messages} />
 
             <CustomerForm tenant={slug} customer={customer} sources={sources} />
         </div>

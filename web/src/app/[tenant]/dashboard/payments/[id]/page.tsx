@@ -7,6 +7,9 @@ import { PaymentStatePill } from "@/components/payments/PaymentList";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getOpenItems, getPayment, getPaymentMethods } from "@/lib/payments/queries";
+import { listMessages } from "@/lib/messaging/queries";
+import { MessageLog } from "@/components/messaging/MessageLog";
+import { SendDialog } from "@/components/messaging/SendDialog";
 import { dateShort, money } from "@/lib/format";
 
 export default async function PaymentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ posted?: string }> }) {
@@ -14,7 +17,7 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
     const { db, membership } = await requireTenant(slug);
     if (!can(membership, "payments:take")) notFound();
 
-    const [payment, methods] = await Promise.all([getPayment(db, id), getPaymentMethods(db)]);
+    const [payment, methods, messages] = await Promise.all([getPayment(db, id), getPaymentMethods(db), listMessages(db, { paymentId: id })]);
     if (!payment) notFound();
     const openItems = payment.customer ? await getOpenItems(db, payment.customer.id) : [];
 
@@ -40,11 +43,16 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
                         </p>
                     </div>
                 </div>
-                <Button asChild size="sm" variant="outline">
-                    <a href={`/${slug}/dashboard/payments/${payment.id}/pdf`} target="_blank" rel="noopener noreferrer">
-                        <Printer className="w-4 h-4 mr-1" />Print
-                    </a>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button asChild size="sm" variant="outline">
+                        <a href={`/${slug}/dashboard/payments/${payment.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="w-4 h-4 mr-1" />Print
+                        </a>
+                    </Button>
+                    {payment.state === "PROCESSED" && payment.customer && can(membership, "messages:send") && (
+                        <SendDialog tenant={slug} target={{ kind: "PAYMENT", id: payment.id }} label={`${payment.direction === "REFUND" ? "refund" : "receipt"} ${payment.number ?? ""}`.trim()} />
+                    )}
+                </div>
             </div>
 
             {posted && (
@@ -59,6 +67,8 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
             )}
 
             <PaymentEditor tenant={slug} payment={payment} methods={methods} openItems={openItems} />
+
+            {payment.state !== "DRAFT" && <MessageLog tenant={slug} rows={messages} showSubject={false} empty="This receipt has not been sent to the customer." />}
         </div>
     );
 }

@@ -2,6 +2,7 @@ import "server-only";
 import type { DocumentType } from "@prisma/client";
 import { CONTENT_WIDTH, INK, MARGIN, PAGE, caption, createDocument, rule, stampPageNumbers, table, toBuffer, totals, type Column } from "@/lib/pdf/kit";
 import { money as formatMoney } from "@/lib/format";
+import { documentTitle } from "@/lib/templates/values";
 import { drawLetterhead, drawNotes, drawParties, NOTES_WIDTH, type Letterhead } from "@/lib/pdf/letterhead";
 
 /**
@@ -54,22 +55,12 @@ export type DocumentPdfInput = {
     footer: string;
 };
 
-const TITLES: Record<DocumentType, string> = {
-    QUOTE: "Quote",
-    BOOKING: "Booking",
-    JOB_CARD: "Job card",
-    INVOICE: "Tax invoice",
-    CASH_SALE: "Cash sale",
-    CREDIT: "Credit note",
-};
-
 /** Only these put money on an account, so only these show what is still owed. */
 const SETTLES = new Set<DocumentType>(["INVOICE", "CASH_SALE", "CREDIT"]);
 
 export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer> {
     const money = (value: number) => formatMoney(value, input.currency);
-    // An invoice is only a *tax* invoice if there is a VAT number to put on it.
-    const title = input.type === "INVOICE" && !input.workshop.vatNumber ? "Invoice" : TITLES[input.type];
+    const title = documentTitle(input.type, input.workshop.vatNumber ?? null);
     const doc = createDocument(`${title} ${input.number ?? input.jobNumber ?? ""}`.trim());
 
     let y = drawLetterhead(doc, input.workshop, title, input.number ?? (input.jobNumber ? `Job ${input.jobNumber}` : "Draft"));

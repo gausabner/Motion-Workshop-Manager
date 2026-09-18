@@ -27,12 +27,14 @@ export const MERGE_FIELDS: MergeField[] = [
     { key: "odometer", label: "Odometer", group: "Vehicle" },
     { key: "next_service_km", label: "Next service (km)", group: "Vehicle" },
     { key: "next_service_date", label: "Next service (date)", group: "Vehicle" },
+    { key: "document_title", label: "Document title", group: "Document" },
     { key: "document_number", label: "Document number", group: "Document" },
     { key: "document_date", label: "Document date", group: "Document" },
     { key: "due_date", label: "Due date", group: "Document" },
     { key: "scheduled_at", label: "Booked for", group: "Document" },
     { key: "total", label: "Total", group: "Document" },
-    { key: "amount_due", label: "Amount due", group: "Document" },
+    { key: "amount_due", label: "Amount due (blank once settled)", group: "Document" },
+    { key: "link", label: "Link to the document", group: "Document" },
 ];
 
 const TOKEN = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi;

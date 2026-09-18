@@ -7,6 +7,8 @@ import { getCustomerAccount, getStatement, getPayment } from "@/lib/payments/que
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import { parseSettings } from "@/lib/settings/schema";
 import { renderTemplate, type MergeValues } from "@/lib/templates/merge";
+import { documentValues, workshopValues } from "@/lib/templates/values";
+import { defaultBodyFor } from "@/lib/templates/catalogue";
 import type { DocumentPdfInput, PdfLine } from "@/lib/pdf/documents";
 import type { ReceiptPdfInput } from "@/lib/pdf/receipt";
 import type { StatementPdfInput } from "@/lib/pdf/statement";
@@ -57,22 +59,10 @@ export async function letterheadFor(db: TenantDb, tenant: Tenant): Promise<Lette
     };
 }
 
-function workshopValues(tenant: Tenant): MergeValues {
-    const settings = parseSettings(tenant.settings);
-    return {
-        workshop_name: tenant.name,
-        workshop_phone: tenant.phone ?? tenant.mobile ?? "",
-        workshop_email: tenant.email ?? "",
-        workshop_address: [tenant.address1, tenant.suburb, tenant.city].filter(Boolean).join(", "),
-        vat_number: tenant.vatNumber ?? "",
-        bank_details: settings.bankDetails ?? "",
-    };
-}
-
-/** The workshop's own footer for this kind of document, with its fields filled in. */
+/** The workshop's own footer for this kind of document — or ours, if they have never written one — with its fields filled in. */
 async function footerFor(db: TenantDb, kind: TemplateKind, values: MergeValues): Promise<string> {
     const template = await db.template.findFirst({ where: { kind, active: true }, orderBy: { sortOrder: "asc" }, select: { body: true } });
-    return template ? renderTemplate(template.body, values) : "";
+    return renderTemplate(template ? template.body : defaultBodyFor(kind), values);
 }
 
 export async function documentPdfInput(db: TenantDb, tenant: Tenant, id: string): Promise<DocumentPdfInput | null> {
@@ -109,25 +99,7 @@ export async function documentPdfInput(db: TenantDb, tenant: Tenant, id: string)
 
     const total = doc.total.toNumber();
     const amountPaid = round2(doc.allocations.reduce((sum, a) => sum + a.amount.toNumber(), 0));
-    const money = moneyIn(tenant.currency);
-
-    const values: MergeValues = {
-        ...workshopValues(tenant),
-        customer_name: doc.customer ? `${doc.customer.firstName} ${doc.customer.lastName}` : "",
-        customer_first_name: doc.customer?.firstName ?? "",
-        customer_mobile: doc.customer?.mobile ?? "",
-        vehicle: doc.vehicle ? [doc.vehicle.year, doc.vehicle.make, doc.vehicle.model].filter(Boolean).join(" ") : "",
-        plate: doc.vehicle?.plate ?? "",
-        odometer: doc.odometer ? doc.odometer.toLocaleString("en-NA") : "",
-        next_service_km: doc.nextServiceKm ? doc.nextServiceKm.toLocaleString("en-NA") : "",
-        next_service_date: doc.nextServiceDate ? dateShort(doc.nextServiceDate) : "",
-        document_number: doc.number ?? doc.jobNumber ?? "",
-        document_date: dateShort(doc.postDate),
-        due_date: doc.dueDate ? dateShort(doc.dueDate) : "",
-        scheduled_at: doc.scheduledAt ? dateShort(doc.scheduledAt) : "",
-        total: money(total),
-        amount_due: money(round2(total - amountPaid)),
-    };
+    const values = documentValues(tenant, { ...doc, total }, amountPaid);
 
     const notes = [doc.type === "QUOTE" ? doc.eventNotes : null, doc.type === "BOOKING" || doc.type === "JOB_CARD" ? doc.jobCardNotes : null, doc.invoiceNotes]
         .filter((note): note is string => !!note?.trim())
