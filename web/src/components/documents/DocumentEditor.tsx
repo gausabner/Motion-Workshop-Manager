@@ -14,6 +14,7 @@ import { initialActionState } from "@/lib/forms";
 import { calculateTotals } from "@/lib/documents/totals";
 import { JOB_STATUS_LABELS, JOB_STATUS_ORDER } from "@/lib/documents/types";
 import { dateInput, money } from "@/lib/format";
+import { formatLocalDateTime } from "@/lib/diary/time";
 import type { DocumentRecord, EditorOptions } from "@/lib/documents/queries";
 
 type Props = {
@@ -21,6 +22,8 @@ type Props = {
     doc: DocumentRecord;
     options: EditorOptions;
     showCost: boolean;
+    /** The workshop's zone: a booking time is shown as the workshop's wall clock, not the browser's. */
+    timeZone: string;
 };
 
 function toEditorLines(doc: DocumentRecord): EditorLine[] {
@@ -41,14 +44,8 @@ function toEditorLines(doc: DocumentRecord): EditorLine[] {
     }));
 }
 
-const localDateTime = (d: Date | string | null | undefined) => {
-    if (!d) return "";
-    const date = typeof d === "string" ? new Date(d) : d;
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
 
-export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
+export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Props) {
     // Tax comes from the document's own snapshot, so a draft keeps the rate it was raised at.
     const pricesIncludeTax = doc.pricesIncludeTax;
     const taxRate = doc.taxRate;
@@ -131,7 +128,7 @@ export function DocumentEditor({ tenant, doc, options, showCost }: Props) {
                     <TextField label="Post date" name="postDate" type="date" defaultValue={dateInput(doc.postDate)} errors={errors} />
                     {isFinancial && <TextField label="Due date" name="dueDate" type="date" defaultValue={dateInput(doc.dueDate)} errors={errors} hint="Blank = from payment terms" />}
                     {doc.type === "QUOTE" && <TextField label="Follow up on" name="followUpDate" type="date" defaultValue={dateInput(doc.followUpDate)} errors={errors} />}
-                    {isJob && <TextField label="Scheduled for" name="scheduledAt" type="datetime-local" defaultValue={localDateTime(doc.scheduledAt)} errors={errors} />}
+                    {isJob && <TextField label="Scheduled for" name="scheduledAt" type="datetime-local" defaultValue={formatLocalDateTime(doc.scheduledAt ? new Date(doc.scheduledAt) : null, timeZone)} errors={errors} />}
                     {isJob && <TextField label="Estimated hours" name="estimatedHours" type="number" step="0.25" min="0" defaultValue={doc.estimatedHours} errors={errors} />}
                     <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
                         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">

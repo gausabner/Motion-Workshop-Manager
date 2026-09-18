@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { DiarySettings } from "@/lib/diary/capacity";
 
 /**
  * The typed half of `Tenant.settings` (PRD SET-09).
@@ -7,11 +8,25 @@ import { z } from "zod";
  * lives here, validated on the way in so a bad write cannot make a document
  * fail to render.
  */
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$|^24:00$/, "Use a time like 07:30");
+
+/** How the booking diary is laid out and when it counts as full (R4). */
+export const diarySettingsSchema = z.object({
+    opensAt: hhmm.default("07:30"),
+    closesAt: hhmm.default("17:00"),
+    slotMinutes: z.union([z.literal(15), z.literal(30), z.literal(60)]).default(30),
+    workingDays: z.array(z.number().int().min(1).max(7)).min(1, "Open at least one day").default([1, 2, 3, 4, 5]),
+    fullAtPercent: z.number().int().min(50).max(100).default(90),
+    lanesPerPage: z.number().int().min(1).max(8).default(4),
+    defaultBookingHours: z.number().min(0.25).max(12).default(1),
+});
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
     /** Attachment id of the letterhead logo. */
     logoAttachmentId: z.string().trim().max(60).optional(),
+    diary: diarySettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
@@ -51,3 +66,21 @@ export const taxSettingsSchema = z.object({
     pricesIncludeTax: z.coerce.boolean(),
     defaultPaymentTermsDays: z.coerce.number().int().min(0).max(365),
 });
+
+/** The diary settings in the minutes the capacity maths works in, defaults filled. */
+export function diarySettings(value: unknown): DiarySettings {
+    const raw = diarySettingsSchema.safeParse(parseSettings(value).diary ?? {});
+    const d = raw.success ? raw.data : diarySettingsSchema.parse({});
+    const toMinute = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    const opensAt = toMinute(d.opensAt);
+    const closesAt = Math.max(toMinute(d.closesAt), opensAt + d.slotMinutes);
+    return {
+        opensAt,
+        closesAt,
+        slotMinutes: d.slotMinutes,
+        workingDays: [...new Set(d.workingDays)].sort(),
+        fullAtPercent: d.fullAtPercent,
+        lanesPerPage: d.lanesPerPage,
+        defaultBookingMinutes: Math.round(d.defaultBookingHours * 60),
+    };
+}

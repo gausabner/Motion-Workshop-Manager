@@ -38,9 +38,11 @@ export const documentHeaderSchema = z.object({
     postDate: optionalDate,
     dueDate: optionalDate,
     followUpDate: optionalDate,
+    // Kept as the wall-clock text the form sent: only the action knows the
+    // workshop's timezone, and `new Date()` here would read it in the server's.
     scheduledAt: z.preprocess(
         (v) => (v === "" || v == null ? undefined : v),
-        z.string().transform((s) => new Date(s)).refine((d) => !Number.isNaN(d.getTime()), "Invalid date/time").optional(),
+        z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "Use a date and time").optional(),
     ),
     estimatedHours: optionalNumber,
     odometer: optionalInt,

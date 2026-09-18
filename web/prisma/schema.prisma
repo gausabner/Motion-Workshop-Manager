@@ -231,6 +231,8 @@ model Tenant {
   externalRefs      ExternalRef[]
   shareLinks        ShareLink[]
   messages          Message[]
+  workingHours      WorkingHours[]
+  timeOff           TimeOff[]
 }
 
 model User {
@@ -277,6 +279,8 @@ model Membership {
   timeEntries        TimeEntry[]
   paymentsTaken      Payment[]
   messages           Message[]
+  workingHours       WorkingHours[]
+  timeOff            TimeOff[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -771,6 +775,43 @@ model DocumentStatusEvent {
   by       Membership? @relation(fields: [byId], references: [id])
 
   @@index([documentId, at])
+}
+
+/// A mechanic's own hours on one weekday, where they differ from the shop's.
+/// No row means the shop's hours; equal start and end means a regular day off.
+/// Only the exceptions are stored — the benchmark's "Hide Defaults".
+model WorkingHours {
+  id           String @id @default(cuid())
+  tenantId     String
+  membershipId String
+  /// ISO weekday, 1 = Monday.
+  weekday      Int
+  startMinute  Int
+  endMinute    Int
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, weekday])
+  @@index([tenantId])
+}
+
+/// Leave, a course, a doctor's appointment — the benchmark's "Unavailable Times".
+model TimeOff {
+  id           String   @id @default(cuid())
+  tenantId     String
+  membershipId String
+  startsAt     DateTime
+  endsAt       DateTime
+  reason       String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startsAt])
+  @@index([membershipId, startsAt])
 }
 
 model TimeEntry {

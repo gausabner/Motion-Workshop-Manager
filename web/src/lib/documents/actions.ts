@@ -13,6 +13,7 @@ import { stateOnProcess } from "@/lib/documents/settlement";
 import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { allocateNumber } from "@/lib/documents/numbering";
 import { businessToday } from "@/lib/tenant/today";
+import { parseLocalDateTime } from "@/lib/diary/time";
 
 /** Document types that put money on a customer's account when processed. */
 const FINANCIAL = new Set<DocumentType>(["INVOICE", "CASH_SALE", "CREDIT"]);
@@ -88,7 +89,11 @@ async function loadEditable(ctx: TenantContext, id: string) {
 
 // ───────────────────────── create ─────────────────────────
 
-export async function createDocument(slug: string, type: DocumentType, seed?: { customerId?: string; vehicleId?: string; scheduledAt?: string }): Promise<void> {
+export async function createDocument(
+    slug: string,
+    type: DocumentType,
+    seed?: { customerId?: string; vehicleId?: string; scheduledAt?: string; mechanicId?: string; estimatedHours?: number },
+): Promise<void> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     const { db, tenant, membership, user } = ctx;
@@ -105,7 +110,10 @@ export async function createDocument(slug: string, type: DocumentType, seed?: { 
                 customerId: seed?.customerId || null,
                 vehicleId: seed?.vehicleId || null,
                 postDate: businessToday(tenant.timezone),
-                scheduledAt: seed?.scheduledAt ? new Date(seed.scheduledAt) : null,
+                // Seeds arrive as wall-clock text from the diary, read in the workshop's zone.
+                scheduledAt: seed?.scheduledAt ? parseLocalDateTime(seed.scheduledAt, tenant.timezone) : null,
+                mechanicId: seed?.mechanicId || null,
+                estimatedHours: seed?.estimatedHours ?? null,
                 isCashSale: type === "CASH_SALE",
                 serviceAdvisorId: membership.isServiceAdvisor ? membership.id : null,
                 createdById: membership.id,
@@ -199,7 +207,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                 postDate: d.postDate ?? undefined,
                 dueDate: d.dueDate ?? null,
                 followUpDate: d.followUpDate ?? null,
-                scheduledAt: d.scheduledAt ?? null,
+                scheduledAt: d.scheduledAt ? parseLocalDateTime(d.scheduledAt, tenant.timezone) : null,
                 estimatedHours: d.estimatedHours ?? null,
                 odometer: d.odometer ?? null,
                 nextServiceKm: d.nextServiceKm ?? null,

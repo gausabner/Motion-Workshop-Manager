@@ -14,7 +14,7 @@ import { dateShort, money } from "@/lib/format";
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string }> }) {
     const [{ tenant: slug, id }, { processed }] = await Promise.all([params, searchParams]);
-    const { db, membership } = await requireTenant(slug);
+    const { db, tenant, membership } = await requireTenant(slug);
     const [doc, options, messages] = await Promise.all([getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id })]);
     if (!doc) notFound();
 
@@ -79,6 +79,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                 doc={doc}
                 options={options}
                 showCost={showCost}
+                timeZone={tenant.timezone}
             />
 
             <MessageLog tenant={slug} rows={messages} showSubject={false} empty="Nothing sent about this document yet. Use Send to share it on WhatsApp or by email." />
