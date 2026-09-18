@@ -612,6 +612,9 @@ model Document {
   serviceAdvisorId    String?
   mechanicId          String?
   reference           String?
+  /// Auto-filled from the first line so lists and statements can say what the
+  /// job actually was. The benchmark's trick, and free readability everywhere.
+  description         String?
   customerOrderNumber String?
   postDate            DateTime      @default(now()) @db.Date
   dueDate             DateTime?     @db.Date

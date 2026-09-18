@@ -101,7 +101,10 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                         <TableCell className="py-2 text-slate-600 whitespace-nowrap">
                                             {DOCUMENT_TYPE_LABELS[d.type]} <StatePill state={d.state} />
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-600">{d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-400">Cash sale</span>}</TableCell>
+                                        <TableCell className="py-2 text-slate-600">
+                                            {d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-400">Cash sale</span>}
+                                            {d.description && <span className="block text-[11px] text-slate-400 truncate max-w-[220px]" title={d.description}>{d.description}</span>}
+                                        </TableCell>
                                         <TableCell className="py-2 text-slate-600 whitespace-nowrap">
                                             {d.vehicle ? <span className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-[11px] font-bold px-1.5 py-0.5 rounded">{d.vehicle.plate}</span> : ""}
                                         </TableCell>

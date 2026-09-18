@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Undo2, Wallet } from "lucide-react";
+import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Undo2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { convertDocument, copyDocument, createCreditNote, markContacted, processDocument, voidDocument } from "@/lib/documents/actions";
 import { createPayment, createRefund } from "@/lib/payments/actions";
@@ -32,6 +32,11 @@ export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayme
 
     return (
         <div className="flex flex-wrap items-center gap-2">
+            <Button asChild size="sm" variant="outline">
+                <a href={`/${tenant}/dashboard/documents/${doc.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                    <Printer className="w-4 h-4 mr-1" />Print
+                </a>
+            </Button>
             {owing && canTakePayment && (
                 <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
                     <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>

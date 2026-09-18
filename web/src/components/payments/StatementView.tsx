@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Printer } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import type { Statement } from "@/lib/payments/queries";
@@ -30,6 +30,20 @@ export function StatementView({ tenant, statement, workshopName }: { tenant: str
                     </label>
                     <button type="submit" className="h-8 rounded-sm border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50">Show</button>
                 </form>
+                <div className="flex items-center gap-2">
+                    <a
+                        href={`/${tenant}/dashboard/customers/${customer.id}/statement/pdf?from=${from}&to=${to}`} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex h-8 items-center gap-1 rounded-sm border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" />Print
+                    </a>
+                    <a
+                        href={`/${tenant}/dashboard/customers/${customer.id}/statement/pdf?from=${from}&to=${to}&download=1`}
+                        className="inline-flex h-8 items-center gap-1 rounded-sm border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50"
+                    >
+                        <Download className="w-3.5 h-3.5" />PDF
+                    </a>
+                </div>
             </div>
 
             <section className="border border-slate-200 rounded-sm bg-white">

@@ -37,7 +37,10 @@ function tenantTaxSnapshot(tenant: TenantContext["tenant"]) {
 async function recalculate(tx: TenantTx, documentId: string) {
     const doc = await tx.document.findUniqueOrThrow({
         where: { id: documentId },
-        select: { taxRate: true, pricesIncludeTax: true, discountPercent: true, discountAmount: true, freight: true, lines: { select: { quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true } } },
+        select: {
+            taxRate: true, pricesIncludeTax: true, discountPercent: true, discountAmount: true, freight: true,
+            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true } },
+        },
     });
     const totals = calculateTotals({
         pricesIncludeTax: doc.pricesIncludeTax,
@@ -55,8 +58,26 @@ async function recalculate(tx: TenantTx, documentId: string) {
     });
     await tx.document.update({
         where: { id: documentId },
-        data: { subtotal: totals.subtotal, discountApplied: totals.discountApplied, vatTotal: totals.vatTotal, unroundedTotal: totals.total, rounding: 0, total: totals.total },
+        data: {
+            subtotal: totals.subtotal, discountApplied: totals.discountApplied, vatTotal: totals.vatTotal,
+            unroundedTotal: totals.total, rounding: 0, total: totals.total,
+            // The benchmark's trick: the first line names the job, so lists,
+            // statements and messages can say "Cambelt and water pump" instead
+            // of "INV-1003". Nothing types it; it follows line one.
+            description: doc.lines[0]?.description.slice(0, 120) ?? null,
+        },
     });
+    // The per-line figures are stored too, so margin and sales reporting can sum
+    // them in SQL. Nothing customer-facing reads them — a printed invoice derives
+    // its own — but a column that exists must not be allowed to lie.
+    for (const [index, line] of doc.lines.entries()) {
+        const computed = totals.lines[index];
+        if (!computed) continue;
+        await tx.documentLine.update({
+            where: { id: line.id },
+            data: { lineSubtotal: computed.lineSubtotal, vatAmount: computed.vatAmount, lineTotal: computed.lineTotal },
+        });
+    }
     return totals;
 }
 

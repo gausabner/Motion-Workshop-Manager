@@ -65,7 +65,7 @@ export async function createTenantDefaults(tx: Tx, tenantId: string) {
     if (existingTemplates === 0) {
         await tx.template.createMany({
             data: [
-                { tenantId, kind: "INVOICE_FOOTER", name: "Default", body: "Thank you for your business. Payment is due on receipt unless terms are agreed. Banking details: {{bank_details}}. VAT No. {{vat_number}}." },
+                { tenantId, kind: "INVOICE_FOOTER", name: "Default", body: "Thank you for your business. Payment is due on receipt unless terms are agreed.\nBanking details: {{bank_details}}\nVAT No. {{vat_number}}" },
                 { tenantId, kind: "QUOTE_FOOTER", name: "Default", body: "This quote is valid for 14 days. Prices include VAT unless stated. Parts subject to availability." },
                 { tenantId, kind: "JOB_CARD_FOOTER", name: "Default", body: "Vehicle left at owner's risk. Additional work will only be carried out with the customer's approval." },
                 { tenantId, kind: "STATEMENT_FOOTER", name: "Default", body: "Please quote your account name as the EFT reference. Queries: {{workshop_phone}}." },

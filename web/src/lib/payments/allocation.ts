@@ -142,6 +142,19 @@ export function emptyAgeing(): Ageing {
     return { current: 0, d30: 0, d60: 0, d90: 0, total: 0 };
 }
 
+/**
+ * Take money already sitting on the account off the newest bucket.
+ *
+ * Without this an ageing strip sums to more than the balance printed beside
+ * it, and a customer who has already paid gets chased for it — which is the
+ * fastest way to lose them.
+ */
+export function netUnapplied(ageing: Ageing, unapplied: number): Ageing {
+    const credit = round2(Number(unapplied) || 0);
+    if (credit === 0) return ageing;
+    return { ...ageing, current: round2(ageing.current - credit), total: round2(ageing.total - credit) };
+}
+
 /** Sum the outstanding of every open item into its bucket. */
 export function ageItems(items: { dueDate: string | Date | null; postDate: string | Date; outstanding: number }[], asAt: Date = new Date()): Ageing {
     const out = emptyAgeing();

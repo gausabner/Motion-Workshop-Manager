@@ -150,11 +150,11 @@ The product currently records work but cannot take money. **No spike needed — 
 
 Everything above is invisible to the customer until this exists.
 
-- PDF for quote, job card, invoice, receipt, credit note, statement — letterhead, footers, templates
+- PDF for quote, job card, invoice, receipt, credit note, statement — letterhead, footers, templates — **done** (pdfkit, one shared layout; company profile and tax settings made real, since a letterhead needs a workshop that can enter its own details)
 - Email and **WhatsApp** send, with per-document delivery state (`emailSentAt`, `whatsappSentAt`, `contactedAt`)
 - Message templates with merge fields — their 34-template set is the checklist
 - Communication log per customer and document
-- **Auto-fill the document description from line 1** (their trick; free readability everywhere)
+- **Auto-fill the document description from line 1** (their trick; free readability everywhere) — **done**
 
 **Done when:** the customer receives a branded invoice on WhatsApp and the workshop can see it was sent.
 

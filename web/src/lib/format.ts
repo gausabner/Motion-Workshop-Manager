@@ -3,7 +3,9 @@
 export function money(value: number | string | null | undefined, currency = "NAD"): string {
     const n = typeof value === "string" ? Number(value) : value ?? 0;
     const symbol = currency === "ZAR" ? "R" : "N$";
-    return `${symbol} ${n.toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // The sign goes in front of the symbol: "N$ -1,000.00" is not how anyone writes money.
+    const sign = n < 0 ? "-" : "";
+    return `${sign}${symbol} ${Math.abs(n).toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function dateShort(d: Date | string | null | undefined): string {

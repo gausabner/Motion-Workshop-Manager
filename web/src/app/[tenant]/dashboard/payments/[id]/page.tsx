@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { User, Wallet } from "lucide-react";
+import { Printer, User, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PaymentEditor } from "@/components/payments/PaymentEditor";
 import { PaymentStatePill } from "@/components/payments/PaymentList";
 import { requireTenant } from "@/lib/auth/session";
@@ -39,6 +40,11 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
                         </p>
                     </div>
                 </div>
+                <Button asChild size="sm" variant="outline">
+                    <a href={`/${slug}/dashboard/payments/${payment.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                        <Printer className="w-4 h-4 mr-1" />Print
+                    </a>
+                </Button>
             </div>
 
             {posted && (

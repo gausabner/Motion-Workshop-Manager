@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
 import { PROCESSED_ALLOCATIONS } from "@/lib/documents/queries";
 import { amountDue, round2 } from "@/lib/documents/totals";
-import { ageingBucket, ageItems, AGEING_BUCKETS, emptyAgeing, type Ageing, type OpenItem } from "@/lib/payments/allocation";
+import { ageingBucket, ageItems, AGEING_BUCKETS, emptyAgeing, netUnapplied, type Ageing, type OpenItem } from "@/lib/payments/allocation";
 
 /** Document types that sit on a customer's account and can therefore be settled. */
 const ACCOUNT_TYPES = ["INVOICE", "CASH_SALE", "CREDIT"] as const;
@@ -247,7 +247,9 @@ export async function getStatement(db: TenantDb, customerId: string, from: Date,
         return { ...r, balance: running };
     });
 
-    return { customer, from: isoDate(from), to: isoDate(to), opening, rows, closing: running, ageing: account.ageing, unapplied: account.unapplied };
+    // The ageing has to add up to the closing balance, so money already on the
+    // account comes off it — the note under the strip explains the difference.
+    return { customer, from: isoDate(from), to: isoDate(to), opening, rows, closing: running, ageing: netUnapplied(account.ageing, account.unapplied), unapplied: account.unapplied };
 }
 
 export type Statement = NonNullable<Awaited<ReturnType<typeof getStatement>>>;
@@ -310,10 +312,7 @@ export async function listReceivables(db: TenantDb, asAt: Date = new Date()): Pr
         if (left === 0 || !payment.customerId) continue;
         unapplied = round2(unapplied + left);
         const row = byCustomer.get(payment.customerId);
-        if (row) {
-            row.ageing.current = round2(row.ageing.current - left);
-            row.ageing.total = round2(row.ageing.total - left);
-        }
+        if (row) row.ageing = netUnapplied(row.ageing, left);
     }
 
     const rows = [...byCustomer.values()].filter((r) => r.ageing.total !== 0).sort((a, b) => b.ageing.total - a.ageing.total);

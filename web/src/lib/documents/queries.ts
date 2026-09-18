@@ -75,7 +75,7 @@ export async function listDocuments(db: TenantDb, p: DocumentListParams) {
             skip: (page - 1) * size,
             take: size,
             select: {
-                id: true, type: true, state: true, jobStatus: true, statusComment: true, number: true, jobNumber: true,
+                id: true, type: true, state: true, jobStatus: true, statusComment: true, number: true, jobNumber: true, description: true,
                 postDate: true, scheduledAt: true, dueDate: true, contactedAt: true, total: true,
                 allocations: PROCESSED_ALLOCATIONS,
                 customer: { select: { id: true, firstName: true, lastName: true } },
