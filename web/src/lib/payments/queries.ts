@@ -168,7 +168,10 @@ export async function getPayment(db: TenantDb, id: string) {
             id: true, number: true, state: true, direction: true, postDate: true, amount: true, note: true, processedAt: true, voidedAt: true, voidReason: true,
             customer: { select: { id: true, firstName: true, lastName: true, mobile: true, email: true } },
             takenBy: { select: { user: { select: { firstName: true, lastName: true } } } },
-            tenders: { orderBy: { sortOrder: "asc" }, select: { id: true, methodId: true, amount: true, tendered: true, reference: true, method: { select: { name: true, isEft: true } } } },
+            tenders: {
+                orderBy: { sortOrder: "asc" },
+                select: { id: true, methodId: true, amount: true, tendered: true, reference: true, proofAttachmentId: true, method: { select: { name: true, isEft: true } } },
+            },
             allocations: {
                 select: {
                     documentId: true, amount: true,
@@ -178,10 +181,22 @@ export async function getPayment(db: TenantDb, id: string) {
         },
     });
     if (!payment) return null;
+    // The proofs are looked up in one go rather than joined, because the tender
+    // points at the attachment and not the other way round.
+    const proofs = await db.attachment.findMany({
+        where: { id: { in: payment.tenders.map((t) => t.proofAttachmentId).filter((v): v is string => !!v) } },
+        select: { id: true, fileName: true, mimeType: true, size: true },
+    });
+    const proofById = new Map(proofs.map((a) => [a.id, a]));
     return {
         ...payment,
         amount: payment.amount.toNumber(),
-        tenders: payment.tenders.map((t) => ({ ...t, amount: t.amount.toNumber(), tendered: t.tendered?.toNumber() ?? null })),
+        tenders: payment.tenders.map((t) => ({
+            ...t,
+            amount: t.amount.toNumber(),
+            tendered: t.tendered?.toNumber() ?? null,
+            proof: t.proofAttachmentId ? proofById.get(t.proofAttachmentId) ?? null : null,
+        })),
         allocations: payment.allocations.map((a) => ({
             documentId: a.documentId,
             amount: a.amount.toNumber(),

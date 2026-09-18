@@ -132,12 +132,15 @@ export async function savePayment(slug: string, id: string, _prev: ActionState, 
             where: { id },
             data: { customerId: d.customerId, postDate: d.postDate ?? undefined, note: d.note ?? null, amount },
         });
-        // Tenders and allocations are small and wholly owned by the receipt: replace them outright.
-        await tx.paymentTender.deleteMany({ where: { paymentId: id } });
+        // Tenders are updated in place rather than replaced, because a row can
+        // own an EFT proof of payment and recreating it would orphan the file.
+        const kept = tenders.map((t) => t.id).filter((v): v is string => !!v);
+        await tx.paymentTender.deleteMany({ where: { paymentId: id, ...(kept.length ? { id: { notIn: kept } } : {}) } });
         for (const [index, t] of tenders.entries()) {
-            await tx.paymentTender.create({
-                data: { tenantId: tenant.id, paymentId: id, methodId: t.methodId, amount: t.amount, tendered: t.tendered, reference: t.reference?.trim() || null, sortOrder: index },
-            });
+            const data = { methodId: t.methodId, amount: t.amount, tendered: t.tendered, reference: t.reference?.trim() || null, sortOrder: index };
+            // Scoped by paymentId as well as id, so an id from another receipt cannot be steered into this one.
+            const updated = t.id ? await tx.paymentTender.updateMany({ where: { id: t.id, paymentId: id }, data }) : { count: 0 };
+            if (!updated.count) await tx.paymentTender.create({ data: { ...data, tenantId: tenant.id, paymentId: id } });
         }
         await tx.paymentAllocation.deleteMany({ where: { paymentId: id } });
         for (const a of allocations) {

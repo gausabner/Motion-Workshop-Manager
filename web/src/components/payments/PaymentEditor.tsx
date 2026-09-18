@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, TextField } from "@/components/forms/fields";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import { AllocationGrid } from "@/components/payments/AllocationGrid";
+import { TenderProof, type Proof } from "@/components/payments/TenderProof";
 import { customerHit } from "@/lib/search/hits";
 import type { PickerHit } from "@/lib/search/types";
 import { initialActionState } from "@/lib/forms";
@@ -17,7 +18,7 @@ import type { PaymentMethodOption, PaymentRecord } from "@/lib/payments/queries"
 import { dateInput, money } from "@/lib/format";
 
 /** Amounts here are magnitudes; which way the money goes is the payment's direction. */
-type Tender = { key: string; id?: string; methodId: string; amount: number; received: number | null; reference: string };
+type Tender = { key: string; id?: string; methodId: string; amount: number; received: number | null; reference: string; proof: Proof };
 
 type Props = {
     tenant: string;
@@ -141,7 +142,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
             </div>
 
             <form action={formAction} className="space-y-4">
-                <input type="hidden" name="tenders" value={JSON.stringify(tenders.map((t) => ({ ...t, key: undefined, amount: Number(t.amount) || 0 })))} />
+                <input type="hidden" name="tenders" value={JSON.stringify(tenders.map((t) => ({ ...t, key: undefined, proof: undefined, amount: Number(t.amount) || 0, tendered: t.received })))} />
                 <input type="hidden" name="allocations" value={JSON.stringify(Object.entries(normalise(items, allocations)).map(([documentId, amount]) => ({ documentId, amount })))} />
 
                 <section className="border border-slate-200 rounded-sm bg-white">
@@ -173,7 +174,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                             <Button
                                 type="button" size="sm" variant="outline" className="h-7"
                                 onClick={() => {
-                                    setTenders((rows) => [...rows, { key: nextKey(), methodId: methods[0]?.id ?? "", amount: 0, received: null, reference: "" }]);
+                                    setTenders((rows) => [...rows, { key: nextKey(), methodId: methods[0]?.id ?? "", amount: 0, received: null, reference: "", proof: null }]);
                                     setDirty(true);
                                 }}
                             >
@@ -194,8 +195,11 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                             // Change is a cash idea, so the Received field only appears on the seeded CASH method.
                             const takesChange = !isRefund && method?.code === "CASH";
                             const given = round2(Math.max((t.received ?? 0) - Math.abs(Number(t.amount) || 0), 0));
+                            // Only a bank transfer has a slip worth keeping.
+                            const wantsProof = method?.isEft;
                             return (
-                                <div key={t.key} className="px-4 py-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                            <div key={t.key} className="px-4 py-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                                     <select
                                         aria-label="Payment method" value={t.methodId} disabled={readOnly}
                                         onChange={(e) => setTender(t.key, { methodId: e.target.value, received: null })}
@@ -238,6 +242,18 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                                         </button>
                                     )}
                                 </div>
+                                {wantsProof && (
+                                    <div className="mt-1 sm:pl-[25%]">
+                                        <TenderProof
+                                            tenant={tenant}
+                                            tenderId={t.id}
+                                            proof={t.proof}
+                                            disabled={readOnly}
+                                            onChange={(proof) => setTenders((rows) => rows.map((r) => (r.key === t.key ? { ...r, proof } : r)))}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                             );
                         })}
                     </div>
@@ -301,9 +317,10 @@ function initialTenders(payment: PaymentRecord, methods: PaymentMethodOption[]):
             amount: Math.abs(t.amount),
             received: t.tendered == null ? null : Math.abs(t.tendered),
             reference: t.reference ?? "",
+            proof: t.proof ? { id: t.proof.id, fileName: t.proof.fileName } : null,
         }));
     }
     if (payment.state !== "DRAFT" || !methods.length) return [];
     const suggested = Math.abs(round2(payment.allocations.reduce((sum, a) => sum + a.amount, 0)));
-    return [{ key: nextKey(), methodId: methods[0].id, amount: suggested, received: null, reference: "" }];
+    return [{ key: nextKey(), methodId: methods[0].id, amount: suggested, received: null, reference: "", proof: null }];
 }

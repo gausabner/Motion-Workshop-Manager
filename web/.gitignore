@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# uploaded files kept by the local storage driver
+/.data/
+
 # vercel
 .vercel
 

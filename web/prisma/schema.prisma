@@ -853,10 +853,15 @@ model Attachment {
   tenantId     String
   ownerType    String
   ownerId      String
+  /// Which storage driver wrote this object. Kept per file so a workshop that
+  /// moves from local disk to a bucket keeps reading everything from before.
+  driver       String   @default("local")
   storageKey   String
   fileName     String
   mimeType     String
   size         Int
+  /// sha256 of the bytes as stored, for integrity checks and de-duplication.
+  checksum     String?
   uploadedById String?
   createdAt    DateTime @default(now())
 

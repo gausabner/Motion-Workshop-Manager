@@ -134,7 +134,7 @@ The product currently records work but cannot take money. **No spike needed — 
 
 - Payment methods; payment as a document with `Save` / `Process`
 - Allocation grid; picker **auto-applies the full outstanding balance** and offers **All**
-- Tender lines with per-tender reference; EFT proof-of-payment attachment
+- Tender lines with per-tender reference; EFT proof-of-payment attachment — **done**, on a swappable storage layer (see [file-storage.md](file-storage.md)): local disk by default, any S3-compatible bucket by config, and each file records the driver that wrote it so switching needs no migration
 - Receipt numbering and PDF
 - Credit notes: return stock, own sequence, **explicit** apply-or-refund — with unapplied credit surfaced on the customer, which they leave hard to derive
 - Refund with a **Change** calculation for cash, plus an EFT path
