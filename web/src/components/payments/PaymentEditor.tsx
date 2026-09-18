@@ -9,14 +9,15 @@ import { AllocationGrid } from "@/components/payments/AllocationGrid";
 import { customerHit } from "@/lib/search/hits";
 import type { PickerHit } from "@/lib/search/types";
 import { initialActionState } from "@/lib/forms";
-import { paymentPostingError, unappliedAmount } from "@/lib/documents/settlement";
+import { paymentPostingError, unallocatedAmount } from "@/lib/documents/settlement";
 import { round2 } from "@/lib/documents/totals";
 import { allocationTotal, normalise, type Allocations, type OpenItem } from "@/lib/payments/allocation";
 import { deleteDraftPayment, openItemsFor, processPayment, savePayment, voidPayment } from "@/lib/payments/actions";
 import type { PaymentMethodOption, PaymentRecord } from "@/lib/payments/queries";
 import { dateInput, money } from "@/lib/format";
 
-type Tender = { key: string; id?: string; methodId: string; amount: number; reference: string };
+/** Amounts here are magnitudes; which way the money goes is the payment's direction. */
+type Tender = { key: string; id?: string; methodId: string; amount: number; received: number | null; reference: string };
 
 type Props = {
     tenant: string;
@@ -30,6 +31,9 @@ const nextKey = () => `t${++tenderSeq}`;
 
 export function PaymentEditor({ tenant, payment, methods, openItems: initialItems }: Props) {
     const readOnly = payment.state !== "DRAFT";
+    const isRefund = payment.direction === "REFUND";
+    const noun = isRefund ? "refund" : "receipt";
+    const sign = isRefund ? -1 : 1;
     const [state, formAction, saving] = useActionState(savePayment.bind(null, tenant, payment.id), initialActionState);
 
     const [customer, setCustomer] = useState<PickerHit | null>(() => (payment.customer ? customerHit(payment.customer) : null));
@@ -42,12 +46,17 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
     const [voiding, setVoiding] = useState(false);
     const [loadingItems, startLoading] = useTransition();
 
-    const tendered = round2(tenders.reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
+    // Everything below works in the stored sign, so the rules that post the
+    // payment and the numbers on screen are computed from the same figures.
+    const signedTenders = tenders.map((t) => round2(sign * Math.abs(Number(t.amount) || 0)));
+    const tendered = round2(signedTenders.reduce((sum, t) => sum + t, 0));
     const allocated = allocationTotal(allocations);
-    const unapplied = unappliedAmount(tenders.map((t) => Number(t.amount) || 0), Object.values(allocations));
+    const unallocated = unallocatedAmount(signedTenders, Object.values(allocations));
+    const change = round2(tenders.reduce((sum, t) => sum + Math.max((t.received ?? 0) - Math.abs(Number(t.amount) || 0), 0), 0));
     const problem = useMemo(
-        () => paymentPostingError(tenders.map((t) => Number(t.amount) || 0), Object.values(allocations)),
-        [tenders, allocations],
+        () => paymentPostingError(signedTenders, Object.values(allocations), payment.direction),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenders, allocations, payment.direction],
     );
 
     // `useActionState` hands back a new object each time it runs; when a
@@ -96,15 +105,17 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                 <p className="text-sm text-slate-500">
                     {readOnly
                         ? payment.state === "VOID"
-                            ? "This receipt was voided. It is kept for the audit trail."
-                            : "Posted receipts are read-only. Void it if the money did not arrive."
+                            ? `This ${noun} was voided. It is kept for the audit trail.`
+                            : isRefund
+                                ? "Posted refunds are read-only. Void it if the money never left."
+                                : "Posted receipts are read-only. Void it if the money did not arrive."
                         : "Draft — nothing lands on the account until you post it."}
                 </p>
                 {!readOnly && (
                     <div className="flex flex-wrap items-center gap-2">
                         <form action={processPayment.bind(null, tenant, payment.id)}>
                             <Button type="submit" size="sm" className="bg-slate-800 hover:bg-slate-900" disabled={!canPost} title={dirty ? "Save your changes first" : (problem ?? undefined)}>
-                                <CheckCircle2 className="w-4 h-4 mr-1" />Post receipt
+                                <CheckCircle2 className="w-4 h-4 mr-1" />{isRefund ? "Pay refund" : "Post receipt"}
                             </Button>
                         </form>
                         <form action={deleteDraftPayment.bind(null, tenant, payment.id)}>
@@ -134,7 +145,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                 <input type="hidden" name="allocations" value={JSON.stringify(Object.entries(normalise(items, allocations)).map(([documentId, amount]) => ({ documentId, amount })))} />
 
                 <section className="border border-slate-200 rounded-sm bg-white">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Receipt</h3>
+                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund" : "Receipt"}</h3>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                         <CustomerPicker
                             tenant={tenant}
@@ -157,12 +168,12 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
 
                 <section className="border border-slate-200 rounded-sm bg-white">
                     <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">How it was paid</h3>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "How it is going out" : "How it was paid"}</h3>
                         {!readOnly && (
                             <Button
                                 type="button" size="sm" variant="outline" className="h-7"
                                 onClick={() => {
-                                    setTenders((rows) => [...rows, { key: nextKey(), methodId: methods[0]?.id ?? "", amount: 0, reference: "" }]);
+                                    setTenders((rows) => [...rows, { key: nextKey(), methodId: methods[0]?.id ?? "", amount: 0, received: null, reference: "" }]);
                                     setDirty(true);
                                 }}
                             >
@@ -171,28 +182,51 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                         )}
                     </div>
                     <div className="divide-y divide-slate-100">
-                        {tenders.length === 0 && <p className="px-4 py-4 text-sm text-slate-500">No money tendered. Applying a credit note on its own is fine — add a tender if cash actually changed hands.</p>}
+                        {tenders.length === 0 && (
+                            <p className="px-4 py-4 text-sm text-slate-500">
+                                {isRefund
+                                    ? "Nothing going out yet. Add how the money is being paid back."
+                                    : "No money tendered. Applying a credit note on its own is fine — add a tender if cash actually changed hands."}
+                            </p>
+                        )}
                         {tenders.map((t) => {
                             const method = methods.find((m) => m.id === t.methodId);
+                            // Change is a cash idea, so the Received field only appears on the seeded CASH method.
+                            const takesChange = !isRefund && method?.code === "CASH";
+                            const given = round2(Math.max((t.received ?? 0) - Math.abs(Number(t.amount) || 0), 0));
                             return (
                                 <div key={t.key} className="px-4 py-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                                     <select
                                         aria-label="Payment method" value={t.methodId} disabled={readOnly}
-                                        onChange={(e) => setTender(t.key, { methodId: e.target.value })}
+                                        onChange={(e) => setTender(t.key, { methodId: e.target.value, received: null })}
                                         className="sm:col-span-3 h-8 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
                                     >
                                         {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                                     </select>
+                                    {takesChange ? (
+                                        <div className="sm:col-span-6 flex items-center gap-2">
+                                            <input
+                                                aria-label="Cash received" type="number" step="0.01" inputMode="decimal" disabled={readOnly}
+                                                value={t.received ?? ""} placeholder="Cash received"
+                                                onChange={(e) => setTender(t.key, { received: e.target.value === "" ? null : Number(e.target.value) })}
+                                                className="h-8 w-40 rounded-md border border-input bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                            />
+                                            <span className={`text-xs ${given > 0 ? "text-slate-700" : "text-slate-400"}`}>
+                                                {given > 0 ? <>Change <strong className="tabular-nums">{money(given)}</strong></> : "Change 0.00"}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <input
+                                            aria-label="Reference" value={t.reference} disabled={readOnly}
+                                            placeholder={method?.isEft ? "EFT reference — put it on the deposit slip" : "Reference (optional)"}
+                                            onChange={(e) => setTender(t.key, { reference: e.target.value })}
+                                            className="sm:col-span-6 h-8 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                        />
+                                    )}
                                     <input
-                                        aria-label="Reference" value={t.reference} disabled={readOnly}
-                                        placeholder={method?.isEft ? "EFT reference — put it on the deposit slip" : "Reference (optional)"}
-                                        onChange={(e) => setTender(t.key, { reference: e.target.value })}
-                                        className="sm:col-span-6 h-8 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
-                                    />
-                                    <input
-                                        aria-label="Amount tendered" type="number" step="0.01" inputMode="decimal" disabled={readOnly}
+                                        aria-label={isRefund ? "Amount paid out" : "Amount kept"} type="number" step="0.01" inputMode="decimal" disabled={readOnly}
                                         value={t.amount === 0 ? "" : t.amount} placeholder="0.00"
-                                        onChange={(e) => setTender(t.key, { amount: Number(e.target.value) })}
+                                        onChange={(e) => setTender(t.key, { amount: Math.abs(Number(e.target.value)) })}
                                         className="sm:col-span-2 h-8 rounded-md border border-input bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
                                     />
                                     {!readOnly && (
@@ -214,6 +248,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                     allocations={allocations}
                     onChange={touch(setAllocations)}
                     tendered={tendered}
+                    direction={payment.direction}
                     readOnly={readOnly}
                     loading={loadingItems}
                 />
@@ -226,11 +261,20 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                     </div>
                     <div className="flex items-end gap-6">
                         <dl className="text-sm text-right">
-                            <div className="flex justify-between gap-8"><dt className="text-slate-500">Tendered</dt><dd className="tabular-nums font-medium">{money(tendered)}</dd></div>
-                            <div className="flex justify-between gap-8"><dt className="text-slate-500">Applied</dt><dd className="tabular-nums font-medium">{money(allocated)}</dd></div>
+                            <div className="flex justify-between gap-8">
+                                <dt className="text-slate-500">{isRefund ? "Paying out" : "Tendered"}</dt>
+                                <dd className="tabular-nums font-medium">{money(Math.abs(tendered))}</dd>
+                            </div>
+                            {change > 0 && (
+                                <div className="flex justify-between gap-8"><dt className="text-slate-500">Change given</dt><dd className="tabular-nums text-slate-600">{money(change)}</dd></div>
+                            )}
+                            <div className="flex justify-between gap-8">
+                                <dt className="text-slate-500">{isRefund ? "Against credit notes" : "Applied"}</dt>
+                                <dd className="tabular-nums font-medium">{money(Math.abs(allocated))}</dd>
+                            </div>
                             <div className="flex justify-between gap-8 border-t mt-1 pt-1">
-                                <dt className="text-slate-500">Unapplied credit</dt>
-                                <dd className={`tabular-nums font-semibold ${unapplied > 0 ? "text-amber-700" : "text-slate-700"}`}>{money(unapplied)}</dd>
+                                <dt className="text-slate-500">{isRefund ? "From credit on account" : "Unapplied credit"}</dt>
+                                <dd className={`tabular-nums font-semibold ${Math.abs(unallocated) > 0 ? "text-amber-700" : "text-slate-700"}`}>{money(Math.abs(unallocated))}</dd>
                             </div>
                         </dl>
                         {!readOnly && (
@@ -252,9 +296,14 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
  */
 function initialTenders(payment: PaymentRecord, methods: PaymentMethodOption[]): Tender[] {
     if (payment.tenders.length) {
-        return payment.tenders.map((t) => ({ key: nextKey(), id: t.id, methodId: t.methodId, amount: t.amount, reference: t.reference ?? "" }));
+        return payment.tenders.map((t) => ({
+            key: nextKey(), id: t.id, methodId: t.methodId,
+            amount: Math.abs(t.amount),
+            received: t.tendered == null ? null : Math.abs(t.tendered),
+            reference: t.reference ?? "",
+        }));
     }
     if (payment.state !== "DRAFT" || !methods.length) return [];
-    const suggested = round2(payment.allocations.reduce((sum, a) => sum + a.amount, 0));
-    return [{ key: nextKey(), methodId: methods[0].id, amount: Math.max(suggested, 0), reference: "" }];
+    const suggested = Math.abs(round2(payment.allocations.reduce((sum, a) => sum + a.amount, 0)));
+    return [{ key: nextKey(), methodId: methods[0].id, amount: suggested, received: null, reference: "" }];
 }

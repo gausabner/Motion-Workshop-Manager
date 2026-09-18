@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus, Wallet } from "lucide-react";
-import type { PaymentState } from "@prisma/client";
+import { ChevronLeft, ChevronRight, Minus, Plus, Wallet } from "lucide-react";
+import type { PaymentDirection, PaymentState } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createPayment } from "@/lib/payments/actions";
+import { createPayment, createRefund } from "@/lib/payments/actions";
 import type { listPayments } from "@/lib/payments/queries";
 import { dateShort, money } from "@/lib/format";
 
@@ -15,6 +15,7 @@ export const PAYMENT_TABS = [
     { key: "drafts", label: "Drafts" },
     { key: "posted", label: "Posted" },
     { key: "unapplied", label: "Unapplied" },
+    { key: "refunds", label: "Refunds" },
     { key: "void", label: "Void" },
 ] as const;
 
@@ -49,7 +50,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                 <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
                     <div className="flex items-center gap-3">
                         <Wallet className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Receipts</CardTitle>
+                        <CardTitle className="text-lg text-slate-800 font-bold">Receipts &amp; refunds</CardTitle>
                         <span className="text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -59,6 +60,9 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                                 type="search" name="q" defaultValue={q} placeholder="Receipt number, reference or customer…"
                                 className="h-8 w-64 rounded-sm border border-slate-300 bg-white px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                             />
+                        </form>
+                        <form action={createRefund.bind(null, tenant, undefined)}>
+                            <Button type="submit" size="sm" variant="outline" className="h-8"><Minus className="w-3.5 h-3.5 mr-1" />Refund</Button>
                         </form>
                         <form action={createPayment.bind(null, tenant, undefined)}>
                             <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
@@ -86,7 +90,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                             <TableHeader>
                                 <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                     <TableHead className="pl-4 text-slate-500 font-semibold">Date</TableHead>
-                                    <TableHead className="text-slate-500 font-semibold">Receipt</TableHead>
+                                    <TableHead className="text-slate-500 font-semibold">Number</TableHead>
                                     <TableHead className="text-slate-500 font-semibold">Customer</TableHead>
                                     <TableHead className="text-slate-500 font-semibold">Tendered as</TableHead>
                                     <TableHead className="text-right text-slate-500 font-semibold">Amount</TableHead>
@@ -106,6 +110,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                                         <TableCell className="py-2 font-medium whitespace-nowrap">
                                             <Link href={`${base}/${p.id}`} className="text-slate-700 hover:text-teal-700">{p.number ?? "draft"}</Link>{" "}
                                             <PaymentStatePill state={p.state} />
+                                            {p.direction === "REFUND" && <span className="ml-1 inline-block rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700">Refund</span>}
                                         </TableCell>
                                         <TableCell className="py-2 text-slate-600">
                                             {p.customer ? <Link href={`/${tenant}/dashboard/customers/${p.customer.id}`} className="hover:text-teal-700">{p.customer.firstName} {p.customer.lastName}</Link> : <span className="text-slate-400">Not chosen</span>}
@@ -113,7 +118,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                                         <TableCell className="py-2 text-slate-500 text-xs max-w-[260px] truncate" title={p.methods.map((m) => `${m.name}${m.reference ? ` ${m.reference}` : ""}`).join(", ")}>
                                             {p.methods.map((m) => m.name).join(" + ") || "—"}
                                         </TableCell>
-                                        <TableCell className="py-2 text-right tabular-nums font-medium text-slate-700">{money(p.amount)}</TableCell>
+                                        <TableCell className={`py-2 text-right tabular-nums font-medium ${p.direction === "REFUND" ? "text-red-700" : "text-slate-700"}`}>{money(p.amount)}</TableCell>
                                         <TableCell className="py-2 text-right tabular-nums text-slate-600">{money(p.allocated)}</TableCell>
                                         <TableCell className={`py-2 pr-4 text-right tabular-nums ${p.unapplied > 0 ? "text-amber-700 font-medium" : "text-slate-400"}`}>{money(p.unapplied)}</TableCell>
                                     </TableRow>

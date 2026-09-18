@@ -96,6 +96,13 @@ enum PaymentState {
   VOID
 }
 
+/// Which way the money went. A refund stores negative tenders, so every sum —
+/// account balance, unapplied credit, a day's takings — nets without a special case.
+enum PaymentDirection {
+  RECEIPT
+  REFUND
+}
+
 enum CreditKind {
   DEPOSIT
   CREDIT_NOTE
@@ -123,6 +130,7 @@ enum SequenceKey {
   INVOICE
   CREDIT
   RECEIPT
+  REFUND
   PURCHASE_ORDER
   SUPPLIER_PAYMENT
 }
@@ -748,23 +756,24 @@ model TimeEntry {
 // ───────────────────────── money in (PRD §6.11) ─────────────────────────
 
 model Payment {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   tenantId    String
   /// Null only while the receipt is still a draft on the counter.
   customerId  String?
-  state       PaymentState @default(DRAFT)
+  direction   PaymentDirection @default(RECEIPT)
+  state       PaymentState     @default(DRAFT)
   /// Receipt number from the RECEIPT sequence, allocated on process
   number      String?
-  postDate    DateTime     @default(now()) @db.Date
+  postDate    DateTime         @default(now()) @db.Date
   /// Sum of the tenders. What is allocated is derived; the remainder is unapplied credit.
-  amount      Decimal      @default(0) @db.Decimal(12, 2)
+  amount      Decimal          @default(0) @db.Decimal(12, 2)
   note        String?
   takenById   String?
   processedAt DateTime?
   voidedAt    DateTime?
   voidReason  String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   tenant      Tenant              @relation(fields: [tenantId], references: [id])
   customer    Customer?           @relation(fields: [customerId], references: [id])
@@ -780,15 +789,18 @@ model Payment {
 /// How the money arrived. A counter payment is often split across cash, card and
 /// EFT, and each tender carries its own reference (benchmark verified).
 model PaymentTender {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   tenantId          String
   paymentId         String
   methodId          String
-  amount            Decimal @db.Decimal(12, 2)
+  amount            Decimal  @db.Decimal(12, 2)
+  /// What was physically handed over, when that is more than what was kept —
+  /// the difference is the change given. Null means they gave the exact amount.
+  tendered          Decimal? @db.Decimal(12, 2)
   /// EFT reference, card slip or cheque number
   reference         String?
   proofAttachmentId String?
-  sortOrder         Int     @default(0)
+  sortOrder         Int      @default(0)
 
   tenant  Tenant        @relation(fields: [tenantId], references: [id])
   payment Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)

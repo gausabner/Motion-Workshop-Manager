@@ -12,6 +12,7 @@ import { businessToday } from "@/lib/tenant/today";
 import { savePaymentSchema } from "@/lib/payments/schema";
 import { getOpenItems } from "@/lib/payments/queries";
 import type { OpenItem } from "@/lib/payments/allocation";
+import type { PaymentDirection } from "@prisma/client";
 
 function editorPath(slug: string, id: string) {
     return `/${slug}/dashboard/payments/${id}`;
@@ -32,11 +33,12 @@ export async function openItemsFor(slug: string, customerId: string): Promise<Op
 }
 
 /**
- * Start a receipt. Seeding it from an invoice is the common path — the counter
- * presses Take payment on the invoice and expects that invoice already filled
- * in at its full outstanding, which is what the benchmark does.
+ * Start a receipt or a refund. Seeding it from a document is the common path —
+ * the counter presses Take payment on an invoice, or Refund on a credit note,
+ * and expects that document already filled in at its full outstanding, which is
+ * what the benchmark does.
  */
-export async function createPayment(slug: string, seed?: { customerId?: string; documentId?: string }): Promise<void> {
+async function startPayment(slug: string, direction: PaymentDirection, seed?: { customerId?: string; documentId?: string }): Promise<never> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "payments:take");
     const { db, tenant, membership, user } = ctx;
@@ -47,19 +49,21 @@ export async function createPayment(slug: string, seed?: { customerId?: string; 
         const doc = await db.document.findUnique({ where: { id: seed.documentId }, select: { customerId: true } });
         if (doc?.customerId) {
             customerId = doc.customerId;
-            seedItem = (await getOpenItems(db, customerId)).find((i) => i.id === seed.documentId);
+            const open = (await getOpenItems(db, customerId)).find((i) => i.id === seed.documentId);
+            // A receipt settles what is owed; a refund only ever hands a credit back.
+            if (open && (direction === "REFUND" ? open.outstanding < 0 : open.outstanding > 0)) seedItem = open;
         }
     }
 
     const created = await db.$transaction(async (tx) => {
         const payment = await tx.payment.create({
-            data: { tenantId: tenant.id, customerId, state: "DRAFT", takenById: membership.id, amount: 0, postDate: businessToday(tenant.timezone) },
+            data: { tenantId: tenant.id, customerId, direction, state: "DRAFT", takenById: membership.id, amount: 0, postDate: businessToday(tenant.timezone) },
             select: { id: true },
         });
         if (seedItem) {
             await tx.paymentAllocation.create({ data: { tenantId: tenant.id, paymentId: payment.id, documentId: seedItem.id, amount: seedItem.outstanding } });
         }
-        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Payment", entityId: payment.id, action: "CREATED" } });
+        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Payment", entityId: payment.id, action: "CREATED", diff: { direction } } });
         return payment;
     });
 
@@ -67,14 +71,22 @@ export async function createPayment(slug: string, seed?: { customerId?: string; 
     redirect(editorPath(slug, created.id));
 }
 
+export async function createPayment(slug: string, seed?: { customerId?: string; documentId?: string }): Promise<void> {
+    await startPayment(slug, "RECEIPT", seed);
+}
+
+export async function createRefund(slug: string, seed?: { customerId?: string; documentId?: string }): Promise<void> {
+    await startPayment(slug, "REFUND", seed);
+}
+
 export async function savePayment(slug: string, id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "payments:take");
     const { db, tenant, user } = ctx;
 
-    const existing = await db.payment.findUnique({ where: { id }, select: { state: true } });
+    const existing = await db.payment.findUnique({ where: { id }, select: { state: true, direction: true } });
     if (!existing) return { ok: false, message: "Receipt not found." };
-    if (existing.state !== "DRAFT") return { ok: false, message: "This receipt has been posted and can no longer be edited." };
+    if (existing.state !== "DRAFT") return { ok: false, message: `This ${existing.direction === "REFUND" ? "refund" : "receipt"} has been posted and can no longer be edited.` };
 
     let tendersRaw: unknown = [];
     let allocationsRaw: unknown = [];
@@ -103,7 +115,16 @@ export async function savePayment(slug: string, id: string, _prev: ActionState, 
     const allocations = d.allocations
         .map((a) => ({ documentId: a.documentId, amount: clampAllocation(open.get(a.documentId)?.outstanding ?? 0, a.amount) }))
         .filter((a) => a.amount !== 0);
-    const tenders = d.tenders.filter((t) => round2(t.amount) !== 0);
+    // The editor works in magnitudes; which way the money goes is decided here,
+    // once, from the payment's own direction.
+    const sign = existing.direction === "REFUND" ? -1 : 1;
+    const tenders = d.tenders
+        .map((t) => {
+            const amount = round2(sign * Math.abs(t.amount));
+            const handed = t.tendered == null ? null : round2(sign * Math.abs(t.tendered));
+            return { ...t, amount, tendered: handed !== null && Math.abs(handed) > Math.abs(amount) ? handed : null };
+        })
+        .filter((t) => t.amount !== 0);
     const amount = round2(tenders.reduce((sum, t) => sum + t.amount, 0));
 
     await db.$transaction(async (tx) => {
@@ -115,7 +136,7 @@ export async function savePayment(slug: string, id: string, _prev: ActionState, 
         await tx.paymentTender.deleteMany({ where: { paymentId: id } });
         for (const [index, t] of tenders.entries()) {
             await tx.paymentTender.create({
-                data: { tenantId: tenant.id, paymentId: id, methodId: t.methodId, amount: round2(t.amount), reference: t.reference?.trim() || null, sortOrder: index },
+                data: { tenantId: tenant.id, paymentId: id, methodId: t.methodId, amount: t.amount, tendered: t.tendered, reference: t.reference?.trim() || null, sortOrder: index },
             });
         }
         await tx.paymentAllocation.deleteMany({ where: { paymentId: id } });

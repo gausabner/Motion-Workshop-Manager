@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ageItems, ageingBucket, allocationTotal, normalise, spread, type OpenItem } from "./allocation";
+import { ageItems, ageingBucket, allocationTotal, normalise, refundable, spread, spreadRefund, type OpenItem } from "./allocation";
 
 const item = (over: Partial<OpenItem> & { id: string; outstanding: number }): OpenItem => ({
     type: "INVOICE",
@@ -67,6 +67,24 @@ test("normalise trims what a document cannot absorb and drops the zeroes", () =>
 test("normalise refuses an allocation pointed the wrong way", () => {
     const items = [item({ id: "inv", outstanding: 500 })];
     assert.deepEqual(normalise(items, { inv: -100 }), {});
+});
+
+test("a refund draws credit notes down oldest first, and ignores invoices", () => {
+    const items = [
+        item({ id: "inv", outstanding: 900 }),
+        item({ id: "new", type: "CREDIT", outstanding: -400, postDate: "2026-09-10" }),
+        item({ id: "old", type: "CREDIT", outstanding: -300, postDate: "2026-07-01" }),
+    ];
+    assert.deepEqual(spreadRefund(items, 500), { old: -300, new: -200 });
+    assert.deepEqual(spreadRefund(items, 1000), { old: -300, new: -400 });
+    assert.deepEqual(spreadRefund(items, 0), {});
+});
+
+test("what can be handed back is the credit notes plus money already on account", () => {
+    const items = [item({ id: "inv", outstanding: 900 }), item({ id: "cr", type: "CREDIT", outstanding: -620 })];
+    assert.equal(refundable(items, 500), 1120);
+    assert.equal(refundable(items, 0), 620);
+    assert.equal(refundable([item({ id: "inv", outstanding: 900 })], 0), 0);
 });
 
 test("ageing buckets follow the due date, not the post date", () => {

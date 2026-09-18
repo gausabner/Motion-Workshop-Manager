@@ -80,6 +80,29 @@ export function spread(items: OpenItem[], tendered: number): Allocations {
     return out;
 }
 
+/**
+ * The refund equivalent of `spread`: draw the credit notes down, oldest first,
+ * until what is being paid out is accounted for. Invoices are ignored — an
+ * unpaid invoice is not something a workshop can refund.
+ */
+export function spreadRefund(items: OpenItem[], payingOut: number): Allocations {
+    const out: Allocations = {};
+    let remaining = round2(Math.max(Number(payingOut) || 0, 0));
+    for (const credit of [...items].filter((i) => i.outstanding < 0).sort(byAge)) {
+        if (remaining <= 0) break;
+        const take = round2(Math.min(remaining, -credit.outstanding));
+        out[credit.id] = -take;
+        remaining = round2(remaining - take);
+    }
+    return out;
+}
+
+/** The most that can be handed back: every open credit note, plus money already on account. */
+export function refundable(items: OpenItem[], unapplied: number): number {
+    const credits = items.reduce((sum, i) => sum + Math.min(i.outstanding, 0), 0);
+    return round2(Math.max(-credits + (Number(unapplied) || 0), 0));
+}
+
 /** Drop the zeroes, and trim anything the document cannot actually absorb. */
 export function normalise(items: OpenItem[], allocations: Allocations): Allocations {
     const byId = new Map(items.map((i) => [i.id, i]));

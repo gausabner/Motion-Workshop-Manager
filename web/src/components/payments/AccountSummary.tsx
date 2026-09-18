@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createPayment } from "@/lib/payments/actions";
-import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
+import { createPayment, createRefund } from "@/lib/payments/actions";
+import { AGEING_BUCKETS, AGEING_LABELS, refundable } from "@/lib/payments/allocation";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import type { CustomerAccount } from "@/lib/payments/queries";
 import { dateShort, money } from "@/lib/format";
@@ -18,6 +18,7 @@ import { dateShort, money } from "@/lib/format";
 export function AccountSummary({ tenant, customerId, account, canTakePayment }: { tenant: string; customerId: string; account: CustomerAccount; canTakePayment: boolean }) {
     const base = `/${tenant}/dashboard`;
     const { ageing, unapplied, netOwing, openItems } = account;
+    const owedBack = refundable(openItems, unapplied);
 
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
@@ -27,6 +28,13 @@ export function AccountSummary({ tenant, customerId, account, canTakePayment }: 
                     <Button asChild size="sm" variant="outline" className="h-7">
                         <Link href={`${base}/customers/${customerId}/statement`}><FileText className="w-3.5 h-3.5 mr-1" />Statement</Link>
                     </Button>
+                    {canTakePayment && owedBack > 0 && (
+                        <form action={createRefund.bind(null, tenant, { customerId })}>
+                            <Button type="submit" size="sm" variant="outline" className="h-7" title={`${money(owedBack)} can be handed back`}>
+                                <Minus className="w-3.5 h-3.5 mr-1" />Refund
+                            </Button>
+                        </form>
+                    )}
                     {canTakePayment && (
                         <form action={createPayment.bind(null, tenant, { customerId })}>
                             <Button type="submit" size="sm" className="h-7 bg-teal-600 hover:bg-teal-700"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>

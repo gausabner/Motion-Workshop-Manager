@@ -1,4 +1,4 @@
-import type { DocumentState, DocumentType } from "@prisma/client";
+import type { DocumentState, DocumentType, PaymentDirection } from "@prisma/client";
 import { round2 } from "@/lib/documents/totals";
 
 /**
@@ -41,9 +41,13 @@ export function stateAfterAllocation(state: DocumentState, type: DocumentType, t
     return outstanding <= 0 ? "CLOSED" : "PROCESSED";
 }
 
-/** Money taken on a payment but not allocated to any document — the customer's unapplied credit. */
-export function unappliedAmount(tendered: number[], allocated: number[]): number {
-    return round2(Math.max(sum(tendered) - sum(allocated), 0));
+/**
+ * Money that moved with no document to account for it: unapplied credit on a
+ * receipt, and credit drawn back out of the account on a refund. Signed, so
+ * the two read as opposites of each other.
+ */
+export function unallocatedAmount(tendered: number[], allocated: number[]): number {
+    return round2(sum(tendered) - sum(allocated));
 }
 
 /**
@@ -64,18 +68,31 @@ export function clampAllocation(outstanding: number, requested: number): number 
  *
  * Allocations are signed the way the document's own outstanding is signed:
  * positive against an invoice, negative against a credit note. Their sum is
- * therefore the money the customer actually has to hand over, which is what
- * the tenders must cover. Two consequences fall out of that:
+ * therefore the money that actually has to change hands, which is what the
+ * tenders must cover. Three consequences fall out of that:
  *
  *  - a receipt with no tenders at all is a pure credit application (+300 on
- *    the invoice, −300 on the credit note, nothing changes hands);
+ *    the invoice, −300 off the credit note, nothing changes hands);
  *  - the benchmark insists allocations exactly equal tenders, and we
  *    deliberately relax that to "may not exceed" — money taken on account,
- *    before the invoice exists, is how unapplied credit legitimately arises.
+ *    before the invoice exists, is how unapplied credit legitimately arises;
+ *  - a refund is the whole thing mirrored. Its tenders are negative, so every
+ *    sum downstream nets correctly with no direction-aware arithmetic
+ *    anywhere else, and the rule below is the same inequality with the sign
+ *    turned around.
  */
-export function paymentPostingError(tendered: number[], allocated: number[]): string | null {
+export function paymentPostingError(tendered: number[], allocated: number[], direction: PaymentDirection = "RECEIPT"): string | null {
     const tenderTotal = sum(tendered);
     const allocationTotal = sum(allocated);
+
+    if (direction === "REFUND") {
+        if (tendered.some((t) => Number(t) > 0)) return "A refund pays money out, so its amounts cannot be positive.";
+        if (tenderTotal === 0 && allocated.length === 0) return "Enter what is being paid out, or pick a credit note to refund.";
+        if (allocationTotal > 0) return "A refund cannot be applied to an invoice. Take a receipt instead.";
+        if (allocationTotal < tenderTotal) return `Drawing down ${Math.abs(allocationTotal).toFixed(2)} of credit is more than the ${Math.abs(tenderTotal).toFixed(2)} being paid out.`;
+        return null;
+    }
+
     if (tendered.some((t) => Number(t) < 0)) return "Tender amounts cannot be negative.";
     if (tenderTotal === 0 && allocated.length === 0) return "Add at least one tender with an amount, or allocate a credit note.";
     if (allocationTotal < 0) return "The allocations come to less than nothing. Paying a credit back out is a refund, not a receipt.";

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clampAllocation, paymentPostingError, stateAfterAllocation, stateOnProcess, unappliedAmount } from "./settlement";
+import { clampAllocation, paymentPostingError, stateAfterAllocation, stateOnProcess, unallocatedAmount } from "./settlement";
 
 test("a normal invoice is PROCESSED when posted", () => {
     assert.equal(stateOnProcess("INVOICE", 2518.5), "PROCESSED");
@@ -46,9 +46,9 @@ test("a credit note with a negative total settles on its absolute value", () => 
 });
 
 test("unapplied credit is what was tendered but not allocated", () => {
-    assert.equal(unappliedAmount([1000, 500], [1200]), 300);
-    assert.equal(unappliedAmount([1500], [1500]), 0);
-    assert.equal(unappliedAmount([500], []), 500);
+    assert.equal(unallocatedAmount([1000, 500], [1200]), 300);
+    assert.equal(unallocatedAmount([1500], [1500]), 0);
+    assert.equal(unallocatedAmount([500], []), 500);
 });
 
 test("a split tender across cash, card and EFT can settle one invoice", () => {
@@ -79,6 +79,27 @@ test("a credit note applied to an invoice posts with nothing tendered", () => {
 
 test("a credit that more than covers the invoice cannot be posted as a receipt", () => {
     assert.match(paymentPostingError([], [300, -500]) ?? "", /refund, not a receipt/);
+});
+
+test("a refund is the same rule mirrored: cash out against a credit note", () => {
+    assert.equal(paymentPostingError([-620], [-620], "REFUND"), null);
+    // Paying out unapplied credit needs no document at all.
+    assert.equal(paymentPostingError([-500], [], "REFUND"), null);
+});
+
+test("a refund cannot draw down more credit than it pays out", () => {
+    assert.match(paymentPostingError([-620], [-700], "REFUND") ?? "", /more than the 620\.00 being paid out/);
+});
+
+test("a refund cannot be pointed at an invoice, nor pay money in", () => {
+    assert.match(paymentPostingError([-620], [300], "REFUND") ?? "", /Take a receipt instead/);
+    assert.match(paymentPostingError([620], [], "REFUND") ?? "", /cannot be positive/);
+    assert.match(paymentPostingError([], [], "REFUND") ?? "", /what is being paid out/);
+});
+
+test("money out reads as the opposite of money left over", () => {
+    assert.equal(unallocatedAmount([-500], []), -500);
+    assert.equal(unallocatedAmount([-620], [-620]), 0);
 });
 
 test("an allocation is trimmed to what the document can take", () => {

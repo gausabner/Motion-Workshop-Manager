@@ -1,17 +1,20 @@
 "use client";
 
+import type { PaymentDirection } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import { clampAllocation } from "@/lib/documents/settlement";
-import { allocationTotal, byAge, spread, type Allocations, type OpenItem } from "@/lib/payments/allocation";
+import { allocationTotal, byAge, spread, spreadRefund, type Allocations, type OpenItem } from "@/lib/payments/allocation";
 import { dateShort, money } from "@/lib/format";
 
 type Props = {
     items: OpenItem[];
     allocations: Allocations;
     onChange: (next: Allocations) => void;
+    /** Signed: positive on a receipt, negative on a refund. */
     tendered: number;
+    direction: PaymentDirection;
     readOnly?: boolean;
     loading?: boolean;
 };
@@ -20,9 +23,13 @@ type Props = {
  * What the money is being put against. One row per open document, credits
  * included — allocating a credit note here is how it gets used up, so a
  * receipt and a credit application are the same screen.
+ *
+ * A refund can only ever hand a credit note back, so invoices are hidden
+ * rather than shown and refused.
  */
-export function AllocationGrid({ items, allocations, onChange, tendered, readOnly, loading }: Props) {
-    const ordered = [...items].sort(byAge);
+export function AllocationGrid({ items, allocations, onChange, tendered, direction, readOnly, loading }: Props) {
+    const isRefund = direction === "REFUND";
+    const ordered = [...items].filter((i) => (isRefund ? i.outstanding < 0 : true)).sort(byAge);
     const allocated = allocationTotal(allocations);
 
     const set = (item: OpenItem, raw: number) => {
@@ -36,10 +43,13 @@ export function AllocationGrid({ items, allocations, onChange, tendered, readOnl
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Apply to</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund against" : "Apply to"}</h3>
                 {!readOnly && (
                     <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => onChange(spread(items, tendered))} disabled={!items.length}>
+                        <Button
+                            type="button" size="sm" variant="outline" className="h-7" disabled={!ordered.length}
+                            onClick={() => onChange(isRefund ? spreadRefund(items, Math.abs(tendered)) : spread(items, tendered))}
+                        >
                             All
                         </Button>
                         <Button type="button" size="sm" variant="ghost" className="h-7 text-slate-500" onClick={() => onChange({})} disabled={!allocated}>
@@ -53,7 +63,9 @@ export function AllocationGrid({ items, allocations, onChange, tendered, readOnl
                 <p className="px-4 py-6 text-sm text-slate-400">Looking up the account…</p>
             ) : ordered.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-slate-500">
-                    Nothing is outstanding on this account. Anything tendered will sit as unapplied credit until there is an invoice to put it against.
+                    {isRefund
+                        ? "No open credit notes on this account. Anything paid out here comes off the money already sitting on the account."
+                        : "Nothing is outstanding on this account. Anything tendered will sit as unapplied credit until there is an invoice to put it against."}
                 </p>
             ) : (
                 <div className="overflow-x-auto">

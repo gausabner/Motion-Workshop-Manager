@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Headphones, Car, LogOut, ClipboardList, ListChecks, Wallet } from "lucide-react";
+import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Headphones, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
@@ -19,6 +19,7 @@ const linkBase = "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 tr
 export function Sidebar({ tenant, workshopName, group }: ShellProps) {
     const base = `/${tenant}`;
     const manages = can({ group }, "users:manage");
+    const reports = can({ group }, "reports:view");
     return (
         <div className="flex h-screen w-[180px] flex-col border-r bg-slate-50">
             <div className="flex h-14 items-center border-b px-4">
@@ -37,6 +38,7 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                     <Link href={`${base}/dashboard/transactions`} className={linkBase}><ListChecks className="h-[12px] w-[12px]" />Transactions</Link>
                     <Link href={`${base}/dashboard/jobs`} className={linkBase}><ClipboardList className="h-[12px] w-[12px]" />Jobs</Link>
                     <Link href={`${base}/dashboard/payments`} className={linkBase}><Wallet className="h-[12px] w-[12px]" />Receipts</Link>
+                    {reports && <Link href={`${base}/dashboard/reports/receivables`} className={linkBase}><Receipt className="h-[12px] w-[12px]" />Who owes us</Link>}
                     <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
                     <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
                     <Link href={`${base}/dashboard/settings`} className={linkBase}><Settings className="h-[12px] w-[12px]" />Settings</Link>

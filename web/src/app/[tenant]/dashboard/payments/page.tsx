@@ -9,7 +9,8 @@ const TAB_FILTERS: Record<PaymentTabKey, Partial<PaymentListParams>> = {
     all: {},
     drafts: { state: "DRAFT" },
     posted: { state: "PROCESSED" },
-    unapplied: { state: "PROCESSED", unappliedOnly: true },
+    unapplied: { state: "PROCESSED", direction: "RECEIPT", unappliedOnly: true },
+    refunds: { direction: "REFUND" },
     void: { state: "VOID" },
 };
 

@@ -6,6 +6,8 @@ export const tenderSchema = z.object({
     id: z.string().optional(),
     methodId: z.string().min(1, "Choose how the money was paid"),
     amount: z.coerce.number().finite(),
+    /** What was physically handed over, when more than was kept. The difference is change. */
+    tendered: z.coerce.number().finite().optional().nullable(),
     reference: z.string().trim().max(120).optional().nullable(),
 });
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Wallet } from "lucide-react";
+import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Undo2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { convertDocument, copyDocument, createCreditNote, markContacted, processDocument, voidDocument } from "@/lib/documents/actions";
-import { createPayment } from "@/lib/payments/actions";
+import { createPayment, createRefund } from "@/lib/payments/actions";
 import type { DocumentRecord } from "@/lib/documents/queries";
 
 type Props = {
@@ -27,12 +27,19 @@ export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayme
     const canStartJob = doc.type === "BOOKING" || doc.type === "QUOTE";
     // Only an invoice with money still on it, and only for someone with an account to put it against.
     const owing = isProcessed && (doc.type === "INVOICE" || doc.type === "CASH_SALE") && doc.amountDue > 0 && !!doc.customer;
+    // A credit note that has not been used up can be handed back in cash or by EFT.
+    const refundable = isProcessed && doc.type === "CREDIT" && doc.amountDue < 0 && !!doc.customer;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
             {owing && canTakePayment && (
                 <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
                     <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>
+                </form>
+            )}
+            {refundable && canTakePayment && (
+                <form action={createRefund.bind(null, tenant, { documentId: doc.id })}>
+                    <Button type="submit" size="sm" variant="outline"><Undo2 className="w-4 h-4 mr-1" />Refund</Button>
                 </form>
             )}
             {isDraft && canStartJob && (

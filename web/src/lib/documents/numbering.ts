@@ -30,6 +30,7 @@ function defaultPrefix(key: SequenceKey): string {
         case "INVOICE": return "INV-";
         case "CREDIT": return "CR-";
         case "RECEIPT": return "RC-";
+        case "REFUND": return "RF-";
         case "PURCHASE_ORDER": return "PO-";
         case "SUPPLIER_PAYMENT": return "SP-";
     }

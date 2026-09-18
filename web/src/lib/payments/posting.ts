@@ -24,14 +24,34 @@ function sum(rows: { amount: { toNumber(): number } }[]): number {
 export async function postPayment(tx: TenantTx, tenantId: string, membershipId: string, paymentId: string): Promise<{ number: string; amount: number }> {
     const payment = await tx.payment.findUniqueOrThrow({
         where: { id: paymentId },
-        select: { id: true, state: true, customerId: true, tenders: { select: { amount: true } }, allocations: { select: { documentId: true, amount: true } } },
+        select: { id: true, state: true, direction: true, customerId: true, tenders: { select: { amount: true } }, allocations: { select: { documentId: true, amount: true } } },
     });
-    if (payment.state !== "DRAFT") throw new Error("Only a draft receipt can be posted");
-    if (!payment.customerId) throw new Error("Choose a customer before posting this receipt");
+    const noun = payment.direction === "REFUND" ? "refund" : "receipt";
+    if (payment.state !== "DRAFT") throw new Error(`Only a draft ${noun} can be posted`);
+    if (!payment.customerId) throw new Error(`Choose a customer before posting this ${noun}`);
 
     const tendered = payment.tenders.map((t) => t.amount.toNumber());
-    const problem = paymentPostingError(tendered, payment.allocations.map((a) => a.amount.toNumber()));
+    const allocated = payment.allocations.map((a) => a.amount.toNumber());
+    const problem = paymentPostingError(tendered, allocated, payment.direction);
     if (problem) throw new Error(problem);
+
+    // Money handed back that no credit note accounts for comes off what is
+    // already sitting on the account, so it cannot exceed what is there —
+    // otherwise a refund quietly turns the customer into a debtor with no
+    // invoice to show for it.
+    if (payment.direction === "REFUND") {
+        const fromAccount = round2(Math.abs(round2(tendered.reduce((total, t) => total + t, 0))) - Math.abs(round2(allocated.reduce((total, a) => total + a, 0))));
+        if (fromAccount > 0) {
+            const posted = await tx.payment.findMany({
+                where: { customerId: payment.customerId, state: "PROCESSED" },
+                select: { amount: true, allocations: { select: { amount: true } } },
+            });
+            const onAccount = round2(posted.reduce((total, p) => total + p.amount.toNumber() - sum(p.allocations), 0));
+            if (fromAccount > onAccount) {
+                throw new Error(`Only ${onAccount.toFixed(2)} is sitting on this account — ${fromAccount.toFixed(2)} cannot be paid back out`);
+            }
+        }
+    }
 
     for (const allocation of payment.allocations) {
         const doc = await tx.document.findUniqueOrThrow({
@@ -52,7 +72,7 @@ export async function postPayment(tx: TenantTx, tenantId: string, membershipId: 
         await tx.document.update({ where: { id: doc.id }, data: { state: stateAfterAllocation(doc.state, doc.type, total, round2(already + amount)) } });
     }
 
-    const number = await allocateNumber(tx, tenantId, "RECEIPT");
+    const number = await allocateNumber(tx, tenantId, payment.direction === "REFUND" ? "REFUND" : "RECEIPT");
     const amount = round2(tendered.reduce((total, t) => total + t, 0));
     await tx.payment.update({ where: { id: paymentId }, data: { state: "PROCESSED", number, processedAt: new Date(), takenById: membershipId, amount } });
     return { number, amount };
