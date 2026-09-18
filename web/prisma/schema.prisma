@@ -131,6 +131,7 @@ enum TemplateKind {
   MESSAGE_RECEIPT
   MESSAGE_REFUND
   MESSAGE_STATEMENT
+  MESSAGE_INSPECTION
 }
 
 enum MessageChannel {
@@ -154,6 +155,7 @@ enum ShareKind {
   DOCUMENT
   PAYMENT
   STATEMENT
+  INSPECTION
 }
 
 enum SequenceKey {
@@ -163,6 +165,7 @@ enum SequenceKey {
   CREDIT
   RECEIPT
   REFUND
+  INSPECTION
   PURCHASE_ORDER
   SUPPLIER_PAYMENT
 }
@@ -203,37 +206,41 @@ model Tenant {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
-  memberships       Membership[]
-  invitations       Invitation[]
-  sessions          Session[]
-  customers         Customer[]
-  contacts          Contact[]
-  vehicles          Vehicle[]
-  suppliers         Supplier[]
-  productGroups     ProductGroup[]
-  productCategories ProductCategory[]
-  products          Product[]
-  customerSources   CustomerSource[]
-  paymentMethods    PaymentMethod[]
-  appointmentTypes  AppointmentType[]
-  sequences         Sequence[]
-  templates         Template[]
-  documents         Document[]
-  documentLines     DocumentLine[]
-  statusEvents      DocumentStatusEvent[]
-  timeEntries       TimeEntry[]
-  payments          Payment[]
-  paymentTenders    PaymentTender[]
-  allocations       PaymentAllocation[]
-  credits           Credit[]
-  attachments       Attachment[]
-  auditEvents       AuditEvent[]
-  externalRefs      ExternalRef[]
-  shareLinks        ShareLink[]
-  messages          Message[]
-  workingHours      WorkingHours[]
-  timeOff           TimeOff[]
-  bookingRequests   BookingRequest[]
+  memberships             Membership[]
+  invitations             Invitation[]
+  sessions                Session[]
+  customers               Customer[]
+  contacts                Contact[]
+  vehicles                Vehicle[]
+  suppliers               Supplier[]
+  productGroups           ProductGroup[]
+  productCategories       ProductCategory[]
+  products                Product[]
+  customerSources         CustomerSource[]
+  paymentMethods          PaymentMethod[]
+  appointmentTypes        AppointmentType[]
+  sequences               Sequence[]
+  templates               Template[]
+  documents               Document[]
+  documentLines           DocumentLine[]
+  statusEvents            DocumentStatusEvent[]
+  timeEntries             TimeEntry[]
+  payments                Payment[]
+  paymentTenders          PaymentTender[]
+  allocations             PaymentAllocation[]
+  credits                 Credit[]
+  attachments             Attachment[]
+  auditEvents             AuditEvent[]
+  externalRefs            ExternalRef[]
+  shareLinks              ShareLink[]
+  messages                Message[]
+  workingHours            WorkingHours[]
+  timeOff                 TimeOff[]
+  bookingRequests         BookingRequest[]
+  inspectionTemplates     InspectionTemplate[]
+  inspectionTemplateItems InspectionTemplateItem[]
+  inspections             Inspection[]
+  inspectionItems         InspectionItem[]
 }
 
 model User {
@@ -282,6 +289,7 @@ model Membership {
   messages           Message[]
   workingHours       WorkingHours[]
   timeOff            TimeOff[]
+  inspections        Inspection[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -377,6 +385,7 @@ model Customer {
   payments       Payment[]
   credits        Credit[]
   messages       Message[]
+  inspections    Inspection[]
 
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, mobile])
@@ -451,9 +460,10 @@ model Vehicle {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  customer  Customer?  @relation(fields: [customerId], references: [id])
-  documents Document[]
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  documents   Document[]
+  inspections Inspection[]
 
   @@index([tenantId, plate])
   @@index([tenantId, vin])
@@ -553,11 +563,13 @@ model Product {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  tenant   Tenant           @relation(fields: [tenantId], references: [id])
-  group    ProductGroup?    @relation(fields: [groupId], references: [id])
-  category ProductCategory? @relation(fields: [categoryId], references: [id])
-  supplier Supplier?        @relation(fields: [supplierId], references: [id])
-  lines    DocumentLine[]
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  group                   ProductGroup?            @relation(fields: [groupId], references: [id])
+  category                ProductCategory?         @relation(fields: [categoryId], references: [id])
+  supplier                Supplier?                @relation(fields: [supplierId], references: [id])
+  lines                   DocumentLine[]
+  inspectionTemplateItems InspectionTemplateItem[]
+  inspectionItems         InspectionItem[]
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -722,6 +734,7 @@ model Document {
   credits          Credit[]
   messages         Message[]
   bookingRequest   BookingRequest?
+  inspections      Inspection[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -755,9 +768,10 @@ model DocumentLine {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id])
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  product  Product? @relation(fields: [productId], references: [id])
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  document       Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id])
+  inspectionItem InspectionItem?
 
   @@index([documentId, sortOrder])
   @@index([tenantId, productId])
@@ -856,6 +870,120 @@ model BookingRequest {
 
   @@index([tenantId, status, createdAt])
   @@index([tenantId, ipHash, createdAt])
+}
+
+/// D → RA → A / R → F in the benchmark. Approved and Refused are derived from
+/// the items' decisions, never set by hand.
+enum InspectionState {
+  DRAFT
+  REQUESTED
+  APPROVED
+  REFUSED
+  FINALISED
+}
+
+model InspectionTemplate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tenant      Tenant                   @relation(fields: [tenantId], references: [id])
+  items       InspectionTemplateItem[]
+  inspections Inspection[]
+
+  @@unique([tenantId, name])
+}
+
+model InspectionTemplateItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  templateId  String
+  group       String
+  ordering    Int     @default(0)
+  description String
+  /// Labels for up to four readings, e.g. ["Front mm", "Rear mm"]. Empty means none.
+  inputLabels Json    @default("[]")
+  /// The product an approved finding becomes on the job card.
+  productId   String?
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
+  template InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  product  Product?           @relation(fields: [productId], references: [id])
+
+  @@index([templateId, ordering])
+}
+
+model Inspection {
+  id               String          @id @default(cuid())
+  tenantId         String
+  number           String?
+  state            InspectionState @default(DRAFT)
+  /// The job card approved findings are added to.
+  documentId       String?
+  customerId       String?
+  vehicleId        String?
+  templateId       String?
+  mechanicId       String?
+  description      String?
+  odometer         Int?
+  requestedAt      DateTime?
+  customerViewedAt DateTime?
+  customerComments String?
+  finalisedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  tenant   Tenant              @relation(fields: [tenantId], references: [id])
+  document Document?           @relation(fields: [documentId], references: [id])
+  customer Customer?           @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle?            @relation(fields: [vehicleId], references: [id])
+  template InspectionTemplate? @relation(fields: [templateId], references: [id])
+  mechanic Membership?         @relation(fields: [mechanicId], references: [id])
+  items    InspectionItem[]
+
+  @@index([tenantId, state])
+  @@index([documentId])
+}
+
+/// One finding. Copied from the template when the inspection is created, so a
+/// later template edit cannot rewrite what a customer approved.
+model InspectionItem {
+  id             String    @id @default(cuid())
+  tenantId       String
+  inspectionId   String
+  templateItemId String?
+  group          String
+  ordering       Int       @default(0)
+  description    String
+  inputLabels    Json      @default("[]")
+  input1         String?
+  input2         String?
+  input3         String?
+  input4         String?
+  comment        String?
+  /// RAG as two flags, the benchmark's design: red is urgent, amber is soon, green is neither.
+  urgent         Boolean   @default(false)
+  soon           Boolean   @default(false)
+  checked        Boolean   @default(false)
+  /// What fixing it costs, as quoted to the customer (tax-inclusive when the workshop quotes that way).
+  estimate       Decimal?  @db.Decimal(12, 2)
+  productId      String?
+  approvedAt     DateTime?
+  /// Who said yes: "customer", or the name of the staff member who took it by phone.
+  approvedBy     String?
+  declinedAt     DateTime?
+  /// The job-card line this finding became, once approved and added.
+  documentLineId String?   @unique
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  inspection   Inspection    @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  product      Product?      @relation(fields: [productId], references: [id])
+  documentLine DocumentLine? @relation(fields: [documentLineId], references: [id], onDelete: SetNull)
+
+  @@index([inspectionId, ordering])
 }
 
 model TimeEntry {

@@ -14,6 +14,7 @@ import { dateShort, money } from "@/lib/format";
 
 export type SendTarget =
     | { kind: "DOCUMENT"; id: string }
+    | { kind: "INSPECTION"; id: string }
     | { kind: "PAYMENT"; id: string }
     | { kind: "STATEMENT"; customerId: string; from: string; to: string };
 
@@ -58,6 +59,43 @@ async function loadContext(db: TenantDb, tenant: Tenant, target: SendTarget): Pr
             values: documentValues(tenant, { ...doc, total: doc.total.toNumber() }, paid),
             share: { kind: "DOCUMENT", targetId: doc.id },
             documentId: doc.id,
+        };
+    }
+
+    if (target.kind === "INSPECTION") {
+        const inspection = await db.inspection.findUnique({
+            where: { id: target.id },
+            select: {
+                id: true, number: true, state: true, documentId: true,
+                customer: { select: RECIPIENT },
+                vehicle: { select: { plate: true, make: true, model: true, year: true } },
+                items: { select: { urgent: true, soon: true, estimate: true } },
+            },
+        });
+        // A draft has nothing settled to ask about yet.
+        if (!inspection?.customer || inspection.state === "DRAFT") return null;
+        const sum = (flag: "urgent" | "soon") => inspection.items.filter((i) => (flag === "urgent" ? i.urgent : !i.urgent && i.soon)).reduce((t, i) => t + (i.estimate?.toNumber() ?? 0), 0);
+        const urgent = sum("urgent");
+        const soon = sum("soon");
+        return {
+            purpose: "INSPECTION",
+            title: "Inspection",
+            number: inspection.number,
+            customer: asRecipient(inspection.customer),
+            values: {
+                ...workshopValues(tenant),
+                customer_name: `${inspection.customer.firstName} ${inspection.customer.lastName}`.trim(),
+                customer_first_name: inspection.customer.firstName,
+                vehicle: inspection.vehicle ? [inspection.vehicle.year, inspection.vehicle.make, inspection.vehicle.model].filter(Boolean).join(" ") : "",
+                plate: inspection.vehicle?.plate ?? "",
+                document_title: "Inspection",
+                document_number: inspection.number ?? "",
+                // Blank when there is none, so the line drops out of the message.
+                urgent_total: urgent > 0 ? money(urgent, tenant.currency) : "",
+                soon_total: soon > 0 ? money(soon, tenant.currency) : "",
+            },
+            share: { kind: "INSPECTION", targetId: inspection.id },
+            documentId: inspection.documentId ?? undefined,
         };
     }
 
@@ -173,7 +211,7 @@ export async function sendMessage(
     const link = await db.$transaction((tx) =>
         mintShareLink(tx, { tenantId: tenant.id, kind: context.share.kind, targetId: context.share.targetId, params: context.share.params, createdById: membership.id }),
     );
-    const url = shareUrl(origin, link.token);
+    const url = shareUrl(origin, link.token, context.share.kind);
     // Rendered against the full values again, so a field typed into the edit still resolves.
     const body = renderTemplate(ensureLink(input.body), { ...context.values, link: url });
     const subject = input.channel === "EMAIL" ? input.subject?.trim() || emailSubject(context.title, context.number, tenant.name) : null;

@@ -27,6 +27,7 @@ export const DEFAULT_FOOTERS = {
 const MESSAGE_DESCRIPTIONS: Record<(typeof MESSAGE_PURPOSES)[number], string> = {
     QUOTE: "Goes out with a quote.",
     JOB_CARD: "Goes out with a booking or job card — usually as the booking confirmation.",
+    INSPECTION: "Goes out when an inspection needs the customer's go-ahead. Lines with an empty total drop out.",
     INVOICE: "Goes out with an invoice or cash sale. The amount-due line disappears once it is paid.",
     CREDIT: "Goes out with a credit note.",
     RECEIPT: "Goes out with a receipt after payment is taken.",

@@ -34,6 +34,8 @@ export const MERGE_FIELDS: MergeField[] = [
     { key: "scheduled_at", label: "Booked for", group: "Document" },
     { key: "total", label: "Total", group: "Document" },
     { key: "amount_due", label: "Amount due (blank once settled)", group: "Document" },
+    { key: "urgent_total", label: "Inspection: urgent work", group: "Document" },
+    { key: "soon_total", label: "Inspection: work due soon", group: "Document" },
     { key: "link", label: "Link to the document", group: "Document" },
 ];
 

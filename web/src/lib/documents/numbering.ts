@@ -31,6 +31,7 @@ function defaultPrefix(key: SequenceKey): string {
         case "CREDIT": return "CR-";
         case "RECEIPT": return "RC-";
         case "REFUND": return "RF-";
+        case "INSPECTION": return "IN-";
         case "PURCHASE_ORDER": return "PO-";
         case "SUPPLIER_PAYMENT": return "SP-";
     }

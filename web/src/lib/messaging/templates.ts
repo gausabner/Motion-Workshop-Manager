@@ -9,12 +9,13 @@ import type { DocumentType, TemplateKind } from "@prisma/client";
  * every workshop that has not customised it, and there is nothing to backfill.
  */
 
-export const MESSAGE_PURPOSES = ["QUOTE", "JOB_CARD", "INVOICE", "CREDIT", "RECEIPT", "REFUND", "STATEMENT"] as const;
+export const MESSAGE_PURPOSES = ["QUOTE", "JOB_CARD", "INSPECTION", "INVOICE", "CREDIT", "RECEIPT", "REFUND", "STATEMENT"] as const;
 export type MessagePurpose = (typeof MESSAGE_PURPOSES)[number];
 
 export const PURPOSE_KIND: Record<MessagePurpose, TemplateKind> = {
     QUOTE: "MESSAGE_QUOTE",
     JOB_CARD: "MESSAGE_JOB_CARD",
+    INSPECTION: "MESSAGE_INSPECTION",
     INVOICE: "MESSAGE_INVOICE",
     CREDIT: "MESSAGE_CREDIT",
     RECEIPT: "MESSAGE_RECEIPT",
@@ -25,6 +26,7 @@ export const PURPOSE_KIND: Record<MessagePurpose, TemplateKind> = {
 export const PURPOSE_LABELS: Record<MessagePurpose, string> = {
     QUOTE: "Quote",
     JOB_CARD: "Job card or booking",
+    INSPECTION: "Inspection to approve",
     INVOICE: "Invoice or cash sale",
     CREDIT: "Credit note",
     RECEIPT: "Receipt",
@@ -40,6 +42,7 @@ export const PURPOSE_LABELS: Record<MessagePurpose, string> = {
 export const DEFAULT_MESSAGES: Record<MessagePurpose, string> = {
     QUOTE: "Hi {{customer_first_name}}, here is your quote {{document_number}} for the {{vehicle}} ({{plate}}): {{total}}.\n{{link}}\nReply here with any questions. — {{workshop_name}}",
     JOB_CARD: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is booked in with us as job {{document_number}}.\n{{link}}\n— {{workshop_name}}",
+    INSPECTION: "Hi {{customer_first_name}}, we have inspected your {{vehicle}} ({{plate}}). Some things need your go-ahead:\nUrgent: {{urgent_total}}\nSoon: {{soon_total}}\nSee the photos and tick what you want done:\n{{link}}\n— {{workshop_name}}",
     INVOICE: "Hi {{customer_first_name}}, your invoice {{document_number}} from {{workshop_name}} is ready: {{total}}.\nAmount due: {{amount_due}}\n{{link}}\nBanking details are on the invoice. Thank you!",
     CREDIT: "Hi {{customer_first_name}}, here is credit note {{document_number}} from {{workshop_name}} for {{total}}.\n{{link}}",
     RECEIPT: "Hi {{customer_first_name}}, thank you — we received {{total}}. Your receipt {{document_number}}:\n{{link}}\n— {{workshop_name}}",

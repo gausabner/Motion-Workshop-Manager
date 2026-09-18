@@ -29,8 +29,9 @@ export function hashShareToken(token: string): string {
     return createHash("sha256").update(`share.${token}.${secret()}`).digest("hex");
 }
 
-export function shareUrl(origin: string, token: string): string {
-    return `${origin.replace(/\/$/, "")}/share/${token}`;
+/** A document opens as a PDF; an inspection opens as a page the customer answers on. */
+export function shareUrl(origin: string, token: string, kind: ShareKind = "DOCUMENT"): string {
+    return `${origin.replace(/\/$/, "")}/${kind === "INSPECTION" ? "approve" : "share"}/${token}`;
 }
 
 export async function mintShareLink(
