@@ -9,13 +9,16 @@ import { can } from "@/lib/auth/permissions";
 import { getDocument, getEditorOptions } from "@/lib/documents/queries";
 import { deliverySummary, listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
+import { JobTimePanel } from "@/components/time/JobTimePanel";
+import { jobTime } from "@/lib/time/queries";
+import { diaryMechanics } from "@/lib/diary/queries";
 import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string }> }) {
     const [{ tenant: slug, id }, { processed }] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    const [doc, options, messages] = await Promise.all([getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id })]);
+    const [doc, options, messages, time, mechanics] = await Promise.all([getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db)]);
     if (!doc) notFound();
 
     const showCost = can(membership, "documents:see_cost");
@@ -81,6 +84,10 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                 showCost={showCost}
                 timeZone={tenant.timezone}
             />
+
+            {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (
+                <JobTimePanel tenant={slug} documentId={doc.id} time={time} mechanics={mechanics} canEdit={can(membership, "documents:write")} />
+            )}
 
             <MessageLog tenant={slug} rows={messages} showSubject={false} empty="Nothing sent about this document yet. Use Send to share it on WhatsApp or by email." />
 
