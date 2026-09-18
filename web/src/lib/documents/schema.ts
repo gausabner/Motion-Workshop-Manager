@@ -58,6 +58,8 @@ export const documentHeaderSchema = z.object({
     eventNotes: z.string().trim().max(8000).optional(),
     jobCardNotes: z.string().trim().max(8000).optional(),
     invoiceNotes: z.string().trim().max(8000).optional(),
+    /** Set from a chosen service while a booking has no lines yet; line one takes over once it does. */
+    description: z.string().trim().max(120).optional(),
 });
 
 export const saveDocumentSchema = documentHeaderSchema.extend({

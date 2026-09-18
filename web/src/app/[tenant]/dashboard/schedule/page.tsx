@@ -2,6 +2,7 @@ import { DiaryView, type DiaryMode } from "@/components/diary/DiaryView";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getDiary } from "@/lib/diary/queries";
+import { pendingRequestCount } from "@/lib/bookings/queries";
 import { addDays, daysInMonth, startOfMonth, startOfWeek, toZoned } from "@/lib/diary/time";
 
 export const metadata = { title: "Booking diary | MOTION Workshop Manager" };
@@ -29,7 +30,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
         to = addDays(startOfWeek(addDays(first, daysInMonth(first) - 1)), 6);
     }
 
-    const diary = await getDiary(db, tenant, from, to);
+    const [diary, pendingRequests] = await Promise.all([getDiary(db, tenant, from, to), pendingRequestCount(db)]);
 
     return (
         <DiaryView
@@ -42,6 +43,7 @@ export default async function DiaryPage({ params, searchParams }: { params: Prom
             page={Math.max(0, Number(sp.page) || 0)}
             canEdit={can(membership, "documents:write")}
             canManageHours={can(membership, "documents:write")}
+            pendingRequests={pendingRequests}
         />
     );
 }

@@ -19,6 +19,11 @@ export const diarySettingsSchema = z.object({
     fullAtPercent: z.number().int().min(50).max(100).default(90),
     lanesPerPage: z.number().int().min(1).max(8).default(4),
     defaultBookingHours: z.number().min(0.25).max(12).default(1),
+    /** Whether the public booking page is open at all. Off until a workshop turns it on. */
+    onlineBooking: z.boolean().default(false),
+    /** How many days ahead the earliest online booking is — 1 means nothing for today. */
+    bookingLeadDays: z.number().int().min(0).max(14).default(1),
+    bookingHorizonDays: z.number().int().min(7).max(90).default(30),
 });
 
 export const tenantSettingsSchema = z.object({
@@ -83,4 +88,12 @@ export function diarySettings(value: unknown): DiarySettings {
         lanesPerPage: d.lanesPerPage,
         defaultBookingMinutes: Math.round(d.defaultBookingHours * 60),
     };
+}
+
+export type OnlineBooking = { enabled: boolean; leadDays: number; horizonDays: number };
+
+export function onlineBookingSettings(value: unknown): OnlineBooking {
+    const raw = diarySettingsSchema.safeParse(parseSettings(value).diary ?? {});
+    const d = raw.success ? raw.data : diarySettingsSchema.parse({});
+    return { enabled: d.onlineBooking, leadDays: d.bookingLeadDays, horizonDays: d.bookingHorizonDays };
 }

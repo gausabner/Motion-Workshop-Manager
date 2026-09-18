@@ -233,6 +233,7 @@ model Tenant {
   messages          Message[]
   workingHours      WorkingHours[]
   timeOff           TimeOff[]
+  bookingRequests   BookingRequest[]
 }
 
 model User {
@@ -602,7 +603,8 @@ model AppointmentType {
   active         Boolean @default(true)
   sortOrder      Int     @default(0)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  bookingRequests BookingRequest[]
 
   @@unique([tenantId, description])
 }
@@ -719,6 +721,7 @@ model Document {
   allocations      PaymentAllocation[]
   credits          Credit[]
   messages         Message[]
+  bookingRequest   BookingRequest?
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -812,6 +815,47 @@ model TimeOff {
 
   @@index([tenantId, startsAt])
   @@index([membershipId, startsAt])
+}
+
+enum BookingRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+/// A booking made on the public page. It waits here for someone at the
+/// workshop to approve it — the benchmark's queue — rather than landing in
+/// the diary unseen.
+model BookingRequest {
+  id                 String               @id @default(cuid())
+  tenantId           String
+  status             BookingRequestStatus @default(PENDING)
+  requestedAt        DateTime
+  minutes            Int
+  appointmentTypeId  String?
+  service            String
+  firstName          String
+  lastName           String
+  mobile             String
+  email              String?
+  plate              String?
+  vehicleDescription String?
+  notes              String?
+  /// Salted hash of the requester's address, only for rate limiting.
+  ipHash             String?
+  decidedById        String?
+  decidedAt          DateTime?
+  declineReason      String?
+  documentId         String?              @unique
+  customerId         String?
+  createdAt          DateTime             @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  appointmentType AppointmentType? @relation(fields: [appointmentTypeId], references: [id])
+  document        Document?        @relation(fields: [documentId], references: [id])
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, ipHash, createdAt])
 }
 
 model TimeEntry {

@@ -187,7 +187,7 @@ export function CustomerPortalView({ tenant, customerId }: { tenant: string, cus
                                                 {format(v.nextService, "MMMM yyyy")}
                                             </span>
                                         </div>
-                                        <Link href={`/${tenant}/booking`}>
+                                        <Link href={`/${tenant}/book`}>
                                             <Button variant="outline" size="sm">Book Now</Button>
                                         </Link>
                                     </CardContent>

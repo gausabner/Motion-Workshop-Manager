@@ -84,3 +84,25 @@ test("diary settings fill their defaults and survive junk", async () => {
     // A close before the open cannot produce a negative day.
     assert.ok(diarySettings({ diary: { opensAt: "12:00", closesAt: "08:00" } }).closesAt > 720);
 });
+
+test("online booking offers only slots where somebody is free for the whole job", async () => {
+    const { availableSlots } = await import("./capacity");
+    const settings = { opensAt: 480, closesAt: 720, slotMinutes: 60, fullAtPercent: 90 }; // 08:00–12:00
+    const lanes = [
+        { working: { start: 480, end: 720 }, off: [], booked: [{ start: 480, end: 600 }] }, // busy 08–10
+        { working: { start: 480, end: 720 }, off: [{ start: 600, end: 720 }], booked: [] }, // away 10–12
+    ];
+    // A 1h job: 08 and 09 on lane two, 10 and 11 on lane one.
+    assert.deepEqual(availableSlots(lanes, settings, 60, 50), [480, 540, 600, 660]);
+    // A 2h job needs one lane free for both hours: only 08 (lane two) and 10 (lane one).
+    assert.deepEqual(availableSlots(lanes, settings, 120, 50), [480, 600]);
+});
+
+test("a full day offers nothing online, and a slot that has started is not offered", async () => {
+    const { availableSlots } = await import("./capacity");
+    const settings = { opensAt: 480, closesAt: 720, slotMinutes: 60, fullAtPercent: 90 };
+    const lanes = [{ working: { start: 480, end: 720 }, off: [], booked: [] }];
+    assert.deepEqual(availableSlots(lanes, settings, 60, 90), []);
+    assert.deepEqual(availableSlots(lanes, settings, 60, 10, 545), [600, 660]);
+    assert.deepEqual(availableSlots([{ working: null, off: [], booked: [] }], settings, 60, 0), []);
+});

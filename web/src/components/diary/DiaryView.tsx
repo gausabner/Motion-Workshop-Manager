@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, Inbox } from "lucide-react";
 import type { Diary } from "@/lib/diary/queries";
 import { addDays } from "@/lib/diary/time";
 import { DayView } from "@/components/diary/DayView";
@@ -23,13 +23,15 @@ type Props = {
     page: number;
     canEdit: boolean;
     canManageHours: boolean;
+    /** Online requests waiting for someone to approve them. */
+    pendingRequests: number;
 };
 
 /**
  * The booking diary (R4): day, week and month, with the date and the page of
  * mechanics in the URL so a view can be bookmarked or shared across the desk.
  */
-export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page, canEdit, canManageHours }: Props) {
+export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page, canEdit, canManageHours, pendingRequests }: Props) {
     const base = `/${tenant}/dashboard/schedule`;
     const href = (next: { mode?: DiaryMode; day?: string; page?: number }) => {
         const params = new URLSearchParams();
@@ -100,6 +102,13 @@ export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page,
                     )}
                 </div>
             </div>
+
+            {pendingRequests > 0 && (
+                <Link href={`${base}/requests`} className="flex items-center gap-2 rounded-sm border border-teal-300 bg-teal-50 px-4 py-2 text-sm text-teal-900 hover:bg-teal-100">
+                    <Inbox className="w-4 h-4" />
+                    <span><strong>{pendingRequests}</strong> online booking request{pendingRequests === 1 ? "" : "s"} waiting for approval</span>
+                </Link>
+            )}
 
             {diary.mechanics.length === 0 && (
                 <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">

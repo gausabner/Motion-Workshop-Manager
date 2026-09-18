@@ -65,7 +65,9 @@ async function recalculate(tx: TenantTx, documentId: string) {
             // The benchmark's trick: the first line names the job, so lists,
             // statements and messages can say "Cambelt and water pump" instead
             // of "INV-1003". Nothing types it; it follows line one.
-            description: doc.lines[0]?.description.slice(0, 120) ?? null,
+            // Only when there is a line one: a booking made from a service has its
+            // description before it has any lines, and must not lose it on save.
+            description: doc.lines[0] ? doc.lines[0].description.slice(0, 120) : undefined,
         },
     });
     // The per-line figures are stored too, so margin and sales reporting can sum
@@ -174,6 +176,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
         eventNotes: str(formData, "eventNotes"),
         jobCardNotes: str(formData, "jobCardNotes"),
         invoiceNotes: str(formData, "invoiceNotes"),
+        description: str(formData, "description"),
         lines: linesRaw,
     });
     if (!parsed.success) return fromZod(parsed.error);
@@ -222,6 +225,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                 eventNotes: d.eventNotes ?? null,
                 jobCardNotes: d.jobCardNotes ?? null,
                 invoiceNotes: d.invoiceNotes ?? null,
+                ...(d.description ? { description: d.description } : {}),
             },
         });
 

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Section, SelectField, TextField } from "@/components/forms/fields";
+import { CheckField, Section, SelectField, TextField } from "@/components/forms/fields";
 import { initialActionState } from "@/lib/forms";
 import { saveDiarySettings } from "@/lib/diary/actions";
 
@@ -15,6 +15,9 @@ export type DiaryForm = {
     fullAtPercent: number;
     lanesPerPage: number;
     defaultBookingHours: number;
+    onlineBooking: boolean;
+    bookingLeadDays: number;
+    bookingHorizonDays: number;
 };
 
 const DAYS = [
@@ -61,6 +64,19 @@ export function BookingSettingsForm({ tenant, diary }: { tenant: string; diary: 
                 <TextField label="New booking length (hours)" name="defaultBookingHours" type="number" step="0.25" min="0.25" errors={errors} defaultValue={diary.defaultBookingHours} hint="Used when a job has no estimate" />
                 <TextField label="Mechanics per page" name="lanesPerPage" type="number" min="1" max="8" errors={errors} defaultValue={diary.lanesPerPage} hint="Columns in the day view" />
                 <TextField label="Full at (%)" name="fullAtPercent" type="number" min="50" max="100" errors={errors} defaultValue={diary.fullAtPercent} hint="Above this a day shows as full, and online booking stops offering it" />
+            </Section>
+
+            <Section title="Online booking">
+                <div className="lg:col-span-4">
+                    <CheckField
+                        label="Let customers request bookings online"
+                        name="onlineBooking"
+                        defaultChecked={diary.onlineBooking}
+                        hint={`At /${tenant}/book. Every request waits for approval — nothing lands in the diary on its own.`}
+                    />
+                </div>
+                <TextField label="Earliest (days ahead)" name="bookingLeadDays" type="number" min="0" max="14" errors={errors} defaultValue={diary.bookingLeadDays} hint="1 means nothing for today" />
+                <TextField label="Latest (days ahead)" name="bookingHorizonDays" type="number" min="7" max="90" errors={errors} defaultValue={diary.bookingHorizonDays} />
             </Section>
         </form>
     );

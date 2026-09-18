@@ -54,6 +54,9 @@ export async function saveDiarySettings(slug: string, _prev: ActionState, formDa
         fullAtPercent: Number(str(formData, "fullAtPercent") ?? 90),
         lanesPerPage: Number(str(formData, "lanesPerPage") ?? 4),
         defaultBookingHours: Number(str(formData, "defaultBookingHours") ?? 1),
+        onlineBooking: formData.get("onlineBooking") === "on",
+        bookingLeadDays: Number(str(formData, "bookingLeadDays") ?? 1),
+        bookingHorizonDays: Number(str(formData, "bookingHorizonDays") ?? 30),
     });
     if (!parsed.success) return fromZod(parsed.error);
     const opens = parseMinute(parsed.data.opensAt)!;

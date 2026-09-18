@@ -141,3 +141,38 @@ export function lanesWithin(bookings: Booked[]): Record<string, { column: number
     if (group.length) flush();
     return out;
 }
+
+export type LaneForSlots = { working: Interval | null; off: Interval[]; booked: Interval[] };
+
+/**
+ * The start times a customer booking online may be offered: slots where at
+ * least one mechanic is working, not away, and free for the whole job.
+ *
+ * `notBefore` stops a customer booking a slot that has already started today.
+ * A day already at the workshop's full threshold offers nothing, even if a gap
+ * remains — that last gap is the front desk's to give, not the website's.
+ */
+export function availableSlots(
+    lanes: LaneForSlots[],
+    settings: Pick<DiarySettings, "opensAt" | "closesAt" | "slotMinutes" | "fullAtPercent">,
+    minutes: number,
+    dayPercent: number,
+    notBefore = 0,
+): number[] {
+    if (dayPercent >= settings.fullAtPercent) return [];
+    const slots: number[] = [];
+    for (let start = settings.opensAt; start + minutes <= settings.closesAt; start += settings.slotMinutes) {
+        if (start < notBefore) continue;
+        const job = { start, end: start + minutes };
+        const free = lanes.some(
+            (lane) =>
+                lane.working !== null &&
+                lane.working.start <= job.start &&
+                lane.working.end >= job.end &&
+                !lane.off.some((o) => overlapMinutes(o, job) > 0) &&
+                !lane.booked.some((b) => overlapMinutes(b, job) > 0),
+        );
+        if (free) slots.push(start);
+    }
+    return slots;
+}

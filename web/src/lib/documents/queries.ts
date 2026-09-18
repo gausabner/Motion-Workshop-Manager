@@ -150,12 +150,14 @@ export async function getJobBoard(db: TenantDb) {
 
 /** Staff and products for the document editor. Customers and vehicles are searched on demand instead (R1c). */
 export async function getEditorOptions(db: TenantDb) {
-    const [advisors, mechanics, products] = await Promise.all([
+    const [advisors, mechanics, products, services] = await Promise.all([
         db.membership.findMany({ where: { status: "ACTIVE", isServiceAdvisor: true }, select: { id: true, user: { select: { firstName: true, lastName: true } } } }),
         db.membership.findMany({ where: { status: "ACTIVE", isMechanic: true }, select: { id: true, user: { select: { firstName: true, lastName: true } } } }),
         db.product.findMany({ where: { archivedAt: null }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, type: true, vatExempt: true, retailPrice: true, price2: true, price3: true, price4: true, costExTax: true, defaultLabourQty: true, jobCardComment: true } }),
+        db.appointmentType.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, description: true, estimatedHours: true } }),
     ]);
     return {
+        services: services.map((t) => ({ id: t.id, description: t.description, hours: t.estimatedHours.toNumber() })),
         advisors: advisors.map((m) => ({ id: m.id, name: `${m.user.firstName} ${m.user.lastName}` })),
         mechanics: mechanics.map((m) => ({ id: m.id, name: `${m.user.firstName} ${m.user.lastName}` })),
         products: products.map((p) => ({

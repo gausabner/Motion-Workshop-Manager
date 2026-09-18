@@ -58,6 +58,8 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
     const [isCashSale, setIsCashSale] = useState(doc.isCashSale);
     const [discountPercent, setDiscountPercent] = useState(doc.discountPercent ?? 0);
     const [freight, setFreight] = useState(doc.freight ?? 0);
+    const [estimatedHours, setEstimatedHours] = useState(doc.estimatedHours == null ? "" : String(doc.estimatedHours));
+    const [service, setService] = useState("");
     const errors = state.errors;
 
     const isJob = doc.type === "BOOKING" || doc.type === "JOB_CARD";
@@ -129,7 +131,25 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     {isFinancial && <TextField label="Due date" name="dueDate" type="date" defaultValue={dateInput(doc.dueDate)} errors={errors} hint="Blank = from payment terms" />}
                     {doc.type === "QUOTE" && <TextField label="Follow up on" name="followUpDate" type="date" defaultValue={dateInput(doc.followUpDate)} errors={errors} />}
                     {isJob && <TextField label="Scheduled for" name="scheduledAt" type="datetime-local" defaultValue={formatLocalDateTime(doc.scheduledAt ? new Date(doc.scheduledAt) : null, timeZone)} errors={errors} />}
-                    {isJob && <TextField label="Estimated hours" name="estimatedHours" type="number" step="0.25" min="0" defaultValue={doc.estimatedHours} errors={errors} />}
+                    {isJob && !readOnly && options.services.length > 0 && (
+                        <Field label="Service" name="service" errors={errors} hint="Fills the time — the same list online booking uses">
+                            <select
+                                id="service" value={service}
+                                onChange={(e) => {
+                                    setService(e.target.value);
+                                    const chosen = options.services.find((t) => t.id === e.target.value);
+                                    if (chosen) setEstimatedHours(String(chosen.hours));
+                                }}
+                                className="flex h-8 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                            >
+                                <option value="">Choose…</option>
+                                {options.services.map((t) => <option key={t.id} value={t.id}>{t.description} ({t.hours}h)</option>)}
+                            </select>
+                        </Field>
+                    )}
+                    {/* Names the job until it has a line one to be named by. */}
+                    {service && <input type="hidden" name="description" value={options.services.find((t) => t.id === service)?.description ?? ""} />}
+                    {isJob && <TextField label="Estimated hours" name="estimatedHours" type="number" step="0.25" min="0" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} errors={errors} />}
                     <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
                         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
                             <input type="checkbox" name="isCashSale" defaultChecked={isCashSale} onChange={(e) => setIsCashSale(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" disabled={readOnly} />
