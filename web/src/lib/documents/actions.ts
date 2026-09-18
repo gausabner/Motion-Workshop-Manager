@@ -3,20 +3,17 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { DocumentType, JobStatus } from "@prisma/client";
-import type { TenantTx } from "@/lib/tenant-db";
 import { requireTenant, type TenantContext } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { saveDocumentSchema } from "@/lib/documents/schema";
-import { calculateTotals } from "@/lib/documents/totals";
-import { stateOnProcess } from "@/lib/documents/settlement";
-import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { allocateNumber } from "@/lib/documents/numbering";
 import { businessToday } from "@/lib/tenant/today";
 import { parseLocalDateTime } from "@/lib/diary/time";
+import { promptErrors, promptFor, type PromptInput } from "@/lib/documents/process-prompt";
+import { postDocument } from "@/lib/documents/processing";
+import { recalculate } from "@/lib/documents/recalculate";
 
-/** Document types that put money on a customer's account when processed. */
-const FINANCIAL = new Set<DocumentType>(["INVOICE", "CASH_SALE", "CREDIT"]);
 /** Types that run on the workshop floor and therefore carry a job status. */
 const JOB_LIKE = new Set<DocumentType>(["BOOKING", "JOB_CARD"]);
 
@@ -27,61 +24,6 @@ function editorPath(slug: string, id: string) {
 /** The tenant's tax settings as they stand now, to stamp onto a new document. */
 function tenantTaxSnapshot(tenant: TenantContext["tenant"]) {
     return { taxName: tenant.taxName, taxRate: tenant.salesTaxRate, pricesIncludeTax: tenant.pricesIncludeTax };
-}
-
-/**
- * Recompute and store totals from the lines currently on the document.
- *
- * Tax settings come from the document's own snapshot, never from the tenant:
- * a workshop changing its VAT rate must not rewrite history.
- */
-async function recalculate(tx: TenantTx, documentId: string) {
-    const doc = await tx.document.findUniqueOrThrow({
-        where: { id: documentId },
-        select: {
-            taxRate: true, pricesIncludeTax: true, discountPercent: true, discountAmount: true, freight: true,
-            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true } },
-        },
-    });
-    const totals = calculateTotals({
-        pricesIncludeTax: doc.pricesIncludeTax,
-        freightVatRate: doc.taxRate.toNumber(),
-        discountPercent: doc.discountPercent?.toNumber() ?? null,
-        discountAmount: doc.discountAmount.toNumber(),
-        freight: doc.freight.toNumber(),
-        lines: doc.lines.map((l) => ({
-            quantity: l.quantity.toNumber(),
-            unitPrice: l.unitPrice.toNumber(),
-            unitCost: l.unitCost.toNumber(),
-            vatRate: l.vatRate.toNumber(),
-            discountPercent: l.discountPercent.toNumber(),
-        })),
-    });
-    await tx.document.update({
-        where: { id: documentId },
-        data: {
-            subtotal: totals.subtotal, discountApplied: totals.discountApplied, vatTotal: totals.vatTotal,
-            unroundedTotal: totals.total, rounding: 0, total: totals.total,
-            // The benchmark's trick: the first line names the job, so lists,
-            // statements and messages can say "Cambelt and water pump" instead
-            // of "INV-1003". Nothing types it; it follows line one.
-            // Only when there is a line one: a booking made from a service has its
-            // description before it has any lines, and must not lose it on save.
-            description: doc.lines[0] ? doc.lines[0].description.slice(0, 120) : undefined,
-        },
-    });
-    // The per-line figures are stored too, so margin and sales reporting can sum
-    // them in SQL. Nothing customer-facing reads them — a printed invoice derives
-    // its own — but a column that exists must not be allowed to lie.
-    for (const [index, line] of doc.lines.entries()) {
-        const computed = totals.lines[index];
-        if (!computed) continue;
-        await tx.documentLine.update({
-            where: { id: line.id },
-            data: { lineSubtotal: computed.lineSubtotal, vatAmount: computed.vatAmount, lineTotal: computed.lineTotal },
-        });
-    }
-    return totals;
 }
 
 async function loadEditable(ctx: TenantContext, id: string) {
@@ -271,60 +213,62 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
 
 // ───────────────────────── lifecycle ─────────────────────────
 
-/** Post the document: assign its number, lock the lines, update the vehicle's service record. */
-export async function processDocument(slug: string, id: string): Promise<void> {
+/**
+ * Post the document: assign its number, lock the lines, and — depending on
+ * what it is — move the vehicle's record on (R4).
+ *
+ * The questions asked depend on the document (see process-prompt.ts): an
+ * invoice moves the service record on, a job card records the reading on
+ * arrival, a quote or credit note asks nothing because the car did not come
+ * in. The answers are checked here as well as in the dialog, and a reading
+ * lower than the vehicle's last is refused unless someone says why — the old
+ * code would quietly wind a car's odometer back.
+ */
+export async function processDocument(slug: string, id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:process");
     const { db, tenant, membership, user } = ctx;
 
     const doc = await db.document.findUnique({
         where: { id },
-        select: { id: true, type: true, state: true, customerId: true, isCashSale: true, vehicleId: true, odometer: true, nextServiceKm: true, nextServiceDate: true, postDate: true, dueDate: true, paymentTermsDays: true, _count: { select: { lines: true } } },
+        select: {
+            id: true, type: true, state: true, customerId: true, isCashSale: true, vehicleId: true, odometer: true, nextServiceKm: true, nextServiceDate: true,
+            postDate: true, dueDate: true, paymentTermsDays: true, _count: { select: { lines: true } },
+            vehicle: { select: { odometer: true } },
+        },
     });
-    if (!doc) throw new Error("Document not found");
-    if (doc.state !== "DRAFT") throw new Error("Only a draft can be processed");
-    if (doc._count.lines === 0) throw new Error("Add at least one line before processing");
-    if (!doc.customerId && !doc.isCashSale) throw new Error("Choose a customer, or mark this as a cash sale");
+    if (!doc) return { ok: false, message: "Document not found." };
+    if (doc.state !== "DRAFT") return { ok: false, message: "Only a draft can be processed." };
+    if (doc._count.lines === 0) return { ok: false, message: "Add at least one line before processing." };
+    if (!doc.customerId && !doc.isCashSale) return { ok: false, message: "Choose a customer, or mark this as a cash sale." };
 
-    await db.$transaction(async (tx) => {
-        const totals = await recalculate(tx, id);
-        const number = await allocateNumber(tx, tenant.id, TYPE_SEQUENCE[doc.type]);
-        const terms = doc.paymentTermsDays ?? tenant.defaultPaymentTermsDays;
-        const dueDate = doc.dueDate ?? new Date(doc.postDate.getTime() + terms * 24 * 60 * 60 * 1000);
-
-        await tx.document.update({
-            where: { id },
-            data: {
-                number,
-                state: stateOnProcess(doc.type, totals.total),
-                processedAt: new Date(),
-                processedById: membership.id,
-                dueDate: FINANCIAL.has(doc.type) ? dueDate : null,
-                jobStatus: JOB_LIKE.has(doc.type) ? undefined : null,
-            },
-        });
-
-        // The invoice is what updates the vehicle's service record (PRD VEH-04).
-        if (doc.vehicleId && FINANCIAL.has(doc.type) && doc.type !== "CREDIT") {
-            await tx.vehicle.update({
-                where: { id: doc.vehicleId },
-                data: {
-                    odometer: doc.odometer ?? undefined,
-                    lastInDate: doc.postDate,
-                    lastServiceDate: doc.postDate,
-                    nextServiceKm: doc.nextServiceKm ?? undefined,
-                    nextServiceDate: doc.nextServiceDate ?? undefined,
-                },
-            });
-        }
-
-        await tx.auditEvent.create({
-            data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "PROCESSED", diff: { number, total: totals.total } },
-        });
-    });
+    const kind = promptFor(doc.type, !!doc.vehicleId);
+    const int = (name: string) => {
+        const raw = str(formData, name)?.replace(/[\s,]/g, "");
+        return raw ? Number(raw) : null;
+    };
+    const day = (name: string) => {
+        const raw = str(formData, name);
+        return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+    };
+    const answers: PromptInput = {
+        odometer: int("odometer"),
+        nextServiceKm: int("nextServiceKm"),
+        nextServiceDate: day("nextServiceDate"),
+        licenceExpiry: day("licenceExpiry"),
+        roadworthyExpiry: day("roadworthyExpiry"),
+        odometerCorrected: formData.get("odometerCorrected") === "on",
+    };
+    const postDate = doc.postDate.toISOString().slice(0, 10);
+    const problems = promptErrors(answers, { kind, lastOdometer: doc.vehicle?.odometer ?? null, postDate });
+    if (Object.keys(problems).length) {
+        return { ok: false, message: "Please check the highlighted answers.", errors: Object.fromEntries(Object.entries(problems).map(([k, v]) => [k, [v]])) };
+    }
+    await db.$transaction((tx) => postDocument(tx, tenant, { membershipId: membership.id, userId: user.id }, doc, kind, answers));
 
     revalidatePath(editorPath(slug, id));
     revalidatePath(`/${slug}/dashboard/transactions`);
+    if (doc.vehicleId) revalidatePath(`/${slug}/dashboard/vehicles/${doc.vehicleId}`);
     redirect(`${editorPath(slug, id)}?processed=1`);
 }
 

@@ -102,7 +102,7 @@ export async function getDocument(db: TenantDb, id: string) {
         where: { id },
         include: {
             customer: { select: { id: true, firstName: true, lastName: true, mobile: true, email: true, priceType: true, discountPercent: true, vatExempt: true, paymentTermsDays: true } },
-            vehicle: { select: { id: true, plate: true, make: true, model: true, year: true, odometer: true, vin: true, customerId: true, customer: { select: { firstName: true, lastName: true } } } },
+            vehicle: { select: { id: true, plate: true, make: true, model: true, year: true, odometer: true, vin: true, customerId: true, licenceExpiry: true, roadworthyExpiry: true, nextServiceKm: true, nextServiceDate: true, customer: { select: { firstName: true, lastName: true } } } },
             lines: { orderBy: { sortOrder: "asc" } },
             statusEvents: { orderBy: { at: "desc" }, take: 20, include: { by: { select: { user: { select: { firstName: true, lastName: true } } } } } },
             serviceAdvisor: { select: { id: true } },

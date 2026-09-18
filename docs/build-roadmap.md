@@ -162,12 +162,12 @@ Everything above is invisible to the customer until this exists.
 
 ## 8. R4 — Time and capacity *(3–4 weeks)*
 
-- Booking diary: month/week/day, **one column per mechanic**, drag to reschedule, mechanic-lane paging
-- Mechanic schedule, capacity, "diary full at %"
-- Public booking page → **approval queue**, not straight into the diary
-- Clock on/off from the PWA; time entries roll up to hours worked vs charged
-- Appointment types shared by internal and public booking
-- **Prompt for odometer / renewal dates at process time** — branched by document type, unlike theirs
+- Booking diary: month/week/day, **one column per mechanic**, drag to reschedule, mechanic-lane paging — **done**, plus an Unassigned lane, clashes shown rather than prevented, and pointer-event drag that works on a tablet
+- Mechanic schedule, capacity, "diary full at %" — **done** (hours stored only as exceptions to the shop's; leave shaded and taken out of capacity)
+- Public booking page → **approval queue**, not straight into the diary — **done**; approval recognises returning customers by mobile and plate and never moves a car off someone else's account
+- Clock on/off from the PWA; time entries roll up to hours worked vs charged — **done**; one running clock per mechanic is enforced by a row lock, and efficiency counts invoiced jobs only
+- Appointment types shared by internal and public booking — **done**
+- **Prompt for odometer / renewal dates at process time** — branched by document type, unlike theirs — **done**; a lower reading needs a stated reason (the old code wound odometers back silently)
 
 **Done when:** the front desk runs the day from the diary instead of a whiteboard.
 

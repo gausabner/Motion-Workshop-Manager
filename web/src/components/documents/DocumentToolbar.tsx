@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Undo2, Wallet } from "lucide-react";
+import { Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Undo2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { convertDocument, copyDocument, createCreditNote, markContacted, processDocument, voidDocument } from "@/lib/documents/actions";
+import { convertDocument, copyDocument, createCreditNote, markContacted, voidDocument } from "@/lib/documents/actions";
+import { ProcessDialog } from "@/components/documents/ProcessDialog";
 import { createPayment, createRefund } from "@/lib/payments/actions";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
@@ -63,11 +64,7 @@ export function DocumentToolbar({ tenant, doc, canProcess, canVoid, canTakePayme
                     <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
                 </form>
             )}
-            {isDraft && canProcess && (
-                <form action={processDocument.bind(null, tenant, doc.id)}>
-                    <Button type="submit" size="sm" className="bg-slate-800 hover:bg-slate-900"><CheckCircle2 className="w-4 h-4 mr-1" />Process</Button>
-                </form>
-            )}
+            {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
             {isProcessed && (
                 <form action={markContacted.bind(null, tenant, doc.id)}>
                     <Button type="submit" size="sm" variant="outline" title={doc.contactedAt ? "Mark as contacted again" : "Record that the customer was told"}>
