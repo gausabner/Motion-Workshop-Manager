@@ -6,6 +6,7 @@ import { stateOnProcess } from "@/lib/documents/settlement";
 import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { recalculate } from "@/lib/documents/recalculate";
 import type { PromptInput, PromptKind } from "@/lib/documents/process-prompt";
+import { postDocumentStock, type StockWarning } from "@/lib/stock/ledger";
 
 /**
  * Posting a document, inside one transaction: number it, lock it, and move the
@@ -28,7 +29,7 @@ export async function postDocument(
     doc: Doc,
     kind: PromptKind,
     answers: PromptInput,
-): Promise<{ number: string; total: number }> {
+): Promise<{ number: string; total: number; stockWarnings: StockWarning[] }> {
     // The answers belong to the document as well as the car: a reprinted invoice shows the reading it was billed at.
     if (kind !== "none") {
         await tx.document.update({
@@ -76,8 +77,11 @@ export async function postDocument(
         await tx.vehicle.update({ where: { id: doc.vehicleId }, data: { odometer: answers.odometer ?? undefined, lastInDate: doc.postDate } });
     }
 
+    // Stock leaves the shelf when the sale is posted, not when the line is typed.
+    const stockWarnings = await postDocumentStock(tx, tenant.id, { id: doc.id, type: doc.type, postDate: doc.postDate }, who.membershipId);
+
     await tx.auditEvent.create({
         data: { tenantId: tenant.id, actorUserId: who.userId, entityType: "Document", entityId: doc.id, action: "PROCESSED", diff: { number, total: totals.total, prompt: kind, ...(kind !== "none" ? { answers } : {}) } },
     });
-    return { number, total: totals.total };
+    return { number, total: totals.total, stockWarnings };
 }

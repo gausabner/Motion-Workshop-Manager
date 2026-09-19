@@ -148,6 +148,18 @@ enum ReminderKind {
   QUOTE_FOLLOW_UP
 }
 
+/// Why stock moved. Every movement is signed: in is positive, out is negative.
+enum StockMovementKind {
+  SALE
+  CREDIT
+  PURCHASE
+  RETURN_TO_SUPPLIER
+  ADJUSTMENT
+  STOCKTAKE
+  OPENING
+  VOID_REVERSAL
+}
+
 enum CampaignState {
   DRAFT
   SENDING
@@ -278,6 +290,7 @@ model Tenant {
   reminders               Reminder[]
   campaigns               Campaign[]
   campaignRecipients      CampaignRecipient[]
+  stockMovements          StockMovement[]
 }
 
 model User {
@@ -329,6 +342,7 @@ model Membership {
   inspections        Inspection[]
   remindersActed     Reminder[]
   campaigns          Campaign[]
+  stockMovements     StockMovement[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -612,6 +626,7 @@ model Product {
   lines                   DocumentLine[]
   inspectionTemplateItems InspectionTemplateItem[]
   inspectionItems         InspectionItem[]
+  stockMovements          StockMovement[]
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -778,6 +793,7 @@ model Document {
   bookingRequest   BookingRequest?
   inspections      Inspection[]
   reminders        Reminder[]
+  stockMovements   StockMovement[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -1343,4 +1359,35 @@ model CampaignRecipient {
 
   @@unique([campaignId, customerId])
   @@index([tenantId, campaignId, state])
+}
+
+/// Every movement of stock, and the only thing that decides how much is on
+/// hand. `Product.qtyOnHand` is a running total of these rows kept for lists;
+/// it can always be rebuilt from here, which is what makes the number
+/// trustworthy rather than merely present.
+model StockMovement {
+  id             String            @id @default(cuid())
+  tenantId       String
+  productId      String
+  at             DateTime          @default(now())
+  kind           StockMovementKind
+  /// Signed: negative leaves the shelf, positive arrives.
+  quantity       Decimal           @db.Decimal(12, 2)
+  /// What it was worth at that moment, per unit, excluding tax.
+  unitCost       Decimal           @default(0) @db.Decimal(12, 2)
+  documentId     String?
+  /// One movement per document line, so processing twice cannot move stock twice.
+  documentLineId String?
+  note           String?
+  byId           String?
+  createdAt      DateTime          @default(now())
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  product  Product     @relation(fields: [productId], references: [id])
+  document Document?   @relation(fields: [documentId], references: [id])
+  by       Membership? @relation(fields: [byId], references: [id])
+
+  @@unique([documentLineId, kind])
+  @@index([tenantId, productId, at])
+  @@index([tenantId, at])
 }

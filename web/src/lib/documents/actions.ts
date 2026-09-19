@@ -12,6 +12,7 @@ import { businessToday } from "@/lib/tenant/today";
 import { parseLocalDateTime } from "@/lib/diary/time";
 import { promptErrors, promptFor, type PromptInput } from "@/lib/documents/process-prompt";
 import { postDocument } from "@/lib/documents/processing";
+import { reverseDocumentStock } from "@/lib/stock/ledger";
 import { recalculate } from "@/lib/documents/recalculate";
 
 /** Types that run on the workshop floor and therefore carry a job status. */
@@ -264,12 +265,14 @@ export async function processDocument(slug: string, id: string, _prev: ActionSta
     if (Object.keys(problems).length) {
         return { ok: false, message: "Please check the highlighted answers.", errors: Object.fromEntries(Object.entries(problems).map(([k, v]) => [k, [v]])) };
     }
-    await db.$transaction((tx) => postDocument(tx, tenant, { membershipId: membership.id, userId: user.id }, doc, kind, answers));
+    const posted = await db.$transaction((tx) => postDocument(tx, tenant, { membershipId: membership.id, userId: user.id }, doc, kind, answers));
 
     revalidatePath(editorPath(slug, id));
     revalidatePath(`/${slug}/dashboard/transactions`);
     if (doc.vehicleId) revalidatePath(`/${slug}/dashboard/vehicles/${doc.vehicleId}`);
-    redirect(`${editorPath(slug, id)}?processed=1`);
+    // Anything now showing negative is carried to the document so the person who posted it sees it.
+    const short = posted.stockWarnings.slice(0, 4).map((w) => w.itemCode).join(",");
+    redirect(`${editorPath(slug, id)}?processed=1${short ? `&short=${encodeURIComponent(short)}` : ""}`);
 }
 
 /** Reverse a processed document. The number is kept so the sequence stays auditable. */
@@ -289,7 +292,9 @@ export async function voidDocument(slug: string, id: string, formData: FormData)
 
     await db.$transaction(async (tx) => {
         await tx.document.update({ where: { id }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason, jobStatus: null } });
-        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "VOIDED", diff: { reason } } });
+        // Whatever this document moved on the shelf goes back, as new rows: the original movements stay as history.
+        const reversed = await reverseDocumentStock(tx, tenant.id, id, ctx.membership.id);
+        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "VOIDED", diff: { reason, stockReversed: reversed } } });
     });
 
     revalidatePath(editorPath(slug, id));

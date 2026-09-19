@@ -148,9 +148,22 @@ async function main() {
                 retailPrice: p.retail,
                 costExTax: p.cost,
                 costIncTax: Math.round(p.cost * 1.15 * 100) / 100,
-                qtyOnHand: "qty" in p ? p.qty : 0,
+                qtyOnHand: 0,
             },
         });
+        // Stock arrives through the ledger, never as a number typed on the product:
+        // that is what lets it be rebuilt and explained later.
+        const opening = "qty" in p ? p.qty : 0;
+        if (opening) {
+            const product = await prisma.product.findFirstOrThrow({ where: { tenantId: tenant.id, itemCode: p.itemCode }, select: { id: true, qtyOnHand: true } });
+            const already = await prisma.stockMovement.count({ where: { productId: product.id } });
+            if (already === 0) {
+                await prisma.stockMovement.create({
+                    data: { tenantId: tenant.id, productId: product.id, kind: "OPENING", quantity: opening, unitCost: p.cost, note: "Opening stock" },
+                });
+                await prisma.product.update({ where: { id: product.id }, data: { qtyOnHand: opening } });
+            }
+        }
     }
 
     console.log(`Seeded workshop "${tenant.name}" (/${tenant.slug}) — sign in as admin@motion.com / admin`);
