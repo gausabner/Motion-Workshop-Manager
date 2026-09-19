@@ -924,16 +924,18 @@ model InspectionTemplate {
 }
 
 model InspectionTemplateItem {
-  id          String  @id @default(cuid())
-  tenantId    String
-  templateId  String
-  group       String
-  ordering    Int     @default(0)
-  description String
+  id              String   @id @default(cuid())
+  tenantId        String
+  templateId      String
+  group           String
+  ordering        Int      @default(0)
+  description     String
   /// Labels for up to four readings, e.g. ["Front mm", "Rear mm"]. Empty means none.
-  inputLabels Json    @default("[]")
+  inputLabels     Json     @default("[]")
   /// The product an approved finding becomes on the job card.
-  productId   String?
+  productId       String?
+  /// What fixing it usually costs; fills the estimate when an inspection starts, so a mechanic only types the exceptions.
+  defaultEstimate Decimal? @db.Decimal(12, 2)
 
   tenant   Tenant             @relation(fields: [tenantId], references: [id])
   template InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)

@@ -20,7 +20,10 @@ import { dateShort, money } from "@/lib/format";
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string }> }) {
     const [{ tenant: slug, id }, { processed }] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    const [doc, options, messages, time, mechanics, inspections] = await Promise.all([getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id)]);
+    const [doc, options, messages, time, mechanics, inspections, templates] = await Promise.all([
+        getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id),
+        db.inspectionTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+    ]);
     if (!doc) notFound();
 
     const showCost = can(membership, "documents:see_cost");
@@ -88,7 +91,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             />
 
             {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (
-                <InspectionsPanel tenant={slug} documentId={doc.id} rows={inspections} canStart={can(membership, "documents:write") && doc.state !== "VOID"} />
+                <InspectionsPanel tenant={slug} documentId={doc.id} rows={inspections} canStart={can(membership, "documents:write") && doc.state !== "VOID"} templates={templates} />
             )}
 
             {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (

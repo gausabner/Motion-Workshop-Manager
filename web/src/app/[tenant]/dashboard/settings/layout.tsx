@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, FileText, Users, MessageSquare, Calendar, Globe } from "lucide-react";
+import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck } from "lucide-react";
 
 const sidebarNavItems = [
     {
@@ -21,6 +21,11 @@ const sidebarNavItems = [
         title: "Messaging & Reminders",
         href: "messaging",
         icon: <MessageSquare className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Inspections",
+        href: "inspections",
+        icon: <ClipboardCheck className="w-4 h-4 mr-2" />,
     },
     {
         title: "Customer portal",

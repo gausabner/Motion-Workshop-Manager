@@ -27,12 +27,18 @@ async function run(slug: string, id: string, work: (ctx: Awaited<ReturnType<type
     }
 }
 
+/** The start button with a template picked from the list — the form posts the choice. */
+export async function startInspectionWith(slug: string, documentId: string, formData: FormData): Promise<void> {
+    const templateId = formData.get("templateId");
+    await startInspection(slug, documentId, typeof templateId === "string" && templateId ? templateId : undefined);
+}
+
 export async function startInspection(slug: string, documentId: string, templateId?: string): Promise<void> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     await ensureDefaultInspectionTemplate(ctx.db, ctx.tenant.id);
     const template = templateId
-        ? await ctx.db.inspectionTemplate.findUnique({ where: { id: templateId }, select: { id: true } })
+        ? await ctx.db.inspectionTemplate.findFirst({ where: { id: templateId, active: true }, select: { id: true } })
         : await ctx.db.inspectionTemplate.findFirst({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true } });
     if (!template) throw new Error("There is no inspection template to start from");
     const created = await ctx.db.$transaction((tx) => createInspection(tx, ctx.tenant, ctx.membership.id, { documentId, templateId: template.id }));

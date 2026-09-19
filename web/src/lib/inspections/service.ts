@@ -35,6 +35,8 @@ export async function createInspection(tx: TenantTx, tenant: Tenant, membershipI
             data: {
                 tenantId: tenant.id, inspectionId: inspection.id, templateItemId: item.id, group: item.group, ordering: item.ordering,
                 description: item.description, inputLabels: item.inputLabels ?? [], productId: item.productId,
+                // The template's usual price, so the mechanic only types the exceptions.
+                estimate: item.defaultEstimate,
             },
         });
     }

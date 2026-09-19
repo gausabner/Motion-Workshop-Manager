@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { ClipboardCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startInspection } from "@/lib/inspections/actions";
+import { startInspectionWith } from "@/lib/inspections/actions";
 import type { inspectionsForDocument } from "@/lib/inspections/queries";
 
 const LABEL = { DRAFT: "Draft", REQUESTED: "With the customer", APPROVED: "Answered", REFUSED: "All declined", FINALISED: "Finalised" } as const;
 
-export function InspectionsPanel({ tenant, documentId, rows, canStart }: { tenant: string; documentId: string; rows: Awaited<ReturnType<typeof inspectionsForDocument>>; canStart: boolean }) {
+export function InspectionsPanel({ tenant, documentId, rows, canStart, templates }: {
+    tenant: string; documentId: string; rows: Awaited<ReturnType<typeof inspectionsForDocument>>; canStart: boolean; templates: { id: string; name: string }[];
+}) {
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
                 <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><ClipboardCheck className="w-3.5 h-3.5" />Inspections</h3>
                 {canStart && (
-                    <form action={startInspection.bind(null, tenant, documentId, undefined)}>
+                    <form action={startInspectionWith.bind(null, tenant, documentId)} className="flex items-center gap-1.5">
+                        {/* One template needs no question; several get a choice, the first as the default. */}
+                        {templates.length > 1 && (
+                            <select name="templateId" defaultValue={templates[0].id} aria-label="Template" className="h-7 max-w-48 rounded-md border border-slate-300 bg-white px-1.5 text-xs">
+                                {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        )}
                         <Button type="submit" size="sm" variant="outline" className="h-7"><Plus className="w-3.5 h-3.5 mr-1" />Start inspection</Button>
                     </form>
                 )}
