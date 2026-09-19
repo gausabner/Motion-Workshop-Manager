@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, FileText, Settings, Users, MessageSquare, Wrench, ShieldCheck, Calendar } from "lucide-react";
+import { Building2, FileText, Users, MessageSquare, Calendar } from "lucide-react";
 
 const sidebarNavItems = [
     {
@@ -23,24 +23,9 @@ const sidebarNavItems = [
         icon: <MessageSquare className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Inspections",
-        href: "inspections",
-        icon: <ShieldCheck className="w-4 h-4 mr-2" />,
-        subItems: [
-            { title: "Inspection Groups", href: "inspections/groups" },
-            { title: "Templates", href: "inspections/templates" },
-            { title: "Inspection Settings", href: "inspections/settings" },
-        ]
-    },
-    {
-        title: "User Management",
+        title: "Team",
         href: "users",
         icon: <Users className="w-4 h-4 mr-2" />,
-    },
-    {
-        title: "Personal Preferences",
-        href: "preferences",
-        icon: <Wrench className="w-4 h-4 mr-2" />,
     },
 ];
 
@@ -74,19 +59,6 @@ export default async function SettingsLayout({
                                     {item.icon}
                                     {item.title}
                                 </Link>
-                                {item.subItems && (
-                                    <div className="ml-6 flex flex-col space-y-1 mt-1 mb-2 border-l-2 border-slate-100 pl-2">
-                                        {item.subItems.map((sub) => (
-                                            <Link
-                                                key={sub.href}
-                                                href={`${basePath}/${sub.href}`}
-                                                className="flex items-center rounded-md px-3 py-1.5 text-xs font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-500 transition-colors"
-                                            >
-                                                {sub.title}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </nav>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Headphones, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt, Timer } from "lucide-react";
+import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt, Timer } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
@@ -43,16 +43,7 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                     <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
                     <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
                     <Link href={`${base}/dashboard/settings`} className={linkBase}><Settings className="h-[12px] w-[12px]" />Settings</Link>
-                    {manages && (
-                        <div className="mt-6">
-                            <h4 className="px-3 text-[9px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Admin</h4>
-                            <div className="space-y-1">
-                                <Link href={`${base}/admin/mechanics`} className={linkBase}><Wrench className="h-[12px] w-[12px]" />Mechanics</Link>
-                                <Link href={`${base}/admin/service-advisors`} className={linkBase}><Headphones className="h-[12px] w-[12px]" />Service Advisors</Link>
-                                <Link href={`${base}/admin/users`} className={linkBase}><Users className="h-[12px] w-[12px]" />Users</Link>
-                            </div>
-                        </div>
-                    )}
+                    {manages && <Link href={`${base}/dashboard/settings/users`} className={linkBase}><Wrench className="h-[12px] w-[12px]" />Team</Link>}
                 </nav>
             </div>
         </div>

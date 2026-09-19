@@ -10,6 +10,7 @@ import { createSession, destroySession, defaultTenantSlug } from "@/lib/auth/ses
 import { createTenantDefaults } from "@/lib/tenant/defaults";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { slugify } from "@/lib/slug";
+import { COUNTRIES, countryDefaults } from "@/lib/tenant/country";
 
 function safeNext(next: string | undefined): string | null {
     if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
@@ -49,10 +50,11 @@ const registerSchema = z.object({
     email: z.email("Enter a valid email address").transform((s) => s.toLowerCase()),
     password: z.string().min(8, "At least 8 characters").max(200),
     mobile: z.string().max(40).optional(),
+    country: z.enum(COUNTRIES as [string, ...string[]]).default("NA"),
 });
 
 // "share" is the public document link route, which sits beside the workshop slugs.
-const RESERVED_SLUGS = new Set(["login", "register", "api", "admin", "app", "www", "static", "_next", "share", "approve"]);
+const RESERVED_SLUGS = new Set(["login", "register", "api", "admin", "app", "www", "static", "_next", "share", "approve", "join"]);
 
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -64,9 +66,11 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
         email: str(formData, "email"),
         password: formData.get("password") ?? "",
         mobile: str(formData, "mobile"),
+        country: str(formData, "country"),
     });
     if (!parsed.success) return fromZod(parsed.error);
     const d = parsed.data;
+    const local = countryDefaults(d.country);
     if (RESERVED_SLUGS.has(d.slug)) return { ok: false, errors: { slug: ["That address is reserved — pick another"] } };
 
     const passwordHash = await hashPassword(d.password);
@@ -83,7 +87,11 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
                 user = await tx.user.create({ data: { email: d.email, passwordHash, firstName: d.firstName, lastName: d.lastName, mobile: d.mobile } });
             }
             const tenant = await tx.tenant.create({
-                data: { slug: d.slug, name: d.workshopName, email: d.email, mobile: d.mobile, whatsapp: d.mobile },
+                data: {
+                    slug: d.slug, name: d.workshopName, email: d.email, mobile: d.mobile, whatsapp: d.mobile,
+                    country: d.country, timezone: local.timezone, currency: local.currency, locale: local.locale,
+                    taxName: local.taxName, salesTaxRate: local.taxRate, purchaseTaxRate: local.taxRate,
+                },
             });
             await tx.membership.create({
                 data: { tenantId: tenant.id, userId: user.id, group: "OWNER", isServiceAdvisor: true, dashboardPrivileges: true },

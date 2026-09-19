@@ -579,7 +579,65 @@ The intended flow is plainly: filter a range → print the sheet → count on pa
 
 ---
 
-## 12. What remains unexplored
+## 12. Inspections to invoice, and a new account's setup — probed 18 September 2026
+
+*(A fresh trial account, so this is also what a brand-new workshop meets. Test data is prefixed `ZZTEST`; nothing was sent to anyone. The browser tab ran in the background, so some steps were driven through the page's own code rather than the mouse — each is marked.)*
+
+### A new account starts with
+- Two inspection templates, **SERVICE** (44 items) and **VISUAL CHECK** (21 items in five groups). Every VISUAL CHECK item is type `GYR`, including "Tyre pressures".
+- **No products at all** — and therefore no default labour product.
+- Company settings defaults: **GST 10 %, prices exclude tax**, tax on freight, discount includes tax, service interval 6, default contact SMS, `Default (B&W)` invoice format.
+- **Time zone preset to "China – Beijing (+08:00)"** on an Australian product. The list has 155 Rails zones and **no Windhoek** — a Namibian workshop must pick Pretoria or Harare.
+- **Shop Opens / Shop Closes render as `12:aN AM`** — a broken value on a new account, so the diary has no valid hours until someone fixes it.
+- **Default Work Hours Per Day = 40** — a weekly figure in a daily field.
+- The inspection contact fields came pre-filled with a demo person (`Vincenzo Rocco`, `vince@gtsdemo.com`) — placeholder data leaking into real records.
+
+### There is no setup flow
+No wizard, no checklist. A new owner is left with the Settings menu — Company Settings (nine sections, ~60 fields), Company Lists, Price Matrix, Messages — and Admin (Mechanics, Service Advisors, Users, Schedule). Nothing tells them which of these matter first, and the one that blocks a core flow (below) is buried in "Product Settings".
+
+### An inspection item, fully observed
+Beyond the September findings:
+
+| Field | What it is |
+|---|---|
+| `inspection_type` | `GYR` = a green/yellow/red condition; other types carry readings |
+| `input1` | For `GYR`, the **condition**: `G` / `Y` / `R` |
+| `needs_attention_urgent` / `needs_attention_soon` | **Urgency, separate from condition.** Choosing R ticks "Fix Urgently" automatically; the mechanic can override |
+| `estimated_time`, `estimated_cost` | Hours and price to fix, per finding |
+| `estimated_product_price`, `estimated_product_cost` | The parts side of the estimate, separately |
+| `estimated_time_red`, `estimated_time_yellow` | Template-level default hours by colour |
+| `hide_estimated_cost`, `hide_estimated_hours` | Keep either figure from the customer |
+| `product_id`, `product_item_code` | The bound product conversion uses |
+
+The inspection itself carries `event_id` and `invoice_id` (what it became), `contact_name / number / email` separate from the account holder, `customer_email`, `email_sent`, `customer_viewed`, `customer_comments`, `comment1`, `comment2`. Numbering starts at **1000**.
+
+### The flow, as wired
+1. **Save needs a vehicle** — although the panel reads "Select A Vehicle (Optional)". The API answers `vehicle_id can't be blank`, and **the screen shows nothing**.
+2. **Adding a vehicle after starting discards the inspection** — the route reloads and the template must be chosen again.
+3. **Approve Items** is offered on a **draft**: a modal lists only flagged findings (hours, cost, urgency); rows are highlighted to approve; All / None / Confirm. `POST /inspection/approve_work {accepted_items: [ids]}`.
+4. Approval is refused until **every item is rated**: *"Inspection is not completely filled out."*
+5. After approval the status is **A**, even with findings unanswered. There is **no declined state** — unapproved is simply not approved. `approved_by` is the staff user id; `approved_on` is a **date, not a time**. Save and Delete disappear.
+6. **Finalise** (confirm: "Are you sure you want to finalise this inspection?") → `GET /inspection/finalize/{id}` — a state change on a GET.
+7. Only after finalising do **Convert To Booking** and **Convert To Invoice** appear. Convert confirms, then `GET /inspection/convert_to_invoice/{id}` — also a GET — which on a new account fails: ***"You must set up a default labor product to use in your settings."***
+   *Re-probed 19 September 2026:* Settings → Product Settings → **Default Labour Product** was set to the account's `LAB Labour` product (retail $0.00) and saved; the settings screen reads it back as `companySettings.default_labour_product_id` / `default_labour_product_name = LAB`. Conversion still failed with the same message, three times, including after a full page reload. The error spells it *labor* and the setting is stored as *labour*; whatever the cause, a new account that follows the error's own instruction still cannot turn an approved inspection into an invoice. The line shape a conversion produces therefore remains **unobserved**.
+
+So a new workshop's first inspection cannot become an invoice until someone finds Settings → Company Settings → Product Settings → Default Labour Product, which cannot be set until a labour product exists — and in this trial, doing both still was not enough.
+
+### Not seen
+The invoice lines conversion actually produces (the account's session expired before the default labour product save could be confirmed), and the customer-facing portal (reached only by an email sent to a customer).
+
+### What MOTION takes from this
+| # | Ours |
+|---|---|
+| 1 | **A setup checklist** computed from the data, in the order that unblocks real work — company details, tax, hours, a labour rate, a mechanic, services, payment methods — each linking to the screen that fixes it |
+| 2 | Defaults from the workshop's **country**: VAT 15 % inclusive, Africa/Windhoek, 07:30–17:00 × 8 h — never another country's |
+| 3 | Conversion never blocked by a missing setting: an unbound finding becomes a labour line at the workshop's labour rate, or at the agreed price |
+| 4 | **Warn before sending** an inspection with unrated items — theirs refuses; ours says how many and lets the advisor decide |
+| 5 | Keep a real **declined** state and a timestamp on every answer |
+| 6 | Vehicle required means required, said on screen — and adding one mid-way never loses findings |
+| 7 | No state changes on GET |
+
+## 13. What remains unexplored
 
 After the probes in §9–§11, this is what is still unknown, roughly in order of how much it would change our plan.
 

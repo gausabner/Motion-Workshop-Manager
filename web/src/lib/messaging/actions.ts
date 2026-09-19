@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { requestOrigin } from "@/lib/http/origin";
 import { revalidatePath } from "next/cache";
 import type { MessageChannel } from "@prisma/client";
 import { requireTenant } from "@/lib/auth/session";
@@ -8,16 +8,6 @@ import { assertCan } from "@/lib/auth/permissions";
 import { type ActionState } from "@/lib/forms";
 import { draftMessage, sendMessage, type Draft, type SendOutcome, type SendTarget } from "@/lib/messaging/service";
 import { editableTemplate } from "@/lib/templates/catalogue";
-
-/** Where share links point. `APP_URL` wins, so a link sent from localhost in testing is not what a customer receives in production. */
-async function origin(): Promise<string> {
-    const configured = process.env.APP_URL?.trim();
-    if (configured) return configured;
-    const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-    const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-    return `${proto}://${host}`;
-}
 
 function pathsFor(slug: string, target: SendTarget): string[] {
     if (target.kind === "DOCUMENT") return [`/${slug}/dashboard/documents/${target.id}`, `/${slug}/dashboard/transactions`];
@@ -38,7 +28,7 @@ export async function sendMessageAction(
 ): Promise<SendOutcome> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "messages:send");
-    const outcome = await sendMessage(ctx, await origin(), input);
+    const outcome = await sendMessage(ctx, await requestOrigin(), input);
     for (const path of pathsFor(slug, input.target)) revalidatePath(path);
     return outcome;
 }

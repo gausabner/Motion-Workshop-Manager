@@ -2,16 +2,21 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Car, Package, CalendarDays } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
+import { can } from "@/lib/auth/permissions";
+import { SetupChecklist } from "@/components/setup/SetupChecklist";
+import { setupSteps } from "@/lib/setup/checklist";
+import { setupFacts } from "@/lib/setup/queries";
 
 export default async function DashboardPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { tenant, db } = await requireTenant(slug);
+    const { tenant, db, membership } = await requireTenant(slug);
     const [customers, vehicles, products, bookings] = await Promise.all([
         db.customer.count({ where: { archivedAt: null } }),
         db.vehicle.count({ where: { archivedAt: null } }),
         db.product.count({ where: { archivedAt: null } }),
         db.document.count({ where: { type: "BOOKING", state: "DRAFT" } }),
     ]);
+    const setup = can(membership, "settings:manage") ? setupSteps(await setupFacts(db, tenant), `/${slug}`) : null;
     const tiles = [
         { label: "Customers", value: customers, icon: Users, href: `/${slug}/dashboard/customers` },
         { label: "Vehicles", value: vehicles, icon: Car, href: `/${slug}/dashboard/vehicles` },
@@ -24,6 +29,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
                 <h1 className="text-2xl font-bold tracking-tight">{tenant.name}</h1>
                 <p className="text-sm text-slate-500">Sales, cost and profit will appear here once the first invoice is processed.</p>
             </div>
+            {setup && <SetupChecklist steps={setup} />}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {tiles.map((t) => (
                     <Link key={t.label} href={t.href}>

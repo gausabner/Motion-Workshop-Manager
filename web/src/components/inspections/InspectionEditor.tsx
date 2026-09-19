@@ -35,6 +35,9 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
     const [items, setItems] = useState<Item[]>(inspection.items);
     const [saving, setSaving] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const [message, setMessage] = useState<string>();
+    // Sending with items nobody looked at is allowed — a customer waiting on the brakes should not wait on the wipers — but never by accident.
+    const [confirmUnrated, setConfirmUnrated] = useState(false);
+    const unrated = items.filter((i) => rag(i) === "unchecked");
     const [busy, start] = useTransition();
     const dirty = useRef(new Map<string, ItemPatch>());
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,8 +205,18 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                         {saving === "saving" ? <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span> : saving === "saved" ? "All changes saved" : saving === "error" ? <span className="text-red-600">Not saved</span> : null}
                         {message && <span className="ml-2 text-slate-700">{message}</span>}
                     </span>
-                    {editable && (
-                        <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => act(() => sendForApproval(tenant, inspection.id))}>
+                    {editable && confirmUnrated && unrated.length > 0 ? (
+                        <span className="flex w-full flex-wrap items-center justify-end gap-2" role="alert">
+                            <span className="mr-auto text-sm text-amber-800">
+                                {unrated.length === 1 ? "1 item has" : `${unrated.length} items have`} not been checked: {unrated.slice(0, 3).map((i) => i.description).join(", ")}{unrated.length > 3 ? "…" : ""}. The customer will not see them.
+                            </span>
+                            <Button type="button" size="sm" variant="outline" onClick={() => setConfirmUnrated(false)}>Keep checking</Button>
+                            <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => { setConfirmUnrated(false); act(() => sendForApproval(tenant, inspection.id)); }}>
+                                <Send className="mr-1 h-4 w-4" />Send anyway
+                            </Button>
+                        </span>
+                    ) : editable && (
+                        <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => (unrated.length > 0 ? setConfirmUnrated(true) : act(() => sendForApproval(tenant, inspection.id)))}>
                             <Send className="mr-1 h-4 w-4" />Ready for the customer
                         </Button>
                     )}
