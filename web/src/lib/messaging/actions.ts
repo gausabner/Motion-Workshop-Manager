@@ -13,6 +13,7 @@ function pathsFor(slug: string, target: SendTarget): string[] {
     if (target.kind === "DOCUMENT") return [`/${slug}/dashboard/documents/${target.id}`, `/${slug}/dashboard/transactions`];
     if (target.kind === "PAYMENT") return [`/${slug}/dashboard/payments/${target.id}`];
     if (target.kind === "INSPECTION") return [`/${slug}/dashboard/inspections/${target.id}`];
+    if (target.kind === "REMINDER") return [`/${slug}/dashboard/reminders`, `/${slug}/dashboard`];
     return [`/${slug}/dashboard/customers/${target.customerId}`, `/${slug}/dashboard/customers/${target.customerId}/statement`];
 }
 

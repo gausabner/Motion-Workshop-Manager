@@ -19,7 +19,7 @@ const TENANT_MODELS = new Set([
     "AppointmentType", "Sequence", "Template", "Document", "DocumentLine",
     "DocumentStatusEvent", "TimeEntry", "Payment", "PaymentAllocation", "Credit",
     "Attachment", "AuditEvent", "PaymentTender", "ExternalRef", "ShareLink", "Message", "WorkingHours", "TimeOff", "BookingRequest", "InspectionTemplate",
-    "InspectionTemplateItem", "Inspection", "InspectionItem",
+    "InspectionTemplateItem", "Inspection", "InspectionItem", "Reminder",
 ]);
 
 type AnyArgs = Record<string, unknown>;

@@ -18,6 +18,17 @@ type Props = {
     variant?: "default" | "outline";
 };
 
+/** What the link in the message opens, said plainly — it differs by what is being sent. */
+function linkNote(target: SendTarget): { intro: string; field: string } {
+    if (target.kind === "REMINDER") {
+        return target.reminder === "BOOKING" || target.reminder === "QUOTE_FOLLOW_UP"
+            ? { intro: "The customer gets a link that opens the " + (target.reminder === "BOOKING" ? "booking" : "quote") + " — no account needed.", field: "becomes the link when you send. Remove it and the link goes on the end." }
+            : { intro: "A reminder about a date. When online booking is on, it carries the link to your booking page.", field: "becomes your online booking link when you send; with online booking off, that line is left out." };
+    }
+    if (target.kind === "INSPECTION") return { intro: "The customer gets a link to the findings, where they approve or decline each one — no account needed.", field: "becomes the link to the inspection when you send. Remove it and the link goes on the end." };
+    return { intro: "The customer gets a link that opens the PDF — no account needed.", field: "becomes the link to the document when you send. Remove it and the link goes on the end." };
+}
+
 type Phase = { step: "compose" } | { step: "done"; url: string | null; channel: MessageChannel; blocked: boolean };
 
 /**
@@ -46,7 +57,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
         startLoading(async () => {
             const result = await draftMessageAction(tenant, target, next);
             if (!result) {
-                setError("There is nobody on this document to send it to.");
+                setError("There is nothing to send here any more, or nobody to send it to.");
                 return;
             }
             setDraft(result);
@@ -99,7 +110,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                     <DialogHeader>
                         <DialogTitle>Send {label}</DialogTitle>
                         <DialogDescription>
-                            {draft ? `To ${draft.customerName}. ` : ""}The customer gets a link that opens the PDF — no account needed.
+                            {draft ? `To ${draft.customerName}. ` : ""}{linkNote(target).intro}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -173,7 +184,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                                             className="w-full rounded-md border border-input bg-white px-2 py-1.5 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                                         />
                                         <span className="block text-[11px] text-slate-400">
-                                            <code className="text-slate-500">{"{{link}}"}</code> becomes the link to the document when you send. Remove it and the link goes on the end.
+                                            <code className="text-slate-500">{"{{link}}"}</code> {linkNote(target).field}
                                         </span>
                                     </label>
                                 </>

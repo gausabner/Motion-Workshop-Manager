@@ -132,6 +132,24 @@ enum TemplateKind {
   MESSAGE_REFUND
   MESSAGE_STATEMENT
   MESSAGE_INSPECTION
+  MESSAGE_REMINDER_SERVICE
+  MESSAGE_REMINDER_LICENCE
+  MESSAGE_REMINDER_ROADWORTHY
+  MESSAGE_REMINDER_BOOKING
+  MESSAGE_REMINDER_QUOTE
+}
+
+enum ReminderKind {
+  SERVICE_DUE
+  LICENCE_DISC
+  ROADWORTHY
+  BOOKING
+  QUOTE_FOLLOW_UP
+}
+
+enum ReminderOutcome {
+  SENT
+  SKIPPED
 }
 
 enum MessageChannel {
@@ -241,6 +259,7 @@ model Tenant {
   inspectionTemplateItems InspectionTemplateItem[]
   inspections             Inspection[]
   inspectionItems         InspectionItem[]
+  reminders               Reminder[]
 }
 
 model User {
@@ -290,6 +309,7 @@ model Membership {
   workingHours       WorkingHours[]
   timeOff            TimeOff[]
   inspections        Inspection[]
+  remindersActed     Reminder[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -386,6 +406,7 @@ model Customer {
   credits        Credit[]
   messages       Message[]
   inspections    Inspection[]
+  reminders      Reminder[]
 
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, mobile])
@@ -464,6 +485,7 @@ model Vehicle {
   customer    Customer?    @relation(fields: [customerId], references: [id])
   documents   Document[]
   inspections Inspection[]
+  reminders   Reminder[]
 
   @@index([tenantId, plate])
   @@index([tenantId, vin])
@@ -735,6 +757,7 @@ model Document {
   messages         Message[]
   bookingRequest   BookingRequest?
   inspections      Inspection[]
+  reminders        Reminder[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -1175,6 +1198,7 @@ model Message {
   payment   Payment?    @relation(fields: [paymentId], references: [id])
   shareLink ShareLink?  @relation(fields: [shareLinkId], references: [id])
   sentBy    Membership? @relation(fields: [sentById], references: [id])
+  reminders Reminder[]
 
   @@index([tenantId, customerId, createdAt])
   @@index([tenantId, documentId])
@@ -1219,4 +1243,35 @@ model ExternalRef {
 
   @@unique([tenantId, provider, entityType, entityId])
   @@index([tenantId, provider, externalId])
+}
+
+/// A reminder someone dealt with. What is *due* is worked out from the
+/// vehicles, bookings and quotes themselves; a row here only says one was sent
+/// or skipped for that date. Keyed by the date it was for, so moving a service
+/// date makes a new reminder without clearing any flag, and the history stays.
+model Reminder {
+  id         String          @id @default(cuid())
+  tenantId   String
+  kind       ReminderKind
+  /// The vehicle for service, licence and roadworthy; the document for booking and quote.
+  targetId   String
+  dueOn      DateTime        @db.Date
+  outcome    ReminderOutcome
+  customerId String?
+  vehicleId  String?
+  documentId String?
+  messageId  String?
+  actedById  String?
+  actedAt    DateTime        @default(now())
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle?    @relation(fields: [vehicleId], references: [id])
+  document Document?   @relation(fields: [documentId], references: [id])
+  message  Message?    @relation(fields: [messageId], references: [id])
+  actedBy  Membership? @relation(fields: [actedById], references: [id])
+
+  @@unique([tenantId, kind, targetId, dueOn])
+  @@index([tenantId, actedAt])
+  @@index([tenantId, customerId])
 }

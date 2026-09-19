@@ -5,6 +5,8 @@ import { can } from "@/lib/auth/permissions";
 import { EDITABLE_TEMPLATES } from "@/lib/templates/catalogue";
 import { workshopValues } from "@/lib/templates/values";
 import { money } from "@/lib/format";
+import { reminderSettings } from "@/lib/settings/schema";
+import { ReminderSettingsForm } from "@/components/settings/ReminderSettingsForm";
 
 export const metadata = { title: "Messages and templates | MOTION Workshop Manager" };
 
@@ -39,7 +41,7 @@ export default async function MessagingSettingsPage({ params }: { params: Promis
         link: "https://motion.example/share/Xk2…",
     };
 
-    const groups = ["Sent with documents", "Printed on documents"] as const;
+    const groups = ["Sent with documents", "Reminders", "Printed on documents"] as const;
 
     return (
         <div className="space-y-6 max-w-6xl pb-12">
@@ -51,8 +53,9 @@ export default async function MessagingSettingsPage({ params }: { params: Promis
                 </p>
             </div>
             {groups.map((group) => (
-                <section key={group} className="space-y-3">
+                <section key={group} id={group === "Reminders" ? "reminders" : undefined} className="space-y-3 scroll-mt-4">
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{group}</h4>
+                    {group === "Reminders" && <ReminderSettingsForm tenant={slug} settings={reminderSettings(tenant.settings)} />}
                     {EDITABLE_TEMPLATES.filter((t) => t.group === group).map((t) => (
                         <TemplateEditor
                             key={t.kind}

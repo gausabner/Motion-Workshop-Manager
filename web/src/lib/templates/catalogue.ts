@@ -1,5 +1,5 @@
 import type { TemplateKind } from "@prisma/client";
-import { DEFAULT_MESSAGES, PURPOSE_KIND, PURPOSE_LABELS, MESSAGE_PURPOSES } from "@/lib/messaging/templates";
+import { DEFAULT_MESSAGES, PURPOSE_KIND, PURPOSE_LABELS, MESSAGE_PURPOSES, REMINDER_PURPOSES } from "@/lib/messaging/templates";
 
 /**
  * Every template a workshop can reword, with the wording it gets if it never
@@ -10,7 +10,7 @@ import { DEFAULT_MESSAGES, PURPOSE_KIND, PURPOSE_LABELS, MESSAGE_PURPOSES } from
 export type EditableTemplate = {
     kind: TemplateKind;
     label: string;
-    group: "Sent with documents" | "Printed on documents";
+    group: "Sent with documents" | "Reminders" | "Printed on documents";
     description: string;
     defaultBody: string;
     /** A footer may be blank on purpose; a message may not. */
@@ -23,6 +23,14 @@ export const DEFAULT_FOOTERS = {
     JOB_CARD_FOOTER: "Vehicle left at owner's risk. Additional work will only be carried out with the customer's approval.",
     STATEMENT_FOOTER: "Please quote your account name as the EFT reference. Queries: {{workshop_phone}}.",
 } as const satisfies Partial<Record<TemplateKind, string>>;
+
+const REMINDER_DESCRIPTIONS: Record<(typeof REMINDER_PURPOSES)[number], string> = {
+    REMINDER_SERVICE: "Sent from the reminders list when a vehicle's next service date comes up. The \"Book online\" line only appears while online booking is on.",
+    REMINDER_LICENCE: "Sent when a vehicle's licence disc is about to expire.",
+    REMINDER_ROADWORTHY: "Sent when a vehicle's roadworthy certificate is about to run out.",
+    REMINDER_BOOKING: "Sent the day before (or however many days you choose) a booking.",
+    REMINDER_QUOTE: "Sent a few days after a quote went out, if it has not become a job yet.",
+};
 
 const MESSAGE_DESCRIPTIONS: Record<(typeof MESSAGE_PURPOSES)[number], string> = {
     QUOTE: "Goes out with a quote.",
@@ -41,6 +49,14 @@ export const EDITABLE_TEMPLATES: EditableTemplate[] = [
         label: PURPOSE_LABELS[purpose],
         group: "Sent with documents" as const,
         description: MESSAGE_DESCRIPTIONS[purpose],
+        defaultBody: DEFAULT_MESSAGES[purpose],
+        allowEmpty: false,
+    })),
+    ...REMINDER_PURPOSES.map((purpose) => ({
+        kind: PURPOSE_KIND[purpose],
+        label: PURPOSE_LABELS[purpose],
+        group: "Reminders" as const,
+        description: REMINDER_DESCRIPTIONS[purpose],
         defaultBody: DEFAULT_MESSAGES[purpose],
         allowEmpty: false,
     })),

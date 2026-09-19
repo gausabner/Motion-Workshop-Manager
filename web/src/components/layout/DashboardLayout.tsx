@@ -40,6 +40,7 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                     <Link href={`${base}/dashboard/payments`} className={linkBase}><Wallet className="h-[12px] w-[12px]" />Receipts</Link>
                     {reports && <Link href={`${base}/dashboard/reports/receivables`} className={linkBase}><Receipt className="h-[12px] w-[12px]" />Who owes us</Link>}
                     {reports && <Link href={`${base}/dashboard/reports/labour`} className={linkBase}><Timer className="h-[12px] w-[12px]" />Mechanic time</Link>}
+                    <Link href={`${base}/dashboard/reminders`} className={linkBase}><Bell className="h-[12px] w-[12px]" />Reminders</Link>
                     <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
                     <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
                     <Link href={`${base}/dashboard/settings`} className={linkBase}><Settings className="h-[12px] w-[12px]" />Settings</Link>

@@ -26,12 +26,32 @@ export const diarySettingsSchema = z.object({
     bookingHorizonDays: z.number().int().min(7).max(90).default(30),
 });
 
+/** One reminder: on or off, and how many days before (or, for quotes, after) it goes out. */
+const reminderRule = (days: number, max: number) => z.object({ enabled: z.boolean().default(true), days: z.number().int().min(0).max(max).default(days) }).default({ enabled: true, days });
+
+/** When reminders fall due (R5). Everything is on by default: a reminder is only ever a suggestion until someone sends it. */
+export const reminderSettingsSchema = z.object({
+    service: reminderRule(14, 60),
+    licence: reminderRule(21, 60),
+    roadworthy: reminderRule(21, 60),
+    booking: reminderRule(1, 7),
+    quote: reminderRule(3, 30),
+});
+
+export type ReminderSettings = z.infer<typeof reminderSettingsSchema>;
+
+export function reminderSettings(value: unknown): ReminderSettings {
+    const raw = reminderSettingsSchema.safeParse(parseSettings(value).reminders ?? {});
+    return raw.success ? raw.data : reminderSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
     /** Attachment id of the letterhead logo. */
     logoAttachmentId: z.string().trim().max(60).optional(),
     diary: diarySettingsSchema.optional(),
+    reminders: reminderSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
