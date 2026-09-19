@@ -63,7 +63,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
             body = await renderReceiptPdf(input);
             name = `${input.direction.toLowerCase()}-${input.number ?? ""}.pdf`;
         }
-    } else {
+    } else if (share.kind === "STATEMENT") {
         const to = parseDate(share.params.to, new Date());
         const from = parseDate(share.params.from, new Date(to.getTime() - 90 * 86_400_000));
         const input = await statementPdfInput(db, tenant, share.targetId, from, to);

@@ -25,6 +25,7 @@ function linkNote(target: SendTarget): { intro: string; field: string } {
             ? { intro: "The customer gets a link that opens the " + (target.reminder === "BOOKING" ? "booking" : "quote") + " — no account needed.", field: "becomes the link when you send. Remove it and the link goes on the end." }
             : { intro: "A reminder about a date. When online booking is on, it carries the link to your booking page.", field: "becomes your online booking link when you send; with online booking off, that line is left out." };
     }
+    if (target.kind === "PORTAL") return { intro: "The customer gets their own portal link — invoices, vehicles and approvals in one place, no account needed.", field: "becomes their portal link when you send. Remove it and the link goes on the end." };
     if (target.kind === "INSPECTION") return { intro: "The customer gets a link to the findings, where they approve or decline each one — no account needed.", field: "becomes the link to the inspection when you send. Remove it and the link goes on the end." };
     return { intro: "The customer gets a link that opens the PDF — no account needed.", field: "becomes the link to the document when you send. Remove it and the link goes on the end." };
 }

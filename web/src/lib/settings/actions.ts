@@ -5,7 +5,7 @@ import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { storeUpload, removeAttachment } from "@/lib/attachments/service";
-import { companySettingsSchema, parseSettings, taxSettingsSchema } from "@/lib/settings/schema";
+import { companySettingsSchema, parseSettings, portalSettingsSchema, taxSettingsSchema } from "@/lib/settings/schema";
 
 /**
  * Company profile and tax defaults (PRD SET-01/02).
@@ -104,4 +104,26 @@ export async function removeLogo(slug: string): Promise<void> {
     await ctx.db.tenant.update({ where: { id: ctx.tenant.id }, data: { settings: { ...settings, logoAttachmentId: undefined } } });
     await removeAttachment(ctx, settings.logoAttachmentId);
     revalidatePath(`/${slug}/dashboard/settings/company`);
+}
+
+/** The customer portal: on or off, which sections, and how it looks (R5). */
+export async function savePortalSettings(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const ctx = await requireTenant(slug);
+    assertCan(ctx.membership, "settings:manage");
+    const section = (name: string) => bool(formData, `section.${name}`);
+    const parsed = portalSettingsSchema.safeParse({
+        enabled: bool(formData, "enabled"),
+        sections: {
+            account: section("account"), inspections: section("inspections"), jobs: section("jobs"), bookings: section("bookings"),
+            vehicles: section("vehicles"), invoices: section("invoices"), quotes: section("quotes"),
+        },
+        accent: str(formData, "accent") ?? "#0d9488",
+        welcome: str(formData, "welcome") ?? "",
+        linkDays: Number(str(formData, "linkDays") ?? 180),
+    });
+    if (!parsed.success) return fromZod(parsed.error);
+    await ctx.db.tenant.update({ where: { id: ctx.tenant.id }, data: { settings: { ...parseSettings(ctx.tenant.settings), portal: parsed.data } } });
+    await ctx.db.auditEvent.create({ data: { tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "Tenant", entityId: ctx.tenant.id, action: "UPDATED", diff: { section: "portal", ...parsed.data } } });
+    revalidatePath(`/${slug}/dashboard/settings/portal`);
+    return { ok: true, message: parsed.data.enabled ? "Saved. Links you send from a customer's page now open their portal." : "Saved. The portal is off; links already sent say so." };
 }

@@ -14,12 +14,18 @@ import { listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
 import { businessToday } from "@/lib/tenant/today";
 import { dateShort } from "@/lib/format";
+import { PortalPanel } from "@/components/portal/PortalPanel";
+import { portalSettings } from "@/lib/settings/schema";
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    const [customer, sources, account, messages] = await Promise.all([
+    const [customer, sources, account, messages, portalLinks] = await Promise.all([
         getCustomer(db, id), listCustomerSources(db), getCustomerAccount(db, id, businessToday(tenant.timezone)), listMessages(db, { customerId: id }, 25),
+        db.shareLink.findMany({
+            where: { kind: "PORTAL", targetId: id }, orderBy: { createdAt: "desc" }, take: 5,
+            select: { id: true, createdAt: true, expiresAt: true, revokedAt: true, openCount: true, lastOpenedAt: true },
+        }),
     ]);
     if (!customer) notFound();
     const base = `/${slug}/dashboard`;
@@ -77,6 +83,11 @@ export default async function CustomerPage({ params, searchParams }: { params: P
                     </Table>
                 )}
             </section>
+
+            <PortalPanel
+                tenant={slug} customerId={customer.id} enabled={portalSettings(tenant.settings).enabled} links={portalLinks}
+                canSend={can(membership, "messages:send")} canConfigure={can(membership, "settings:manage")}
+            />
 
             <MessageLog tenant={slug} rows={messages} />
 

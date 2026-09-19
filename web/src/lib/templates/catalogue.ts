@@ -41,6 +41,7 @@ const MESSAGE_DESCRIPTIONS: Record<(typeof MESSAGE_PURPOSES)[number], string> = 
     RECEIPT: "Goes out with a receipt after payment is taken.",
     REFUND: "Goes out with a refund slip.",
     STATEMENT: "Goes out with a customer statement.",
+    PORTAL: "Goes out with a customer's portal link, from their customer page.",
 };
 
 export const EDITABLE_TEMPLATES: EditableTemplate[] = [

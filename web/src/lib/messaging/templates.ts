@@ -9,7 +9,7 @@ import type { DocumentType, TemplateKind } from "@prisma/client";
  * every workshop that has not customised it, and there is nothing to backfill.
  */
 
-export const MESSAGE_PURPOSES = ["QUOTE", "JOB_CARD", "INSPECTION", "INVOICE", "CREDIT", "RECEIPT", "REFUND", "STATEMENT"] as const;
+export const MESSAGE_PURPOSES = ["QUOTE", "JOB_CARD", "INSPECTION", "INVOICE", "CREDIT", "RECEIPT", "REFUND", "STATEMENT", "PORTAL"] as const;
 /** Reminders are messages too, with their own wording each — but about a date, not a document. */
 export const REMINDER_PURPOSES = ["REMINDER_SERVICE", "REMINDER_LICENCE", "REMINDER_ROADWORTHY", "REMINDER_BOOKING", "REMINDER_QUOTE"] as const;
 export type MessagePurpose = (typeof MESSAGE_PURPOSES)[number] | (typeof REMINDER_PURPOSES)[number];
@@ -23,6 +23,7 @@ export const PURPOSE_KIND: Record<MessagePurpose, TemplateKind> = {
     RECEIPT: "MESSAGE_RECEIPT",
     REFUND: "MESSAGE_REFUND",
     STATEMENT: "MESSAGE_STATEMENT",
+    PORTAL: "MESSAGE_PORTAL",
     REMINDER_SERVICE: "MESSAGE_REMINDER_SERVICE",
     REMINDER_LICENCE: "MESSAGE_REMINDER_LICENCE",
     REMINDER_ROADWORTHY: "MESSAGE_REMINDER_ROADWORTHY",
@@ -39,6 +40,7 @@ export const PURPOSE_LABELS: Record<MessagePurpose, string> = {
     RECEIPT: "Receipt",
     REFUND: "Refund",
     STATEMENT: "Statement",
+    PORTAL: "Customer portal link",
     REMINDER_SERVICE: "Service due",
     REMINDER_LICENCE: "Licence disc expiring",
     REMINDER_ROADWORTHY: "Roadworthy expiring",
@@ -60,6 +62,7 @@ export const DEFAULT_MESSAGES: Record<MessagePurpose, string> = {
     RECEIPT: "Hi {{customer_first_name}}, thank you — we received {{total}}. Your receipt {{document_number}}:\n{{link}}\n— {{workshop_name}}",
     REFUND: "Hi {{customer_first_name}}, we have refunded you {{total}}. Your refund slip {{document_number}}:\n{{link}}\n— {{workshop_name}}",
     STATEMENT: "Hi {{customer_first_name}}, here is your statement from {{workshop_name}}.\nBalance due: {{account_balance}}\n{{link}}\nPlease quote your account name as the EFT reference.",
+    PORTAL: "Hi {{customer_first_name}}, here is your own page at {{workshop_name}}: your invoices, your vehicles' service dates, and anything waiting for your go-ahead, all in one place.\n{{link}}\nKeep this message — the link is your way back in.",
     // Vehicle reminders carry the online booking page when it is open; the "Book online" line drops out when it is not.
     REMINDER_SERVICE: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is due for a service on {{due_date}}.\nReply here to book it in.\nOr book online: {{link}}\n— {{workshop_name}}",
     REMINDER_LICENCE: "Hi {{customer_first_name}}, the licence disc on your {{vehicle}} ({{plate}}) expires on {{due_date}}. If it needs a roadworthy or any work first, reply here and we will fit you in.\nOr book online: {{link}}\n— {{workshop_name}}",

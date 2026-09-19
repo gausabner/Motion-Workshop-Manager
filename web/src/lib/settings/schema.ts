@@ -45,6 +45,33 @@ export function reminderSettings(value: unknown): ReminderSettings {
     return raw.success ? raw.data : reminderSettingsSchema.parse({});
 }
 
+/** The customer portal (R5). Off until a workshop turns it on; each section can be left out. */
+export const portalSettingsSchema = z.object({
+    enabled: z.boolean().default(false),
+    sections: z.object({
+        account: z.boolean().default(true),
+        inspections: z.boolean().default(true),
+        jobs: z.boolean().default(true),
+        bookings: z.boolean().default(true),
+        vehicles: z.boolean().default(true),
+        invoices: z.boolean().default(true),
+        quotes: z.boolean().default(true),
+    }).default({ account: true, inspections: true, jobs: true, bookings: true, vehicles: true, invoices: true, quotes: true }),
+    /** The portal's accent, so it looks like the workshop rather than like us. */
+    accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a colour like #0d9488").default("#0d9488"),
+    welcome: z.string().trim().max(400).default(""),
+    /** How long a portal link works. Long, because it is the customer's way back in. */
+    linkDays: z.number().int().min(7).max(365).default(180),
+});
+
+export type PortalSettings = z.infer<typeof portalSettingsSchema>;
+export type PortalSection = keyof PortalSettings["sections"];
+
+export function portalSettings(value: unknown): PortalSettings {
+    const raw = portalSettingsSchema.safeParse(parseSettings(value).portal ?? {});
+    return raw.success ? raw.data : portalSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
@@ -52,6 +79,7 @@ export const tenantSettingsSchema = z.object({
     logoAttachmentId: z.string().trim().max(60).optional(),
     diary: diarySettingsSchema.optional(),
     reminders: reminderSettingsSchema.optional(),
+    portal: portalSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;

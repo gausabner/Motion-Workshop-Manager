@@ -11,7 +11,7 @@ import { DEFAULT_MESSAGES, PURPOSE_KIND, PURPOSE_LABELS, emailSubject, ensureLin
 import { renderTemplate, type MergeValues } from "@/lib/templates/merge";
 import { documentValues, documentTitle, workshopValues } from "@/lib/templates/values";
 import { dateShort, money } from "@/lib/format";
-import { onlineBookingSettings } from "@/lib/settings/schema";
+import { onlineBookingSettings, portalSettings } from "@/lib/settings/schema";
 import { toZoned } from "@/lib/diary/time";
 
 export type SendTarget =
@@ -19,6 +19,7 @@ export type SendTarget =
     | { kind: "INSPECTION"; id: string }
     | { kind: "PAYMENT"; id: string }
     | { kind: "STATEMENT"; customerId: string; from: string; to: string }
+    | { kind: "PORTAL"; customerId: string }
     /** `targetId` is the vehicle for service/licence/roadworthy, the document for booking/quote; `dueOn` is the key date. */
     | { kind: "REMINDER"; reminder: ReminderKind; targetId: string; dueOn: string };
 
@@ -31,7 +32,7 @@ type SendContext = {
     customer: Recipient;
     values: MergeValues;
     /** A link minted per message to the thing itself. Absent for reminders about a date rather than a document. */
-    share?: { kind: ShareKind; targetId: string; params?: Record<string, string> };
+    share?: { kind: ShareKind; targetId: string; params?: Record<string, string>; days?: number };
     /** A fixed page to link instead, such as the online booking page. */
     staticPath?: string;
     documentId?: string;
@@ -220,6 +221,21 @@ async function loadContext(db: TenantDb, tenant: Tenant, target: SendTarget): Pr
         };
     }
 
+    if (target.kind === "PORTAL") {
+        const portal = portalSettings(tenant.settings);
+        if (!portal.enabled) return null;
+        const customer = await db.customer.findUnique({ where: { id: target.customerId }, select: { ...RECIPIENT, archivedAt: true } });
+        if (!customer || customer.archivedAt) return null;
+        return {
+            purpose: "PORTAL",
+            title: "Your account",
+            number: null,
+            customer: asRecipient(customer),
+            values: { ...workshopValues(tenant), customer_name: `${customer.firstName} ${customer.lastName}`.trim(), customer_first_name: customer.firstName },
+            share: { kind: "PORTAL", targetId: customer.id, days: portal.linkDays },
+        };
+    }
+
     const customer = await db.customer.findUnique({ where: { id: target.customerId }, select: RECIPIENT });
     if (!customer) return null;
     const account = await getCustomerAccount(db, customer.id);
@@ -306,7 +322,7 @@ export async function sendMessage(
     const driver = driverFor(input.channel);
     const share = context.share;
     const link = share
-        ? await db.$transaction((tx) => mintShareLink(tx, { tenantId: tenant.id, kind: share.kind, targetId: share.targetId, params: share.params, createdById: membership.id }))
+        ? await db.$transaction((tx) => mintShareLink(tx, { tenantId: tenant.id, kind: share.kind, targetId: share.targetId, params: share.params, createdById: membership.id, days: share.days }))
         : null;
     const url = link && share ? shareUrl(origin, link.token, share.kind) : context.staticPath ? `${origin.replace(/\/$/, "")}${context.staticPath}` : "";
     // Rendered against the full values again, so a field typed into the edit still resolves.

@@ -31,15 +31,16 @@ export function hashShareToken(token: string): string {
 
 /** A document opens as a PDF; an inspection opens as a page the customer answers on. */
 export function shareUrl(origin: string, token: string, kind: ShareKind = "DOCUMENT"): string {
-    return `${origin.replace(/\/$/, "")}/${kind === "INSPECTION" ? "approve" : "share"}/${token}`;
+    const path = kind === "INSPECTION" ? "approve" : kind === "PORTAL" ? "portal" : "share";
+    return `${origin.replace(/\/$/, "")}/${path}/${token}`;
 }
 
 export async function mintShareLink(
     tx: TenantTx,
-    input: { tenantId: string; kind: ShareKind; targetId: string; params?: Record<string, string>; createdById: string },
+    input: { tenantId: string; kind: ShareKind; targetId: string; params?: Record<string, string>; createdById: string | null; days?: number },
 ): Promise<{ id: string; token: string; expiresAt: Date }> {
     const token = randomBytes(32).toString("base64url");
-    const expiresAt = new Date(Date.now() + SHARE_DAYS * 86_400_000);
+    const expiresAt = new Date(Date.now() + (input.days ?? SHARE_DAYS) * 86_400_000);
     const link = await tx.shareLink.create({
         data: {
             tenantId: input.tenantId,

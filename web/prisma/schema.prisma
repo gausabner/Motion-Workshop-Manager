@@ -137,6 +137,7 @@ enum TemplateKind {
   MESSAGE_REMINDER_ROADWORTHY
   MESSAGE_REMINDER_BOOKING
   MESSAGE_REMINDER_QUOTE
+  MESSAGE_PORTAL
 }
 
 enum ReminderKind {
@@ -174,6 +175,8 @@ enum ShareKind {
   PAYMENT
   STATEMENT
   INSPECTION
+  /// A customer's own portal; targetId is the customer.
+  PORTAL
 }
 
 enum SequenceKey {

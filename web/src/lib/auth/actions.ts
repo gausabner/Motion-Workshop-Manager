@@ -54,7 +54,7 @@ const registerSchema = z.object({
 });
 
 // "share" is the public document link route, which sits beside the workshop slugs.
-const RESERVED_SLUGS = new Set(["login", "register", "api", "admin", "app", "www", "static", "_next", "share", "approve", "join"]);
+const RESERVED_SLUGS = new Set(["login", "register", "api", "admin", "app", "www", "static", "_next", "share", "approve", "join", "portal"]);
 
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
