@@ -20,6 +20,7 @@ export async function listMessages(db: TenantDb, filter: { customerId?: string; 
         select: {
             id: true, channel: true, driver: true, status: true, recipient: true, subject: true, body: true, error: true, createdAt: true,
             sentBy: { select: { user: { select: { firstName: true, lastName: true } } } },
+            customer: { select: { id: true, firstName: true, lastName: true } },
             document: { select: { id: true, type: true, number: true, jobNumber: true } },
             payment: { select: { id: true, number: true, direction: true } },
             shareLink: { select: { id: true, openCount: true, firstOpenedAt: true, lastOpenedAt: true, revokedAt: true, expiresAt: true } },

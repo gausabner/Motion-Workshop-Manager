@@ -148,6 +148,19 @@ enum ReminderKind {
   QUOTE_FOLLOW_UP
 }
 
+enum CampaignState {
+  DRAFT
+  SENDING
+  DONE
+}
+
+enum CampaignRecipientState {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
 enum ReminderOutcome {
   SENT
   SKIPPED
@@ -263,6 +276,8 @@ model Tenant {
   inspections             Inspection[]
   inspectionItems         InspectionItem[]
   reminders               Reminder[]
+  campaigns               Campaign[]
+  campaignRecipients      CampaignRecipient[]
 }
 
 model User {
@@ -313,6 +328,7 @@ model Membership {
   timeOff            TimeOff[]
   inspections        Inspection[]
   remindersActed     Reminder[]
+  campaigns          Campaign[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -398,18 +414,19 @@ model Customer {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id])
-  biller         Customer?       @relation("Biller", fields: [billerId], references: [id])
-  billedAccounts Customer[]      @relation("Biller")
-  customerSource CustomerSource? @relation(fields: [customerSourceId], references: [id])
-  contacts       Contact[]
-  vehicles       Vehicle[]
-  documents      Document[]
-  payments       Payment[]
-  credits        Credit[]
-  messages       Message[]
-  inspections    Inspection[]
-  reminders      Reminder[]
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  biller             Customer?           @relation("Biller", fields: [billerId], references: [id])
+  billedAccounts     Customer[]          @relation("Biller")
+  customerSource     CustomerSource?     @relation(fields: [customerSourceId], references: [id])
+  contacts           Contact[]
+  vehicles           Vehicle[]
+  documents          Document[]
+  payments           Payment[]
+  credits            Credit[]
+  messages           Message[]
+  inspections        Inspection[]
+  reminders          Reminder[]
+  campaignRecipients CampaignRecipient[]
 
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, mobile])
@@ -1197,13 +1214,14 @@ model Message {
   sentById    String?
   createdAt   DateTime       @default(now())
 
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  customer  Customer?   @relation(fields: [customerId], references: [id])
-  document  Document?   @relation(fields: [documentId], references: [id])
-  payment   Payment?    @relation(fields: [paymentId], references: [id])
-  shareLink ShareLink?  @relation(fields: [shareLinkId], references: [id])
-  sentBy    Membership? @relation(fields: [sentById], references: [id])
-  reminders Reminder[]
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  customer           Customer?           @relation(fields: [customerId], references: [id])
+  document           Document?           @relation(fields: [documentId], references: [id])
+  payment            Payment?            @relation(fields: [paymentId], references: [id])
+  shareLink          ShareLink?          @relation(fields: [shareLinkId], references: [id])
+  sentBy             Membership?         @relation(fields: [sentById], references: [id])
+  reminders          Reminder[]
+  campaignRecipients CampaignRecipient[]
 
   @@index([tenantId, customerId, createdAt])
   @@index([tenantId, documentId])
@@ -1279,4 +1297,50 @@ model Reminder {
   @@unique([tenantId, kind, targetId, dueOn])
   @@index([tenantId, actedAt])
   @@index([tenantId, customerId])
+}
+
+/// One bulk message to a chosen audience (R5). The audience is worked out once
+/// and kept as recipients, so a list someone is halfway through sending does
+/// not shift under them when a customer's balance changes.
+model Campaign {
+  id           String         @id @default(cuid())
+  tenantId     String
+  name         String
+  channel      MessageChannel
+  /// Send each customer on the channel they prefer, falling back to the other.
+  usePreferred Boolean        @default(false)
+  subject      String?
+  body         String
+  /// What was asked for, kept so the audience can be explained later.
+  filters      Json           @default("{}")
+  state        CampaignState  @default(DRAFT)
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  createdBy  Membership?         @relation(fields: [createdById], references: [id])
+  recipients CampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+}
+
+model CampaignRecipient {
+  id         String                 @id @default(cuid())
+  tenantId   String
+  campaignId String
+  customerId String
+  state      CampaignRecipientState @default(PENDING)
+  /// Why this one cannot go, or why it was left out.
+  note       String?
+  messageId  String?
+  actedAt    DateTime?
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id])
+  message  Message? @relation(fields: [messageId], references: [id])
+
+  @@unique([campaignId, customerId])
+  @@index([tenantId, campaignId, state])
 }

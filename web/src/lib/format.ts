@@ -16,6 +16,18 @@ export function dateShort(d: Date | string | null | undefined): string {
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 
+/**
+ * A moment, on the workshop's own clock. `dateShort` reads a date column,
+ * which is stored at UTC midnight and must be read back that way; anything
+ * that happened *at a time* — sent, acted on, created — belongs to the
+ * workshop's day, or a message sent at 00:30 in Windhoek reads as yesterday.
+ */
+export function dateShortIn(d: Date | string | null | undefined, timeZone: string): string {
+    if (!d) return "";
+    const date = typeof d === "string" ? new Date(d) : d;
+    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", timeZone });
+}
+
 /** yyyy-mm-dd for <input type="date"> defaults. */
 export function dateInput(d: Date | string | null | undefined): string {
     if (!d) return "";

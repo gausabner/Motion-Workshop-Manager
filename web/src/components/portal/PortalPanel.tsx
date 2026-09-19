@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { RevokeLinkButton } from "@/components/messaging/RevokeLinkButton";
-import { dateShort } from "@/lib/format";
+import { dateShortIn } from "@/lib/format";
 
 export type PortalLinkRow = { id: string; createdAt: Date; expiresAt: Date; revokedAt: Date | null; openCount: number; lastOpenedAt: Date | null };
 
@@ -11,8 +11,8 @@ export type PortalLinkRow = { id: string; createdAt: Date; expiresAt: Date; revo
  * use it, withdraw one that went to the wrong phone, and look at exactly what
  * they see.
  */
-export function PortalPanel({ tenant, customerId, enabled, canSend, canConfigure, links }: {
-    tenant: string; customerId: string; enabled: boolean; canSend: boolean; canConfigure: boolean; links: PortalLinkRow[];
+export function PortalPanel({ tenant, timezone, customerId, enabled, canSend, canConfigure, links }: {
+    tenant: string; timezone: string; customerId: string; enabled: boolean; canSend: boolean; canConfigure: boolean; links: PortalLinkRow[];
 }) {
     const now = new Date();
     return (
@@ -37,12 +37,12 @@ export function PortalPanel({ tenant, customerId, enabled, canSend, canConfigure
                         const live = !l.revokedAt && l.expiresAt > now;
                         return (
                             <li key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2">
-                                <span className="text-slate-700">Sent {dateShort(l.createdAt)}</span>
+                                <span className="text-slate-700">Sent {dateShortIn(l.createdAt, timezone)}</span>
                                 <span className="text-slate-500">
-                                    {l.openCount > 0 ? `opened ${l.openCount} time${l.openCount === 1 ? "" : "s"}, last ${dateShort(l.lastOpenedAt)}` : "not opened yet"}
+                                    {l.openCount > 0 ? `opened ${l.openCount} time${l.openCount === 1 ? "" : "s"}, last ${dateShortIn(l.lastOpenedAt, timezone)}` : "not opened yet"}
                                 </span>
                                 <span className={`ml-auto text-xs ${live ? "text-slate-400" : "text-slate-400 line-through"}`}>
-                                    {l.revokedAt ? `withdrawn ${dateShort(l.revokedAt)}` : l.expiresAt > now ? `works until ${dateShort(l.expiresAt)}` : `expired ${dateShort(l.expiresAt)}`}
+                                    {l.revokedAt ? `withdrawn ${dateShortIn(l.revokedAt, timezone)}` : l.expiresAt > now ? `works until ${dateShortIn(l.expiresAt, timezone)}` : `expired ${dateShortIn(l.expiresAt, timezone)}`}
                                 </span>
                                 {live && canSend && <RevokeLinkButton tenant={tenant} shareLinkId={l.id} />}
                             </li>

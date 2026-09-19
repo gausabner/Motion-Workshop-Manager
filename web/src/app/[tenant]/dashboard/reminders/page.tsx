@@ -6,7 +6,7 @@ import { dueReminders, recentReminders, type DueReminder } from "@/lib/reminders
 import { KIND_LABELS, KIND_NOUNS, KIND_ORDER, relativeDay } from "@/lib/reminders/rules";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { SkipButton, UnskipButton } from "@/components/reminders/SkipButton";
-import { dateShort } from "@/lib/format";
+import { dateShort, dateShortIn } from "@/lib/format";
 
 export const metadata = { title: "Reminders | MOTION Workshop Manager" };
 
@@ -101,7 +101,7 @@ export default async function RemindersPage({ params }: { params: Promise<{ tena
                                     {r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : ""}{r.vehicle ? ` · ${r.vehicle.plate}` : ""}{r.document?.number ? ` · ${r.document.number}` : ""}
                                 </span>
                                 <span className="ml-auto text-xs text-slate-400">
-                                    {r.actedBy?.user.firstName ?? ""} · {dateShort(r.actedAt)}
+                                    {r.actedBy?.user.firstName ?? ""} · {dateShortIn(r.actedAt, tenant.timezone)}
                                 </span>
                                 {r.outcome === "SKIPPED" && canSend && <UnskipButton tenant={slug} reminderId={r.id} />}
                             </li>

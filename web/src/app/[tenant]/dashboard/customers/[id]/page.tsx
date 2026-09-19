@@ -85,11 +85,11 @@ export default async function CustomerPage({ params, searchParams }: { params: P
             </section>
 
             <PortalPanel
-                tenant={slug} customerId={customer.id} enabled={portalSettings(tenant.settings).enabled} links={portalLinks}
+                tenant={slug} timezone={tenant.timezone} customerId={customer.id} enabled={portalSettings(tenant.settings).enabled} links={portalLinks}
                 canSend={can(membership, "messages:send")} canConfigure={can(membership, "settings:manage")}
             />
 
-            <MessageLog tenant={slug} rows={messages} />
+            <MessageLog tenant={slug} timezone={tenant.timezone} rows={messages} />
 
             <CustomerForm tenant={slug} customer={customer} sources={sources} />
         </div>

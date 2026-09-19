@@ -8,8 +8,8 @@ import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 const CHANNEL_ICON: Record<MessageChannel, typeof MessageCircle> = { WHATSAPP: MessageCircle, EMAIL: Mail, SMS: MessageSquare };
 const CHANNEL_LABEL: Record<MessageChannel, string> = { WHATSAPP: "WhatsApp", EMAIL: "Email", SMS: "SMS" };
 
-const when = (d: Date) =>
-    d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" });
+const when = (d: Date, timeZone: string) =>
+    d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone });
 
 /**
  * Everything said to a customer, with the one delivery fact we can actually
@@ -19,7 +19,7 @@ const when = (d: Date) =>
  * the sender's own WhatsApp; whether they pressed send there is not something
  * this app can see, and it does not pretend to.
  */
-export function MessageLog({ tenant, rows, showSubject = true, empty = "Nothing has been sent yet." }: { tenant: string; rows: MessageRow[]; showSubject?: boolean; empty?: string }) {
+export function MessageLog({ tenant, timezone = "Africa/Windhoek", rows, showSubject = true, showCustomer = false, empty = "Nothing has been sent yet." }: { tenant: string; timezone?: string; rows: MessageRow[]; showSubject?: boolean; showCustomer?: boolean; empty?: string }) {
     const base = `/${tenant}/dashboard`;
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
@@ -41,6 +41,11 @@ export function MessageLog({ tenant, rows, showSubject = true, empty = "Nothing 
                                             {row.status === "HANDED_OFF" ? `Handed to ${CHANNEL_LABEL[row.channel]}` : row.status === "FAILED" ? `${CHANNEL_LABEL[row.channel]} failed` : `Sent by ${CHANNEL_LABEL[row.channel]}`}
                                         </span>
                                         <span className="text-slate-400">to {row.channel === "WHATSAPP" ? `+${row.recipient}` : row.recipient}</span>
+                                        {showCustomer && row.customer && (
+                                            <Link href={`${base}/customers/${row.customer.id}`} className="text-slate-500 hover:text-teal-700">
+                                                · {row.customer.firstName} {row.customer.lastName}
+                                            </Link>
+                                        )}
                                         {showSubject && row.document && (
                                             <Link href={`${base}/documents/${row.document.id}`} className="text-slate-500 hover:text-teal-700">
                                                 · {DOCUMENT_TYPE_LABELS[row.document.type].toLowerCase()} {row.document.number ?? row.document.jobNumber ?? ""}
@@ -52,7 +57,7 @@ export function MessageLog({ tenant, rows, showSubject = true, empty = "Nothing 
                                             </Link>
                                         )}
                                     </span>
-                                    <span className="text-xs text-slate-400">{row.sentBy ? `${row.sentBy} · ` : ""}{when(row.createdAt)}</span>
+                                    <span className="text-xs text-slate-400">{row.sentBy ? `${row.sentBy} · ` : ""}{when(row.createdAt, timezone)}</span>
                                 </div>
 
                                 <div className="mt-1 flex flex-wrap items-center gap-3 pl-6 text-xs">
@@ -60,12 +65,12 @@ export function MessageLog({ tenant, rows, showSubject = true, empty = "Nothing 
                                     {link?.firstOpenedAt ? (
                                         <span className="inline-flex items-center gap-1 font-medium text-teal-700">
                                             <Eye className="w-3.5 h-3.5" />
-                                            Opened {when(link.firstOpenedAt)}{link.openCount > 1 ? ` · ${link.openCount} times, last ${when(link.lastOpenedAt!)}` : ""}
+                                            Opened {when(link.firstOpenedAt, timezone)}{link.openCount > 1 ? ` · ${link.openCount} times, last ${when(link.lastOpenedAt!, timezone)}` : ""}
                                         </span>
                                     ) : link && row.status !== "FAILED" ? (
                                         <span className="text-slate-400">Not opened yet</span>
                                     ) : null}
-                                    {link?.revokedAt && <span className="text-red-700">Link withdrawn {when(link.revokedAt)}</span>}
+                                    {link?.revokedAt && <span className="text-red-700">Link withdrawn {when(link.revokedAt, timezone)}</span>}
                                     {link && !link.revokedAt && link.expiresAt <= new Date() && <span className="text-slate-400">Link expired</span>}
                                     {live && <RevokeLinkButton tenant={tenant} shareLinkId={link.id} />}
                                 </div>
