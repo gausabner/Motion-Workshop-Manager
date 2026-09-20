@@ -211,7 +211,9 @@ The commercial upside. Depends on documents, sending and the diary all working. 
 - **Public API** — done: keyed at `/api/v1`, ordinary JSON, cursor paging, money as strings, writes idempotent on the caller's own `externalId` (see [public-api.md](public-api.md)). Deliberately unlike theirs: no SSE list streaming, no `*` wildcards in the path, no costs or margins published, and processing or settling a document stays with a person who is signed in.
 - Loan cars — done: courtesy cars at `/dashboard/loan-cars`, booked → out → back, with the loan shown on the job card.
 - **Offline PWA** — done: installable (manifest + icons), a service worker that caches the build assets and the last floor page *only*, and clocking that survives a dead spot — taps are kept on the phone with the time they were made and replayed in order, guarded against a wrong clock, a stale queue and a double upload.
-- Still open: multi-site.
+- **Multi-site** — done, as tenant-per-site: clients are separate legal entities (own tax number, own bank account, own books) and may not see one another, so multi-site is a switcher between boundaries that already hold, not a loosening of them. Nothing is shared across sites — not stock, customers, numbering or reports — and a group-level view is deliberately absent.
+
+**R7 complete.**
 
 ---
 
