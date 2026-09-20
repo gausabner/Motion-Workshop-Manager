@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags } from "lucide-react";
+import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload } from "lucide-react";
 
 const sidebarNavItems = [
     {
@@ -36,6 +36,11 @@ const sidebarNavItems = [
         title: "Customer portal",
         href: "portal",
         icon: <Globe className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Import",
+        href: "import",
+        icon: <Upload className="w-4 h-4 mr-2" />,
     },
     {
         title: "Team",
