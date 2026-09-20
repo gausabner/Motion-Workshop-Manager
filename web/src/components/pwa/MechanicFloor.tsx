@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pause, Play, Wrench } from "lucide-react";
+import { CloudOff, Pause, Play, Wrench } from "lucide-react";
 import { clockOffAction, clockOnAction } from "@/lib/time/actions";
 import { hoursLabel } from "@/lib/time/clock";
 import { minuteLabel } from "@/lib/diary/time";
+import { enqueue, forget, isOnline, loadQueue, newRef, queueCount, registerWorker, subscribeOnline, subscribeQueue } from "@/lib/offline/client";
+import { syncClockQueue } from "@/lib/offline/actions";
+import { waitingLabel } from "@/lib/offline/queue";
 
 type Job = {
     id: string;
@@ -55,20 +58,81 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     const [pending, start] = useTransition();
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string>();
+    // Both live outside React: the radio, and a queue another tab can also write to.
+    const online = useSyncExternalStore(subscribeOnline, isOnline, () => true);
+    const waiting = useSyncExternalStore(subscribeQueue, queueCount, () => 0);
+    /**
+     * `undefined` means "the server's answer stands". Anything else is a tap
+     * made down here with no signal, which the screen must honour immediately —
+     * a mechanic will not stand in the pit wondering whether the clock started.
+     */
+    const [queuedRunning, setQueuedRunning] = useState<{ startedAt: string; job: Job } | null | undefined>(undefined);
 
-    function act(key: string, run: () => Promise<{ ok: boolean; message?: string }>) {
+    useEffect(registerWorker, []);
+
+    /** Hand over whatever is waiting, the moment there is a signal to hand it over on. */
+    const sendQueue = useCallback(() => {
+        const queue = loadQueue();
+        if (queue.length === 0) return;
+        start(async () => {
+            try {
+                const result = await syncClockQueue(tenant, queue);
+                forget(queue.map((e) => e.ref));
+                if (result.problems.length > 0) setError(result.problems[0].reason);
+                // The server is the truth again, so stop overriding it.
+                setQueuedRunning(undefined);
+                router.refresh();
+            } catch {
+                // Still no signal. The queue stays exactly where it is.
+            }
+        });
+    }, [tenant, router]);
+
+    useEffect(() => {
+        if (online) sendQueue();
+    }, [online, sendQueue]);
+
+    /**
+     * Every tap goes through here. If the server cannot be reached — whether
+     * the phone knows it is offline or only finds out when the request dies —
+     * the tap is kept with the time it was made and applied on screen.
+     */
+    function act(key: string, run: () => Promise<{ ok: boolean; message?: string }>, fallback: () => void) {
         setBusy(key);
         setError(undefined);
         start(async () => {
-            const result = await run();
-            if (!result.ok) setError(result.message);
+            if (!navigator.onLine) {
+                fallback();
+                setBusy(null);
+                return;
+            }
+            try {
+                const result = await run();
+                if (!result.ok) setError(result.message);
+                router.refresh();
+            } catch {
+                fallback();
+            }
             setBusy(null);
-            router.refresh();
         });
     }
 
+    function queueStart(job: Job) {
+        const at = new Date().toISOString();
+        enqueue({ kind: "on", ref: newRef(), at, documentId: job.id });
+        setQueuedRunning({ startedAt: at, job });
+    }
+
+    function queueStop() {
+        enqueue({ kind: "off", ref: newRef(), at: new Date().toISOString() });
+        setQueuedRunning(null);
+    }
+
+    // What the mechanic is actually on, whether the server has heard about it yet or not.
+    const onTheClock = queuedRunning === undefined ? running : queuedRunning;
+
     const card = (job: Job, mineToo: boolean) => {
-        const isRunning = running?.job.id === job.id;
+        const isRunning = onTheClock?.job.id === job.id;
         return (
             <li key={job.id} className={`rounded-xl border bg-white p-4 shadow-sm ${isRunning ? "border-teal-500 ring-2 ring-teal-500" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -88,10 +152,10 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 {!isRunning && (
                     <button
                         type="button" disabled={pending}
-                        onClick={() => act(job.id, () => clockOnAction(tenant, job.id))}
+                        onClick={() => act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job))}
                         className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60"
                     >
-                        <Play className="h-5 w-5" />{busy === job.id ? "Starting…" : running ? "Switch to this job" : "Start"}
+                        <Play className="h-5 w-5" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
                     </button>
                 )}
             </li>
@@ -108,19 +172,29 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
             </header>
 
             <div className="mx-auto max-w-lg space-y-5 px-4 pt-4">
+                {(!online || waiting > 0) && (
+                    <p className={`flex items-start gap-2 rounded-lg px-4 py-3 text-base ${online ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-amber-900"}`}>
+                        <CloudOff className="mt-0.5 h-5 w-5 shrink-0" />
+                        <span>
+                            {online ? "Catching up…" : "No signal. Your taps are being kept with the time you made them."}
+                            {waiting > 0 && <span className="block text-sm">{waitingLabel(waiting)}</span>}
+                        </span>
+                    </p>
+                )}
+
                 {error && <p className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
 
-                {running ? (
+                {onTheClock ? (
                     <section className="rounded-xl bg-teal-700 p-5 text-white shadow">
                         <p className="text-sm uppercase tracking-wider text-teal-100">On the clock</p>
                         <p className="mt-1 text-lg font-semibold">
-                            {running.job.vehicle && <span className="mr-2 rounded bg-yellow-300 px-1.5 text-yellow-950">{running.job.vehicle.plate}</span>}
-                            {running.job.description ?? `Job ${running.job.jobNumber ?? ""}`}
+                            {onTheClock.job.vehicle && <span className="mr-2 rounded bg-yellow-300 px-1.5 text-yellow-950">{onTheClock.job.vehicle.plate}</span>}
+                            {onTheClock.job.description ?? `Job ${onTheClock.job.jobNumber ?? ""}`}
                         </p>
-                        <p className="mt-2 text-5xl font-bold"><Elapsed since={running.startedAt} /></p>
+                        <p className="mt-2 text-5xl font-bold"><Elapsed since={onTheClock.startedAt} /></p>
                         <button
                             type="button" disabled={pending}
-                            onClick={() => act("stop", () => clockOffAction(tenant))}
+                            onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
                             className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60"
                         >
                             <Pause className="h-5 w-5" />{busy === "stop" ? "Stopping…" : "Stop"}

@@ -20,6 +20,18 @@ export function isSuspect(minutes: number): boolean {
 }
 
 /**
+ * Whether a clock-off may close the entry that is open.
+ *
+ * Live this is always true: the stop is now and the entry began earlier. It
+ * matters when a phone replays a queue of taps made with no signal — an old
+ * Stop can arrive to find a newer job running, and closing that one would
+ * record work that ended before it began.
+ */
+export function stopApplies(at: Date, startedAt: Date): boolean {
+    return at > startedAt;
+}
+
+/**
  * When two mechanics worked one job, the hours it was charged at are shared
  * by how long each actually spent on it — the fair split, and the one that
  * makes per-mechanic efficiency add back up to the job's.

@@ -1200,12 +1200,16 @@ model TimeEntry {
   endedAt    DateTime?
   minutes    Int?
   note       String?
+  /// The phone's own id for a tap made with no signal. Unique per workshop, so
+  /// replaying a queue twice cannot record the same start twice.
+  clientRef  String?
   createdAt  DateTime        @default(now())
 
   tenant   Tenant     @relation(fields: [tenantId], references: [id])
   document Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   mechanic Membership @relation(fields: [mechanicId], references: [id])
 
+  @@unique([tenantId, clientRef])
   @@index([tenantId, mechanicId, startedAt])
   @@index([documentId])
 }

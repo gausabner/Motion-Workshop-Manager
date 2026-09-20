@@ -1,6 +1,6 @@
 import "server-only";
 import type { TenantTx } from "@/lib/tenant-db";
-import { entryMinutes } from "@/lib/time/clock";
+import { entryMinutes, stopApplies } from "@/lib/time/clock";
 
 /**
  * Clocking on and off a job (R4). A mechanic is on one job at a time:
@@ -17,10 +17,19 @@ async function lockMechanic(tx: TenantTx, membershipId: string): Promise<void> {
     await tx.$queryRaw`SELECT id FROM "Membership" WHERE id = ${membershipId} FOR UPDATE`;
 }
 
-/** Stop whatever this mechanic has running. Returns the entry stopped, if any. */
+/**
+ * Stop whatever this mechanic has running. Returns the entry stopped, if any.
+ *
+ * A stop dated before the thing it would stop is refused. Live, that cannot
+ * happen — `at` is now and the entry started earlier. It happens when a phone
+ * hands over a queue of taps made with no signal and, having lost the reply,
+ * hands the same queue over again: the old Stop arrives to find a *newer* job
+ * running, and closing that one would record work that ended before it began.
+ */
 export async function stopRunning(tx: TenantTx, membershipId: string, at: Date): Promise<{ id: string; documentId: string; minutes: number } | null> {
     const open = await tx.timeEntry.findFirst({ where: { mechanicId: membershipId, endedAt: null }, select: { id: true, documentId: true, startedAt: true } });
     if (!open) return null;
+    if (!stopApplies(at, open.startedAt)) return null;
     const minutes = entryMinutes(open.startedAt, at);
     await tx.timeEntry.update({ where: { id: open.id }, data: { endedAt: at, minutes } });
     return { id: open.id, documentId: open.documentId, minutes };
