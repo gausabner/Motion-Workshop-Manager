@@ -72,6 +72,22 @@ export function portalSettings(value: unknown): PortalSettings {
     return raw.success ? raw.data : portalSettingsSchema.parse({});
 }
 
+/** Where the bookkeeper wants each total to land. Blank is fine: the plain export needs none of it. */
+export const accountingSettingsSchema = z.object({
+    salesAccount: z.string().trim().max(20).default("200"),
+    salesTaxType: z.string().trim().max(40).default("Tax on Sales"),
+    debtors: z.string().trim().max(20).default("610"),
+    sales: z.string().trim().max(20).default("200"),
+    tax: z.string().trim().max(20).default("820"),
+});
+
+export type AccountingSettings = z.infer<typeof accountingSettingsSchema>;
+
+export function accountingSettings(value: unknown): AccountingSettings {
+    const raw = accountingSettingsSchema.safeParse(parseSettings(value).accounting ?? {});
+    return raw.success ? raw.data : accountingSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
@@ -80,6 +96,7 @@ export const tenantSettingsSchema = z.object({
     diary: diarySettingsSchema.optional(),
     reminders: reminderSettingsSchema.optional(),
     portal: portalSettingsSchema.optional(),
+    accounting: accountingSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;

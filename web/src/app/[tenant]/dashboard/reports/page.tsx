@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Receipt, Timer, TrendingUp, Wallet } from "lucide-react";
+import { FileSpreadsheet, Receipt, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { dashboardSummary } from "@/lib/dashboard/queries";
@@ -34,6 +34,12 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             blurb: "Supplier invoices still to pay, aged by supplier.",
             figure: summary ? `${money(summary.owedBySupplier, tenant.currency)} owed` : null,
             show: showMoney && can(membership, "products:write"),
+        },
+        {
+            href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",
+            blurb: "Sales, receipts, purchases and payments for a month, as CSV — plain, Xero or a journal.",
+            figure: null,
+            show: showMoney,
         },
         {
             href: `${base}/labour`, icon: Timer, title: "Mechanic time",
