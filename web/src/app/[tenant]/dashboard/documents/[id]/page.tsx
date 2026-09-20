@@ -55,7 +55,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         </p>
                     </div>
                 </div>
-                <DocumentToolbar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} />
+                <DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} />
             </div>
 
             <DeliveryStrip messages={messages} />
@@ -70,6 +70,39 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                     Stock on hand has gone negative on <strong>{short.split(",").join(", ")}</strong>. Either it was never booked in, or the count is wrong — check it on the product.
                 </p>
             )}
+            {(doc.splitFrom || doc.splits.length > 0 || doc.reworkOf || doc.reworks.length > 0) && (
+                <section className="rounded-sm border border-slate-200 bg-white text-sm">
+                    <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Related</h2>
+                    <ul className="divide-y divide-slate-100">
+                        {doc.splitFrom && (
+                            <li className="px-4 py-2">
+                                Split off <Link href={`/${slug}/dashboard/documents/${doc.splitFrom.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.splitFrom.number ?? doc.splitFrom.jobNumber}</Link>
+                                {doc.splitFrom.customer && <span className="text-slate-500"> · the other half is billed to {doc.splitFrom.customer.firstName} {doc.splitFrom.customer.lastName}</span>}
+                            </li>
+                        )}
+                        {doc.splits.map((split) => (
+                            <li key={split.id} className="px-4 py-2">
+                                Split to <Link href={`/${slug}/dashboard/documents/${split.id}`} className="font-medium text-slate-800 hover:text-teal-700">{split.number ?? "a draft invoice"}</Link>
+                                {split.customer && <span className="text-slate-500"> for {split.customer.firstName} {split.customer.lastName}</span>}
+                                <span className="text-slate-500"> · {money(Number(split.total), tenant.currency)}</span>
+                            </li>
+                        ))}
+                        {doc.reworkOf && (
+                            <li className="px-4 py-2">
+                                Redoing <Link href={`/${slug}/dashboard/documents/${doc.reworkOf.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.reworkOf.jobNumber ?? doc.reworkOf.number}</Link>
+                                <span className="text-slate-500"> from {dateShort(doc.reworkOf.postDate)}{doc.reworkReason ? ` — ${doc.reworkReason}` : ""}</span>
+                            </li>
+                        )}
+                        {doc.reworks.map((rework) => (
+                            <li key={rework.id} className="px-4 py-2">
+                                Came back on <Link href={`/${slug}/dashboard/documents/${rework.id}`} className="font-medium text-slate-800 hover:text-teal-700">{rework.jobNumber ?? rework.number}</Link>
+                                <span className="text-slate-500">{rework.reworkReason ? ` — ${rework.reworkReason}` : ""}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
             {serials && (
                 <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
                     {serials} The sale went through; put the serial right on the product so the warranty can be traced.

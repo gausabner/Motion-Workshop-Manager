@@ -110,6 +110,10 @@ export async function getDocument(db: TenantDb, id: string) {
             processedBy: { select: { user: { select: { firstName: true, lastName: true } } } },
             sourceDocument: { select: { id: true, type: true, number: true } },
             derivedDocuments: { select: { id: true, type: true, number: true, state: true } },
+            splitFrom: { select: { id: true, type: true, number: true, jobNumber: true, customer: { select: { firstName: true, lastName: true } } } },
+            splits: { select: { id: true, type: true, number: true, jobNumber: true, state: true, total: true, customer: { select: { firstName: true, lastName: true } } } },
+            reworkOf: { select: { id: true, type: true, number: true, jobNumber: true, postDate: true } },
+            reworks: { select: { id: true, type: true, number: true, jobNumber: true, state: true, reworkReason: true, postDate: true } },
             allocations: PROCESSED_ALLOCATIONS,
         },
     });

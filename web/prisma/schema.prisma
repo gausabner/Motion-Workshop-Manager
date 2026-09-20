@@ -883,6 +883,11 @@ model Document {
   voidReason          String?
   /// Copy / convert / credit origin
   sourceDocumentId    String?
+  /// The document this was split off, when one job is billed to two payers.
+  splitFromId         String?
+  /// The job this redoes under warranty, and why.
+  reworkOfId          String?
+  reworkReason        String?
   createdById         String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -897,6 +902,10 @@ model Document {
   customerSource       CustomerSource?       @relation(fields: [customerSourceId], references: [id])
   sourceDocument       Document?             @relation("DocumentSource", fields: [sourceDocumentId], references: [id])
   derivedDocuments     Document[]            @relation("DocumentSource")
+  splitFrom            Document?             @relation("DocumentSplit", fields: [splitFromId], references: [id])
+  splits               Document[]            @relation("DocumentSplit")
+  reworkOf             Document?             @relation("DocumentRework", fields: [reworkOfId], references: [id])
+  reworks              Document[]            @relation("DocumentRework")
   lines                DocumentLine[]
   statusEvents         DocumentStatusEvent[]
   timeEntries          TimeEntry[]
