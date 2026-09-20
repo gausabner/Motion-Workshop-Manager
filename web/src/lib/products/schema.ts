@@ -19,6 +19,7 @@ export const productSchema = z.object({
     groupId: optionalId,
     categoryId: optionalId,
     supplierId: optionalId,
+    priceMatrixId: optionalId,
     costExTax: money,
     retailPrice: money,
     price2: money,

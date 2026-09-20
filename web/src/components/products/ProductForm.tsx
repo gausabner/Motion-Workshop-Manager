@@ -6,7 +6,7 @@ import { initialActionState } from "@/lib/forms";
 import { saveProduct } from "@/lib/products/actions";
 import type { ProductRecord } from "@/lib/products/queries";
 
-type Options = { groups: { id: string; name: string }[]; categories: { id: string; name: string }[]; suppliers: { id: string; companyName: string }[] };
+type Options = { groups: { id: string; name: string }[]; categories: { id: string; name: string }[]; suppliers: { id: string; companyName: string }[]; matrices: { id: string; name: string }[] };
 
 const field = "h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm";
 const label = "block space-y-1 text-sm";
@@ -84,10 +84,17 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
                     <label className={label}><span className="text-slate-600">Price 2</span><input name="price2" defaultValue={product?.price2 ?? 0} inputMode="decimal" className={`${field} text-right tabular-nums`} /></label>
                     <label className={label}><span className="text-slate-600">Price 3</span><input name="price3" defaultValue={product?.price3 ?? 0} inputMode="decimal" className={`${field} text-right tabular-nums`} /></label>
                     <label className={label}><span className="text-slate-600">Price 4</span><input name="price4" defaultValue={product?.price4 ?? 0} inputMode="decimal" className={`${field} text-right tabular-nums`} /></label>
+                    <label className={`${label} sm:col-span-2`}><span className="text-slate-600">Price follows</span>
+                        <select name="priceMatrixId" defaultValue={product?.priceMatrixId ?? ""} className={field}>
+                            <option value="">nothing — the sell price is whatever is typed here</option>
+                            {options.matrices.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                    </label>
                 </div>
                 {margin !== null && (
                     <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
                         At those prices the margin is <strong className={margin < 0 ? "text-red-700" : "text-slate-700"}>{margin}%</strong> on each one sold, before any discount. Prices are in {currency}.
+                        {product?.priceMatrixId ? " This product is on a price matrix, so its sell price follows its cost." : ""}
                     </p>
                 )}
             </section>

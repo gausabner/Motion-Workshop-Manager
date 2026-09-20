@@ -3,6 +3,7 @@ import { Prisma, type Tenant } from "@prisma/client";
 import type { TenantDb, TenantTx } from "@/lib/tenant-db";
 import { allocateNumber } from "@/lib/documents/numbering";
 import { costTotals, orderStateAfterReceipt, outstanding, processInvoiceError, unitCostExTax } from "@/lib/purchasing/rules";
+import { applyMatrixToProduct } from "@/lib/products/matrix-service";
 
 /**
  * Buying, inside transactions. The shape follows what the benchmark's payables
@@ -260,7 +261,7 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
                 orderBy: { sortOrder: "asc" },
                 select: {
                     id: true, quantity: true, unitCost: true, taxExempt: true, newSellPrice: true, orderLineId: true,
-                    product: { select: { id: true, itemCode: true, type: true, isService: true, dontUpdateQty: true, costExTax: true, retailPrice: true } },
+                    product: { select: { id: true, itemCode: true, type: true, isService: true, dontUpdateQty: true, costExTax: true, retailPrice: true, priceMatrixId: true } },
                 },
             },
         },
@@ -298,6 +299,12 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
         if (cost !== num(product.costExTax) || sell !== null) {
             await tx.product.update({ where: { id: product.id }, data: { costExTax: cost, ...(sell !== null ? { retailPrice: sell } : {}) } });
             if (sell !== null) repriced++;
+        }
+        // A product on a price matrix follows the new cost by itself, unless somebody
+        // decided a price on the receipt — a person's decision outranks the bands.
+        if (sell === null && product.priceMatrixId) {
+            const moved = await applyMatrixToProduct(tx, product.id, cost);
+            if (moved) repriced++;
         }
     }
 

@@ -58,7 +58,7 @@ export async function getProduct(db: TenantDb, id: string) {
             id: true, itemCode: true, description: true, description2: true, type: true, isService: true, vatExempt: true, dontUpdateQty: true,
             brand: true, location: true, comment: true, jobCardComment: true, defaultLabourQty: true,
             qtyOnHand: true, minQty: true, maxQty: true, costExTax: true, costIncTax: true, retailPrice: true, price2: true, price3: true, price4: true,
-            groupId: true, categoryId: true, supplierId: true, archivedAt: true,
+            groupId: true, categoryId: true, supplierId: true, archivedAt: true, priceMatrixId: true,
             isBundle: true, bundlePricing: true, bundlePrinting: true,
             bundleItems: {
                 orderBy: { sortOrder: "asc" },
@@ -84,12 +84,13 @@ export type ProductRecord = NonNullable<Awaited<ReturnType<typeof getProduct>>>;
 
 /** The lists a product form picks from. */
 export async function productOptions(db: TenantDb) {
-    const [groups, categories, suppliers] = await Promise.all([
+    const [groups, categories, suppliers, matrices] = await Promise.all([
         db.productGroup.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
         db.productCategory.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
         db.supplier.findMany({ where: { archivedAt: null }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
+        db.priceMatrix.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     ]);
-    return { groups, categories, suppliers };
+    return { groups, categories, suppliers, matrices };
 }
 
 /** What this product has sold, and what it made, over a window. */

@@ -7,6 +7,7 @@ import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { adjustSchema, bundleItemsSchema, productSchema } from "@/lib/products/schema";
+import { applyMatrixToProduct } from "@/lib/products/matrix-service";
 import { adjustStock, recount } from "@/lib/stock/ledger";
 
 const path = (slug: string, id?: string) => `/${slug}/dashboard/products${id ? `/${id}` : ""}`;
@@ -28,6 +29,7 @@ function read(formData: FormData) {
         groupId: str(formData, "groupId") ?? "",
         categoryId: str(formData, "categoryId") ?? "",
         supplierId: str(formData, "supplierId") ?? "",
+        priceMatrixId: str(formData, "priceMatrixId") ?? "",
         costExTax: n("costExTax"),
         retailPrice: n("retailPrice"),
         price2: n("price2"),
@@ -52,6 +54,11 @@ export async function saveProduct(slug: string, id: string | null, _prev: Action
     try {
         if (id) {
             await db.product.update({ where: { id }, data });
+            // On a matrix, the price follows the cost — unless this save changed the price itself.
+            const before = await db.product.findUnique({ where: { id }, select: { retailPrice: true } });
+            if (parsed.data.priceMatrixId && before && before.retailPrice.toNumber() === parsed.data.retailPrice) {
+                await db.$transaction((tx) => applyMatrixToProduct(tx, id));
+            }
             await db.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Product", entityId: id, action: "UPDATED" } });
         } else {
             const created = await db.product.create({ data: { ...data, tenantId: tenant.id }, select: { id: true } });

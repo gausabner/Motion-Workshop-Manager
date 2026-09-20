@@ -150,6 +150,27 @@ enum ReminderKind {
 
 /// Why stock moved. Every movement is signed: in is positive, out is negative.
 /// How a bundle is priced: one price on the bundle, or the sum of what is in it.
+/// Whether a band's percentage is added to the cost, or taken out of the sell price.
+enum MatrixBasis {
+  /// Sell = cost × (1 + percent).
+  MARKUP
+  /// Sell = cost ÷ (1 − percent): the percentage is of the selling price.
+  MARGIN
+}
+
+/// How a calculated price is tidied up before it goes on the shelf edge.
+enum PriceRounding {
+  NONE
+  /// Up to the next whole unit.
+  WHOLE
+  /// Up to the next 5.
+  NEAREST_5
+  /// Up to the next 10.
+  NEAREST_10
+  /// Down to the nearest .99 above the price.
+  ENDS_99
+}
+
 enum BundlePricing {
   FIXED
   SUM
@@ -347,6 +368,8 @@ model Tenant {
   stockTakes                 StockTake[]
   stockTakeLines             StockTakeLine[]
   bundleItems                BundleItem[]
+  priceMatrices              PriceMatrix[]
+  priceMatrixBands           PriceMatrixBand[]
 }
 
 model User {
@@ -699,6 +722,9 @@ model Product {
   bundlePrinting          BundlePrinting           @default(COMPONENTS)
   bundleItems             BundleItem[]             @relation("BundleParent")
   partOfBundles           BundleItem[]             @relation("BundleComponent")
+  /// When set, the sell price follows this matrix as the cost changes.
+  priceMatrixId           String?
+  priceMatrix             PriceMatrix?             @relation(fields: [priceMatrixId], references: [id])
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -1713,4 +1739,41 @@ model BundleItem {
 
   @@unique([bundleId, componentId])
   @@index([bundleId, sortOrder])
+}
+
+/// Markup bands by cost: cheap parts carry a bigger percentage than expensive
+/// ones, which is how workshops actually price. A product on a matrix has its
+/// sell price recalculated whenever its cost changes.
+model PriceMatrix {
+  id        String        @id @default(cuid())
+  tenantId  String
+  name      String
+  basis     MatrixBasis   @default(MARKUP)
+  rounding  PriceRounding @default(NONE)
+  active    Boolean       @default(true)
+  note      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  bands    PriceMatrixBand[]
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model PriceMatrixBand {
+  id       String   @id @default(cuid())
+  tenantId String
+  matrixId String
+  /// Costs from this much (inclusive).
+  costFrom Decimal  @default(0) @db.Decimal(12, 2)
+  /// Up to this much (inclusive); null means everything above `costFrom`.
+  costTo   Decimal? @db.Decimal(12, 2)
+  percent  Decimal  @db.Decimal(6, 2)
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  matrix PriceMatrix @relation(fields: [matrixId], references: [id], onDelete: Cascade)
+
+  @@index([matrixId, costFrom])
 }
