@@ -25,6 +25,9 @@ export const documentLineSchema = z.object({
     discountPercent: z.coerce.number().finite().min(0).max(100).default(0),
     serialNumbers: opt.nullable(),
     isCustomerSupplied: z.coerce.boolean().default(false),
+    /** Lines expanded from one bundle share a group key; the parent holds the price. */
+    bundleGroup: z.string().max(40).optional().nullable(),
+    bundleRole: z.enum(["PARENT", "COMPONENT"]).optional().nullable(),
 });
 
 export const documentHeaderSchema = z.object({

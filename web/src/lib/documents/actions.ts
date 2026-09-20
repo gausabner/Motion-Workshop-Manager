@@ -189,6 +189,8 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                 discountPercent: line.discountPercent,
                 serialNumbers: line.serialNumbers || null,
                 isCustomerSupplied: line.isCustomerSupplied,
+                bundleGroup: line.bundleGroup || null,
+                bundleRole: line.bundleRole || null,
             };
             if (line.id) {
                 await tx.documentLine.update({ where: { id: line.id }, data });
@@ -362,6 +364,8 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
                     vatRate: !opts.negate && l.vatRate.equals(source.taxRate) ? tenant.salesTaxRate : l.vatRate,
                     discountPercent: l.discountPercent,
                     serialNumbers: l.serialNumbers,
+                    bundleGroup: l.bundleGroup,
+                    bundleRole: l.bundleRole,
                     isCustomerSupplied: l.isCustomerSupplied,
                 },
             });

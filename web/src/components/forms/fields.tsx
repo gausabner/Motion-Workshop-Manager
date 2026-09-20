@@ -20,9 +20,16 @@ export function Field({ label, name, errors, hint, className, children }: { labe
 type TextFieldProps = { label: string; name: string; errors?: Errors; defaultValue?: string | number | null; type?: string; className?: string; hint?: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "defaultValue" | "name" | "type" | "className">;
 
 export function TextField({ label, name, errors, defaultValue, type = "text", className, hint, ...rest }: TextFieldProps) {
+    // A field the caller drives with `value` must not also carry a defaultValue:
+    // React takes both as a contradiction and stops managing the input.
+    const controlled = "value" in rest;
     return (
         <Field label={label} name={name} errors={errors} className={className} hint={hint}>
-            <Input id={name} name={name} type={type} defaultValue={defaultValue ?? ""} className="h-8 text-sm" aria-invalid={!!errors?.[name]} {...rest} />
+            <Input
+                id={name} name={name} type={type} className="h-8 text-sm" aria-invalid={!!errors?.[name]}
+                {...(controlled ? {} : { defaultValue: defaultValue ?? "" })}
+                {...rest}
+            />
         </Field>
     );
 }

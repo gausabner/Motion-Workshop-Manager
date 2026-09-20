@@ -22,6 +22,8 @@ export type PdfLine = {
     discountPercent: number;
     lineTotal: number;
     serialNumbers?: string | null;
+    /** Printed indented, under the bundle it belongs to. */
+    isBundleComponent?: boolean;
 };
 
 export type DocumentPdfInput = {
@@ -104,14 +106,18 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
 
     y = table(doc, y, {
         columns,
-        rows: input.lines.map((line) => ({
-            code: line.itemCode ?? "",
-            description: line.serialNumbers ? `${line.description}\nSerial: ${line.serialNumbers}` : line.description,
-            quantity: formatQuantity(line.quantity),
-            unitPrice: money(line.unitPrice),
-            discount: line.discountPercent ? `${line.discountPercent}%` : "",
-            amount: money(line.lineTotal),
-        })),
+        rows: input.lines.map((line) => {
+            // What is inside a bundle is listed under it, without repeating money that the bundle line already carries.
+            const included = line.isBundleComponent && line.lineTotal === 0;
+            return {
+                code: line.isBundleComponent ? "" : line.itemCode ?? "",
+                description: `${line.isBundleComponent ? "   · " : ""}${line.serialNumbers ? `${line.description}\nSerial: ${line.serialNumbers}` : line.description}`,
+                quantity: formatQuantity(line.quantity),
+                unitPrice: included ? "" : money(line.unitPrice),
+                discount: line.discountPercent ? `${line.discountPercent}%` : "",
+                amount: included ? "included" : money(line.lineTotal),
+            };
+        }),
         onNewPage: (page) => drawLetterhead(page, input.workshop, title, input.number ?? ""),
     });
 

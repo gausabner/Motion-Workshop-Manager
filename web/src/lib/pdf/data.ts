@@ -71,7 +71,7 @@ export async function documentPdfInput(db: TenantDb, tenant: Tenant, id: string)
         include: {
             customer: { select: { firstName: true, lastName: true, postalAddress1: true, postalSuburb: true, postalCity: true, postalPostcode: true, mobile: true, email: true, vatNumber: true } },
             vehicle: { select: { plate: true, make: true, model: true, year: true, odometer: true, vin: true } },
-            lines: { orderBy: { sortOrder: "asc" }, include: { product: { select: { itemCode: true } } } },
+            lines: { orderBy: { sortOrder: "asc" }, include: { product: { select: { itemCode: true, bundlePrinting: true } } } },
             serviceAdvisor: { select: { user: { select: { firstName: true, lastName: true } } } },
             mechanic: { select: { user: { select: { firstName: true, lastName: true } } } },
             allocations: { where: { payment: { state: "PROCESSED" } }, select: { amount: true } },
@@ -81,7 +81,14 @@ export async function documentPdfInput(db: TenantDb, tenant: Tenant, id: string)
 
     const pricesIncludeTax = doc.pricesIncludeTax;
     // Derived at render, never read off the row: a printed invoice cannot be allowed to show a stale figure.
-    const lines: PdfLine[] = doc.lines.map((line) => {
+    // How each bundle on this document chooses to print, read off its parent line.
+    const bundlePrinting = new Map(
+        doc.lines.filter((l) => l.bundleRole === "PARENT" && l.bundleGroup).map((l) => [l.bundleGroup!, l.product?.bundlePrinting ?? "COMPONENTS"]),
+    );
+    const lines: PdfLine[] = doc.lines
+        // A bundle that prints as one line hides what is inside it; the money sits on the parent either way.
+        .filter((line) => !(line.bundleRole === "COMPONENT" && line.bundleGroup && bundlePrinting.get(line.bundleGroup) === "BUNDLE_ONLY"))
+        .map((line) => {
         const computed = calculateLine(
             { quantity: line.quantity.toNumber(), unitPrice: line.unitPrice.toNumber(), vatRate: line.vatRate.toNumber(), discountPercent: line.discountPercent.toNumber() },
             pricesIncludeTax,
@@ -94,6 +101,7 @@ export async function documentPdfInput(db: TenantDb, tenant: Tenant, id: string)
             discountPercent: line.discountPercent.toNumber(),
             lineTotal: pricesIncludeTax ? computed.lineTotal : computed.lineSubtotal,
             serialNumbers: line.serialNumbers,
+            isBundleComponent: line.bundleRole === "COMPONENT",
         };
     });
 

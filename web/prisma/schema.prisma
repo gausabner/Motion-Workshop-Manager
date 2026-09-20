@@ -149,6 +149,26 @@ enum ReminderKind {
 }
 
 /// Why stock moved. Every movement is signed: in is positive, out is negative.
+/// How a bundle is priced: one price on the bundle, or the sum of what is in it.
+enum BundlePricing {
+  FIXED
+  SUM
+}
+
+/// How much of a bundle the customer sees on a printed document.
+enum BundlePrinting {
+  /// Every component, with its own quantity.
+  COMPONENTS
+  /// Just the bundle line.
+  BUNDLE_ONLY
+}
+
+/// Where a line sits in a bundle. Plain lines have neither.
+enum BundleRole {
+  PARENT
+  COMPONENT
+}
+
 enum StockTakeState {
   /// Being counted; can be saved and come back to.
   DRAFT
@@ -326,6 +346,7 @@ model Tenant {
   supplierPaymentAllocations SupplierPaymentAllocation[]
   stockTakes                 StockTake[]
   stockTakeLines             StockTakeLine[]
+  bundleItems                BundleItem[]
 }
 
 model User {
@@ -672,6 +693,12 @@ model Product {
   purchaseOrderLines      PurchaseOrderLine[]
   supplierInvoiceLines    SupplierInvoiceLine[]
   stockTakeLines          StockTakeLine[]
+  /// True when this product is a bundle of others.
+  isBundle                Boolean                  @default(false)
+  bundlePricing           BundlePricing            @default(FIXED)
+  bundlePrinting          BundlePrinting           @default(COMPONENTS)
+  bundleItems             BundleItem[]             @relation("BundleParent")
+  partOfBundles           BundleItem[]             @relation("BundleComponent")
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -879,6 +906,9 @@ model DocumentLine {
   document       Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
   product        Product?        @relation(fields: [productId], references: [id])
   inspectionItem InspectionItem?
+  /// Lines expanded from one bundle share this key; the parent carries the price, the components the cost and the stock.
+  bundleGroup    String?
+  bundleRole     BundleRole?
 
   @@index([documentId, sortOrder])
   @@index([tenantId, productId])
@@ -1664,4 +1694,23 @@ model StockTakeLine {
 
   @@unique([takeId, productId])
   @@index([tenantId, takeId])
+}
+
+/// What is inside a bundle — "minor service" being oil, a filter and an hour
+/// of labour. The components are real products, so selling a bundle moves
+/// their stock and costs what they cost.
+model BundleItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  bundleId    String
+  componentId String
+  quantity    Decimal @default(1) @db.Decimal(12, 2)
+  sortOrder   Int     @default(0)
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  bundle    Product @relation("BundleParent", fields: [bundleId], references: [id], onDelete: Cascade)
+  component Product @relation("BundleComponent", fields: [componentId], references: [id])
+
+  @@unique([bundleId, componentId])
+  @@index([bundleId, sortOrder])
 }

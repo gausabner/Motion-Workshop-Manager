@@ -41,6 +41,8 @@ function toEditorLines(doc: DocumentRecord): EditorLine[] {
         discountPercent: Number(l.discountPercent),
         serialNumbers: l.serialNumbers,
         isCustomerSupplied: l.isCustomerSupplied,
+        bundleGroup: l.bundleGroup,
+        bundleRole: l.bundleRole,
     }));
 }
 

@@ -26,6 +26,9 @@ export const productSchema = z.object({
     price4: money,
     minQty: z.coerce.number().min(0).max(999_999),
     maxQty: z.coerce.number().min(0).max(999_999),
+    isBundle: z.coerce.boolean(),
+    bundlePricing: z.enum(["FIXED", "SUM"]),
+    bundlePrinting: z.enum(["COMPONENTS", "BUNDLE_ONLY"]),
     defaultLabourQty: z.union([z.literal(""), z.coerce.number().min(0).max(999)]).optional().transform((v) => (v === "" || v === undefined ? null : Number(v))),
 });
 
@@ -36,3 +39,8 @@ export const adjustSchema = z.object({
     kind: z.enum(["ADJUSTMENT", "STOCKTAKE", "OPENING"]),
     note: z.string().trim().min(3, "Say why, so the movement explains itself later").max(200),
 });
+
+export const bundleItemsSchema = z.array(z.object({
+    componentId: z.string().min(1).max(40),
+    quantity: z.coerce.number().min(0.01, "A component needs a quantity").max(9_999),
+})).max(50, "Keep a bundle under 50 components");

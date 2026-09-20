@@ -7,6 +7,7 @@ import { movementsFor } from "@/lib/stock/ledger";
 import { marginOf, movesStock } from "@/lib/stock/rules";
 import { ProductForm } from "@/components/products/ProductForm";
 import { StockPanel } from "@/components/products/StockPanel";
+import { BundlePanel } from "@/components/products/BundlePanel";
 import { ArchiveProductButton } from "@/components/products/ArchiveProductButton";
 import { dateShortIn, money } from "@/lib/format";
 
@@ -28,7 +29,10 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
     if (!can(membership, "documents:see_cost")) notFound();
     const product = await getProduct(db, id);
     if (!product) notFound();
-    const [options, movements, sales] = await Promise.all([productOptions(db), movementsFor(db, id), productSales(db, id, aYearAgo())]);
+    const [options, movements, sales, bundleOptions] = await Promise.all([
+        productOptions(db), movementsFor(db, id), productSales(db, id, aYearAgo()),
+        db.product.findMany({ where: { archivedAt: null, isBundle: false }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, type: true, costExTax: true, retailPrice: true } }),
+    ]);
 
     // Every line is measured on its own document's tax basis, then added up.
     const margin = sales.reduce(
@@ -53,7 +57,15 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                <ProductForm tenant={slug} product={product} options={options} currency={tenant.currency} />
+                <div className="space-y-4">
+                    <ProductForm tenant={slug} product={product} options={options} currency={tenant.currency} />
+                    {(product.isBundle || product.bundleItems.length > 0) && can(membership, "products:write") && (
+                        <BundlePanel
+                            tenant={slug} product={product} currency={tenant.currency}
+                            products={bundleOptions.map((b) => ({ id: b.id, itemCode: b.itemCode, description: b.description, type: b.type, cost: b.costExTax.toNumber(), price: b.retailPrice.toNumber() }))}
+                        />
+                    )}
+                </div>
 
                 <div className="space-y-4">
                     <StockPanel

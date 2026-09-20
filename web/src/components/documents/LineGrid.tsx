@@ -4,6 +4,7 @@ import { Plus, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LINE_TYPE_LABELS, PRODUCT_TO_LINE_TYPE } from "@/lib/documents/types";
 import { calculateLine, round2 } from "@/lib/documents/totals";
+import { expandBundle } from "@/lib/products/bundles";
 import { money } from "@/lib/format";
 import type { EditorOptions } from "@/lib/documents/queries";
 import type { LineType } from "@prisma/client";
@@ -11,6 +12,9 @@ import type { LineType } from "@prisma/client";
 export type EditorLine = {
     key: string;
     id?: string;
+    /** Lines expanded from one bundle share this; the parent carries the price. */
+    bundleGroup?: string | null;
+    bundleRole?: "PARENT" | "COMPONENT" | null;
     productId: string | null;
     lineType: LineType;
     description: string;
@@ -40,6 +44,14 @@ type Props = {
 const cell = "h-8 w-full rounded-sm border border-slate-200 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50 disabled:text-slate-500";
 const num = `${cell} text-right tabular-nums`;
 
+/** Keys for expanded bundle lines. Module-level, so nothing random is read while rendering. */
+let bundleSeq = 0;
+function nextBundleKeys(): { group: string; key: () => string } {
+    const group = `b${Date.now().toString(36)}${(bundleSeq += 1)}`;
+    let n = 0;
+    return { group, key: () => `${group}-${(n += 1)}` };
+}
+
 export function newLine(vatRate: number): EditorLine {
     return {
         key: `new-${Math.random().toString(36).slice(2)}`,
@@ -67,6 +79,40 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
         const p = products.find((x) => x.itemCode.toLowerCase() === itemCode.trim().toLowerCase());
         if (!p) {
             update(index, { productId: null });
+            return;
+        }
+        // A bundle becomes the lines it is made of, so stock moves and the job costs what it cost.
+        if (p.isBundle && p.bundleItems.length > 0) {
+            const { group, key } = nextBundleKeys();
+            const expanded = expandBundle(
+                {
+                    productId: p.id, description: p.description, lineType: PRODUCT_TO_LINE_TYPE[p.type], pricing: p.bundlePricing,
+                    price: p.retailPrice, vatRate: p.vatExempt ? 0 : taxRate,
+                    components: p.bundleItems.map((c) => ({
+                        productId: c.productId, description: c.description, lineType: PRODUCT_TO_LINE_TYPE[c.type],
+                        quantity: c.quantity, unitPrice: c.retailPrice, unitCost: c.costExTax, vatRate: c.vatExempt ? 0 : taxRate,
+                    })),
+                },
+                lines[index]?.quantity || 1,
+                group,
+            );
+            onChange((prev) => [
+                ...prev.slice(0, index),
+                ...expanded.map((line) => ({
+                    ...newLine(taxRate),
+                    key: key(),
+                    bundleGroup: line.bundleGroup,
+                    bundleRole: line.bundleRole,
+                    productId: line.productId,
+                    lineType: line.lineType,
+                    description: line.description,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    unitCost: line.unitCost,
+                    vatRate: line.vatRate,
+                })),
+                ...prev.slice(index + 1),
+            ]);
             return;
         }
         onChange((prev) =>
@@ -128,8 +174,11 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                             const t = calculateLine(line, pricesIncludeTax);
                             const margin = t.lineSubtotal > 0 ? round2(((t.lineSubtotal - t.cost) / t.lineSubtotal) * 100) : 0;
                             return (
-                                <tr key={line.key} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
-                                    <td className="text-center text-slate-300"><GripVertical className="w-3.5 h-3.5 inline" /></td>
+                                <tr key={line.key} className={line.bundleRole === "COMPONENT" ? "border-b border-slate-100 last:border-0 bg-slate-50/70 hover:bg-slate-50" : "border-b border-slate-100 last:border-0 hover:bg-slate-50/60"}>
+                                    <td className="text-center text-slate-300">
+                                        {/* What is inside a bundle sits under it, so the grid reads the way the document prints. */}
+                                        {line.bundleRole === "COMPONENT" ? <span className="text-slate-400" title="Part of the bundle above">└</span> : <GripVertical className="w-3.5 h-3.5 inline" />}
+                                    </td>
                                     <td className="px-1 py-1">
                                         <input
                                             className={cell}

@@ -55,6 +55,21 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
                     <label className={label}><span className="text-slate-600">Labour hours by default</span><input name="defaultLabourQty" defaultValue={product?.defaultLabourQty ?? ""} inputMode="decimal" className={field} /></label>
                 </div>
                 <div className="flex flex-wrap gap-4 border-t border-slate-100 px-4 py-2 text-sm text-slate-600">
+                    <label className="flex items-center gap-2"><input type="checkbox" name="isBundle" defaultChecked={product?.isBundle} className="accent-teal-600" />A bundle of other products</label>
+                    <label className="flex items-center gap-2">Priced
+                        <select name="bundlePricing" defaultValue={product?.bundlePricing ?? "FIXED"} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm">
+                            <option value="FIXED">at the bundle price</option>
+                            <option value="SUM">as the sum of what is in it</option>
+                        </select>
+                    </label>
+                    <label className="flex items-center gap-2">Printed
+                        <select name="bundlePrinting" defaultValue={product?.bundlePrinting ?? "COMPONENTS"} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm">
+                            <option value="COMPONENTS">showing what is in it</option>
+                            <option value="BUNDLE_ONLY">as one line</option>
+                        </select>
+                    </label>
+                </div>
+                <div className="flex flex-wrap gap-4 border-t border-slate-100 px-4 py-2 text-sm text-slate-600">
                     <label className="flex items-center gap-2"><input type="checkbox" name="isService" defaultChecked={product?.isService} className="accent-teal-600" />A service, not a thing on a shelf</label>
                     <label className="flex items-center gap-2"><input type="checkbox" name="dontUpdateQty" defaultChecked={product?.dontUpdateQty} className="accent-teal-600" />Do not count stock for this</label>
                     <label className="flex items-center gap-2"><input type="checkbox" name="vatExempt" defaultChecked={product?.vatExempt} className="accent-teal-600" />VAT exempt</label>

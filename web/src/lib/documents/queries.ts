@@ -153,7 +153,14 @@ export async function getEditorOptions(db: TenantDb) {
     const [advisors, mechanics, products, services] = await Promise.all([
         db.membership.findMany({ where: { status: "ACTIVE", isServiceAdvisor: true }, select: { id: true, user: { select: { firstName: true, lastName: true } } } }),
         db.membership.findMany({ where: { status: "ACTIVE", isMechanic: true }, select: { id: true, user: { select: { firstName: true, lastName: true } } } }),
-        db.product.findMany({ where: { archivedAt: null }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, type: true, vatExempt: true, retailPrice: true, price2: true, price3: true, price4: true, costExTax: true, defaultLabourQty: true, jobCardComment: true } }),
+        db.product.findMany({ where: { archivedAt: null }, orderBy: { itemCode: "asc" }, take: 500, select: {
+            id: true, itemCode: true, description: true, type: true, vatExempt: true, retailPrice: true, price2: true, price3: true, price4: true,
+            costExTax: true, defaultLabourQty: true, jobCardComment: true, isBundle: true, bundlePricing: true,
+            bundleItems: {
+                orderBy: { sortOrder: "asc" },
+                select: { quantity: true, component: { select: { id: true, description: true, type: true, vatExempt: true, retailPrice: true, costExTax: true } } },
+            },
+        } }),
         db.appointmentType.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, description: true, estimatedHours: true } }),
     ]);
     return {
@@ -168,6 +175,15 @@ export async function getEditorOptions(db: TenantDb) {
             price4: p.price4.toNumber(),
             costExTax: p.costExTax.toNumber(),
             defaultLabourQty: p.defaultLabourQty?.toNumber() ?? null,
+            bundleItems: p.bundleItems.map((b) => ({
+                quantity: b.quantity.toNumber(),
+                productId: b.component.id,
+                description: b.component.description,
+                type: b.component.type,
+                vatExempt: b.component.vatExempt,
+                retailPrice: b.component.retailPrice.toNumber(),
+                costExTax: b.component.costExTax.toNumber(),
+            })),
         })),
     };
 }

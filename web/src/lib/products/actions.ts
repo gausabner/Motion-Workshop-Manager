@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client";
 import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
-import { adjustSchema, productSchema } from "@/lib/products/schema";
+import { adjustSchema, bundleItemsSchema, productSchema } from "@/lib/products/schema";
 import { adjustStock, recount } from "@/lib/stock/ledger";
 
 const path = (slug: string, id?: string) => `/${slug}/dashboard/products${id ? `/${id}` : ""}`;
@@ -36,6 +36,9 @@ function read(formData: FormData) {
         minQty: n("minQty"),
         maxQty: n("maxQty"),
         defaultLabourQty: str(formData, "defaultLabourQty") ?? "",
+        isBundle: bool(formData, "isBundle"),
+        bundlePricing: str(formData, "bundlePricing") ?? "FIXED",
+        bundlePrinting: str(formData, "bundlePrinting") ?? "COMPONENTS",
     };
 }
 
@@ -94,4 +97,30 @@ export async function recountAction(slug: string, productId: string): Promise<{ 
     const { was, now } = await db.$transaction((tx) => recount(tx, productId));
     revalidatePath(path(slug, productId));
     return { ok: true, message: was === now ? `Checked: ${now} on hand, matching its movements.` : `Corrected from ${was} to ${now}, from its movements.` };
+}
+
+/** What is inside a bundle. Saved whole, so removing a component is just leaving it out. */
+export async function saveBundleItems(slug: string, bundleId: string, items: unknown): Promise<{ ok: boolean; message: string }> {
+    const { db, tenant, membership } = await requireTenant(slug);
+    assertCan(membership, "products:write");
+    const parsed = bundleItemsSchema.safeParse(items);
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the components" };
+    if (parsed.data.some((i) => i.componentId === bundleId)) return { ok: false, message: "A bundle cannot contain itself." };
+
+    const ids = parsed.data.map((i) => i.componentId);
+    const components = ids.length ? await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, isBundle: true, description: true } }) : [];
+    if (components.length !== new Set(ids).size) return { ok: false, message: "One of those products is no longer there." };
+    // One level only: a bundle inside a bundle makes stock and margin very hard to follow.
+    const nested = components.find((c) => c.isBundle);
+    if (nested) return { ok: false, message: `${nested.description} is itself a bundle, and a bundle cannot go inside another.` };
+
+    await db.$transaction(async (tx) => {
+        await tx.bundleItem.deleteMany({ where: { bundleId } });
+        for (const [index, item] of parsed.data.entries()) {
+            await tx.bundleItem.create({ data: { tenantId: tenant.id, bundleId, componentId: item.componentId, quantity: item.quantity, sortOrder: index } });
+        }
+        await tx.product.update({ where: { id: bundleId }, data: { isBundle: parsed.data.length > 0 } });
+    });
+    revalidatePath(path(slug, bundleId));
+    return { ok: true, message: parsed.data.length === 0 ? "Emptied; this is no longer a bundle." : `Saved. ${parsed.data.length} ${parsed.data.length === 1 ? "item" : "items"} in this bundle.` };
 }

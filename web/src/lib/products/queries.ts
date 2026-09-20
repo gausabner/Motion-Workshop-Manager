@@ -59,6 +59,11 @@ export async function getProduct(db: TenantDb, id: string) {
             brand: true, location: true, comment: true, jobCardComment: true, defaultLabourQty: true,
             qtyOnHand: true, minQty: true, maxQty: true, costExTax: true, costIncTax: true, retailPrice: true, price2: true, price3: true, price4: true,
             groupId: true, categoryId: true, supplierId: true, archivedAt: true,
+            isBundle: true, bundlePricing: true, bundlePrinting: true,
+            bundleItems: {
+                orderBy: { sortOrder: "asc" },
+                select: { quantity: true, component: { select: { id: true, itemCode: true, description: true, type: true, retailPrice: true, costExTax: true } } },
+            },
         },
     });
     if (!p) return null;
@@ -68,6 +73,10 @@ export async function getProduct(db: TenantDb, id: string) {
         costExTax: num(p.costExTax), costIncTax: num(p.costIncTax),
         retailPrice: num(p.retailPrice), price2: num(p.price2), price3: num(p.price3), price4: num(p.price4),
         defaultLabourQty: p.defaultLabourQty ? p.defaultLabourQty.toNumber() : null,
+        bundleItems: p.bundleItems.map((b) => ({
+            componentId: b.component.id, itemCode: b.component.itemCode, description: b.component.description, type: b.component.type,
+            quantity: b.quantity.toNumber(), retailPrice: b.component.retailPrice.toNumber(), costExTax: b.component.costExTax.toNumber(),
+        })),
     };
 }
 
