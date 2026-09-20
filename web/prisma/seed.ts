@@ -114,6 +114,15 @@ async function main() {
         });
     }
 
+    for (const supplier of [
+        { companyName: "Autoparts Namibia", accountNumber: "TIPTOP01", city: "Windhoek", phone: "+264 61 234 100", email: "orders@autoparts.com.na", paymentTermsDays: 30 },
+        { companyName: "Tyre Rack Windhoek", accountNumber: "TR-118", city: "Windhoek", phone: "+264 61 234 200", email: "sales@tyrerack.com.na", paymentTermsDays: 30 },
+        { companyName: "Lubricants & Filters CC", accountNumber: "LF-22", city: "Okahandja", phone: "+264 62 501 900", email: "accounts@lubefilters.com.na", paymentTermsDays: 14 },
+    ]) {
+        const existing = await prisma.supplier.findFirst({ where: { tenantId: tenant.id, companyName: supplier.companyName }, select: { id: true } });
+        if (!existing) await prisma.supplier.create({ data: { tenantId: tenant.id, ...supplier } });
+    }
+
     const groups = await prisma.productGroup.findMany({ where: { tenantId: tenant.id } });
     const g = (name: string) => groups.find((x) => x.name === name)?.id;
     const cats = await prisma.productCategory.findMany({ where: { tenantId: tenant.id } });

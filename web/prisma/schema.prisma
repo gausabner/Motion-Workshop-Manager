@@ -149,6 +149,23 @@ enum ReminderKind {
 }
 
 /// Why stock moved. Every movement is signed: in is positive, out is negative.
+enum PurchaseOrderState {
+  /// Reorder suggestion: typed up, not sent to the supplier.
+  SUGGESTED
+  ORDERED
+  /// Everything on it has arrived.
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierInvoiceState {
+  DRAFT
+  PROCESSED
+  /// Fully paid — derived from allocations, never set by hand.
+  CLOSED
+  VOID
+}
+
 enum StockMovementKind {
   SALE
   CREDIT
@@ -214,6 +231,8 @@ enum SequenceKey {
   INSPECTION
   PURCHASE_ORDER
   SUPPLIER_PAYMENT
+  /// Reserved: supplier invoices carry the supplier's own number, not ours.
+  SUPPLIER_INVOICE
 }
 
 // ───────────────────────── tenancy & people ─────────────────────────
@@ -291,6 +310,10 @@ model Tenant {
   campaigns               Campaign[]
   campaignRecipients      CampaignRecipient[]
   stockMovements          StockMovement[]
+  purchaseOrders          PurchaseOrder[]
+  purchaseOrderLines      PurchaseOrderLine[]
+  supplierInvoices        SupplierInvoice[]
+  supplierInvoiceLines    SupplierInvoiceLine[]
 }
 
 model User {
@@ -343,6 +366,8 @@ model Membership {
   remindersActed     Reminder[]
   campaigns          Campaign[]
   stockMovements     StockMovement[]
+  purchaseOrders     PurchaseOrder[]
+  supplierInvoices   SupplierInvoice[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -551,9 +576,11 @@ model Supplier {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  contacts Contact[]
-  products Product[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  contacts         Contact[]
+  products         Product[]
+  purchaseOrders   PurchaseOrder[]
+  supplierInvoices SupplierInvoice[]
 
   @@index([tenantId, companyName])
 }
@@ -627,6 +654,8 @@ model Product {
   inspectionTemplateItems InspectionTemplateItem[]
   inspectionItems         InspectionItem[]
   stockMovements          StockMovement[]
+  purchaseOrderLines      PurchaseOrderLine[]
+  supplierInvoiceLines    SupplierInvoiceLine[]
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -774,26 +803,28 @@ model Document {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  tenant           Tenant                @relation(fields: [tenantId], references: [id])
-  customer         Customer?             @relation(fields: [customerId], references: [id])
-  vehicle          Vehicle?              @relation(fields: [vehicleId], references: [id])
-  serviceAdvisor   Membership?           @relation("DocumentAdvisor", fields: [serviceAdvisorId], references: [id])
-  mechanic         Membership?           @relation("DocumentMechanic", fields: [mechanicId], references: [id])
-  createdBy        Membership?           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
-  processedBy      Membership?           @relation("DocumentProcessedBy", fields: [processedById], references: [id])
-  customerSource   CustomerSource?       @relation(fields: [customerSourceId], references: [id])
-  sourceDocument   Document?             @relation("DocumentSource", fields: [sourceDocumentId], references: [id])
-  derivedDocuments Document[]            @relation("DocumentSource")
-  lines            DocumentLine[]
-  statusEvents     DocumentStatusEvent[]
-  timeEntries      TimeEntry[]
-  allocations      PaymentAllocation[]
-  credits          Credit[]
-  messages         Message[]
-  bookingRequest   BookingRequest?
-  inspections      Inspection[]
-  reminders        Reminder[]
-  stockMovements   StockMovement[]
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  customer             Customer?             @relation(fields: [customerId], references: [id])
+  vehicle              Vehicle?              @relation(fields: [vehicleId], references: [id])
+  serviceAdvisor       Membership?           @relation("DocumentAdvisor", fields: [serviceAdvisorId], references: [id])
+  mechanic             Membership?           @relation("DocumentMechanic", fields: [mechanicId], references: [id])
+  createdBy            Membership?           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  processedBy          Membership?           @relation("DocumentProcessedBy", fields: [processedById], references: [id])
+  customerSource       CustomerSource?       @relation(fields: [customerSourceId], references: [id])
+  sourceDocument       Document?             @relation("DocumentSource", fields: [sourceDocumentId], references: [id])
+  derivedDocuments     Document[]            @relation("DocumentSource")
+  lines                DocumentLine[]
+  statusEvents         DocumentStatusEvent[]
+  timeEntries          TimeEntry[]
+  allocations          PaymentAllocation[]
+  credits              Credit[]
+  messages             Message[]
+  bookingRequest       BookingRequest?
+  inspections          Inspection[]
+  reminders            Reminder[]
+  stockMovements       StockMovement[]
+  purchaseOrderLines   PurchaseOrderLine[]
+  supplierInvoiceLines SupplierInvoiceLine[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -1366,28 +1397,158 @@ model CampaignRecipient {
 /// it can always be rebuilt from here, which is what makes the number
 /// trustworthy rather than merely present.
 model StockMovement {
-  id             String            @id @default(cuid())
-  tenantId       String
-  productId      String
-  at             DateTime          @default(now())
-  kind           StockMovementKind
+  id                    String            @id @default(cuid())
+  tenantId              String
+  productId             String
+  at                    DateTime          @default(now())
+  kind                  StockMovementKind
   /// Signed: negative leaves the shelf, positive arrives.
-  quantity       Decimal           @db.Decimal(12, 2)
+  quantity              Decimal           @db.Decimal(12, 2)
   /// What it was worth at that moment, per unit, excluding tax.
-  unitCost       Decimal           @default(0) @db.Decimal(12, 2)
-  documentId     String?
+  unitCost              Decimal           @default(0) @db.Decimal(12, 2)
+  documentId            String?
   /// One movement per document line, so processing twice cannot move stock twice.
-  documentLineId String?
-  note           String?
-  byId           String?
-  createdAt      DateTime          @default(now())
+  documentLineId        String?
+  /// The same, for goods arriving on a supplier invoice.
+  supplierInvoiceLineId String?           @unique
+  note                  String?
+  byId                  String?
+  createdAt             DateTime          @default(now())
 
-  tenant   Tenant      @relation(fields: [tenantId], references: [id])
-  product  Product     @relation(fields: [productId], references: [id])
-  document Document?   @relation(fields: [documentId], references: [id])
-  by       Membership? @relation(fields: [byId], references: [id])
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
+  document            Document?            @relation(fields: [documentId], references: [id])
+  supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
+  by                  Membership?          @relation(fields: [byId], references: [id])
 
   @@unique([documentLineId, kind])
   @@index([tenantId, productId, at])
   @@index([tenantId, at])
+}
+
+/// An order placed with a supplier. A commitment only: nothing moves on the
+/// shelf until the goods arrive on a supplier invoice.
+model PurchaseOrder {
+  id               String             @id @default(cuid())
+  tenantId         String
+  number           String?
+  supplierId       String
+  state            PurchaseOrderState @default(SUGGESTED)
+  orderDate        DateTime           @db.Date
+  /// When the whole order is expected; each line may have its own.
+  dueDate          DateTime?          @db.Date
+  reference        String?
+  note             String?
+  /// The purchase tax as it stood when the order was raised.
+  taxName          String             @default("VAT")
+  taxRate          Decimal            @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax Boolean            @default(false)
+  createdById      String?
+  orderedAt        DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy        Membership?         @relation(fields: [createdById], references: [id])
+  lines            PurchaseOrderLine[]
+  supplierInvoices SupplierInvoice[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, state, orderDate])
+}
+
+model PurchaseOrderLine {
+  id          String    @id @default(cuid())
+  tenantId    String
+  orderId     String
+  sortOrder   Int       @default(0)
+  productId   String?
+  /// Copied when the line is written, so a renamed product does not rewrite the order.
+  itemCode    String?
+  description String
+  quantity    Decimal   @default(1) @db.Decimal(12, 2)
+  unitCost    Decimal   @default(0) @db.Decimal(12, 2)
+  /// The job these parts are for — what makes true job costing possible.
+  documentId  String?
+  dueDate     DateTime? @db.Date
+  note        String?
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  order                PurchaseOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product              Product?              @relation(fields: [productId], references: [id])
+  document             Document?             @relation(fields: [documentId], references: [id])
+  supplierInvoiceLines SupplierInvoiceLine[]
+
+  @@index([orderId, sortOrder])
+}
+
+/// What the supplier billed, and what actually arrived. Processing one puts the
+/// stock on the shelf at the cost on the line.
+model SupplierInvoice {
+  id               String               @id @default(cuid())
+  tenantId         String
+  supplierId       String
+  /// Their number, not ours: we are not numbering the supplier's document.
+  supplierNumber   String
+  otherReference   String?
+  state            SupplierInvoiceState @default(DRAFT)
+  postDate         DateTime             @db.Date
+  dueDate          DateTime?            @db.Date
+  orderId          String?
+  /// Suppliers quote differently from one another, so tax is snapshotted per document.
+  taxName          String               @default("VAT")
+  taxRate          Decimal              @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax Boolean              @default(false)
+  freight          Decimal              @default(0) @db.Decimal(12, 2)
+  subtotal         Decimal              @default(0) @db.Decimal(12, 2)
+  taxTotal         Decimal              @default(0) @db.Decimal(12, 2)
+  total            Decimal              @default(0) @db.Decimal(12, 2)
+  note             String?
+  createdById      String?
+  processedAt      DateTime?
+  voidedAt         DateTime?
+  voidReason       String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  tenant    Tenant                @relation(fields: [tenantId], references: [id])
+  supplier  Supplier              @relation(fields: [supplierId], references: [id])
+  order     PurchaseOrder?        @relation(fields: [orderId], references: [id])
+  createdBy Membership?           @relation(fields: [createdById], references: [id])
+  lines     SupplierInvoiceLine[]
+
+  @@unique([tenantId, supplierId, supplierNumber])
+  @@index([tenantId, state, postDate])
+}
+
+model SupplierInvoiceLine {
+  id           String   @id @default(cuid())
+  tenantId     String
+  invoiceId    String
+  sortOrder    Int      @default(0)
+  productId    String?
+  itemCode     String?
+  description  String
+  quantity     Decimal  @default(1) @db.Decimal(12, 2)
+  unitCost     Decimal  @default(0) @db.Decimal(12, 2)
+  taxExempt    Boolean  @default(false)
+  /// Which order line this fulfils: receipt is matched per line, so one
+  /// ordered line can arrive across several invoices.
+  orderLineId  String?
+  documentId   String?
+  /// A new sell price for the product, decided from the cost just received. Applied when the invoice is processed.
+  newSellPrice Decimal? @db.Decimal(12, 2)
+  note         String?
+
+  tenant         Tenant             @relation(fields: [tenantId], references: [id])
+  stockMovements StockMovement[]
+  invoice        SupplierInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product        Product?           @relation(fields: [productId], references: [id])
+  orderLine      PurchaseOrderLine? @relation(fields: [orderLineId], references: [id])
+  document       Document?          @relation(fields: [documentId], references: [id])
+
+  @@index([invoiceId, sortOrder])
+  @@index([orderLineId])
 }

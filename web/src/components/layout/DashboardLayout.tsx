@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt, Timer, Megaphone, TrendingUp, Package } from "lucide-react";
+import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt, Timer, Megaphone, TrendingUp, Package, Truck, Building2 } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
@@ -46,6 +46,8 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                     <Link href={`${base}/dashboard/reminders`} className={linkBase}><Bell className="h-[12px] w-[12px]" />Reminders</Link>
                     <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
                     <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
+                    {cost && <Link href={`${base}/dashboard/purchasing`} className={linkBase}><Truck className="h-[12px] w-[12px]" />Buying</Link>}
+                    {cost && <Link href={`${base}/dashboard/suppliers`} className={linkBase}><Building2 className="h-[12px] w-[12px]" />Suppliers</Link>}
                     {cost && <Link href={`${base}/dashboard/products`} className={linkBase}><Package className="h-[12px] w-[12px]" />Products</Link>}
                     <Link href={`${base}/dashboard/settings`} className={linkBase}><Settings className="h-[12px] w-[12px]" />Settings</Link>
                     {manages && <Link href={`${base}/dashboard/settings/users`} className={linkBase}><Wrench className="h-[12px] w-[12px]" />Team</Link>}

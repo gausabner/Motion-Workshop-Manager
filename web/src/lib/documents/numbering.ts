@@ -34,5 +34,7 @@ function defaultPrefix(key: SequenceKey): string {
         case "INSPECTION": return "IN-";
         case "PURCHASE_ORDER": return "PO-";
         case "SUPPLIER_PAYMENT": return "SP-";
+        // Reserved: a supplier invoice carries the supplier's own number.
+        case "SUPPLIER_INVOICE": return "SI-";
     }
 }
