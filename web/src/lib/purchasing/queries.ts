@@ -110,8 +110,8 @@ export async function getSupplierInvoice(db: TenantDb, id: string) {
                 orderBy: { sortOrder: "asc" },
                 select: {
                     id: true, productId: true, itemCode: true, description: true, quantity: true, unitCost: true, taxExempt: true,
-                    orderLineId: true, newSellPrice: true, note: true,
-                    product: { select: { id: true, itemCode: true, description: true, costExTax: true, retailPrice: true } },
+                    orderLineId: true, newSellPrice: true, note: true, serialNumbers: true,
+                    product: { select: { id: true, itemCode: true, description: true, costExTax: true, retailPrice: true, requiresSerial: true } },
                     document: { select: { id: true, jobNumber: true, number: true } },
                 },
             },
@@ -126,7 +126,8 @@ export async function getSupplierInvoice(db: TenantDb, id: string) {
         lines: invoice.lines.map((l) => ({
             id: l.id, productId: l.productId, itemCode: l.itemCode, description: l.description,
             quantity: num(l.quantity), unitCost: num(l.unitCost), taxExempt: l.taxExempt, orderLineId: l.orderLineId,
-            newSellPrice: l.newSellPrice ? num(l.newSellPrice) : null, note: l.note,
+            newSellPrice: l.newSellPrice ? num(l.newSellPrice) : null, note: l.note, serialNumbers: l.serialNumbers,
+            requiresSerial: l.product?.requiresSerial ?? false,
             documentId: l.document?.id ?? null, jobNumber: l.document?.jobNumber ?? l.document?.number ?? null,
             currentCost: l.product ? num(l.product.costExTax) : null,
             currentPrice: l.product ? num(l.product.retailPrice) : null,
@@ -140,7 +141,7 @@ export type SupplierInvoiceRecord = NonNullable<Awaited<ReturnType<typeof getSup
 export async function purchasingOptions(db: TenantDb) {
     const [suppliers, products, jobs] = await Promise.all([
         db.supplier.findMany({ where: { archivedAt: null }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
-        db.product.findMany({ where: { archivedAt: null }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, costExTax: true, retailPrice: true } }),
+        db.product.findMany({ where: { archivedAt: null }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, costExTax: true, retailPrice: true, requiresSerial: true } }),
         db.document.findMany({
             where: { type: { in: ["JOB_CARD", "BOOKING"] }, state: "DRAFT" },
             orderBy: { createdAt: "desc" },
@@ -150,7 +151,7 @@ export async function purchasingOptions(db: TenantDb) {
     ]);
     return {
         suppliers,
-        products: products.map((p) => ({ id: p.id, itemCode: p.itemCode, description: p.description, cost: num(p.costExTax), price: num(p.retailPrice) })),
+        products: products.map((p) => ({ id: p.id, itemCode: p.itemCode, description: p.description, cost: num(p.costExTax), price: num(p.retailPrice), requiresSerial: p.requiresSerial })),
         jobs: jobs.map((j) => ({
             id: j.id,
             label: [j.jobNumber ?? j.number, j.customer ? `${j.customer.firstName} ${j.customer.lastName}`.trim() : null, j.vehicle?.plate].filter(Boolean).join(" · "),

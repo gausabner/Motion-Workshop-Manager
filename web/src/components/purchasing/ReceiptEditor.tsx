@@ -9,16 +9,17 @@ import { processInvoiceAction, saveInvoiceAction, voidInvoiceAction } from "@/li
 import type { SupplierInvoiceRecord } from "@/lib/purchasing/queries";
 import { money } from "@/lib/format";
 
-type Options = { suppliers: { id: string; companyName: string }[]; products: { id: string; itemCode: string; description: string; cost: number; price: number }[]; jobs: { id: string; label: string }[] };
+type Options = { suppliers: { id: string; companyName: string }[]; products: { id: string; itemCode: string; description: string; cost: number; price: number; requiresSerial?: boolean }[]; jobs: { id: string; label: string }[] };
 type Line = {
     key: string; id?: string; productId: string; description: string; quantity: number; unitCost: number; taxExempt: boolean;
     orderLineId: string | null; documentId: string; newSellPrice: string; currentCost: number | null; currentPrice: number | null;
+    serialNumbers: string; requiresSerial: boolean;
 };
 
 const cell = "h-8 w-full rounded-sm border border-slate-200 bg-white px-2 text-sm disabled:bg-slate-50 disabled:text-slate-500";
 const numCell = `${cell} text-right tabular-nums`;
 let seq = 0;
-const blank = (): Line => ({ key: `n${++seq}`, productId: "", description: "", quantity: 1, unitCost: 0, taxExempt: false, orderLineId: null, documentId: "", newSellPrice: "", currentCost: null, currentPrice: null });
+const blank = (): Line => ({ key: `n${++seq}`, productId: "", description: "", quantity: 1, unitCost: 0, taxExempt: false, orderLineId: null, documentId: "", newSellPrice: "", currentCost: null, currentPrice: null, serialNumbers: "", requiresSerial: false });
 
 /**
  * The goods arriving. This is the document that moves stock, so it asks for
@@ -43,6 +44,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
                 key: l.id, id: l.id, productId: l.productId ?? "", description: l.description, quantity: l.quantity, unitCost: l.unitCost,
                 taxExempt: l.taxExempt, orderLineId: l.orderLineId, documentId: l.documentId ?? "",
                 newSellPrice: l.newSellPrice === null ? "" : String(l.newSellPrice), currentCost: l.currentCost, currentPrice: l.currentPrice,
+                serialNumbers: l.serialNumbers ?? "", requiresSerial: l.requiresSerial,
             }))
             : [blank()],
     );
@@ -55,7 +57,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
     function pickProduct(i: number, productId: string) {
         const product = options.products.find((p) => p.id === productId);
         set(i, {
-            productId, currentCost: product?.cost ?? null, currentPrice: product?.price ?? null,
+            productId, currentCost: product?.cost ?? null, currentPrice: product?.price ?? null, requiresSerial: product?.requiresSerial ?? false,
             ...(product ? { description: lines[i].description || product.description, unitCost: lines[i].unitCost || product.cost } : {}),
         });
     }
@@ -65,6 +67,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
         lines: lines.map((l) => ({
             id: l.id, productId: l.productId || null, description: l.description, quantity: l.quantity, unitCost: l.unitCost,
             taxExempt: l.taxExempt, orderLineId: l.orderLineId, documentId: l.documentId || null, newSellPrice: l.newSellPrice === "" ? null : Number(l.newSellPrice),
+            serialNumbers: l.serialNumbers || null,
         })),
     });
 
@@ -149,6 +152,18 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
                                     <button type="button" onClick={() => setLines((ls) => (ls.length === 1 ? ls : ls.filter((_, n) => n !== i)))} className="col-span-1 justify-self-end p-1 text-slate-400 hover:text-red-700" aria-label="Remove line">
                                         <Trash2 className="h-4 w-4" />
                                     </button>
+                                )}
+                                {line.requiresSerial && (
+                                    <label className="col-span-12 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                        Serial numbers that arrived
+                                        <input
+                                            value={line.serialNumbers} onChange={(e) => set(i, { serialNumbers: e.target.value })} disabled={!editable}
+                                            placeholder="One per unit, separated by commas" className={`${cell} min-w-64 flex-1`} aria-label="Serial numbers"
+                                        />
+                                        <span className={line.serialNumbers.split(/[\n,;]+/).filter((x) => x.trim()).length === Math.abs(Math.round(line.quantity)) ? "text-teal-700" : "text-amber-700"}>
+                                            {line.serialNumbers.split(/[\n,;]+/).filter((x) => x.trim()).length} of {Math.abs(Math.round(line.quantity))}
+                                        </span>
+                                    </label>
                                 )}
                             </li>
                         );

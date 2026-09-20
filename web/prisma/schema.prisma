@@ -151,6 +151,16 @@ enum ReminderKind {
 /// Why stock moved. Every movement is signed: in is positive, out is negative.
 /// How a bundle is priced: one price on the bundle, or the sum of what is in it.
 /// Whether a band's percentage is added to the cost, or taken out of the sell price.
+/// Where one serialised unit is in its life.
+enum SerialState {
+  IN_STOCK
+  SOLD
+  /// Came back from the customer.
+  RETURNED
+  /// Written off: damaged, lost, or scrapped.
+  WRITTEN_OFF
+}
+
 enum MatrixBasis {
   /// Sell = cost × (1 + percent).
   MARKUP
@@ -370,6 +380,7 @@ model Tenant {
   bundleItems                BundleItem[]
   priceMatrices              PriceMatrix[]
   priceMatrixBands           PriceMatrixBand[]
+  serialUnits                SerialUnit[]
 }
 
 model User {
@@ -725,6 +736,9 @@ model Product {
   /// When set, the sell price follows this matrix as the cost changes.
   priceMatrixId           String?
   priceMatrix             PriceMatrix?             @relation(fields: [priceMatrixId], references: [id])
+  serialUnits             SerialUnit[]
+  /// How long this is guaranteed for once sold; null when it carries no warranty.
+  warrantyMonths          Int?
 
   @@unique([tenantId, itemCode])
   @@index([tenantId, description])
@@ -935,6 +949,7 @@ model DocumentLine {
   /// Lines expanded from one bundle share this key; the parent carries the price, the components the cost and the stock.
   bundleGroup    String?
   bundleRole     BundleRole?
+  serialUnits    SerialUnit[]
 
   @@index([documentId, sortOrder])
   @@index([tenantId, productId])
@@ -1598,23 +1613,25 @@ model SupplierInvoice {
 }
 
 model SupplierInvoiceLine {
-  id           String   @id @default(cuid())
-  tenantId     String
-  invoiceId    String
-  sortOrder    Int      @default(0)
-  productId    String?
-  itemCode     String?
-  description  String
-  quantity     Decimal  @default(1) @db.Decimal(12, 2)
-  unitCost     Decimal  @default(0) @db.Decimal(12, 2)
-  taxExempt    Boolean  @default(false)
+  id            String   @id @default(cuid())
+  tenantId      String
+  invoiceId     String
+  sortOrder     Int      @default(0)
+  productId     String?
+  itemCode      String?
+  description   String
+  quantity      Decimal  @default(1) @db.Decimal(12, 2)
+  unitCost      Decimal  @default(0) @db.Decimal(12, 2)
+  taxExempt     Boolean  @default(false)
   /// Which order line this fulfils: receipt is matched per line, so one
   /// ordered line can arrive across several invoices.
-  orderLineId  String?
-  documentId   String?
+  orderLineId   String?
+  documentId    String?
   /// A new sell price for the product, decided from the cost just received. Applied when the invoice is processed.
-  newSellPrice Decimal? @db.Decimal(12, 2)
-  note         String?
+  newSellPrice  Decimal? @db.Decimal(12, 2)
+  /// The units that arrived, for a serialised product.
+  serialNumbers String?
+  note          String?
 
   tenant         Tenant             @relation(fields: [tenantId], references: [id])
   stockMovements StockMovement[]
@@ -1622,6 +1639,7 @@ model SupplierInvoiceLine {
   product        Product?           @relation(fields: [productId], references: [id])
   orderLine      PurchaseOrderLine? @relation(fields: [orderLineId], references: [id])
   document       Document?          @relation(fields: [documentId], references: [id])
+  serialUnits    SerialUnit[]
 
   @@index([invoiceId, sortOrder])
   @@index([orderLineId])
@@ -1776,4 +1794,37 @@ model PriceMatrixBand {
   matrix PriceMatrix @relation(fields: [matrixId], references: [id], onDelete: Cascade)
 
   @@index([matrixId, costFrom])
+}
+
+/// One physical unit of a serialised product — this battery, that tyre.
+/// Tracked from the delivery that brought it in to the invoice it left on, so
+/// a warranty claim can be answered from the serial alone.
+model SerialUnit {
+  id                    String      @id @default(cuid())
+  tenantId              String
+  productId             String
+  serial                String
+  state                 SerialState @default(IN_STOCK)
+  /// Where it came from.
+  supplierInvoiceLineId String?
+  receivedAt            DateTime    @default(now())
+  unitCost              Decimal     @default(0) @db.Decimal(12, 2)
+  /// Where it went.
+  documentLineId        String?
+  soldAt                DateTime?
+  /// Worked out at the moment of sale, from the product's warranty months.
+  warrantyUntil         DateTime?   @db.Date
+  note                  String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
+  supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
+  documentLine        DocumentLine?        @relation(fields: [documentLineId], references: [id])
+
+  /// The same serial cannot be in stock twice for one product.
+  @@unique([tenantId, productId, serial])
+  @@index([tenantId, serial])
+  @@index([tenantId, productId, state])
 }

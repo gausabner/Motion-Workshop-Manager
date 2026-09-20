@@ -4,6 +4,8 @@ import type { TenantDb, TenantTx } from "@/lib/tenant-db";
 import { allocateNumber } from "@/lib/documents/numbering";
 import { costTotals, orderStateAfterReceipt, outstanding, processInvoiceError, unitCostExTax } from "@/lib/purchasing/rules";
 import { applyMatrixToProduct } from "@/lib/products/matrix-service";
+import { receiveSerials } from "@/lib/products/serial-service";
+import { parseSerials } from "@/lib/products/serials";
 
 /**
  * Buying, inside transactions. The shape follows what the benchmark's payables
@@ -164,6 +166,7 @@ export type InvoiceLineInput = {
     orderLineId: string | null;
     documentId: string | null;
     newSellPrice: number | null;
+    serialNumbers?: string | null;
     note?: string | null;
 };
 
@@ -221,7 +224,8 @@ export async function saveInvoice(tx: TenantTx, tenant: Tenant, membershipId: st
             sortOrder: sortOrder++, productId: product?.id ?? null, itemCode: product?.itemCode ?? null,
             description: line.description.trim() || product?.description || "Item",
             quantity: line.quantity, unitCost: line.unitCost, taxExempt: line.taxExempt,
-            orderLineId: line.orderLineId, documentId: line.documentId, newSellPrice: line.newSellPrice, note: line.note ?? null,
+            orderLineId: line.orderLineId, documentId: line.documentId, newSellPrice: line.newSellPrice,
+            serialNumbers: line.serialNumbers ?? null, note: line.note ?? null,
         };
         if (line.id && keep.has(line.id)) await tx.supplierInvoiceLine.update({ where: { id: line.id }, data });
         else await tx.supplierInvoiceLine.create({ data: { ...data, tenantId: tenant.id, invoiceId } });
@@ -260,7 +264,7 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
             lines: {
                 orderBy: { sortOrder: "asc" },
                 select: {
-                    id: true, quantity: true, unitCost: true, taxExempt: true, newSellPrice: true, orderLineId: true,
+                    id: true, quantity: true, unitCost: true, taxExempt: true, newSellPrice: true, orderLineId: true, serialNumbers: true,
                     product: { select: { id: true, itemCode: true, type: true, isService: true, dontUpdateQty: true, costExTax: true, retailPrice: true, priceMatrixId: true } },
                 },
             },
@@ -299,6 +303,11 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
         if (cost !== num(product.costExTax) || sell !== null) {
             await tx.product.update({ where: { id: product.id }, data: { costExTax: cost, ...(sell !== null ? { retailPrice: sell } : {}) } });
             if (sell !== null) repriced++;
+        }
+        // Serials typed on the receipt line are the units that arrived.
+        const serials = parseSerials(line.serialNumbers);
+        if (serials.length > 0) {
+            await receiveSerials(tx, tenant.id, { productId: product.id, supplierInvoiceLineId: line.id, serials, unitCost: cost, receivedAt: invoice.postDate });
         }
         // A product on a price matrix follows the new cost by itself, unless somebody
         // decided a price on the receipt — a person's decision outranks the bands.

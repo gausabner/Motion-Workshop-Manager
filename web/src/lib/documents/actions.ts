@@ -13,6 +13,8 @@ import { parseLocalDateTime } from "@/lib/diary/time";
 import { promptErrors, promptFor, type PromptInput } from "@/lib/documents/process-prompt";
 import { postDocument } from "@/lib/documents/processing";
 import { reverseDocumentStock } from "@/lib/stock/ledger";
+import { reverseDocumentSerials } from "@/lib/products/serial-service";
+import { parseSerials, serialCountError } from "@/lib/products/serials";
 import { recalculate } from "@/lib/documents/recalculate";
 
 /** Types that run on the workshop floor and therefore carry a job status. */
@@ -245,6 +247,18 @@ export async function processDocument(slug: string, id: string, _prev: ActionSta
     if (doc._count.lines === 0) return { ok: false, message: "Add at least one line before processing." };
     if (!doc.customerId && !doc.isCashSale) return { ok: false, message: "Choose a customer, or mark this as a cash sale." };
 
+    // A serialised product must say which units are going out, before anything is posted.
+    if (doc.type === "INVOICE" || doc.type === "CASH_SALE" || doc.type === "CREDIT") {
+        const serialLines = await db.documentLine.findMany({
+            where: { documentId: id, product: { requiresSerial: true } },
+            select: { quantity: true, serialNumbers: true, product: { select: { itemCode: true } } },
+        });
+        for (const line of serialLines) {
+            const problem = serialCountError(true, line.quantity.toNumber(), parseSerials(line.serialNumbers));
+            if (problem) return { ok: false, message: `${line.product?.itemCode ?? "A line"}: ${problem}` };
+        }
+    }
+
     const kind = promptFor(doc.type, !!doc.vehicleId);
     const int = (name: string) => {
         const raw = str(formData, name)?.replace(/[\s,]/g, "");
@@ -274,7 +288,8 @@ export async function processDocument(slug: string, id: string, _prev: ActionSta
     if (doc.vehicleId) revalidatePath(`/${slug}/dashboard/vehicles/${doc.vehicleId}`);
     // Anything now showing negative is carried to the document so the person who posted it sees it.
     const short = posted.stockWarnings.slice(0, 4).map((w) => w.itemCode).join(",");
-    redirect(`${editorPath(slug, id)}?processed=1${short ? `&short=${encodeURIComponent(short)}` : ""}`);
+    const serials = posted.serialProblems.slice(0, 2).map((p) => `${p.itemCode}: ${p.message}`).join(" ");
+    redirect(`${editorPath(slug, id)}?processed=1${short ? `&short=${encodeURIComponent(short)}` : ""}${serials ? `&serials=${encodeURIComponent(serials)}` : ""}`);
 }
 
 /** Reverse a processed document. The number is kept so the sequence stays auditable. */
@@ -296,6 +311,7 @@ export async function voidDocument(slug: string, id: string, formData: FormData)
         await tx.document.update({ where: { id }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason, jobStatus: null } });
         // Whatever this document moved on the shelf goes back, as new rows: the original movements stay as history.
         const reversed = await reverseDocumentStock(tx, tenant.id, id, ctx.membership.id);
+        await reverseDocumentSerials(tx, id);
         await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "VOIDED", diff: { reason, stockReversed: reversed } } });
     });
 

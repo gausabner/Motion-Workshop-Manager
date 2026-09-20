@@ -12,6 +12,8 @@ export const productSchema = z.object({
     isService: z.coerce.boolean(),
     vatExempt: z.coerce.boolean(),
     dontUpdateQty: z.coerce.boolean(),
+    requiresSerial: z.coerce.boolean(),
+    warrantyMonths: z.union([z.literal(""), z.coerce.number().int().min(0).max(600)]).optional().transform((v) => (v === "" || v === undefined ? null : Number(v))),
     brand: z.string().trim().max(80).optional(),
     location: z.string().trim().max(40).optional(),
     comment: z.string().trim().max(500).optional(),

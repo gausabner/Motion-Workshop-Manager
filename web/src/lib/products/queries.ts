@@ -56,6 +56,7 @@ export async function getProduct(db: TenantDb, id: string) {
         where: { id },
         select: {
             id: true, itemCode: true, description: true, description2: true, type: true, isService: true, vatExempt: true, dontUpdateQty: true,
+            requiresSerial: true, warrantyMonths: true,
             brand: true, location: true, comment: true, jobCardComment: true, defaultLabourQty: true,
             qtyOnHand: true, minQty: true, maxQty: true, costExTax: true, costIncTax: true, retailPrice: true, price2: true, price3: true, price4: true,
             groupId: true, categoryId: true, supplierId: true, archivedAt: true, priceMatrixId: true,

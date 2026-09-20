@@ -4,6 +4,8 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getProduct, productOptions, productSales } from "@/lib/products/queries";
 import { movementsFor } from "@/lib/stock/ledger";
+import { serialsForProduct } from "@/lib/products/serial-service";
+import { SERIAL_STATE_LABELS } from "@/lib/products/serials";
 import { marginOf, movesStock } from "@/lib/stock/rules";
 import { ProductForm } from "@/components/products/ProductForm";
 import { StockPanel } from "@/components/products/StockPanel";
@@ -29,9 +31,10 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
     if (!can(membership, "documents:see_cost")) notFound();
     const product = await getProduct(db, id);
     if (!product) notFound();
-    const [options, movements, sales, bundleOptions] = await Promise.all([
+    const [options, movements, sales, bundleOptions, serials] = await Promise.all([
         productOptions(db), movementsFor(db, id), productSales(db, id, aYearAgo()),
         db.product.findMany({ where: { archivedAt: null, isBundle: false }, orderBy: { itemCode: "asc" }, take: 500, select: { id: true, itemCode: true, description: true, type: true, costExTax: true, retailPrice: true } }),
+        product.requiresSerial ? serialsForProduct(db, id, 60) : Promise.resolve([]),
     ]);
 
     // Every line is measured on its own document's tax basis, then added up.
@@ -84,6 +87,33 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                         </dl>
                         <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Excluding tax, credit notes taken off.</p>
                     </section>
+
+                    {product.requiresSerial && (
+                        <section className="rounded-sm border border-slate-200 bg-white">
+                            <div className="flex items-center justify-between border-b bg-slate-50 px-4 py-2">
+                                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Serial numbers</h2>
+                                <Link href={`${base}/products/serials`} className="text-xs font-medium text-teal-700 hover:underline">Find one</Link>
+                            </div>
+                            {serials.length === 0 ? (
+                                <p className="px-4 py-3 text-sm text-slate-500">None booked in yet. Type them on the supplier invoice as the units arrive.</p>
+                            ) : (
+                                <ul className="max-h-72 divide-y divide-slate-100 overflow-auto text-sm">
+                                    {serials.map((unit) => (
+                                        <li key={unit.id} className="flex items-center justify-between gap-2 px-4 py-1.5">
+                                            <span className="font-mono text-xs text-slate-700">{unit.serial}</span>
+                                            <span className={`text-xs ${unit.state === "IN_STOCK" ? "text-teal-700" : "text-slate-500"}`}>
+                                                {SERIAL_STATE_LABELS[unit.state]}
+                                                {unit.document?.number ? ` · ${unit.document.number}` : ""}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">
+                                {serials.filter((u) => u.state === "IN_STOCK").length} on the shelf{product.warrantyMonths ? ` · ${product.warrantyMonths} months' warranty from the day each is sold` : ""}
+                            </p>
+                        </section>
+                    )}
 
                     <section className="rounded-sm border border-slate-200 bg-white">
                         <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Movements</h2>

@@ -10,7 +10,7 @@ import { saveOrderAction, setOrderStateAction, receiveOrderAction } from "@/lib/
 import type { OrderRecord } from "@/lib/purchasing/queries";
 import { money } from "@/lib/format";
 
-type Options = { suppliers: { id: string; companyName: string }[]; products: { id: string; itemCode: string; description: string; cost: number; price: number }[]; jobs: { id: string; label: string }[] };
+type Options = { suppliers: { id: string; companyName: string }[]; products: { id: string; itemCode: string; description: string; cost: number; price: number; requiresSerial?: boolean }[]; jobs: { id: string; label: string }[] };
 type Line = { key: string; id?: string; productId: string; description: string; quantity: number; unitCost: number; documentId: string; dueDate: string; received: number };
 
 const cell = "h-8 w-full rounded-sm border border-slate-200 bg-white px-2 text-sm disabled:bg-slate-50 disabled:text-slate-500";

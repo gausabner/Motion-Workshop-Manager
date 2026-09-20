@@ -17,8 +17,8 @@ import { diaryMechanics } from "@/lib/diary/queries";
 import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 
-export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string; short?: string }> }) {
-    const [{ tenant: slug, id }, { processed, short }] = await Promise.all([params, searchParams]);
+export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string; short?: string; serials?: string }> }) {
+    const [{ tenant: slug, id }, { processed, short, serials }] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
     const [doc, options, messages, time, mechanics, inspections, templates] = await Promise.all([
         getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id),
@@ -68,6 +68,11 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             {short && (
                 <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
                     Stock on hand has gone negative on <strong>{short.split(",").join(", ")}</strong>. Either it was never booked in, or the count is wrong — check it on the product.
+                </p>
+            )}
+            {serials && (
+                <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                    {serials} The sale went through; put the serial right on the product so the warranty can be traced.
                 </p>
             )}
             {doc.state === "VOID" && (

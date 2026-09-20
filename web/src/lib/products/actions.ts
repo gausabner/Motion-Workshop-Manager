@@ -22,6 +22,8 @@ function read(formData: FormData) {
         isService: bool(formData, "isService"),
         vatExempt: bool(formData, "vatExempt"),
         dontUpdateQty: bool(formData, "dontUpdateQty"),
+        requiresSerial: bool(formData, "requiresSerial"),
+        warrantyMonths: str(formData, "warrantyMonths") ?? "",
         brand: str(formData, "brand"),
         location: str(formData, "location"),
         comment: str(formData, "comment"),

@@ -73,6 +73,11 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
                     <label className="flex items-center gap-2"><input type="checkbox" name="isService" defaultChecked={product?.isService} className="accent-teal-600" />A service, not a thing on a shelf</label>
                     <label className="flex items-center gap-2"><input type="checkbox" name="dontUpdateQty" defaultChecked={product?.dontUpdateQty} className="accent-teal-600" />Do not count stock for this</label>
                     <label className="flex items-center gap-2"><input type="checkbox" name="vatExempt" defaultChecked={product?.vatExempt} className="accent-teal-600" />VAT exempt</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="requiresSerial" defaultChecked={product?.requiresSerial} className="accent-teal-600" />Each one has a serial number</label>
+                    <label className="flex items-center gap-2">Warranty
+                        <input name="warrantyMonths" defaultValue={product?.warrantyMonths ?? ""} inputMode="numeric" placeholder="—" className="h-8 w-16 rounded-md border border-slate-300 px-2 text-right text-sm tabular-nums" />
+                        months
+                    </label>
                 </div>
             </section>
 

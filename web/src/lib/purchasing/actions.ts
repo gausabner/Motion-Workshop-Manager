@@ -52,6 +52,7 @@ const invoiceSchema = z.object({
         orderLineId: optionalId,
         documentId: optionalId,
         newSellPrice: z.union([z.literal(""), money]).nullish().transform((v) => (v === "" || v === null || v === undefined ? null : Number(v))),
+        serialNumbers: z.string().trim().max(2000).nullish(),
         note: z.string().trim().max(200).nullish(),
     })).min(1, "Add at least one line"),
 });
@@ -107,7 +108,7 @@ export async function newSupplierInvoiceAction(slug: string): Promise<void> {
         saveInvoice(tx, tenant, membership.id, null, {
             supplierId: supplier.id, supplierNumber: "", postDate: businessToday(tenant.timezone).toISOString().slice(0, 10),
             taxRate: tenant.purchaseTaxRate.toNumber(), pricesIncludeTax: false, freight: 0,
-            lines: [{ productId: null, description: "", quantity: 1, unitCost: 0, taxExempt: false, orderLineId: null, documentId: null, newSellPrice: null }],
+            lines: [{ productId: null, description: "", quantity: 1, unitCost: 0, taxExempt: false, orderLineId: null, documentId: null, newSellPrice: null, serialNumbers: null }],
         } satisfies InvoiceInput),
     );
     redirect(`${base(slug)}/invoices/${invoiceId}`);

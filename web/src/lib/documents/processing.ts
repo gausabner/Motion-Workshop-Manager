@@ -7,6 +7,7 @@ import { TYPE_SEQUENCE } from "@/lib/documents/types";
 import { recalculate } from "@/lib/documents/recalculate";
 import type { PromptInput, PromptKind } from "@/lib/documents/process-prompt";
 import { postDocumentStock, type StockWarning } from "@/lib/stock/ledger";
+import { postDocumentSerials, type SerialProblem } from "@/lib/products/serial-service";
 
 /**
  * Posting a document, inside one transaction: number it, lock it, and move the
@@ -29,7 +30,7 @@ export async function postDocument(
     doc: Doc,
     kind: PromptKind,
     answers: PromptInput,
-): Promise<{ number: string; total: number; stockWarnings: StockWarning[] }> {
+): Promise<{ number: string; total: number; stockWarnings: StockWarning[]; serialProblems: SerialProblem[] }> {
     // The answers belong to the document as well as the car: a reprinted invoice shows the reading it was billed at.
     if (kind !== "none") {
         await tx.document.update({
@@ -79,9 +80,11 @@ export async function postDocument(
 
     // Stock leaves the shelf when the sale is posted, not when the line is typed.
     const stockWarnings = await postDocumentStock(tx, tenant.id, { id: doc.id, type: doc.type, postDate: doc.postDate }, who.membershipId);
+    // Serialised units leave with the sale and come back on a credit note.
+    const serialProblems = await postDocumentSerials(tx, tenant.id, { id: doc.id, type: doc.type, postDate: doc.postDate });
 
     await tx.auditEvent.create({
         data: { tenantId: tenant.id, actorUserId: who.userId, entityType: "Document", entityId: doc.id, action: "PROCESSED", diff: { number, total: totals.total, prompt: kind, ...(kind !== "none" ? { answers } : {}) } },
     });
-    return { number, total: totals.total, stockWarnings };
+    return { number, total: totals.total, stockWarnings, serialProblems };
 }

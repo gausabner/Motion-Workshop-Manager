@@ -27,6 +27,7 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                     <p className="text-sm text-slate-500">{data.total} {archived ? "archived" : "on the list"} · {money(value, currency)} of stock on this page, at cost</p>
                 </div>
                 <span className="flex gap-2">
+                    <Button asChild size="sm" variant="outline"><Link href={`${base}/serials`}>Find a serial</Link></Button>
                     {canWrite && <Button asChild size="sm" variant="outline"><Link href={`${base}/stock-take`}>Stock take</Link></Button>}
                     {canWrite && <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New product</Link></Button>}
                 </span>
