@@ -26,7 +26,10 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                     <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Package className="h-6 w-6 text-slate-400" />Products</h1>
                     <p className="text-sm text-slate-500">{data.total} {archived ? "archived" : "on the list"} · {money(value, currency)} of stock on this page, at cost</p>
                 </div>
-                {canWrite && <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New product</Link></Button>}
+                <span className="flex gap-2">
+                    {canWrite && <Button asChild size="sm" variant="outline"><Link href={`${base}/stock-take`}>Stock take</Link></Button>}
+                    {canWrite && <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New product</Link></Button>}
+                </span>
             </div>
 
             <form action={base} method="get" className="flex flex-wrap items-center gap-2">
