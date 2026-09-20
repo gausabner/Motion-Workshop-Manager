@@ -11,6 +11,8 @@ import { deliverySummary, listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
 import { JobTimePanel } from "@/components/time/JobTimePanel";
 import { InspectionsPanel } from "@/components/inspections/InspectionsPanel";
+import { loansForDocument } from "@/lib/loans/service";
+import { LOAN_STATE_LABELS } from "@/lib/loans/rules";
 import { inspectionsForDocument } from "@/lib/inspections/queries";
 import { jobTime } from "@/lib/time/queries";
 import { diaryMechanics } from "@/lib/diary/queries";
@@ -24,6 +26,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
         getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id),
         db.inspectionTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     ]);
+    const loans = await loansForDocument(db, id);
     if (!doc) notFound();
 
     const showCost = can(membership, "documents:see_cost");
@@ -70,6 +73,31 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                     Stock on hand has gone negative on <strong>{short.split(",").join(", ")}</strong>. Either it was never booked in, or the count is wrong — check it on the product.
                 </p>
             )}
+            {loans.length > 0 && (
+                <section className="rounded-sm border border-slate-200 bg-white text-sm">
+                    <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Courtesy car</h2>
+                    <ul className="divide-y divide-slate-100">
+                        {loans.map((loan) => (
+                            <li key={loan.id} className="flex flex-wrap items-center gap-x-3 px-4 py-2">
+                                <Link href={`/${slug}/dashboard/loan-cars`} className="font-medium text-slate-800 hover:text-teal-700">{loan.vehicle.plate}</Link>
+                                <span className="text-slate-500">{[loan.vehicle.make, loan.vehicle.model].filter(Boolean).join(" ")}</span>
+                                <span className="text-slate-500">
+                                    {LOAN_STATE_LABELS[loan.state]}
+                                    {loan.inAt ? ` on ${dateShort(loan.inAt)}` : `, due back ${dateShort(loan.dueBackAt)}`}
+                                </span>
+                                {loan.odometerOut !== null && (
+                                    <span className="text-xs text-slate-400">
+                                        {loan.odometerIn !== null
+                                            ? `${(loan.odometerIn - loan.odometerOut).toLocaleString("en-NA")} km on it`
+                                            : `out on ${loan.odometerOut.toLocaleString("en-NA")} km`}
+                                    </span>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
             {(doc.splitFrom || doc.splits.length > 0 || doc.reworkOf || doc.reworks.length > 0) && (
                 <section className="rounded-sm border border-slate-200 bg-white text-sm">
                     <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Related</h2>

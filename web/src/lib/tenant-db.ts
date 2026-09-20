@@ -19,7 +19,7 @@ const TENANT_MODELS = new Set([
     "AppointmentType", "Sequence", "Template", "Document", "DocumentLine",
     "DocumentStatusEvent", "TimeEntry", "Payment", "PaymentAllocation", "Credit",
     "Attachment", "AuditEvent", "PaymentTender", "ExternalRef", "ShareLink", "Message", "WorkingHours", "TimeOff", "BookingRequest", "InspectionTemplate",
-    "InspectionTemplateItem", "Inspection", "InspectionItem", "Reminder", "Campaign", "CampaignRecipient", "StockMovement", "PurchaseOrder", "PurchaseOrderLine", "SupplierInvoice", "SupplierInvoiceLine", "SupplierPayment", "SupplierPaymentAllocation", "StockTake", "StockTakeLine", "BundleItem", "PriceMatrix", "PriceMatrixBand", "SerialUnit",
+    "InspectionTemplateItem", "Inspection", "InspectionItem", "Reminder", "Campaign", "CampaignRecipient", "StockMovement", "PurchaseOrder", "PurchaseOrderLine", "SupplierInvoice", "SupplierInvoiceLine", "SupplierPayment", "SupplierPaymentAllocation", "StockTake", "StockTakeLine", "BundleItem", "PriceMatrix", "PriceMatrixBand", "SerialUnit", "LoanVehicle", "Loan",
 ]);
 
 type AnyArgs = Record<string, unknown>;
