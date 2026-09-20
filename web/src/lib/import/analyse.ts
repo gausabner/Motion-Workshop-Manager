@@ -24,8 +24,8 @@ export type Analysis = {
     missingRequired: string[];
 };
 
-const DATE_FIELDS = new Set(["licenceExpiry", "roadworthyExpiry", "nextServiceDate"]);
-const NUMBER_FIELDS = new Set(["year", "odometer", "nextServiceKm", "costExTax", "retailPrice", "minQty", "paymentTermsDays"]);
+const DATE_FIELDS = new Set(["licenceExpiry", "roadworthyExpiry", "nextServiceDate", "date", "dueDate", "soldDate"]);
+const NUMBER_FIELDS = new Set(["year", "odometer", "nextServiceKm", "costExTax", "retailPrice", "minQty", "paymentTermsDays", "total", "quantity", "unitCost", "amount"]);
 const BOOLEAN_FIELDS = new Set(["isBusiness"]);
 
 export function analyse(entity: ImportEntity, headers: string[], rows: Row[], mapping: Record<string, string>): Analysis {
@@ -72,6 +72,12 @@ export function analyse(entity: ImportEntity, headers: string[], rows: Row[], ma
         if (entity === "vehicles" && !values.customerEmail && !values.customerName) {
             rowProblems.push("No owner: give an email or a customer name");
         }
+        if (entity === "balances") {
+            if (!values.customerEmail && !values.customerName) rowProblems.push("No customer: give an email or a name");
+            const amount = Number(values.amount ?? 0);
+            if (!amount) rowProblems.push("An opening balance of nothing is not worth importing");
+            else if (amount < 0) rowProblems.push("A negative balance is money you owe them — bring that across as a credit note instead");
+        }
         if (rowProblems.length > 0) problems.push({ line, message: rowProblems.join("; ") });
         else ready.push({ line, values });
     });
@@ -89,6 +95,11 @@ export function analyse(entity: ImportEntity, headers: string[], rows: Row[], ma
 /** Rows that would collide with each other inside the same file. */
 export function duplicatesWithin(entity: ImportEntity, rows: ParsedRow[]): RowProblem[] {
     const keyOf = (values: ParsedRow["values"]): string | null => {
+        if (entity === "serials") return `${String(values.itemCode ?? "")}|${String(values.serial ?? "")}`.toLowerCase();
+        if (entity === "bundles") return `${String(values.bundleCode ?? "")}|${String(values.componentCode ?? "")}`.toLowerCase();
+        // History rows repeat by their nature — the same car, serviced many times — so nothing is a duplicate.
+        if (entity === "history") return null;
+        if (entity === "balances") return String(values.customerEmail ?? values.customerName ?? "").toLowerCase() || null;
         if (entity === "products") return String(values.itemCode ?? "").toLowerCase() || null;
         if (entity === "vehicles") return String(values.plate ?? "").toLowerCase().replace(/\s/g, "") || null;
         if (entity === "suppliers") return String(values.companyName ?? "").toLowerCase() || null;

@@ -43,3 +43,17 @@ export async function getVehicle(db: TenantDb, id: string) {
 
 export type VehicleRecord = NonNullable<Awaited<ReturnType<typeof getVehicle>>>;
 
+/** Everything this car has been in for, whether imported from the old system or done here. */
+export async function vehicleHistory(db: TenantDb, vehicleId: string, take = 50) {
+    const rows = await db.document.findMany({
+        where: { vehicleId, type: { in: ["JOB_CARD", "INVOICE", "CASH_SALE"] }, state: { in: ["PROCESSED", "CLOSED"] } },
+        orderBy: [{ postDate: "desc" }, { createdAt: "desc" }],
+        take,
+        select: { id: true, type: true, number: true, jobNumber: true, reference: true, postDate: true, odometer: true, description: true, total: true, isInternal: true },
+    });
+    return rows.map((r) => ({
+        id: r.id, type: r.type, number: r.number ?? r.jobNumber, reference: r.reference,
+        date: r.postDate, odometer: r.odometer, description: r.description,
+        total: r.total.toNumber(), imported: r.isInternal,
+    }));
+}

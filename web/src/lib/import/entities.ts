@@ -25,7 +25,7 @@ export type EntitySpec = {
     fields: FieldSpec[];
 };
 
-export type ImportEntity = "customers" | "vehicles" | "products" | "suppliers";
+export type ImportEntity = "customers" | "vehicles" | "products" | "suppliers" | "history" | "bundles" | "serials" | "balances";
 
 const text = (max: number) => z.string().trim().max(max);
 
@@ -101,6 +101,58 @@ export const ENTITIES: Record<ImportEntity, EntitySpec> = {
             { key: "email", label: "Email", aliases: ["email", "email address"] },
             { key: "city", label: "Town or city", aliases: ["city", "town"] },
             { key: "paymentTermsDays", label: "Payment terms (days)", aliases: ["terms", "payment terms", "days"] },
+        ],
+    },
+    history: {
+        key: "history",
+        label: "Vehicle service history",
+        blurb: "What was done to each car before you switched. Kept out of your sales figures — it was invoiced by the old system, not by you.",
+        matchOn: "registration and date",
+        fields: [
+            { key: "plate", label: "Registration", aliases: ["rego", "registration", "plate", "vehicle"], required: true },
+            { key: "date", label: "Date", aliases: ["date", "invoice date", "service date", "job date"], required: true },
+            { key: "description", label: "What was done", aliases: ["description", "work done", "details", "notes", "job description"], required: true },
+            { key: "reference", label: "Their job or invoice number", aliases: ["invoice", "invoice number", "job", "job number", "reference", "doc number"] },
+            { key: "odometer", label: "Odometer", aliases: ["odometer", "kms", "km", "mileage"] },
+            { key: "total", label: "Total charged", aliases: ["total", "amount", "invoice total", "value"], hint: "Recorded for reference only" },
+        ],
+    },
+    bundles: {
+        key: "bundles",
+        label: "Bundles and their contents",
+        blurb: "One row per component: the bundle's code, then the product inside it and how many. Both must already exist as products.",
+        matchOn: "bundle code and component code",
+        fields: [
+            { key: "bundleCode", label: "Bundle item code", aliases: ["bundle", "bundle code", "parent", "parent code", "kit code"], required: true },
+            { key: "componentCode", label: "Component item code", aliases: ["component", "component code", "child", "child code", "item code", "part number"], required: true },
+            { key: "quantity", label: "Quantity in the bundle", aliases: ["quantity", "qty", "each"], hint: "Defaults to 1" },
+        ],
+    },
+    serials: {
+        key: "serials",
+        label: "Serial numbers",
+        blurb: "Units on the shelf now, or already sold. Matched on the serial for that product.",
+        matchOn: "product and serial",
+        fields: [
+            { key: "itemCode", label: "Item code", aliases: ["code", "item code", "part number", "product"], required: true },
+            { key: "serial", label: "Serial number", aliases: ["serial", "serial number", "serialno", "imei"], required: true },
+            { key: "state", label: "Where it is", aliases: ["status", "state", "sold"], hint: "in stock, sold or written off — defaults to in stock" },
+            { key: "unitCost", label: "What it cost", aliases: ["cost", "cost price", "unit cost"] },
+            { key: "soldDate", label: "Date sold", aliases: ["sold", "date sold", "sold date", "invoice date"] },
+        ],
+    },
+    balances: {
+        key: "balances",
+        label: "Customer opening balances",
+        blurb: "What each customer still owed you on the day you switched, as one invoice per customer — so \u201cwho owes us\u201d is right from the first morning.",
+        matchOn: "customer, once only",
+        fields: [
+            { key: "customerEmail", label: "Customer email", aliases: ["email", "customer email"], hint: "Used to find the customer" },
+            { key: "customerName", label: "Customer name", aliases: ["customer", "customer name", "account", "account name"], hint: "Used when there is no email" },
+            { key: "amount", label: "Amount owing", aliases: ["balance", "amount", "owing", "outstanding", "total"], required: true },
+            { key: "date", label: "As at", aliases: ["date", "as at", "as at date", "statement date"], hint: "Defaults to today" },
+            { key: "dueDate", label: "Due date", aliases: ["due", "due date"] },
+            { key: "reference", label: "Their reference", aliases: ["reference", "invoice", "invoice number", "notes"] },
         ],
     },
 };

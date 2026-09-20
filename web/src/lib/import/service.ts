@@ -3,6 +3,7 @@ import type { Tenant } from "@prisma/client";
 import type { TenantDb, TenantTx } from "@/lib/tenant-db";
 import type { ImportEntity } from "@/lib/import/entities";
 import type { ParsedRow, RowProblem } from "@/lib/import/analyse";
+import { allocateNumber } from "@/lib/documents/numbering";
 
 /**
  * Writing an import. Every entity matches an incoming row against what is
@@ -39,8 +40,146 @@ export async function runImport(db: TenantDb, tenant: Tenant, entity: ImportEnti
     return result;
 }
 
+/** Find the customer a row names, by email first and then by name. */
+async function findCustomer(tx: TenantTx, email: string | null, name: string | null) {
+    if (email) {
+        const byEmail = await tx.customer.findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } });
+        if (byEmail) return byEmail;
+    }
+    if (!name) return null;
+    const [first, ...rest] = name.split(/\s+/);
+    const last = rest.join(" ");
+    return tx.customer.findFirst({
+        where: last
+            ? { firstName: { equals: first, mode: "insensitive" }, lastName: { equals: last, mode: "insensitive" } }
+            : { lastName: { equals: name, mode: "insensitive" } },
+        select: { id: true },
+    });
+}
+
 async function writeRow(tx: TenantTx, tenant: Tenant, entity: ImportEntity, row: ParsedRow): Promise<"created" | "updated"> {
     const v = row.values;
+
+    if (entity === "history") {
+        const plate = (str(v.plate) ?? "").toUpperCase();
+        const vehicle = await tx.vehicle.findFirst({ where: { plate: { equals: plate, mode: "insensitive" } }, select: { id: true, customerId: true } });
+        if (!vehicle) throw new Error(`No vehicle here with registration "${plate}" — import the vehicles first`);
+        const date = dateOf(v.date) ?? new Date();
+        const reference = str(v.reference);
+        // The same service twice is the same service: matched on the car, the day and their own number.
+        const existing = await tx.document.findFirst({
+            where: { vehicleId: vehicle.id, postDate: date, type: "JOB_CARD", isInternal: true, ...(reference ? { reference } : {}) },
+            select: { id: true },
+        });
+        const description = str(v.description) ?? "Service";
+        const data = {
+            description, reference, odometer: intOf(v.odometer),
+            customerId: vehicle.customerId, vehicleId: vehicle.id, postDate: date,
+            // Historical work is kept out of sales reporting: the old system invoiced it, not us.
+            isInternal: true, state: "PROCESSED" as const, jobStatus: "FINALISED" as const,
+        };
+        if (existing) {
+            await tx.document.update({ where: { id: existing.id }, data });
+            return "updated";
+        }
+        const created = await tx.document.create({ data: { ...data, tenantId: tenant.id, type: "JOB_CARD", taxName: tenant.taxName, taxRate: tenant.salesTaxRate, pricesIncludeTax: tenant.pricesIncludeTax }, select: { id: true } });
+        await tx.documentLine.create({
+            data: {
+                tenantId: tenant.id, documentId: created.id, sortOrder: 0, lineType: "LABOUR", description,
+                quantity: 1, unitPrice: numberOf(v.total) ?? 0, unitCost: 0, vatRate: 0, discountPercent: 0,
+            },
+        });
+        // The car's own record moves on to the most recent visit.
+        const vehicleRow = await tx.vehicle.findUniqueOrThrow({ where: { id: vehicle.id }, select: { lastInDate: true, odometer: true } });
+        const odometer = intOf(v.odometer);
+        await tx.vehicle.update({
+            where: { id: vehicle.id },
+            data: {
+                ...(!vehicleRow.lastInDate || vehicleRow.lastInDate < date ? { lastInDate: date, lastServiceDate: date } : {}),
+                ...(odometer && odometer > (vehicleRow.odometer ?? 0) ? { odometer } : {}),
+            },
+        });
+        return "created";
+    }
+
+    if (entity === "bundles") {
+        const bundleCode = str(v.bundleCode) ?? "";
+        const componentCode = str(v.componentCode) ?? "";
+        const [bundle, component] = await Promise.all([
+            tx.product.findFirst({ where: { itemCode: { equals: bundleCode, mode: "insensitive" } }, select: { id: true } }),
+            tx.product.findFirst({ where: { itemCode: { equals: componentCode, mode: "insensitive" } }, select: { id: true, isBundle: true } }),
+        ]);
+        if (!bundle) throw new Error(`No product here with code "${bundleCode}" — import the products first`);
+        if (!component) throw new Error(`No product here with code "${componentCode}"`);
+        if (bundle.id === component.id) throw new Error("A bundle cannot contain itself");
+        if (component.isBundle) throw new Error(`"${componentCode}" is itself a bundle, and a bundle cannot go inside another`);
+        const quantity = numberOf(v.quantity) ?? 1;
+        const existing = await tx.bundleItem.findFirst({ where: { bundleId: bundle.id, componentId: component.id }, select: { id: true } });
+        await tx.product.update({ where: { id: bundle.id }, data: { isBundle: true } });
+        if (existing) {
+            await tx.bundleItem.update({ where: { id: existing.id }, data: { quantity } });
+            return "updated";
+        }
+        const count = await tx.bundleItem.count({ where: { bundleId: bundle.id } });
+        await tx.bundleItem.create({ data: { tenantId: tenant.id, bundleId: bundle.id, componentId: component.id, quantity, sortOrder: count } });
+        return "created";
+    }
+
+    if (entity === "serials") {
+        const itemCode = str(v.itemCode) ?? "";
+        const product = await tx.product.findFirst({ where: { itemCode: { equals: itemCode, mode: "insensitive" } }, select: { id: true } });
+        if (!product) throw new Error(`No product here with code "${itemCode}" — import the products first`);
+        const serial = (str(v.serial) ?? "").toUpperCase();
+        const said = (str(v.state) ?? "").toLowerCase();
+        const state = said.includes("sold") ? "SOLD" as const : said.includes("written") || said.includes("scrap") ? "WRITTEN_OFF" as const : "IN_STOCK" as const;
+        const data = {
+            state, unitCost: numberOf(v.unitCost) ?? 0,
+            ...(state === "SOLD" ? { soldAt: dateOf(v.soldDate) ?? new Date() } : {}),
+        };
+        await tx.product.update({ where: { id: product.id }, data: { requiresSerial: true } });
+        const existing = await tx.serialUnit.findFirst({ where: { productId: product.id, serial }, select: { id: true } });
+        if (existing) {
+            await tx.serialUnit.update({ where: { id: existing.id }, data });
+            return "updated";
+        }
+        await tx.serialUnit.create({ data: { ...data, tenantId: tenant.id, productId: product.id, serial, receivedAt: dateOf(v.soldDate) ?? new Date() } });
+        return "created";
+    }
+
+    if (entity === "balances") {
+        const email = str(v.customerEmail)?.toLowerCase() ?? null;
+        const customer = await findCustomer(tx, email, str(v.customerName));
+        if (!customer) throw new Error(`No customer here matching "${email ?? str(v.customerName)}" — import the customers first`);
+        const amount = numberOf(v.amount) ?? 0;
+        const date = dateOf(v.date) ?? new Date();
+        const reference = str(v.reference) ?? "Brought forward";
+        const existing = await tx.document.findFirst({ where: { customerId: customer.id, type: "INVOICE", reference, state: { not: "VOID" } }, select: { id: true } });
+        if (existing) return "updated";
+        const number = await allocateNumber(tx, tenant.id, "INVOICE");
+        const created = await tx.document.create({
+            data: {
+                tenantId: tenant.id, type: "INVOICE", state: "PROCESSED", number, customerId: customer.id,
+                postDate: date, dueDate: dateOf(v.dueDate) ?? date, reference,
+                description: "Balance brought forward", processedAt: new Date(),
+                // No tax: the old system charged it. This is the balance, not a fresh sale.
+                taxName: tenant.taxName, taxRate: 0, pricesIncludeTax: false,
+                subtotal: amount, vatTotal: 0, unroundedTotal: amount, total: amount,
+                // Kept out of sales reporting: it was earned before the switch.
+                isInternal: true,
+            },
+            select: { id: true },
+        });
+        await tx.documentLine.create({
+            data: {
+                tenantId: tenant.id, documentId: created.id, sortOrder: 0, lineType: "LABOUR",
+                description: `Balance brought forward from your previous system${reference !== "Brought forward" ? ` (${reference})` : ""}`,
+                quantity: 1, unitPrice: amount, unitCost: 0, vatRate: 0, discountPercent: 0,
+                lineSubtotal: amount, vatAmount: 0, lineTotal: amount,
+            },
+        });
+        return "created";
+    }
+
     if (entity === "customers") {
         const email = str(v.email)?.toLowerCase() ?? null;
         const firstName = str(v.firstName) ?? "";

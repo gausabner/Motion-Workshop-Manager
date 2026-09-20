@@ -17,7 +17,8 @@ export type MarginRow = { key: string; label: string; sub: string | null; quanti
 
 export async function marginReport(db: TenantDb, _tenant: Tenant, from: Date, to: Date) {
     const lines = await db.documentLine.findMany({
-        where: { document: { state: { in: ["PROCESSED", "CLOSED"] }, type: { in: [...SALE_TYPES] }, postDate: { gte: from, lte: to } } },
+        // "Internal job — excluded from sales reporting" has always been on the document; this is where it means something.
+        where: { document: { state: { in: ["PROCESSED", "CLOSED"] }, type: { in: [...SALE_TYPES] }, postDate: { gte: from, lte: to }, isInternal: false } },
         select: {
             quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true, lineType: true, description: true,
             product: { select: { id: true, itemCode: true, description: true } },
