@@ -11,7 +11,6 @@ type Data = Awaited<ReturnType<typeof listCustomers>>;
 
 const iconBtn = "inline-flex items-center justify-center w-8 h-7 rounded-sm border shadow-sm transition-colors";
 const teal = `${iconBtn} border-teal-500 text-teal-600 bg-white hover:bg-teal-50`;
-const tealSolid = `${iconBtn} border-teal-600 text-white bg-teal-600 hover:bg-teal-700`;
 const amber = `${iconBtn} border-amber-500 text-white bg-amber-500 hover:bg-amber-600`;
 const disabled = `${iconBtn} border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed`;
 
