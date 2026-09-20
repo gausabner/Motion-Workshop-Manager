@@ -365,6 +365,7 @@ model Tenant {
   auditEvents                AuditEvent[]
   externalRefs               ExternalRef[]
   shareLinks                 ShareLink[]
+  apiKeys                    ApiKey[]
   messages                   Message[]
   workingHours               WorkingHours[]
   timeOff                    TimeOff[]
@@ -449,6 +450,7 @@ model Membership {
   stockTakesStarted  StockTake[]           @relation("StockTakeStartedBy")
   stockTakesApplied  StockTake[]           @relation("StockTakeAppliedBy")
   loansGiven         Loan[]
+  apiKeys            ApiKey[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -1422,6 +1424,7 @@ model ExternalRef {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, provider, entityType, entityId])
+  @@unique([tenantId, provider, entityType, externalId])
   @@index([tenantId, provider, externalId])
 }
 
@@ -1905,4 +1908,37 @@ model Loan {
 
   @@index([tenantId, state, outAt])
   @@index([loanVehicleId, outAt])
+}
+
+/// What an integration may do with a key. Reading is the common case; writing
+/// exists so a workshop's own website can book a car in.
+enum ApiScope {
+  READ
+  WRITE
+}
+
+/// A key identifies the tenant, so the public API needs no slug in its path and
+/// no session cookie. Only the hash is stored — the secret is shown once, at
+/// the moment it is made, exactly as a share link's token is.
+model ApiKey {
+  id          String     @id @default(cuid())
+  tenantId    String
+  name        String
+  /// The readable head of the key ("mk_live_7Qa3"), for telling keys apart in the list.
+  prefix      String
+  tokenHash   String     @unique
+  scopes      ApiScope[]
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  /// Fixed-window rate limiting, counted on the row so every instance shares it.
+  windowStart DateTime   @default(now())
+  windowCount Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  createdBy Membership? @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId, revokedAt])
 }

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const SESSION_COOKIE = "motion_session";
 
 /** Public routes that never need a session. Everything under /{slug}/dashboard, /admin and /pwa does. */
-const PUBLIC = [/^\/$/, /^\/login$/, /^\/register$/, /^\/api\/health$/, /^\/share\/[^/]+$/, /^\/join\/[^/]+$/, /^\/approve\/[^/]+(\/|$)/, /^\/[^/]+\/book(\/|$)/, /^\/portal\/[^/]+(\/|$)/];
+const PUBLIC = [/^\/$/, /^\/login$/, /^\/register$/, /^\/api\/health$/, /^\/api\/v1(\/|$)/, /^\/share\/[^/]+$/, /^\/join\/[^/]+$/, /^\/approve\/[^/]+(\/|$)/, /^\/[^/]+\/book(\/|$)/, /^\/portal\/[^/]+(\/|$)/];
 const PROTECTED = /^\/[^/]+\/(dashboard|admin|pwa)(\/|$)/;
 
 export function proxy(req: NextRequest) {

@@ -208,7 +208,9 @@ The commercial upside. Depends on documents, sending and the diary all working. 
 - Full report catalogue; BI dashboards; accounting export then API sync
 - CSV import suite, including a **Workshop Software migration pack** — the switching path
 - **Split** (divide an invoice — insurer/customer, fleet) and **Rework** (warranty redo linked to the original)
-- Public API, multi-site, offline PWA, loan cars
+- **Public API** — done: keyed at `/api/v1`, ordinary JSON, cursor paging, money as strings, writes idempotent on the caller's own `externalId` (see [public-api.md](public-api.md)). Deliberately unlike theirs: no SSE list streaming, no `*` wildcards in the path, no costs or margins published, and processing or settling a document stays with a person who is signed in.
+- Loan cars — done: courtesy cars at `/dashboard/loan-cars`, booked → out → back, with the loan shown on the job card.
+- Still open: multi-site, offline PWA
 
 ---
 
