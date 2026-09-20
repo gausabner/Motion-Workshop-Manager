@@ -6,17 +6,20 @@ import { MotionLogo } from "@/components/brand/MotionLogo";
 import { logoutAction } from "@/lib/auth/actions";
 import { can } from "@/lib/auth/permissions";
 import { GROUP_LABELS } from "@/lib/auth/permissions";
+import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
 
 export type ShellProps = {
     tenant: string;
     workshopName: string;
     userName: string;
     group: UserGroup;
+    /** Every site this person may open. One entry is the ordinary case. */
+    sites: { slug: string; name: string }[];
 };
 
 const linkBase = "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900";
 
-export function Sidebar({ tenant, workshopName, group }: ShellProps) {
+export function Sidebar({ tenant, workshopName, group, sites }: ShellProps) {
     const base = `/${tenant}`;
     const manages = can({ group }, "users:manage");
     const reports = can({ group }, "reports:view");
@@ -28,10 +31,7 @@ export function Sidebar({ tenant, workshopName, group }: ShellProps) {
                     <MotionLogo className="h-[22px] w-auto" />
                 </Link>
             </div>
-            <div className="px-4 py-2 border-b">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400">Workshop</p>
-                <p className="text-xs font-semibold text-slate-700 truncate" title={workshopName}>{workshopName}</p>
-            </div>
+            <SiteSwitcher current={tenant} sites={sites.length > 0 ? sites : [{ slug: tenant, name: workshopName }]} />
             <div className="flex-1 overflow-auto py-2">
                 <nav className="grid items-start px-2 text-[11px] font-medium">
                     <Link href={`${base}/dashboard`} className={linkBase}><LayoutDashboard className="h-[12px] w-[12px]" />Dashboard</Link>
