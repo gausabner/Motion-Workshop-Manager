@@ -43,3 +43,12 @@ crash.log
 
 # Docker / data
 postgres-data/
+
+# Skill packs installed for design and animation work. They live globally in
+# ~/.claude/skills; these are a local install and are not part of the product.
+.agents/
+.codex/
+skills/
+skills-lock.json
+.claude/skills/
+.github/hooks/
