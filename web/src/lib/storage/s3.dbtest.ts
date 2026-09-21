@@ -206,14 +206,42 @@ test("the driver a deployment gets from its environment is the one that works", 
 });
 
 test("a deployment missing a setting is told which one", async () => {
-    // No server needed: this is the failure a first deploy actually hits.
-    const saved = process.env.STORAGE_S3_BUCKET;
-    delete process.env.STORAGE_S3_BUCKET;
-    resetDriversForTest();
+    // No server needed: this is the failure a first deploy actually hits. It
+    // sets the whole environment itself and then removes one variable, because
+    // relying on what an earlier test happened to leave in `process.env` is how
+    // a test passes on a laptop and fails on a fresh machine — which is exactly
+    // what this one did the first time CI ran it.
+    const saved = { ...process.env };
+    const complete = {
+        STORAGE_S3_ENDPOINT: ENDPOINT,
+        STORAGE_S3_BUCKET: BUCKET,
+        STORAGE_S3_REGION: CONFIG.region,
+        STORAGE_S3_ACCESS_KEY_ID: CONFIG.accessKeyId,
+        STORAGE_S3_SECRET_ACCESS_KEY: CONFIG.secretAccessKey,
+        STORAGE_S3_FORCE_PATH_STYLE: "true",
+    };
     try {
-        assert.throws(() => driverNamed("s3"), /STORAGE_S3_BUCKET is not set/);
+        for (const [name, value] of Object.entries(complete)) process.env[name] = value;
+
+        // Each required setting, left out on its own, must name itself.
+        for (const missing of ["STORAGE_S3_ENDPOINT", "STORAGE_S3_BUCKET", "STORAGE_S3_ACCESS_KEY_ID", "STORAGE_S3_SECRET_ACCESS_KEY"]) {
+            for (const [name, value] of Object.entries(complete)) process.env[name] = value;
+            delete process.env[missing];
+            resetDriversForTest();
+            assert.throws(() => driverNamed("s3"), new RegExp(`${missing} is not set`), missing);
+        }
+
+        // Region and path style have defaults, so they are not a deploy-time trap.
+        for (const [name, value] of Object.entries(complete)) process.env[name] = value;
+        delete process.env.STORAGE_S3_REGION;
+        delete process.env.STORAGE_S3_FORCE_PATH_STYLE;
+        resetDriversForTest();
+        assert.doesNotThrow(() => driverNamed("s3"));
     } finally {
-        if (saved !== undefined) process.env.STORAGE_S3_BUCKET = saved;
+        for (const name of Object.keys(complete)) {
+            if (saved[name] === undefined) delete process.env[name];
+            else process.env[name] = saved[name];
+        }
         resetDriversForTest();
     }
 });
