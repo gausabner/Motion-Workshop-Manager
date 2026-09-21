@@ -48,6 +48,14 @@ function build(name: string): StorageDriver {
     }
 }
 
+/**
+ * Drivers are built once and kept, so a test that changes the environment has
+ * to say so rather than silently getting a stale one.
+ */
+export function resetDriversForTest(): void {
+    drivers.clear();
+}
+
 /** A named driver, built once. Used to read objects written before a driver switch. */
 export function driverNamed(name: string): StorageDriver {
     const existing = drivers.get(name);
