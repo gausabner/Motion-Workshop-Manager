@@ -12,8 +12,8 @@ import { MessageLog } from "@/components/messaging/MessageLog";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { dateShort, money } from "@/lib/format";
 
-export default async function PaymentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ posted?: string }> }) {
-    const [{ tenant: slug, id }, { posted }] = await Promise.all([params, searchParams]);
+export default async function PaymentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ posted?: string; problem?: string }> }) {
+    const [{ tenant: slug, id }, { posted, problem }] = await Promise.all([params, searchParams]);
     const { db, membership } = await requireTenant(slug);
     if (!can(membership, "payments:take")) notFound();
 
@@ -55,6 +55,11 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
                 </div>
             </div>
 
+            {problem && (
+                <p className="rounded-sm border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800" role="alert">
+                    This receipt was not posted: {problem}
+                </p>
+            )}
             {posted && (
                 <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">
                     Posted as <strong>{payment.number}</strong>. The invoices it settled are now closed.

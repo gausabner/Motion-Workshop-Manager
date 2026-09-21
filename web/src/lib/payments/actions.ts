@@ -62,6 +62,21 @@ async function startPayment(slug: string, direction: PaymentDirection, seed?: { 
         });
         if (seedItem) {
             await tx.paymentAllocation.create({ data: { tenantId: tenant.id, paymentId: payment.id, documentId: seedItem.id, amount: seedItem.outstanding } });
+            // The tender is stored too, not merely suggested on screen. Seeding
+            // only the allocation left the receipt looking complete while the
+            // books held one side of it, and posting it without touching a field
+            // failed on what the database actually contained — on the commonest
+            // path there is: Take payment, then Post receipt.
+            const method = await tx.paymentMethod.findFirst({
+                where: { active: true },
+                orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+                select: { id: true },
+            });
+            if (method) {
+                await tx.paymentTender.create({
+                    data: { tenantId: tenant.id, paymentId: payment.id, methodId: method.id, amount: seedItem.outstanding },
+                });
+            }
         }
         await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Payment", entityId: payment.id, action: "CREATED", diff: { direction } } });
         return payment;
@@ -164,15 +179,33 @@ export async function savePayment(slug: string, id: string, _prev: ActionState, 
  * Post the receipt: take a number, lock it, and move every document it touched.
  * The rules themselves live in `posting.ts`; this is the shell around them.
  */
+/**
+ * `redirect()` works by throwing, so a catch around a transaction would swallow
+ * it. Recognised by its digest rather than by importing Next's internals, which
+ * move between versions.
+ */
+function isRedirect(error: unknown): boolean {
+    return typeof (error as { digest?: unknown })?.digest === "string" && String((error as { digest: string }).digest).startsWith("NEXT_REDIRECT");
+}
+
 export async function processPayment(slug: string, id: string): Promise<void> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "payments:take");
     const { db, tenant, membership, user } = ctx;
 
-    await db.$transaction(async (tx) => {
-        const { number } = await postPayment(tx, tenant.id, membership.id, id);
-        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Payment", entityId: id, action: "PROCESSED", diff: { number } } });
-    });
+    try {
+        await db.$transaction(async (tx) => {
+            const { number } = await postPayment(tx, tenant.id, membership.id, id);
+            await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Payment", entityId: id, action: "PROCESSED", diff: { number } } });
+        });
+    } catch (error) {
+        // Whatever is wrong with a receipt, a person at a counter should read it
+        // on the receipt — not a page saying a server-side exception occurred.
+        if (isRedirect(error)) throw error;
+        const why = error instanceof Error ? error.message : "That receipt could not be posted.";
+        revalidateMoney(slug, id);
+        redirect(`${editorPath(slug, id)}?problem=${encodeURIComponent(why)}`);
+    }
 
     revalidateMoney(slug, id);
     redirect(`${editorPath(slug, id)}?posted=1`);
