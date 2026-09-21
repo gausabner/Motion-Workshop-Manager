@@ -1,0 +1,54 @@
+# Secrets & local config
+keys/
+.env
+.env.*
+!.env.example
+*.pem
+
+# macOS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Python (api/)
+api/venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+api/openapi.json
+
+# Node / Next.js (web/, pwa/)
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# Tests
+tests/e2e/playwright-report/
+tests/e2e/test-results/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+# Docker / data
+postgres-data/
+
+# Skill packs installed for design and animation work. They live globally in
+# ~/.claude/skills; these are a local install and are not part of the product.
+.agents/
+.codex/
+skills/
+skills-lock.json
+.claude/skills/
+.github/hooks/

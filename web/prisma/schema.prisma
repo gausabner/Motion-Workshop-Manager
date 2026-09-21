@@ -1,0 +1,1948 @@
+// MOTION Workshop Manager — data model v2 (PRD §7)
+// One transaction document (quote → booking → job card → invoice → credit),
+// tenant-scoped everything, money as Decimal, nothing hard-deleted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── enums ─────────────────────────
+
+enum UserGroup {
+  OWNER
+  ADMIN
+  SERVICE_ADVISOR
+  MECHANIC
+  INVOICE_PAY
+  READ_ONLY
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ContactMethod {
+  EMAIL
+  SMS
+  WHATSAPP
+  OPT_OUT
+}
+
+enum PriceType {
+  RETAIL
+  PRICE2
+  PRICE3
+  PRICE4
+}
+
+enum ProductType {
+  STOCK
+  LABOUR
+  SUBLET
+  CONSUMABLE
+  ACCESSORY
+  TYRE
+}
+
+enum DocumentType {
+  QUOTE
+  BOOKING
+  JOB_CARD
+  INVOICE
+  CASH_SALE
+  CREDIT
+}
+
+enum DocumentState {
+  DRAFT
+  PROCESSED
+  /// Fully settled — derived when the amount due reaches zero, never set by hand
+  CLOSED
+  VOID
+}
+
+enum JobStatus {
+  BOOKED_IN
+  WORK_IN_PROGRESS
+  WAITING_FOR_PARTS
+  INSPECTION_IN_PROGRESS
+  WAITING_FOR_CUSTOMER_APPROVAL
+  JOB_COMPLETE
+  CUSTOMER_NOTIFIED
+  AWAITING_FINALISE
+  FINALISED
+}
+
+enum LineType {
+  STOCK
+  LABOUR
+  SUBLET
+  CONSUMABLE
+  ACCESSORY
+  TYRE
+  FREIGHT
+}
+
+enum PaymentState {
+  DRAFT
+  PROCESSED
+  VOID
+}
+
+/// Which way the money went. A refund stores negative tenders, so every sum —
+/// account balance, unapplied credit, a day's takings — nets without a special case.
+enum PaymentDirection {
+  RECEIPT
+  REFUND
+}
+
+enum CreditKind {
+  DEPOSIT
+  CREDIT_NOTE
+}
+
+enum TimeEntrySource {
+  MANUAL
+  CLOCK
+}
+
+enum TemplateKind {
+  INVOICE_NOTE
+  JOB_CARD_NOTE
+  INVOICE_FOOTER
+  QUOTE_FOOTER
+  JOB_CARD_FOOTER
+  STATEMENT_FOOTER
+  EMAIL
+  SMS
+  /// The text that goes out with a document on WhatsApp or email. Built-in
+  /// defaults live in code; a row here is the workshop's own wording.
+  MESSAGE_QUOTE
+  MESSAGE_JOB_CARD
+  MESSAGE_INVOICE
+  MESSAGE_CREDIT
+  MESSAGE_RECEIPT
+  MESSAGE_REFUND
+  MESSAGE_STATEMENT
+  MESSAGE_INSPECTION
+  MESSAGE_REMINDER_SERVICE
+  MESSAGE_REMINDER_LICENCE
+  MESSAGE_REMINDER_ROADWORTHY
+  MESSAGE_REMINDER_BOOKING
+  MESSAGE_REMINDER_QUOTE
+  MESSAGE_PORTAL
+}
+
+enum ReminderKind {
+  SERVICE_DUE
+  LICENCE_DISC
+  ROADWORTHY
+  BOOKING
+  QUOTE_FOLLOW_UP
+}
+
+/// Why stock moved. Every movement is signed: in is positive, out is negative.
+/// How a bundle is priced: one price on the bundle, or the sum of what is in it.
+/// Whether a band's percentage is added to the cost, or taken out of the sell price.
+/// Where one serialised unit is in its life.
+enum SerialState {
+  IN_STOCK
+  SOLD
+  /// Came back from the customer.
+  RETURNED
+  /// Written off: damaged, lost, or scrapped.
+  WRITTEN_OFF
+}
+
+enum MatrixBasis {
+  /// Sell = cost × (1 + percent).
+  MARKUP
+  /// Sell = cost ÷ (1 − percent): the percentage is of the selling price.
+  MARGIN
+}
+
+/// How a calculated price is tidied up before it goes on the shelf edge.
+enum PriceRounding {
+  NONE
+  /// Up to the next whole unit.
+  WHOLE
+  /// Up to the next 5.
+  NEAREST_5
+  /// Up to the next 10.
+  NEAREST_10
+  /// Down to the nearest .99 above the price.
+  ENDS_99
+}
+
+enum BundlePricing {
+  FIXED
+  SUM
+}
+
+/// How much of a bundle the customer sees on a printed document.
+enum BundlePrinting {
+  /// Every component, with its own quantity.
+  COMPONENTS
+  /// Just the bundle line.
+  BUNDLE_ONLY
+}
+
+/// Where a line sits in a bundle. Plain lines have neither.
+enum BundleRole {
+  PARENT
+  COMPONENT
+}
+
+/// Where a courtesy car is in a loan.
+enum LoanState {
+  BOOKED
+  OUT
+  RETURNED
+  CANCELLED
+}
+
+enum StockTakeState {
+  /// Being counted; can be saved and come back to.
+  DRAFT
+  /// Counts posted to the ledger.
+  APPLIED
+  CANCELLED
+}
+
+enum PurchaseOrderState {
+  /// Reorder suggestion: typed up, not sent to the supplier.
+  SUGGESTED
+  ORDERED
+  /// Everything on it has arrived.
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierInvoiceState {
+  DRAFT
+  PROCESSED
+  /// Fully paid — derived from allocations, never set by hand.
+  CLOSED
+  VOID
+}
+
+enum StockMovementKind {
+  SALE
+  CREDIT
+  PURCHASE
+  RETURN_TO_SUPPLIER
+  ADJUSTMENT
+  STOCKTAKE
+  OPENING
+  VOID_REVERSAL
+}
+
+enum CampaignState {
+  DRAFT
+  SENDING
+  DONE
+}
+
+enum CampaignRecipientState {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum ReminderOutcome {
+  SENT
+  SKIPPED
+}
+
+enum MessageChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+/// HANDED_OFF means the message was prepared and opened in the sender's own
+/// WhatsApp or mail app — we cannot know whether they pressed send. Whether
+/// the customer actually got it is answered by the share link being opened.
+enum MessageStatus {
+  HANDED_OFF
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ShareKind {
+  DOCUMENT
+  PAYMENT
+  STATEMENT
+  INSPECTION
+  /// A customer's own portal; targetId is the customer.
+  PORTAL
+}
+
+enum SequenceKey {
+  QUOTE
+  JOB
+  INVOICE
+  CREDIT
+  RECEIPT
+  REFUND
+  INSPECTION
+  PURCHASE_ORDER
+  SUPPLIER_PAYMENT
+  /// Reserved: supplier invoices carry the supplier's own number, not ours.
+  SUPPLIER_INVOICE
+}
+
+// ───────────────────────── tenancy & people ─────────────────────────
+
+model Tenant {
+  id                      String   @id @default(cuid())
+  slug                    String   @unique
+  name                    String
+  // Company profile (PRD SET-01)
+  registrationNumber      String?
+  vatNumber               String?
+  address1                String?
+  address2                String?
+  suburb                  String?
+  city                    String?
+  region                  String?
+  postcode                String?
+  country                 String   @default("NA")
+  phone                   String?
+  mobile                  String?
+  whatsapp                String?
+  email                   String?
+  web                     String?
+  timezone                String   @default("Africa/Windhoek")
+  currency                String   @default("NAD")
+  locale                  String   @default("en-NA")
+  // Tax defaults (PRD SET-02) — rates are percentages, e.g. 15.00
+  taxName                 String   @default("VAT")
+  salesTaxRate            Decimal  @default(15.00) @db.Decimal(5, 2)
+  purchaseTaxRate         Decimal  @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax        Boolean  @default(true)
+  defaultPaymentTermsDays Int      @default(0)
+  // Everything else lives in a typed JSON blob validated by zod (PRD SET-09)
+  settings                Json     @default("{}")
+  isActive                Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  memberships                Membership[]
+  invitations                Invitation[]
+  sessions                   Session[]
+  customers                  Customer[]
+  contacts                   Contact[]
+  vehicles                   Vehicle[]
+  suppliers                  Supplier[]
+  productGroups              ProductGroup[]
+  productCategories          ProductCategory[]
+  products                   Product[]
+  customerSources            CustomerSource[]
+  paymentMethods             PaymentMethod[]
+  appointmentTypes           AppointmentType[]
+  sequences                  Sequence[]
+  templates                  Template[]
+  documents                  Document[]
+  documentLines              DocumentLine[]
+  statusEvents               DocumentStatusEvent[]
+  timeEntries                TimeEntry[]
+  payments                   Payment[]
+  paymentTenders             PaymentTender[]
+  allocations                PaymentAllocation[]
+  credits                    Credit[]
+  attachments                Attachment[]
+  auditEvents                AuditEvent[]
+  externalRefs               ExternalRef[]
+  shareLinks                 ShareLink[]
+  apiKeys                    ApiKey[]
+  messages                   Message[]
+  workingHours               WorkingHours[]
+  timeOff                    TimeOff[]
+  bookingRequests            BookingRequest[]
+  inspectionTemplates        InspectionTemplate[]
+  inspectionTemplateItems    InspectionTemplateItem[]
+  inspections                Inspection[]
+  inspectionItems            InspectionItem[]
+  reminders                  Reminder[]
+  campaigns                  Campaign[]
+  campaignRecipients         CampaignRecipient[]
+  stockMovements             StockMovement[]
+  purchaseOrders             PurchaseOrder[]
+  purchaseOrderLines         PurchaseOrderLine[]
+  supplierInvoices           SupplierInvoice[]
+  supplierInvoiceLines       SupplierInvoiceLine[]
+  supplierPayments           SupplierPayment[]
+  supplierPaymentAllocations SupplierPaymentAllocation[]
+  stockTakes                 StockTake[]
+  stockTakeLines             StockTakeLine[]
+  bundleItems                BundleItem[]
+  priceMatrices              PriceMatrix[]
+  priceMatrixBands           PriceMatrixBand[]
+  serialUnits                SerialUnit[]
+  loanVehicles               LoanVehicle[]
+  loans                      Loan[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  mobile       String?
+  isSuperuser  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships     Membership[]
+  sessions        Session[]
+  invitationsSent Invitation[] @relation("InvitedBy")
+  auditEvents     AuditEvent[]
+}
+
+/// A person inside a workshop. Advisors, mechanics and document authors all
+/// point here, never at User, so a user can belong to several workshops.
+model Membership {
+  id                  String           @id @default(cuid())
+  tenantId            String
+  userId              String
+  group               UserGroup        @default(SERVICE_ADVISOR)
+  status              MembershipStatus @default(ACTIVE)
+  isMechanic          Boolean          @default(false)
+  isServiceAdvisor    Boolean          @default(false)
+  dashboardPrivileges Boolean          @default(false)
+  limitCustomerInfo   Boolean          @default(false)
+  showOnDiary         Boolean          @default(false)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  advisedDocuments   Document[]            @relation("DocumentAdvisor")
+  mechanicDocuments  Document[]            @relation("DocumentMechanic")
+  createdDocuments   Document[]            @relation("DocumentCreatedBy")
+  processedDocuments Document[]            @relation("DocumentProcessedBy")
+  statusEvents       DocumentStatusEvent[]
+  timeEntries        TimeEntry[]
+  paymentsTaken      Payment[]
+  messages           Message[]
+  workingHours       WorkingHours[]
+  timeOff            TimeOff[]
+  inspections        Inspection[]
+  remindersActed     Reminder[]
+  campaigns          Campaign[]
+  stockMovements     StockMovement[]
+  purchaseOrders     PurchaseOrder[]
+  supplierInvoices   SupplierInvoice[]
+  supplierPayments   SupplierPayment[]
+  stockTakesStarted  StockTake[]           @relation("StockTakeStartedBy")
+  stockTakesApplied  StockTake[]           @relation("StockTakeAppliedBy")
+  loansGiven         Loan[]
+  apiKeys            ApiKey[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId, status])
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  email       String
+  group       UserGroup @default(SERVICE_ADVISOR)
+  token       String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime  @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  invitedBy User   @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([tenantId, email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String?
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+}
+
+// ───────────────────────── master data ─────────────────────────
+
+model Customer {
+  id               String        @id @default(cuid())
+  tenantId         String
+  firstName        String
+  lastName         String
+  isBusiness       Boolean       @default(false)
+  /// Parent account that gets the invoice (PRD CUST-02 "biller")
+  billerId         String?
+  businessNumber   String?
+  vatNumber        String?
+  // Street + postal address (WS dual addressing)
+  streetAddress1   String?
+  streetAddress2   String?
+  streetSuburb     String?
+  streetCity       String?
+  streetRegion     String?
+  streetCountry    String?
+  streetPostcode   String?
+  postalAddress1   String?
+  postalAddress2   String?
+  postalSuburb     String?
+  postalCity       String?
+  postalRegion     String?
+  postalCountry    String?
+  postalPostcode   String?
+  phone            String?
+  mobile           String?
+  email            String?
+  fax              String?
+  web              String?
+  preferredContact ContactMethod @default(WHATSAPP)
+  // Pricing & terms
+  hourlyRate       Decimal?      @db.Decimal(12, 2)
+  discountPercent  Decimal       @default(0) @db.Decimal(5, 2)
+  markupPercent    Decimal       @default(0) @db.Decimal(5, 2)
+  priceType        PriceType     @default(RETAIL)
+  paymentTermsDays Int?
+  creditLimit      Decimal?      @db.Decimal(12, 2)
+  vatExempt        Boolean       @default(false)
+  customerSourceId String?
+  importedId       String?
+  note             String?
+  archivedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  biller             Customer?           @relation("Biller", fields: [billerId], references: [id])
+  billedAccounts     Customer[]          @relation("Biller")
+  customerSource     CustomerSource?     @relation(fields: [customerSourceId], references: [id])
+  contacts           Contact[]
+  vehicles           Vehicle[]
+  documents          Document[]
+  payments           Payment[]
+  credits            Credit[]
+  messages           Message[]
+  inspections        Inspection[]
+  reminders          Reminder[]
+  campaignRecipients CampaignRecipient[]
+  loans              Loan[]
+
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, mobile])
+  @@index([tenantId, archivedAt])
+}
+
+model Contact {
+  id         String  @id @default(cuid())
+  tenantId   String
+  customerId String?
+  supplierId String?
+  firstName  String
+  lastName   String?
+  position   String?
+  phone      String?
+  mobile     String?
+  email      String?
+  sortOrder  Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([supplierId])
+}
+
+model Vehicle {
+  id                    String    @id @default(cuid())
+  tenantId              String
+  customerId            String?
+  plate                 String
+  vin                   String?
+  make                  String
+  model                 String
+  modelSeries           String?
+  year                  Int?
+  engineNumber          String?
+  chassisNumber         String?
+  engineCode            String?
+  fleetCode             String?
+  vehicleGroup          String?
+  /// Group-specific fields (marine, trailer, plant…) validated by a zod schema per vehicleGroup
+  extras                Json      @default("{}")
+  bodyType              String?
+  transmission          String?
+  driveType             String?
+  fuelType              String?
+  cylinders             Int?
+  litres                Decimal?  @db.Decimal(4, 1)
+  hasAc                 Boolean   @default(false)
+  seating               Int?
+  colour                String?
+  tyreSize              String?
+  keyCode               String?
+  radioPin              String?
+  buildDate             DateTime? @db.Date
+  odometer              Int?
+  engineHours           Decimal?  @db.Decimal(10, 1)
+  // Compliance (localised: licence disc + roadworthy, PRD VEH-02)
+  licenceExpiry         DateTime? @db.Date
+  roadworthyExpiry      DateTime? @db.Date
+  // Servicing
+  lastInDate            DateTime? @db.Date
+  lastServiceDate       DateTime? @db.Date
+  nextServiceDate       DateTime? @db.Date
+  nextServiceKm         Int?
+  serviceIntervalMonths Int?
+  importedId            String?
+  note                  String?
+  archivedAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  documents   Document[]
+  inspections Inspection[]
+  reminders   Reminder[]
+
+  @@index([tenantId, plate])
+  @@index([tenantId, vin])
+  @@index([tenantId, customerId])
+}
+
+model Supplier {
+  id               String    @id @default(cuid())
+  tenantId         String
+  companyName      String
+  accountNumber    String?
+  vatNumber        String?
+  address1         String?
+  address2         String?
+  suburb           String?
+  city             String?
+  region           String?
+  country          String?
+  postcode         String?
+  phone            String?
+  mobile           String?
+  email            String?
+  fax              String?
+  web              String?
+  paymentTermsDays Int?
+  importedId       String?
+  note             String?
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  contacts         Contact[]
+  products         Product[]
+  purchaseOrders   PurchaseOrder[]
+  supplierInvoices SupplierInvoice[]
+
+  @@index([tenantId, companyName])
+}
+
+model ProductGroup {
+  id              String  @id @default(cuid())
+  tenantId        String
+  name            String
+  salesAccount    String?
+  purchaseAccount String?
+  sortOrder       Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model ProductCategory {
+  id        String @id @default(cuid())
+  tenantId  String
+  name      String
+  sortOrder Int    @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model Product {
+  id               String      @id @default(cuid())
+  tenantId         String
+  itemCode         String
+  description      String
+  description2     String?
+  tags             String?
+  groupId          String?
+  categoryId       String?
+  supplierId       String?
+  brand            String?
+  type             ProductType @default(STOCK)
+  isService        Boolean     @default(false)
+  vatExempt        Boolean     @default(false)
+  dontUpdateQty    Boolean     @default(false)
+  requiresSerial   Boolean     @default(false)
+  defaultLabourQty Decimal?    @db.Decimal(8, 2)
+  qtyOnHand        Decimal     @default(0) @db.Decimal(12, 2)
+  qtyReserved      Decimal     @default(0) @db.Decimal(12, 2)
+  minQty           Decimal     @default(0) @db.Decimal(12, 2)
+  maxQty           Decimal     @default(0) @db.Decimal(12, 2)
+  location         String?
+  costExTax        Decimal     @default(0) @db.Decimal(12, 2)
+  costIncTax       Decimal     @default(0) @db.Decimal(12, 2)
+  retailPrice      Decimal     @default(0) @db.Decimal(12, 2)
+  price2           Decimal     @default(0) @db.Decimal(12, 2)
+  price3           Decimal     @default(0) @db.Decimal(12, 2)
+  price4           Decimal     @default(0) @db.Decimal(12, 2)
+  importedId       String?
+  comment          String?
+  jobCardComment   String?
+  archivedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  group                   ProductGroup?            @relation(fields: [groupId], references: [id])
+  category                ProductCategory?         @relation(fields: [categoryId], references: [id])
+  supplier                Supplier?                @relation(fields: [supplierId], references: [id])
+  lines                   DocumentLine[]
+  inspectionTemplateItems InspectionTemplateItem[]
+  inspectionItems         InspectionItem[]
+  stockMovements          StockMovement[]
+  purchaseOrderLines      PurchaseOrderLine[]
+  supplierInvoiceLines    SupplierInvoiceLine[]
+  stockTakeLines          StockTakeLine[]
+  /// True when this product is a bundle of others.
+  isBundle                Boolean                  @default(false)
+  bundlePricing           BundlePricing            @default(FIXED)
+  bundlePrinting          BundlePrinting           @default(COMPONENTS)
+  bundleItems             BundleItem[]             @relation("BundleParent")
+  partOfBundles           BundleItem[]             @relation("BundleComponent")
+  /// When set, the sell price follows this matrix as the cost changes.
+  priceMatrixId           String?
+  priceMatrix             PriceMatrix?             @relation(fields: [priceMatrixId], references: [id])
+  serialUnits             SerialUnit[]
+  /// How long this is guaranteed for once sold; null when it carries no warranty.
+  warrantyMonths          Int?
+
+  @@unique([tenantId, itemCode])
+  @@index([tenantId, description])
+}
+
+// ───────────────────────── lists & config (PRD SET-06/07/08) ─────────────────────────
+
+model CustomerSource {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  customers Customer[]
+  documents Document[]
+
+  @@unique([tenantId, name])
+}
+
+model PaymentMethod {
+  id           String  @id @default(cuid())
+  tenantId     String
+  name         String
+  code         String
+  isEft        Boolean @default(false)
+  isIntegrated Boolean @default(false)
+  active       Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  tenders          PaymentTender[]
+  supplierPayments SupplierPayment[]
+
+  @@unique([tenantId, code])
+}
+
+model AppointmentType {
+  id             String  @id @default(cuid())
+  tenantId       String
+  description    String
+  estimatedHours Decimal @default(1) @db.Decimal(5, 2)
+  active         Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  bookingRequests BookingRequest[]
+
+  @@unique([tenantId, description])
+}
+
+model Sequence {
+  id       String      @id @default(cuid())
+  tenantId String
+  key      SequenceKey
+  prefix   String      @default("")
+  next     Int         @default(1)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+}
+
+model Template {
+  id        String       @id @default(cuid())
+  tenantId  String
+  kind      TemplateKind
+  name      String
+  body      String
+  sortOrder Int          @default(0)
+  active    Boolean      @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, kind])
+}
+
+// ───────────────────────── the transaction document (PRD §6.4) ─────────────────────────
+
+model Document {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  type                DocumentType
+  state               DocumentState @default(DRAFT)
+  jobStatus           JobStatus?
+  statusComment       String?
+  /// Type-specific number: Q-1001, JC-1001, INV-1001, CR-1001 (PRD DOC-11)
+  number              String?
+  /// Job card number carried from job to invoice
+  jobNumber           String?
+  customerId          String?
+  isCashSale          Boolean       @default(false)
+  vehicleId           String?
+  serviceAdvisorId    String?
+  mechanicId          String?
+  reference           String?
+  /// Auto-filled from the first line so lists and statements can say what the
+  /// job actually was. The benchmark's trick, and free readability everywhere.
+  description         String?
+  customerOrderNumber String?
+  postDate            DateTime      @default(now()) @db.Date
+  dueDate             DateTime?     @db.Date
+  followUpDate        DateTime?     @db.Date
+  // Booking / diary fields
+  scheduledAt         DateTime?
+  scheduledEnd        DateTime?
+  dueBy               DateTime?
+  estimatedHours      Decimal?      @db.Decimal(5, 2)
+  // Vehicle capture on the job (PRD DOC-01)
+  odometer            Int?
+  engineHours         Decimal?      @db.Decimal(10, 1)
+  nextServiceKm       Int?
+  nextServiceDate     DateTime?     @db.Date
+  isInternal          Boolean       @default(false)
+  paymentTermsDays    Int?
+  customerSourceId    String?
+  // Tax snapshot — stamped at creation and never read from the tenant again (R1c)
+  taxName             String        @default("VAT")
+  taxRate             Decimal       @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax    Boolean       @default(true)
+  // Money — all stored, recomputed by the service layer on every line change
+  subtotal            Decimal       @default(0) @db.Decimal(12, 2)
+  discountPercent     Decimal?      @db.Decimal(5, 2)
+  discountAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  freight             Decimal       @default(0) @db.Decimal(12, 2)
+  vatTotal            Decimal       @default(0) @db.Decimal(12, 2)
+  discountApplied     Decimal       @default(0) @db.Decimal(12, 2)
+  unroundedTotal      Decimal       @default(0) @db.Decimal(12, 2)
+  rounding            Decimal       @default(0) @db.Decimal(12, 2)
+  total               Decimal       @default(0) @db.Decimal(12, 2)
+  // Paid and due are derived from PaymentAllocation — never stored here (R1c)
+  // Notes
+  eventNotes          String?
+  jobCardNotes        String?
+  invoiceNotes        String?
+  contactedAt         DateTime?
+  // Lifecycle
+  processedAt         DateTime?
+  processedById       String?
+  voidedAt            DateTime?
+  voidReason          String?
+  /// Copy / convert / credit origin
+  sourceDocumentId    String?
+  /// The document this was split off, when one job is billed to two payers.
+  splitFromId         String?
+  /// The job this redoes under warranty, and why.
+  reworkOfId          String?
+  reworkReason        String?
+  createdById         String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  customer             Customer?             @relation(fields: [customerId], references: [id])
+  vehicle              Vehicle?              @relation(fields: [vehicleId], references: [id])
+  serviceAdvisor       Membership?           @relation("DocumentAdvisor", fields: [serviceAdvisorId], references: [id])
+  mechanic             Membership?           @relation("DocumentMechanic", fields: [mechanicId], references: [id])
+  createdBy            Membership?           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  processedBy          Membership?           @relation("DocumentProcessedBy", fields: [processedById], references: [id])
+  customerSource       CustomerSource?       @relation(fields: [customerSourceId], references: [id])
+  sourceDocument       Document?             @relation("DocumentSource", fields: [sourceDocumentId], references: [id])
+  derivedDocuments     Document[]            @relation("DocumentSource")
+  splitFrom            Document?             @relation("DocumentSplit", fields: [splitFromId], references: [id])
+  splits               Document[]            @relation("DocumentSplit")
+  reworkOf             Document?             @relation("DocumentRework", fields: [reworkOfId], references: [id])
+  reworks              Document[]            @relation("DocumentRework")
+  lines                DocumentLine[]
+  statusEvents         DocumentStatusEvent[]
+  timeEntries          TimeEntry[]
+  allocations          PaymentAllocation[]
+  credits              Credit[]
+  messages             Message[]
+  bookingRequest       BookingRequest?
+  inspections          Inspection[]
+  reminders            Reminder[]
+  stockMovements       StockMovement[]
+  purchaseOrderLines   PurchaseOrderLine[]
+  supplierInvoiceLines SupplierInvoiceLine[]
+  loans                Loan[]
+
+  @@index([tenantId, type, state])
+  @@index([tenantId, number])
+  @@index([tenantId, customerId])
+  @@index([tenantId, vehicleId])
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, jobStatus])
+}
+
+model DocumentLine {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  documentId         String
+  sortOrder          Int      @default(0)
+  productId          String?
+  lineType           LineType @default(STOCK)
+  description        String
+  quantity           Decimal  @default(1) @db.Decimal(12, 2)
+  /// Labour hours worked on this line (benchmark: invoice_items.hours_worked)
+  hours              Decimal? @db.Decimal(8, 2)
+  unitPrice          Decimal  @default(0) @db.Decimal(12, 2)
+  unitCost           Decimal  @default(0) @db.Decimal(12, 2)
+  /// Percentage, e.g. 15.00; 0 for exempt lines
+  vatRate            Decimal  @default(0) @db.Decimal(5, 2)
+  discountPercent    Decimal  @default(0) @db.Decimal(5, 2)
+  lineSubtotal       Decimal  @default(0) @db.Decimal(12, 2)
+  vatAmount          Decimal  @default(0) @db.Decimal(12, 2)
+  lineTotal          Decimal  @default(0) @db.Decimal(12, 2)
+  serialNumbers      String?
+  isCustomerSupplied Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  document       Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id])
+  inspectionItem InspectionItem?
+  /// Lines expanded from one bundle share this key; the parent carries the price, the components the cost and the stock.
+  bundleGroup    String?
+  bundleRole     BundleRole?
+  serialUnits    SerialUnit[]
+
+  @@index([documentId, sortOrder])
+  @@index([tenantId, productId])
+}
+
+model DocumentStatusEvent {
+  id         String     @id @default(cuid())
+  tenantId   String
+  documentId String
+  fromStatus JobStatus?
+  toStatus   JobStatus
+  comment    String?
+  byId       String?
+  at         DateTime   @default(now())
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  document Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  by       Membership? @relation(fields: [byId], references: [id])
+
+  @@index([documentId, at])
+}
+
+/// A mechanic's own hours on one weekday, where they differ from the shop's.
+/// No row means the shop's hours; equal start and end means a regular day off.
+/// Only the exceptions are stored — the benchmark's "Hide Defaults".
+model WorkingHours {
+  id           String @id @default(cuid())
+  tenantId     String
+  membershipId String
+  /// ISO weekday, 1 = Monday.
+  weekday      Int
+  startMinute  Int
+  endMinute    Int
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, weekday])
+  @@index([tenantId])
+}
+
+/// Leave, a course, a doctor's appointment — the benchmark's "Unavailable Times".
+model TimeOff {
+  id           String   @id @default(cuid())
+  tenantId     String
+  membershipId String
+  startsAt     DateTime
+  endsAt       DateTime
+  reason       String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startsAt])
+  @@index([membershipId, startsAt])
+}
+
+enum BookingRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+/// A booking made on the public page. It waits here for someone at the
+/// workshop to approve it — the benchmark's queue — rather than landing in
+/// the diary unseen.
+model BookingRequest {
+  id                 String               @id @default(cuid())
+  tenantId           String
+  status             BookingRequestStatus @default(PENDING)
+  requestedAt        DateTime
+  minutes            Int
+  appointmentTypeId  String?
+  service            String
+  firstName          String
+  lastName           String
+  mobile             String
+  email              String?
+  plate              String?
+  vehicleDescription String?
+  notes              String?
+  /// Salted hash of the requester's address, only for rate limiting.
+  ipHash             String?
+  decidedById        String?
+  decidedAt          DateTime?
+  declineReason      String?
+  documentId         String?              @unique
+  customerId         String?
+  createdAt          DateTime             @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  appointmentType AppointmentType? @relation(fields: [appointmentTypeId], references: [id])
+  document        Document?        @relation(fields: [documentId], references: [id])
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, ipHash, createdAt])
+}
+
+/// D → RA → A / R → F in the benchmark. Approved and Refused are derived from
+/// the items' decisions, never set by hand.
+enum InspectionState {
+  DRAFT
+  REQUESTED
+  APPROVED
+  REFUSED
+  FINALISED
+}
+
+model InspectionTemplate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tenant      Tenant                   @relation(fields: [tenantId], references: [id])
+  items       InspectionTemplateItem[]
+  inspections Inspection[]
+
+  @@unique([tenantId, name])
+}
+
+model InspectionTemplateItem {
+  id              String   @id @default(cuid())
+  tenantId        String
+  templateId      String
+  group           String
+  ordering        Int      @default(0)
+  description     String
+  /// Labels for up to four readings, e.g. ["Front mm", "Rear mm"]. Empty means none.
+  inputLabels     Json     @default("[]")
+  /// The product an approved finding becomes on the job card.
+  productId       String?
+  /// What fixing it usually costs; fills the estimate when an inspection starts, so a mechanic only types the exceptions.
+  defaultEstimate Decimal? @db.Decimal(12, 2)
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
+  template InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  product  Product?           @relation(fields: [productId], references: [id])
+
+  @@index([templateId, ordering])
+}
+
+model Inspection {
+  id               String          @id @default(cuid())
+  tenantId         String
+  number           String?
+  state            InspectionState @default(DRAFT)
+  /// The job card approved findings are added to.
+  documentId       String?
+  customerId       String?
+  vehicleId        String?
+  templateId       String?
+  mechanicId       String?
+  description      String?
+  odometer         Int?
+  requestedAt      DateTime?
+  customerViewedAt DateTime?
+  customerComments String?
+  finalisedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  tenant   Tenant              @relation(fields: [tenantId], references: [id])
+  document Document?           @relation(fields: [documentId], references: [id])
+  customer Customer?           @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle?            @relation(fields: [vehicleId], references: [id])
+  template InspectionTemplate? @relation(fields: [templateId], references: [id])
+  mechanic Membership?         @relation(fields: [mechanicId], references: [id])
+  items    InspectionItem[]
+
+  @@index([tenantId, state])
+  @@index([documentId])
+}
+
+/// One finding. Copied from the template when the inspection is created, so a
+/// later template edit cannot rewrite what a customer approved.
+model InspectionItem {
+  id             String    @id @default(cuid())
+  tenantId       String
+  inspectionId   String
+  templateItemId String?
+  group          String
+  ordering       Int       @default(0)
+  description    String
+  inputLabels    Json      @default("[]")
+  input1         String?
+  input2         String?
+  input3         String?
+  input4         String?
+  comment        String?
+  /// RAG as two flags, the benchmark's design: red is urgent, amber is soon, green is neither.
+  urgent         Boolean   @default(false)
+  soon           Boolean   @default(false)
+  checked        Boolean   @default(false)
+  /// What fixing it costs, as quoted to the customer (tax-inclusive when the workshop quotes that way).
+  estimate       Decimal?  @db.Decimal(12, 2)
+  productId      String?
+  approvedAt     DateTime?
+  /// Who said yes: "customer", or the name of the staff member who took it by phone.
+  approvedBy     String?
+  declinedAt     DateTime?
+  /// The job-card line this finding became, once approved and added.
+  documentLineId String?   @unique
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  inspection   Inspection    @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  product      Product?      @relation(fields: [productId], references: [id])
+  documentLine DocumentLine? @relation(fields: [documentLineId], references: [id], onDelete: SetNull)
+
+  @@index([inspectionId, ordering])
+}
+
+model TimeEntry {
+  id         String          @id @default(cuid())
+  tenantId   String
+  documentId String
+  mechanicId String
+  source     TimeEntrySource @default(MANUAL)
+  startedAt  DateTime
+  endedAt    DateTime?
+  minutes    Int?
+  note       String?
+  /// The phone's own id for a tap made with no signal. Unique per workshop, so
+  /// replaying a queue twice cannot record the same start twice.
+  clientRef  String?
+  createdAt  DateTime        @default(now())
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  document Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  mechanic Membership @relation(fields: [mechanicId], references: [id])
+
+  @@unique([tenantId, clientRef])
+  @@index([tenantId, mechanicId, startedAt])
+  @@index([documentId])
+}
+
+// ───────────────────────── money in (PRD §6.11) ─────────────────────────
+
+model Payment {
+  id          String           @id @default(cuid())
+  tenantId    String
+  /// Null only while the receipt is still a draft on the counter.
+  customerId  String?
+  direction   PaymentDirection @default(RECEIPT)
+  state       PaymentState     @default(DRAFT)
+  /// Receipt number from the RECEIPT sequence, allocated on process
+  number      String?
+  postDate    DateTime         @default(now()) @db.Date
+  /// Sum of the tenders. What is allocated is derived; the remainder is unapplied credit.
+  amount      Decimal          @default(0) @db.Decimal(12, 2)
+  note        String?
+  takenById   String?
+  processedAt DateTime?
+  voidedAt    DateTime?
+  voidReason  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id])
+  customer    Customer?           @relation(fields: [customerId], references: [id])
+  takenBy     Membership?         @relation(fields: [takenById], references: [id])
+  tenders     PaymentTender[]
+  allocations PaymentAllocation[]
+  credits     Credit[]
+  messages    Message[]
+
+  @@index([tenantId, customerId, postDate])
+  @@index([tenantId, state])
+}
+
+/// How the money arrived. A counter payment is often split across cash, card and
+/// EFT, and each tender carries its own reference (benchmark verified).
+model PaymentTender {
+  id                String   @id @default(cuid())
+  tenantId          String
+  paymentId         String
+  methodId          String
+  amount            Decimal  @db.Decimal(12, 2)
+  /// What was physically handed over, when that is more than what was kept —
+  /// the difference is the change given. Null means they gave the exact amount.
+  tendered          Decimal? @db.Decimal(12, 2)
+  /// EFT reference, card slip or cheque number
+  reference         String?
+  proofAttachmentId String?
+  sortOrder         Int      @default(0)
+
+  tenant  Tenant        @relation(fields: [tenantId], references: [id])
+  payment Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  method  PaymentMethod @relation(fields: [methodId], references: [id])
+
+  @@index([paymentId])
+}
+
+model PaymentAllocation {
+  id         String  @id @default(cuid())
+  tenantId   String
+  paymentId  String
+  documentId String
+  amount     Decimal @db.Decimal(12, 2)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@unique([paymentId, documentId])
+  @@index([documentId])
+}
+
+/// Deposits and credit notes held on a customer's account (PRD PAY-04).
+/// A deposit is a child of the document it was taken against, via sourceDocumentId.
+model Credit {
+  id               String     @id @default(cuid())
+  tenantId         String
+  customerId       String
+  kind             CreditKind
+  amount           Decimal    @db.Decimal(12, 2)
+  remaining        Decimal    @db.Decimal(12, 2)
+  sourceDocumentId String?
+  paymentId        String?
+  note             String?
+  createdAt        DateTime   @default(now())
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  sourceDocument Document? @relation(fields: [sourceDocumentId], references: [id])
+  payment        Payment?  @relation(fields: [paymentId], references: [id])
+
+  @@index([tenantId, customerId])
+}
+
+// ───────────────────────── files & audit ─────────────────────────
+
+model Attachment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  ownerType    String
+  ownerId      String
+  /// Which storage driver wrote this object. Kept per file so a workshop that
+  /// moves from local disk to a bucket keeps reading everything from before.
+  driver       String   @default("local")
+  storageKey   String
+  fileName     String
+  mimeType     String
+  size         Int
+  /// sha256 of the bytes as stored, for integrity checks and de-duplication.
+  checksum     String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, ownerType, ownerId])
+}
+
+/// A link a customer can open without an account. Only the hash of the token
+/// is stored, so the table leaking does not leak working links.
+model ShareLink {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tokenHash     String    @unique
+  kind          ShareKind
+  /// Document id, payment id, or — for a statement — the customer id.
+  targetId      String
+  /// The statement window, when kind is STATEMENT.
+  params        Json      @default("{}")
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  firstOpenedAt DateTime?
+  lastOpenedAt  DateTime?
+  openCount     Int       @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  messages Message[]
+
+  @@index([tenantId, kind, targetId])
+}
+
+/// Every message sent to a customer, whatever the channel — the communication log.
+model Message {
+  id          String         @id @default(cuid())
+  tenantId    String
+  customerId  String?
+  documentId  String?
+  paymentId   String?
+  shareLinkId String?
+  channel     MessageChannel
+  /// Which driver carried it: "whatsapp-link", "mailto", later a provider.
+  driver      String
+  status      MessageStatus
+  recipient   String
+  subject     String?
+  body        String
+  externalId  String?
+  error       String?
+  sentById    String?
+  createdAt   DateTime       @default(now())
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  customer           Customer?           @relation(fields: [customerId], references: [id])
+  document           Document?           @relation(fields: [documentId], references: [id])
+  payment            Payment?            @relation(fields: [paymentId], references: [id])
+  shareLink          ShareLink?          @relation(fields: [shareLinkId], references: [id])
+  sentBy             Membership?         @relation(fields: [sentById], references: [id])
+  reminders          Reminder[]
+  campaignRecipients CampaignRecipient[]
+
+  @@index([tenantId, customerId, createdAt])
+  @@index([tenantId, documentId])
+  @@index([tenantId, paymentId])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  entityType  String
+  entityId    String
+  action      String
+  diff        Json?
+  at          DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  actor  User?  @relation(fields: [actorUserId], references: [id])
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, at])
+}
+
+// ───────────────────────── integrations ─────────────────────────
+
+/// One row per (entity, provider) link. Integrations never add columns to core
+/// tables — the benchmark's invoice carries ~40 sync columns; ours carries none.
+model ExternalRef {
+  id         String    @id @default(cuid())
+  tenantId   String
+  entityType String
+  entityId   String
+  provider   String
+  externalId String
+  syncState  String    @default("SYNCED")
+  syncedAt   DateTime?
+  lastError  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, provider, entityType, entityId])
+  @@unique([tenantId, provider, entityType, externalId])
+  @@index([tenantId, provider, externalId])
+}
+
+/// A reminder someone dealt with. What is *due* is worked out from the
+/// vehicles, bookings and quotes themselves; a row here only says one was sent
+/// or skipped for that date. Keyed by the date it was for, so moving a service
+/// date makes a new reminder without clearing any flag, and the history stays.
+model Reminder {
+  id         String          @id @default(cuid())
+  tenantId   String
+  kind       ReminderKind
+  /// The vehicle for service, licence and roadworthy; the document for booking and quote.
+  targetId   String
+  dueOn      DateTime        @db.Date
+  outcome    ReminderOutcome
+  customerId String?
+  vehicleId  String?
+  documentId String?
+  messageId  String?
+  actedById  String?
+  actedAt    DateTime        @default(now())
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle?    @relation(fields: [vehicleId], references: [id])
+  document Document?   @relation(fields: [documentId], references: [id])
+  message  Message?    @relation(fields: [messageId], references: [id])
+  actedBy  Membership? @relation(fields: [actedById], references: [id])
+
+  @@unique([tenantId, kind, targetId, dueOn])
+  @@index([tenantId, actedAt])
+  @@index([tenantId, customerId])
+}
+
+/// One bulk message to a chosen audience (R5). The audience is worked out once
+/// and kept as recipients, so a list someone is halfway through sending does
+/// not shift under them when a customer's balance changes.
+model Campaign {
+  id           String         @id @default(cuid())
+  tenantId     String
+  name         String
+  channel      MessageChannel
+  /// Send each customer on the channel they prefer, falling back to the other.
+  usePreferred Boolean        @default(false)
+  subject      String?
+  body         String
+  /// What was asked for, kept so the audience can be explained later.
+  filters      Json           @default("{}")
+  state        CampaignState  @default(DRAFT)
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  createdBy  Membership?         @relation(fields: [createdById], references: [id])
+  recipients CampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+}
+
+model CampaignRecipient {
+  id         String                 @id @default(cuid())
+  tenantId   String
+  campaignId String
+  customerId String
+  state      CampaignRecipientState @default(PENDING)
+  /// Why this one cannot go, or why it was left out.
+  note       String?
+  messageId  String?
+  actedAt    DateTime?
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id])
+  message  Message? @relation(fields: [messageId], references: [id])
+
+  @@unique([campaignId, customerId])
+  @@index([tenantId, campaignId, state])
+}
+
+/// Every movement of stock, and the only thing that decides how much is on
+/// hand. `Product.qtyOnHand` is a running total of these rows kept for lists;
+/// it can always be rebuilt from here, which is what makes the number
+/// trustworthy rather than merely present.
+model StockMovement {
+  id                    String            @id @default(cuid())
+  tenantId              String
+  productId             String
+  at                    DateTime          @default(now())
+  kind                  StockMovementKind
+  /// Signed: negative leaves the shelf, positive arrives.
+  quantity              Decimal           @db.Decimal(12, 2)
+  /// What it was worth at that moment, per unit, excluding tax.
+  unitCost              Decimal           @default(0) @db.Decimal(12, 2)
+  documentId            String?
+  /// One movement per document line, so processing twice cannot move stock twice.
+  documentLineId        String?
+  /// The same, for goods arriving on a supplier invoice.
+  supplierInvoiceLineId String?           @unique
+  note                  String?
+  byId                  String?
+  createdAt             DateTime          @default(now())
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
+  document            Document?            @relation(fields: [documentId], references: [id])
+  supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
+  by                  Membership?          @relation(fields: [byId], references: [id])
+
+  @@unique([documentLineId, kind])
+  @@index([tenantId, productId, at])
+  @@index([tenantId, at])
+}
+
+/// An order placed with a supplier. A commitment only: nothing moves on the
+/// shelf until the goods arrive on a supplier invoice.
+model PurchaseOrder {
+  id               String             @id @default(cuid())
+  tenantId         String
+  number           String?
+  supplierId       String
+  state            PurchaseOrderState @default(SUGGESTED)
+  orderDate        DateTime           @db.Date
+  /// When the whole order is expected; each line may have its own.
+  dueDate          DateTime?          @db.Date
+  reference        String?
+  note             String?
+  /// The purchase tax as it stood when the order was raised.
+  taxName          String             @default("VAT")
+  taxRate          Decimal            @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax Boolean            @default(false)
+  createdById      String?
+  orderedAt        DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy        Membership?         @relation(fields: [createdById], references: [id])
+  lines            PurchaseOrderLine[]
+  supplierInvoices SupplierInvoice[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, state, orderDate])
+}
+
+model PurchaseOrderLine {
+  id          String    @id @default(cuid())
+  tenantId    String
+  orderId     String
+  sortOrder   Int       @default(0)
+  productId   String?
+  /// Copied when the line is written, so a renamed product does not rewrite the order.
+  itemCode    String?
+  description String
+  quantity    Decimal   @default(1) @db.Decimal(12, 2)
+  unitCost    Decimal   @default(0) @db.Decimal(12, 2)
+  /// The job these parts are for — what makes true job costing possible.
+  documentId  String?
+  dueDate     DateTime? @db.Date
+  note        String?
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  order                PurchaseOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product              Product?              @relation(fields: [productId], references: [id])
+  document             Document?             @relation(fields: [documentId], references: [id])
+  supplierInvoiceLines SupplierInvoiceLine[]
+
+  @@index([orderId, sortOrder])
+}
+
+/// What the supplier billed, and what actually arrived. Processing one puts the
+/// stock on the shelf at the cost on the line.
+model SupplierInvoice {
+  id               String               @id @default(cuid())
+  tenantId         String
+  supplierId       String
+  /// Their number, not ours: we are not numbering the supplier's document.
+  supplierNumber   String
+  otherReference   String?
+  state            SupplierInvoiceState @default(DRAFT)
+  postDate         DateTime             @db.Date
+  dueDate          DateTime?            @db.Date
+  orderId          String?
+  /// Suppliers quote differently from one another, so tax is snapshotted per document.
+  taxName          String               @default("VAT")
+  taxRate          Decimal              @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax Boolean              @default(false)
+  freight          Decimal              @default(0) @db.Decimal(12, 2)
+  subtotal         Decimal              @default(0) @db.Decimal(12, 2)
+  taxTotal         Decimal              @default(0) @db.Decimal(12, 2)
+  total            Decimal              @default(0) @db.Decimal(12, 2)
+  note             String?
+  createdById      String?
+  processedAt      DateTime?
+  voidedAt         DateTime?
+  voidReason       String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id])
+  supplier    Supplier                    @relation(fields: [supplierId], references: [id])
+  order       PurchaseOrder?              @relation(fields: [orderId], references: [id])
+  createdBy   Membership?                 @relation(fields: [createdById], references: [id])
+  lines       SupplierInvoiceLine[]
+  allocations SupplierPaymentAllocation[]
+
+  @@unique([tenantId, supplierId, supplierNumber])
+  @@index([tenantId, state, postDate])
+}
+
+model SupplierInvoiceLine {
+  id            String   @id @default(cuid())
+  tenantId      String
+  invoiceId     String
+  sortOrder     Int      @default(0)
+  productId     String?
+  itemCode      String?
+  description   String
+  quantity      Decimal  @default(1) @db.Decimal(12, 2)
+  unitCost      Decimal  @default(0) @db.Decimal(12, 2)
+  taxExempt     Boolean  @default(false)
+  /// Which order line this fulfils: receipt is matched per line, so one
+  /// ordered line can arrive across several invoices.
+  orderLineId   String?
+  documentId    String?
+  /// A new sell price for the product, decided from the cost just received. Applied when the invoice is processed.
+  newSellPrice  Decimal? @db.Decimal(12, 2)
+  /// The units that arrived, for a serialised product.
+  serialNumbers String?
+  note          String?
+
+  tenant         Tenant             @relation(fields: [tenantId], references: [id])
+  stockMovements StockMovement[]
+  invoice        SupplierInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product        Product?           @relation(fields: [productId], references: [id])
+  orderLine      PurchaseOrderLine? @relation(fields: [orderLineId], references: [id])
+  document       Document?          @relation(fields: [documentId], references: [id])
+  serialUnits    SerialUnit[]
+
+  @@index([invoiceId, sortOrder])
+  @@index([orderLineId])
+}
+
+/// Money paid out to suppliers. Deliberately simpler than a customer receipt:
+/// no tender split, because money going out is one transfer — but one payment
+/// may settle invoices from several suppliers, which a receipt cannot.
+model SupplierPayment {
+  id          String       @id @default(cuid())
+  tenantId    String
+  number      String?
+  state       PaymentState @default(DRAFT)
+  postDate    DateTime     @db.Date
+  /// The EFT or cheque reference, as it will appear on the bank statement.
+  reference   String?
+  methodId    String?
+  amount      Decimal      @default(0) @db.Decimal(12, 2)
+  note        String?
+  createdById String?
+  processedAt DateTime?
+  voidedAt    DateTime?
+  voidReason  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id])
+  method      PaymentMethod?              @relation(fields: [methodId], references: [id])
+  createdBy   Membership?                 @relation(fields: [createdById], references: [id])
+  allocations SupplierPaymentAllocation[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, state, postDate])
+}
+
+model SupplierPaymentAllocation {
+  id                String  @id @default(cuid())
+  tenantId          String
+  paymentId         String
+  supplierInvoiceId String
+  amount            Decimal @db.Decimal(12, 2)
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id])
+  payment SupplierPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id])
+
+  @@unique([paymentId, supplierInvoiceId])
+  @@index([tenantId, supplierInvoiceId])
+}
+
+/// A count of what is actually on the shelves. Nothing changes until it is
+/// applied, and applying writes ordinary stock movements — so a count is as
+/// explicable afterwards as a sale is.
+model StockTake {
+  id          String         @id @default(cuid())
+  tenantId    String
+  number      String?
+  state       StockTakeState @default(DRAFT)
+  /// What was counted: a shelf, a range of codes, a group — kept so the count can be explained.
+  scope       Json           @default("{}")
+  /// A blind count hides what the system expects, so people count rather than confirm.
+  blind       Boolean        @default(false)
+  note        String?
+  startedById String?
+  startedAt   DateTime       @default(now())
+  appliedAt   DateTime?
+  appliedById String?
+  cancelledAt DateTime?
+
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  startedBy Membership?     @relation("StockTakeStartedBy", fields: [startedById], references: [id])
+  appliedBy Membership?     @relation("StockTakeAppliedBy", fields: [appliedById], references: [id])
+  lines     StockTakeLine[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, state, startedAt])
+}
+
+model StockTakeLine {
+  id        String    @id @default(cuid())
+  tenantId  String
+  takeId    String
+  productId String
+  /// What the ledger said when the sheet was drawn up.
+  expected  Decimal   @db.Decimal(12, 2)
+  /// What was found. Null until somebody counts it.
+  counted   Decimal?  @db.Decimal(12, 2)
+  /// The cost the variance is valued at, snapshotted with the sheet.
+  unitCost  Decimal   @default(0) @db.Decimal(12, 2)
+  note      String?
+  countedAt DateTime?
+
+  tenant  Tenant    @relation(fields: [tenantId], references: [id])
+  take    StockTake @relation(fields: [takeId], references: [id], onDelete: Cascade)
+  product Product   @relation(fields: [productId], references: [id])
+
+  @@unique([takeId, productId])
+  @@index([tenantId, takeId])
+}
+
+/// What is inside a bundle — "minor service" being oil, a filter and an hour
+/// of labour. The components are real products, so selling a bundle moves
+/// their stock and costs what they cost.
+model BundleItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  bundleId    String
+  componentId String
+  quantity    Decimal @default(1) @db.Decimal(12, 2)
+  sortOrder   Int     @default(0)
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  bundle    Product @relation("BundleParent", fields: [bundleId], references: [id], onDelete: Cascade)
+  component Product @relation("BundleComponent", fields: [componentId], references: [id])
+
+  @@unique([bundleId, componentId])
+  @@index([bundleId, sortOrder])
+}
+
+/// Markup bands by cost: cheap parts carry a bigger percentage than expensive
+/// ones, which is how workshops actually price. A product on a matrix has its
+/// sell price recalculated whenever its cost changes.
+model PriceMatrix {
+  id        String        @id @default(cuid())
+  tenantId  String
+  name      String
+  basis     MatrixBasis   @default(MARKUP)
+  rounding  PriceRounding @default(NONE)
+  active    Boolean       @default(true)
+  note      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  bands    PriceMatrixBand[]
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
+model PriceMatrixBand {
+  id       String   @id @default(cuid())
+  tenantId String
+  matrixId String
+  /// Costs from this much (inclusive).
+  costFrom Decimal  @default(0) @db.Decimal(12, 2)
+  /// Up to this much (inclusive); null means everything above `costFrom`.
+  costTo   Decimal? @db.Decimal(12, 2)
+  percent  Decimal  @db.Decimal(6, 2)
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  matrix PriceMatrix @relation(fields: [matrixId], references: [id], onDelete: Cascade)
+
+  @@index([matrixId, costFrom])
+}
+
+/// One physical unit of a serialised product — this battery, that tyre.
+/// Tracked from the delivery that brought it in to the invoice it left on, so
+/// a warranty claim can be answered from the serial alone.
+model SerialUnit {
+  id                    String      @id @default(cuid())
+  tenantId              String
+  productId             String
+  serial                String
+  state                 SerialState @default(IN_STOCK)
+  /// Where it came from.
+  supplierInvoiceLineId String?
+  receivedAt            DateTime    @default(now())
+  unitCost              Decimal     @default(0) @db.Decimal(12, 2)
+  /// Where it went.
+  documentLineId        String?
+  soldAt                DateTime?
+  /// Worked out at the moment of sale, from the product's warranty months.
+  warrantyUntil         DateTime?   @db.Date
+  note                  String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
+  supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
+  documentLine        DocumentLine?        @relation(fields: [documentLineId], references: [id])
+
+  /// The same serial cannot be in stock twice for one product.
+  @@unique([tenantId, productId, serial])
+  @@index([tenantId, serial])
+  @@index([tenantId, productId, state])
+}
+
+/// A courtesy car the workshop lends out while a customer's own is in.
+model LoanVehicle {
+  id              String    @id @default(cuid())
+  tenantId        String
+  plate           String
+  make            String
+  model           String
+  year            Int?
+  colour          String?
+  odometer        Int?
+  /// Off the road: serviced, damaged, sold.
+  active          Boolean   @default(true)
+  licenceExpiry   DateTime? @db.Date
+  insuranceExpiry DateTime? @db.Date
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  loans  Loan[]
+
+  @@unique([tenantId, plate])
+  @@index([tenantId, active])
+}
+
+/// One lending: who has it, against which job, and when it is due back.
+model Loan {
+  id            String    @id @default(cuid())
+  tenantId      String
+  loanVehicleId String
+  customerId    String?
+  /// The job their own car is in for.
+  documentId    String?
+  state         LoanState @default(BOOKED)
+  outAt         DateTime
+  dueBackAt     DateTime
+  inAt          DateTime?
+  odometerOut   Int?
+  odometerIn    Int?
+  /// What the customer agreed to, kept as typed at the counter.
+  agreedBy      String?
+  note          String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  vehicle   LoanVehicle @relation(fields: [loanVehicleId], references: [id])
+  customer  Customer?   @relation(fields: [customerId], references: [id])
+  document  Document?   @relation(fields: [documentId], references: [id])
+  createdBy Membership? @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId, state, outAt])
+  @@index([loanVehicleId, outAt])
+}
+
+/// What an integration may do with a key. Reading is the common case; writing
+/// exists so a workshop's own website can book a car in.
+enum ApiScope {
+  READ
+  WRITE
+}
+
+/// A key identifies the tenant, so the public API needs no slug in its path and
+/// no session cookie. Only the hash is stored — the secret is shown once, at
+/// the moment it is made, exactly as a share link's token is.
+model ApiKey {
+  id          String     @id @default(cuid())
+  tenantId    String
+  name        String
+  /// The readable head of the key ("mk_live_7Qa3"), for telling keys apart in the list.
+  prefix      String
+  tokenHash   String     @unique
+  scopes      ApiScope[]
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  /// Fixed-window rate limiting, counted on the row so every instance shares it.
+  windowStart DateTime   @default(now())
+  windowCount Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  createdBy Membership? @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId, revokedAt])
+}

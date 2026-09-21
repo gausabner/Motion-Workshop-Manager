@@ -1,13 +1,11 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: motion
+      POSTGRES_DB: motion_app
     ports:
       - "5432:5432"
     volumes:

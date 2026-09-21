@@ -1,0 +1,59 @@
+import "server-only";
+import type { Prisma } from "@prisma/client";
+import type { TenantDb } from "@/lib/tenant-db";
+
+export type VehicleListParams = { q?: string; archived?: boolean; page?: number; size?: number };
+
+export async function listVehicles(db: TenantDb, p: VehicleListParams) {
+    const size = Math.min(Math.max(p.size ?? 25, 10), 100);
+    const page = Math.max(p.page ?? 1, 1);
+    const where: Prisma.VehicleWhereInput = {
+        archivedAt: p.archived ? { not: null } : null,
+        ...(p.q
+            ? {
+                  OR: [
+                      { plate: { contains: p.q, mode: "insensitive" } },
+                      { vin: { contains: p.q, mode: "insensitive" } },
+                      { make: { contains: p.q, mode: "insensitive" } },
+                      { model: { contains: p.q, mode: "insensitive" } },
+                      { fleetCode: { contains: p.q, mode: "insensitive" } },
+                      { customer: { OR: [{ firstName: { contains: p.q, mode: "insensitive" } }, { lastName: { contains: p.q, mode: "insensitive" } }] } },
+                  ],
+              }
+            : {}),
+    };
+    const [rows, total] = await Promise.all([
+        db.vehicle.findMany({
+            where,
+            orderBy: [{ plate: "asc" }],
+            skip: (page - 1) * size,
+            take: size,
+            select: { id: true, plate: true, make: true, model: true, year: true, odometer: true, licenceExpiry: true, roadworthyExpiry: true, customer: { select: { id: true, firstName: true, lastName: true } } },
+        }),
+        db.vehicle.count({ where }),
+    ]);
+    return { rows, total, page, size, pages: Math.max(1, Math.ceil(total / size)) };
+}
+
+export async function getVehicle(db: TenantDb, id: string) {
+    const v = await db.vehicle.findUnique({ where: { id }, include: { customer: { select: { id: true, firstName: true, lastName: true } } } });
+    if (!v) return null;
+    return { ...v, litres: v.litres?.toNumber() ?? null, engineHours: v.engineHours?.toNumber() ?? null };
+}
+
+export type VehicleRecord = NonNullable<Awaited<ReturnType<typeof getVehicle>>>;
+
+/** Everything this car has been in for, whether imported from the old system or done here. */
+export async function vehicleHistory(db: TenantDb, vehicleId: string, take = 50) {
+    const rows = await db.document.findMany({
+        where: { vehicleId, type: { in: ["JOB_CARD", "INVOICE", "CASH_SALE"] }, state: { in: ["PROCESSED", "CLOSED"] } },
+        orderBy: [{ postDate: "desc" }, { createdAt: "desc" }],
+        take,
+        select: { id: true, type: true, number: true, jobNumber: true, reference: true, postDate: true, odometer: true, description: true, total: true, isInternal: true },
+    });
+    return rows.map((r) => ({
+        id: r.id, type: r.type, number: r.number ?? r.jobNumber, reference: r.reference,
+        date: r.postDate, odometer: r.odometer, description: r.description,
+        total: r.total.toNumber(), imported: r.isInternal,
+    }));
+}

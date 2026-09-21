@@ -1,0 +1,211 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FileText, Car, User } from "lucide-react";
+import { DocumentEditor } from "@/components/documents/DocumentEditor";
+import { DocumentToolbar } from "@/components/documents/DocumentToolbar";
+import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
+import { requireTenant } from "@/lib/auth/session";
+import { can } from "@/lib/auth/permissions";
+import { getDocument, getEditorOptions } from "@/lib/documents/queries";
+import { deliverySummary, listMessages } from "@/lib/messaging/queries";
+import { MessageLog } from "@/components/messaging/MessageLog";
+import { JobTimePanel } from "@/components/time/JobTimePanel";
+import { InspectionsPanel } from "@/components/inspections/InspectionsPanel";
+import { loansForDocument } from "@/lib/loans/service";
+import { LOAN_STATE_LABELS } from "@/lib/loans/rules";
+import { inspectionsForDocument } from "@/lib/inspections/queries";
+import { jobTime } from "@/lib/time/queries";
+import { diaryMechanics } from "@/lib/diary/queries";
+import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
+import { dateShort, money } from "@/lib/format";
+
+export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string; short?: string; serials?: string }> }) {
+    const [{ tenant: slug, id }, { processed, short, serials }] = await Promise.all([params, searchParams]);
+    const { db, tenant, membership } = await requireTenant(slug);
+    const [doc, options, messages, time, mechanics, inspections, templates] = await Promise.all([
+        getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id),
+        db.inspectionTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+    ]);
+    const loans = await loansForDocument(db, id);
+    if (!doc) notFound();
+
+    const showCost = can(membership, "documents:see_cost");
+    const base = `/${slug}/dashboard`;
+
+    return (
+        <div className="max-w-7xl mx-auto space-y-4 pb-16">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                    <FileText className="w-6 h-6 text-slate-400 mt-0.5" />
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-800 leading-tight flex items-center gap-3 flex-wrap">
+                            {DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}
+                            <StatePill state={doc.state} />
+                            {doc.jobStatus && <JobStatusPill status={doc.jobStatus} />}
+                        </h1>
+                        <p className="text-xs text-slate-500 flex items-center gap-3 flex-wrap mt-0.5">
+                            {doc.customer ? (
+                                <Link href={`${base}/customers/${doc.customer.id}`} className="hover:text-teal-700 flex items-center gap-1"><User className="w-3 h-3" />{doc.customer.firstName} {doc.customer.lastName}</Link>
+                            ) : <span>Cash sale</span>}
+                            {doc.vehicle && (
+                                <Link href={`${base}/vehicles/${doc.vehicle.id}`} className="hover:text-teal-700 flex items-center gap-1"><Car className="w-3 h-3" />{doc.vehicle.plate} · {doc.vehicle.make} {doc.vehicle.model}</Link>
+                            )}
+                            <span>{dateShort(doc.postDate)}</span>
+                            {doc.state === "PROCESSED" && <span className="font-semibold text-slate-700">{money(doc.total)}</span>}
+                            {doc.sourceDocument && (
+                                <Link href={`${base}/documents/${doc.sourceDocument.id}`} className="hover:text-teal-700">from {DOCUMENT_TYPE_LABELS[doc.sourceDocument.type].toLowerCase()} {doc.sourceDocument.number ?? ""}</Link>
+                            )}
+                        </p>
+                    </div>
+                </div>
+                <DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} />
+            </div>
+
+            <DeliveryStrip messages={messages} />
+
+            {processed && (
+                <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">
+                    Processed as <strong>{doc.number}</strong>. The lines are locked; raise a credit note if it needs to change.
+                </p>
+            )}
+            {short && (
+                <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                    Stock on hand has gone negative on <strong>{short.split(",").join(", ")}</strong>. Either it was never booked in, or the count is wrong — check it on the product.
+                </p>
+            )}
+            {loans.length > 0 && (
+                <section className="rounded-sm border border-slate-200 bg-white text-sm">
+                    <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Courtesy car</h2>
+                    <ul className="divide-y divide-slate-100">
+                        {loans.map((loan) => (
+                            <li key={loan.id} className="flex flex-wrap items-center gap-x-3 px-4 py-2">
+                                <Link href={`/${slug}/dashboard/loan-cars`} className="font-medium text-slate-800 hover:text-teal-700">{loan.vehicle.plate}</Link>
+                                <span className="text-slate-500">{[loan.vehicle.make, loan.vehicle.model].filter(Boolean).join(" ")}</span>
+                                <span className="text-slate-500">
+                                    {LOAN_STATE_LABELS[loan.state]}
+                                    {loan.inAt ? ` on ${dateShort(loan.inAt)}` : `, due back ${dateShort(loan.dueBackAt)}`}
+                                </span>
+                                {loan.odometerOut !== null && (
+                                    <span className="text-xs text-slate-400">
+                                        {loan.odometerIn !== null
+                                            ? `${(loan.odometerIn - loan.odometerOut).toLocaleString("en-NA")} km on it`
+                                            : `out on ${loan.odometerOut.toLocaleString("en-NA")} km`}
+                                    </span>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {(doc.splitFrom || doc.splits.length > 0 || doc.reworkOf || doc.reworks.length > 0) && (
+                <section className="rounded-sm border border-slate-200 bg-white text-sm">
+                    <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Related</h2>
+                    <ul className="divide-y divide-slate-100">
+                        {doc.splitFrom && (
+                            <li className="px-4 py-2">
+                                Split off <Link href={`/${slug}/dashboard/documents/${doc.splitFrom.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.splitFrom.number ?? doc.splitFrom.jobNumber}</Link>
+                                {doc.splitFrom.customer && <span className="text-slate-500"> · the other half is billed to {doc.splitFrom.customer.firstName} {doc.splitFrom.customer.lastName}</span>}
+                            </li>
+                        )}
+                        {doc.splits.map((split) => (
+                            <li key={split.id} className="px-4 py-2">
+                                Split to <Link href={`/${slug}/dashboard/documents/${split.id}`} className="font-medium text-slate-800 hover:text-teal-700">{split.number ?? "a draft invoice"}</Link>
+                                {split.customer && <span className="text-slate-500"> for {split.customer.firstName} {split.customer.lastName}</span>}
+                                <span className="text-slate-500"> · {money(Number(split.total), tenant.currency)}</span>
+                            </li>
+                        ))}
+                        {doc.reworkOf && (
+                            <li className="px-4 py-2">
+                                Redoing <Link href={`/${slug}/dashboard/documents/${doc.reworkOf.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.reworkOf.jobNumber ?? doc.reworkOf.number}</Link>
+                                <span className="text-slate-500"> from {dateShort(doc.reworkOf.postDate)}{doc.reworkReason ? ` — ${doc.reworkReason}` : ""}</span>
+                            </li>
+                        )}
+                        {doc.reworks.map((rework) => (
+                            <li key={rework.id} className="px-4 py-2">
+                                Came back on <Link href={`/${slug}/dashboard/documents/${rework.id}`} className="font-medium text-slate-800 hover:text-teal-700">{rework.jobNumber ?? rework.number}</Link>
+                                <span className="text-slate-500">{rework.reworkReason ? ` — ${rework.reworkReason}` : ""}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {serials && (
+                <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                    {serials} The sale went through; put the serial right on the product so the warranty can be traced.
+                </p>
+            )}
+            {doc.state === "VOID" && (
+                <p className="rounded-sm border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800">
+                    Voided {dateShort(doc.voidedAt)}{doc.voidReason ? ` — ${doc.voidReason}` : ""}.
+                </p>
+            )}
+            {doc.derivedDocuments.length > 0 && (
+                <p className="text-xs text-slate-500">
+                    Led to:{" "}
+                    {doc.derivedDocuments.map((d, i) => (
+                        <span key={d.id}>
+                            {i > 0 && ", "}
+                            <Link href={`${base}/documents/${d.id}`} className="text-teal-700 hover:underline">{DOCUMENT_TYPE_LABELS[d.type].toLowerCase()} {d.number ?? "(draft)"}</Link>
+                        </span>
+                    ))}
+                </p>
+            )}
+
+            <DocumentEditor
+                tenant={slug}
+                doc={doc}
+                options={options}
+                showCost={showCost}
+                timeZone={tenant.timezone}
+            />
+
+            {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (
+                <InspectionsPanel tenant={slug} documentId={doc.id} rows={inspections} canStart={can(membership, "documents:write") && doc.state !== "VOID"} templates={templates} />
+            )}
+
+            {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (
+                <JobTimePanel tenant={slug} documentId={doc.id} time={time} mechanics={mechanics} canEdit={can(membership, "documents:write")} />
+            )}
+
+            <MessageLog tenant={slug} rows={messages} showSubject={false} empty="Nothing sent about this document yet. Use Send to share it on WhatsApp or by email." />
+
+            {doc.statusEvents.length > 0 && (
+                <section className="border border-slate-200 rounded-sm bg-white">
+                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status history</h3>
+                    <ol className="divide-y divide-slate-100">
+                        {doc.statusEvents.map((e) => (
+                            <li key={e.id} className="px-4 py-2 text-sm flex items-center justify-between gap-4">
+                                <span>
+                                    {e.fromStatus ? `${JOB_STATUS_LABELS[e.fromStatus]} → ` : ""}
+                                    <strong className="font-medium">{JOB_STATUS_LABELS[e.toStatus]}</strong>
+                                    {e.comment && <span className="text-slate-500"> — {e.comment}</span>}
+                                </span>
+                                <span className="text-xs text-slate-400 whitespace-nowrap">
+                                    {e.by ? `${e.by.user.firstName} ${e.by.user.lastName} · ` : ""}{dateShort(e.at)}
+                                </span>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
+            )}
+        </div>
+    );
+}
+
+const when = (d: Date) => d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" });
+
+/** The one line a counter wants when the customer phones: did we send it, and did they look. */
+function DeliveryStrip({ messages }: { messages: Awaited<ReturnType<typeof listMessages>> }) {
+    const { latest, opened, count } = deliverySummary(messages);
+    if (!latest) return null;
+    const channel = latest.channel === "WHATSAPP" ? "WhatsApp" : latest.channel === "EMAIL" ? "email" : "SMS";
+    return (
+        <p className={`rounded-sm border px-4 py-2 text-sm ${opened ? "border-teal-300 bg-teal-50 text-teal-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>
+            {latest.status === "HANDED_OFF" ? `Handed to ${channel}` : `Sent by ${channel}`} {when(latest.createdAt)}
+            {count > 1 ? ` (${count} times)` : ""}
+            {opened ? <> · <strong>opened by the customer {when(opened)}</strong></> : " · not opened yet"}
+        </p>
+    );
+}

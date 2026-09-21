@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "TemplateKind" ADD VALUE 'MESSAGE_INSPECTION';
+
