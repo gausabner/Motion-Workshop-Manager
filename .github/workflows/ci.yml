@@ -39,4 +39,8 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: Unit tests — the rules, with no database in the way
+        run: npm test
+      - name: Database tests — tenant isolation, messaging, storage
+        run: npm run test:db
       - run: npm run build
