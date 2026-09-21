@@ -11,7 +11,8 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:db": "tsx --conditions=react-server --test \"src/**/*.dbtest.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
