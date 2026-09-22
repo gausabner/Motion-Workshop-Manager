@@ -33,19 +33,37 @@ an offline floor app.
 - **Customer.** Never logs in. Receives an expiring share link by WhatsApp or
   email to approve an inspection, view a document, or reach a portal.
 
-## Delivery: two kinds of client
+## Delivery: three kinds of client
 
 Confirmed 22 Sep 2026. These are equal first-class targets, not one plus an
 afterthought.
 
-- **Installed (on-premise).** Municipalities, regional and town councils, brand
-  workshops, bodywork and fitment shops, MOT garages. MOTION runs on their own
-  network. **Sites are always connected to the internet.** Patching, upgrades
-  and backups are done **remotely by the MOTION team**, not by the client's IT.
+- **Installed · private workshop.** Brand workshops, bodywork and fitment
+  shops, MOT garages. MOTION runs on their own network, with outbound internet.
+  Patching, upgrades and backups are done **remotely by the MOTION team**.
+- **Installed · council.** Municipalities, regional and town councils.
+  **Absolutely isolated: no inbound and no outbound internet.** Licensing is a
+  signed offline file; updates and backups happen on site; there is no remote
+  operation and no monitoring beacon, so the software must report its own
+  failed backups, filling disks and expiring licence on screen, because that is
+  the only channel left. They run municipal ERP (SOLAR, Sage, SAP, Odoo) on
+  Windows / MSSQL / vSphere estates and authenticate against Active Directory,
+  so ERP push and eventually SSO are procurement requirements.
 - **Cloud (web app).** Local garages and workshops with an online presence,
   using MOTION as a hosted service.
 
-**Commercial model: subscription for both**, installed sites included.
+**Commercial model: subscription for both**, installed sites included. Prices
+follow the market, not the benchmark: small garages pay N$350–600/month and
+abandon software above N$1,000; medium workshops tolerate N$1,200–2,500.
+**Margins are to stay above 90 %**, which makes support volume — not
+infrastructure — the binding constraint on the business, and makes onboarding
+and import quality commercial features rather than polish.
+
+**Public online booking is cancelled.** Workshops cannot quote before
+diagnosing a car and confirming a part (often from South Africa), they run
+fluid schedules around walk-ins, and councils treat a public portal as a
+security non-starter. A plain "Request an appointment" lead capture replaces
+it.
 
 ## Durable constraints
 
@@ -77,6 +95,8 @@ share link, job card "on the floor".
 ## Open decisions
 
 - Where cloud staging and production are hosted. Undecided as of 22 Sep 2026.
-- Subscription price points and enforcement mechanism for installed sites.
+- How many on-site visits a year a council subscription includes, and whether
+  distance from Windhoek carries a travel surcharge.
+- Whether support is bundled or sold separately as a care plan.
 - Whether the visual identity is refined or replaced (both directions were
   requested for comparison on 22 Sep 2026).
