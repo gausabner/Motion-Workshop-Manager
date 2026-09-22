@@ -4,8 +4,11 @@ import { prisma } from "@/lib/db";
 /**
  * Models that carry a required `tenantId`. Every query against them is
  * rewritten to include the tenant, so a handler cannot forget to scope
- * (PRD USR-05). Row-level security in Postgres is the second layer, added
- * once the app connects as a non-superuser role.
+ * (PRD USR-05). Row-level security in Postgres is the second layer: the
+ * policies exist on all 54 tenant tables and are proven in `rls.dbtest.ts`,
+ * but they are dormant until the app connects as `motion_app` instead of a
+ * superuser — superusers bypass RLS unconditionally. Until then this
+ * extension is still the only thing holding the wall up.
  *
  * Convention for writes: use scalar foreign keys (`customerId: "..."`), not
  * `connect`, so the injected `tenantId` scalar is accepted. For nested
