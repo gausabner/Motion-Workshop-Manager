@@ -117,6 +117,13 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
     // someone adds a model and does not think about this file. The rule is the
     // column: if a table has `tenantId`, it has the policy — and this fails the
     // build the day that stops being true.
+    //
+    // FORCE is deliberately not asserted. It binds the table owner, and on
+    // managed Postgres the application connects as the owner, so forcing it
+    // before the app sets `motion.tenant_id` empties every screen. It is stood
+    // down until activation; the policies themselves are unchanged, and every
+    // test above proves them as `motion_app`, which does not own the tables and
+    // is therefore bound with or without FORCE.
     const gaps = await prisma.$queryRaw<{ relname: string; enabled: boolean; forced: boolean; policies: bigint }[]>`
         SELECT c.relname,
                c.relrowsecurity AS enabled,
@@ -129,7 +136,7 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
         JOIN pg_attribute a ON a.attrelid = c.oid
         WHERE n.nspname = 'public' AND c.relkind = 'r'
           AND a.attname = 'tenantId' AND NOT a.attisdropped
-          AND (NOT c.relrowsecurity OR NOT c.relforcerowsecurity OR NOT EXISTS (
+          AND (NOT c.relrowsecurity OR NOT EXISTS (
                 SELECT 1 FROM pg_policies p WHERE p.schemaname='public'
                   AND p.tablename = c.relname AND p.policyname='tenant_isolation'))
         ORDER BY c.relname`;
