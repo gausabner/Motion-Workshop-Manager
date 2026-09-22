@@ -8,9 +8,11 @@ import { forTenant } from "@/lib/tenant-db";
  *
  * Our clients are separate legal entities — separate tax numbers, separate
  * bank accounts, separate books — and none of them may see another. That
- * promise rests entirely on this extension until row-level security exists in
- * the database, so it is worth a test that tries to break it rather than a
- * comment saying it holds.
+ * promise rests entirely on this extension while row-level security is dormant
+ * — the policies are in the database and proven in `rls.dbtest.ts`, but
+ * nothing enforces them until the app stops connecting as a superuser. So it
+ * is worth a test that tries to break it rather than a comment saying it
+ * holds.
  *
  * Runs against a real Postgres (`npm run test:db`), because the thing under
  * test is the query that actually reaches the database.
