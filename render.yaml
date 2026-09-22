@@ -1,0 +1,56 @@
+# MOTION on Render — staging.
+#
+# A Blueprint rather than click-through setup, so the environment is a file in
+# the repository that can be reviewed, changed in a pull request, and recreated
+# exactly if it is ever lost. Clicking it together in a dashboard means the only
+# record of how staging was built is somebody's memory.
+#
+# Render builds the image itself from web/Dockerfile, which keeps image builds
+# off developer laptops for good — building locally twice filled this machine's
+# disk and took Docker down with it.
+#
+# To apply: Render → New → Blueprint → pick this repository. Everything below is
+# created for you. What Render cannot do is create your account or hold your
+# card; those stay yours.
+
+services:
+  - type: web
+    name: motion-staging
+    runtime: docker
+    # Paths are relative to the repository root. The context is `web/` because
+    # that is where the application and its lockfile live.
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
+    region: frankfurt
+    plan: starter
+    branch: main
+    # Render restarts the service if this stops answering. It asks Postgres
+    # before it answers, so a MOTION that cannot reach its database is taken out
+    # of rotation rather than left serving errors to a workshop.
+    healthCheckPath: /api/health
+    envVars:
+      # Injected by Render from the database below — the connection string is
+      # never written down, never in this file, and never in the repository.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: motion-staging-db
+          property: connectionString
+      # Sessions and share links are signed with this. Render generates it once
+      # and keeps it; nobody types it, and nobody — including me — sees it.
+      # Changing it signs every open session out and invalidates live share
+      # links, so leave it alone once staging is running.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: motion-staging-db
+    databaseName: motion
+    user: motion
+    region: frankfurt
+    # Staging only. A production database needs a plan with backups you can
+    # restore from, and a restore actually rehearsed — an untested backup is a
+    # rumour.
+    plan: basic-256mb
+    postgresMajorVersion: "15"
