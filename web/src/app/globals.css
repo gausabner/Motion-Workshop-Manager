@@ -47,6 +47,17 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* Money is the product: every screen here is somebody's books, and a column
+   of figures that does not line up is a defect rather than a preference.
+   Applying this to table cells rather than to a class means a new screen
+   cannot forget it — which is how the four screens that were missing it,
+   including the invoice and the receipt, came to be missing it. */
+table td,
+table th,
+[data-money] {
+  font-variant-numeric: tabular-nums;
+}
+
 :root {
   --radius: 0.5rem;
   --background: oklch(0.97 0 0); /* Light gray for depth */
