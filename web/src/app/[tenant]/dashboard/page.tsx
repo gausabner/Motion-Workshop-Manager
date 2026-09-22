@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, CalendarDays, ClipboardList, Package, Receipt, TrendingUp, Truck, Users } from "lucide-react";
+import { Receipt, TrendingUp, Truck } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { SetupChecklist } from "@/components/setup/SetupChecklist";
@@ -9,9 +9,20 @@ import { dashboardSummary } from "@/lib/dashboard/queries";
 import { dateShort, money } from "@/lib/format";
 
 /**
- * The first screen of the day. The money figures are only shown to people who
- * may see cost, and each one links to the report it came from, so a number
- * that looks wrong can be chased rather than distrusted.
+ * The first screen of the day, and it leads with work rather than takings.
+ *
+ * It used to open with eight tiles of totals — sold today, sold this month,
+ * owed to us, owed to suppliers — which report the past accurately and tell a
+ * service advisor nothing about what to do next. The queue below is the
+ * inversion: every row is something waiting, phrased as the thing itself
+ * ("three bookings have no mechanic"), and every row is the link to go and fix
+ * it. Rows only appear when they have something to say, so an empty queue is
+ * genuinely empty rather than four zeroes.
+ *
+ * The money figures still matter and still sit here, demoted beneath the work.
+ * They are shown only to people who may see cost, and each links to the report
+ * it came from, so a number that looks wrong can be chased rather than
+ * distrusted.
  */
 export default async function DashboardPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -35,50 +46,120 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
         ]
         : [];
 
-    const work = [
-        { label: "Jobs on the floor", value: summary.openJobs, icon: ClipboardList, href: `${base}/jobs` },
-        { label: "Bookings coming up", value: summary.bookings, icon: CalendarDays, href: `${base}/schedule`, sub: summary.unassigned > 0 ? `${summary.unassigned} with no mechanic` : undefined },
-        { label: "Reminders to send", value: summary.remindersDue, icon: Bell, href: `${base}/reminders` },
-        showMoney
-            ? { label: "Stock at cost", value: money_(summary.stockValue), icon: Package, href: `${base}/products` }
-            : { label: "Customers", value: "", icon: Users, href: `${base}/customers` },
-    ];
+    type QueueRow = {
+        key: string;
+        lead: string;
+        text: string;
+        href: string;
+        tone: "plain" | "attention" | "overdue";
+    };
+    const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+    const queue: QueueRow[] = [];
+    if (summary.unassigned > 0)
+        queue.push({
+            key: "unassigned",
+            lead: String(summary.unassigned),
+            text: plural(summary.unassigned, "booking has no mechanic", "bookings have no mechanic"),
+            href: `${base}/schedule`,
+            tone: "attention",
+        });
+    if (showMoney && summary.overdue > 0)
+        queue.push({
+            key: "overdue",
+            lead: money_(summary.overdue),
+            text: "owed to us for more than 30 days",
+            href: `${base}/reports/receivables`,
+            tone: "overdue",
+        });
+    if (summary.remindersDue > 0)
+        queue.push({
+            key: "reminders",
+            lead: String(summary.remindersDue),
+            text: plural(summary.remindersDue, "reminder to send", "reminders to send"),
+            href: `${base}/reminders`,
+            tone: "attention",
+        });
+    if (summary.openJobs > 0)
+        queue.push({
+            key: "jobs",
+            lead: String(summary.openJobs),
+            text: plural(summary.openJobs, "job card on the floor", "job cards on the floor"),
+            href: `${base}/jobs`,
+            tone: "plain",
+        });
+    if (summary.bookings > 0)
+        queue.push({
+            key: "bookings",
+            lead: String(summary.bookings),
+            text: plural(summary.bookings, "booking coming up", "bookings coming up"),
+            href: `${base}/schedule`,
+            tone: "plain",
+        });
+
+    const toneRule: Record<QueueRow["tone"], string> = {
+        plain: "border-l-slate-200",
+        attention: "border-l-amber-500",
+        overdue: "border-l-red-600",
+    };
+    const toneLead: Record<QueueRow["tone"], string> = {
+        plain: "text-slate-900",
+        attention: "text-amber-700",
+        overdue: "text-red-700",
+    };
 
     return (
         <div className="flex flex-col gap-6">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">{tenant.name}</h1>
                 <p className="text-sm text-slate-500">
-                    {showMoney ? "Today and this month, and what is waiting to be done." : "What is waiting to be done."}
+                    {showMoney ? "What is waiting, and how the month is going." : "What is waiting to be done."}
                 </p>
             </div>
 
             {setup && <SetupChecklist steps={setup} />}
 
-            {headline.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {headline.map((tile) => (
-                        <Link key={tile.label} href={tile.href} className="rounded-sm border border-slate-200 bg-white px-4 py-3 transition-shadow hover:shadow-md">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{tile.label}</p>
-                            <p className="text-2xl font-bold tabular-nums text-slate-900">{tile.value}</p>
-                            <p className={`text-xs ${tile.warn ? "font-medium text-amber-700" : "text-slate-500"}`}>{tile.sub}</p>
-                        </Link>
-                    ))}
-                </div>
-            )}
+            <section aria-labelledby="waiting">
+                <h2 id="waiting" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Waiting for someone
+                </h2>
+                {queue.length === 0 ? (
+                    <p className="rounded-sm border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                        Nothing waiting. The floor is clear.
+                    </p>
+                ) : (
+                    <ul className="divide-y divide-slate-100 overflow-hidden rounded-sm border border-slate-200 bg-white">
+                        {queue.map((row) => (
+                            <li key={row.key}>
+                                <Link
+                                    href={row.href}
+                                    className={`flex items-baseline gap-3 border-l-[3px] px-4 py-3 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 ${toneRule[row.tone]}`}
+                                >
+                                    <span className={`text-xl font-bold tabular-nums ${toneLead[row.tone]}`}>{row.lead}</span>
+                                    <span className="text-sm text-slate-700">{row.text}</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {work.map((tile) => (
-                    <Link key={tile.label} href={tile.href} className="flex items-center gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3 transition-shadow hover:shadow-md">
-                        <tile.icon className="h-5 w-5 shrink-0 text-slate-400" />
-                        <span className="min-w-0">
-                            <span className="block text-sm font-medium text-slate-700">{tile.label}</span>
-                            <span className="block text-xl font-bold tabular-nums text-slate-900">{tile.value}</span>
-                            {"sub" in tile && tile.sub && <span className="block text-xs text-amber-700">{tile.sub}</span>}
-                        </span>
-                    </Link>
-                ))}
-            </div>
+            {headline.length > 0 && (
+                <section aria-labelledby="takings">
+                    <h2 id="takings" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        Takings
+                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {headline.map((tile) => (
+                            <Link key={tile.label} href={tile.href} className="rounded-sm border border-slate-200 bg-white px-4 py-3 transition-shadow hover:shadow-md">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{tile.label}</p>
+                                <p className="text-2xl font-bold tabular-nums text-slate-900">{tile.value}</p>
+                                <p className={`text-xs ${tile.warn ? "font-medium text-amber-700" : "text-slate-500"}`}>{tile.sub}</p>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {showMoney && (
                 <div className="flex flex-wrap gap-3 text-sm">

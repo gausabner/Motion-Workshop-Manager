@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Settings, Users, LayoutDashboard, Search, Bell, Wrench, Car, LogOut, ClipboardList, ListChecks, Wallet, Receipt, Timer, Megaphone, TrendingUp, Package, Truck, Building2, CarFront } from "lucide-react";
+import { Search, Bell, LogOut } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
@@ -7,6 +7,7 @@ import { logoutAction } from "@/lib/auth/actions";
 import { can } from "@/lib/auth/permissions";
 import { GROUP_LABELS } from "@/lib/auth/permissions";
 import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 
 export type ShellProps = {
     tenant: string;
@@ -17,13 +18,8 @@ export type ShellProps = {
     sites: { slug: string; name: string }[];
 };
 
-const linkBase = "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900";
-
 export function Sidebar({ tenant, workshopName, group, sites }: ShellProps) {
     const base = `/${tenant}`;
-    const manages = can({ group }, "users:manage");
-    const reports = can({ group }, "reports:view");
-    const cost = can({ group }, "documents:see_cost");
     return (
         <div className="flex h-screen w-[180px] flex-col border-r bg-slate-50">
             <div className="flex h-14 items-center border-b px-4">
@@ -32,27 +28,13 @@ export function Sidebar({ tenant, workshopName, group, sites }: ShellProps) {
                 </Link>
             </div>
             <SiteSwitcher current={tenant} sites={sites.length > 0 ? sites : [{ slug: tenant, name: workshopName }]} />
-            <div className="flex-1 overflow-auto py-2">
-                <nav className="grid items-start px-2 text-[11px] font-medium">
-                    <Link href={`${base}/dashboard`} className={linkBase}><LayoutDashboard className="h-[12px] w-[12px]" />Dashboard</Link>
-                    <Link href={`${base}/dashboard/schedule`} className={linkBase}><CalendarDays className="h-[12px] w-[12px]" />Booking Diary</Link>
-                    <Link href={`${base}/dashboard/transactions`} className={linkBase}><ListChecks className="h-[12px] w-[12px]" />Transactions</Link>
-                    <Link href={`${base}/dashboard/jobs`} className={linkBase}><ClipboardList className="h-[12px] w-[12px]" />Jobs</Link>
-                    <Link href={`${base}/dashboard/payments`} className={linkBase}><Wallet className="h-[12px] w-[12px]" />Receipts</Link>
-                    {reports && <Link href={`${base}/dashboard/reports/receivables`} className={linkBase}><Receipt className="h-[12px] w-[12px]" />Who owes us</Link>}
-                    {reports && <Link href={`${base}/dashboard/reports/margin`} className={linkBase}><TrendingUp className="h-[12px] w-[12px]" />Profit</Link>}
-                    {reports && <Link href={`${base}/dashboard/reports/labour`} className={linkBase}><Timer className="h-[12px] w-[12px]" />Mechanic time</Link>}
-                    <Link href={`${base}/dashboard/messages`} className={linkBase}><Megaphone className="h-[12px] w-[12px]" />Messages</Link>
-                    <Link href={`${base}/dashboard/reminders`} className={linkBase}><Bell className="h-[12px] w-[12px]" />Reminders</Link>
-                    <Link href={`${base}/dashboard/customers`} className={linkBase}><Users className="h-[12px] w-[12px]" />Customers</Link>
-                    <Link href={`${base}/dashboard/vehicles`} className={linkBase}><Car className="h-[12px] w-[12px]" />Vehicles</Link>
-                    <Link href={`${base}/dashboard/loan-cars`} className={linkBase}><CarFront className="h-[12px] w-[12px]" />Courtesy cars</Link>
-                    {cost && <Link href={`${base}/dashboard/purchasing`} className={linkBase}><Truck className="h-[12px] w-[12px]" />Buying</Link>}
-                    {cost && <Link href={`${base}/dashboard/suppliers`} className={linkBase}><Building2 className="h-[12px] w-[12px]" />Suppliers</Link>}
-                    {cost && <Link href={`${base}/dashboard/products`} className={linkBase}><Package className="h-[12px] w-[12px]" />Products</Link>}
-                    <Link href={`${base}/dashboard/settings`} className={linkBase}><Settings className="h-[12px] w-[12px]" />Settings</Link>
-                    {manages && <Link href={`${base}/dashboard/settings/users`} className={linkBase}><Wrench className="h-[12px] w-[12px]" />Team</Link>}
-                </nav>
+            <div className="flex-1 overflow-auto py-1">
+                <SidebarNav
+                    base={base}
+                    reports={can({ group }, "reports:view")}
+                    cost={can({ group }, "documents:see_cost")}
+                    manages={can({ group }, "users:manage")}
+                />
             </div>
         </div>
     );
