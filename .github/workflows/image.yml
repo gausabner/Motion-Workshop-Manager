@@ -1,0 +1,112 @@
+name: Image
+
+# Builds the deployable image and proves it actually runs, on hardware with
+# room for it. Building container images on a laptop costs gigabytes of layer
+# cache for a result nobody deploys from; this publishes one a host can pull.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          # Loaded locally first: an image nobody has started is a guess.
+          load: true
+          tags: motion:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── prove it runs ─────────────────────────────────────────────────
+      # A deploy fails for two reasons far more often than any other: the
+      # migrations do not apply, and the app cannot reach its database. Both
+      # are checked here against a database that starts empty, exactly as a
+      # first deployment finds it.
+      - name: Start a database for it
+        run: |
+          docker network create motion-ci
+          docker run -d --name motion-db --network motion-ci \
+            -e POSTGRES_USER=motion -e POSTGRES_PASSWORD=ci-only-password \
+            -e POSTGRES_DB=motion_ci postgres:15-alpine
+          for i in $(seq 1 60); do
+            docker exec motion-db pg_isready -U motion >/dev/null 2>&1 && break
+            sleep 2
+          done
+
+      - name: Start MOTION and wait for it to be healthy
+        run: |
+          docker run -d --name motion-app --network motion-ci -p 3000:3000 \
+            -e DATABASE_URL="postgresql://motion:ci-only-password@motion-db:5432/motion_ci?schema=public" \
+            -e SESSION_SECRET="ci-only-secret-not-for-production-0123456789" \
+            motion:ci
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/health | grep -q '"ok":true'; then
+              echo "healthy after ${i} tries"
+              curl -s http://localhost:3000/api/health
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::MOTION never became healthy"
+          docker logs motion-app
+          exit 1
+
+      - name: The migrations ran, and the login page is served
+        run: |
+          # An empty database that now has our tables is the migration working.
+          docker exec motion-db psql -U motion -d motion_ci -tAc \
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" \
+            | awk '{ if ($1 < 30) { print "::error::only " $1 " tables — migrations did not apply"; exit 1 } else print $1 " tables" }'
+          curl -sf http://localhost:3000/login | grep -qi "sign in" \
+            || { echo "::error::the login page did not render"; exit 1; }
+
+      - name: What it says when the database goes away
+        run: |
+          # The health check has to fail when the thing it depends on fails,
+          # or it is decoration.
+          docker stop motion-db
+          sleep 3
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+          [ "$code" = "503" ] || { echo "::error::health said $code with the database down"; exit 1; }
+          echo "503, as it should be"
+
+      # ── publish ───────────────────────────────────────────────────────
+      # Only from main: a pull request proves the image builds and runs, it
+      # does not put one in the registry for somebody to deploy by accident.
+      - name: Sign in to the registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push it
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
