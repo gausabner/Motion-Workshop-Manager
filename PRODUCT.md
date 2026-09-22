@@ -38,17 +38,19 @@ an offline floor app.
 Confirmed 22 Sep 2026. These are equal first-class targets, not one plus an
 afterthought.
 
-- **Installed · private workshop.** Brand workshops, bodywork and fitment
-  shops, MOT garages. MOTION runs on their own network, with outbound internet.
-  Patching, upgrades and backups are done **remotely by the MOTION team**.
-- **Installed · council.** Municipalities, regional and town councils.
-  **Absolutely isolated: no inbound and no outbound internet.** Licensing is a
-  signed offline file; updates and backups happen on site; there is no remote
-  operation and no monitoring beacon, so the software must report its own
-  failed backups, filling disks and expiring licence on screen, because that is
-  the only channel left. They run municipal ERP (SOLAR, Sage, SAP, Odoo) on
+- **Installed.** Municipalities, regional and town councils, brand workshops,
+  bodywork and fitment shops, MOT garages. MOTION runs on their own network.
+  **Outbound internet yes, inbound never** — corrected 22 Sep 2026, replacing an
+  earlier note in this file that recorded councils as fully isolated. One
+  operating model therefore covers every installed site: an outbound licence
+  heartbeat, remote patching and upgrades by the MOTION team, and off-site
+  backups. Because nothing inbound is ever permitted, every integration must be
+  MOTION pushing outward or writing a file they collect.
+- **Councils additionally** run municipal ERP (SOLAR, Sage, SAP, Odoo) on
   Windows / MSSQL / vSphere estates and authenticate against Active Directory,
-  so ERP push and eventually SSO are procurement requirements.
+  so ERP push and eventually SSO are procurement requirements. If one ever does
+  impose full isolation, that is a per-contract contingency — offline licence
+  file, on-site visits, local-only alerting — not the default build.
 - **Cloud (web app).** Local garages and workshops with an online presence,
   using MOTION as a hosted service.
 
