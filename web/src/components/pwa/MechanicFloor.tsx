@@ -163,8 +163,10 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     };
 
     return (
-        <main className="min-h-dvh bg-slate-100 pb-10">
-            <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 text-white">
+        <main className={`min-h-dvh bg-slate-100 ${onTheClock ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+            {/* The header runs under the notch and pads its content back out, so
+                the bar is the workshop's colour rather than a black letterbox. */}
+            <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] text-white">
                 <div className="mx-auto flex max-w-lg items-center justify-between">
                     <p className="flex items-center gap-2 font-semibold"><Wrench className="h-5 w-5 text-teal-400" />{name}</p>
                     <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
@@ -184,23 +186,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
                 {error && <p className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
 
-                {onTheClock ? (
-                    <section className="rounded-xl bg-teal-700 p-5 text-white shadow">
-                        <p className="text-sm uppercase tracking-wider text-teal-100">On the clock</p>
-                        <p className="mt-1 text-lg font-semibold">
-                            {onTheClock.job.vehicle && <span className="mr-2 rounded bg-yellow-300 px-1.5 text-yellow-950">{onTheClock.job.vehicle.plate}</span>}
-                            {onTheClock.job.description ?? `Job ${onTheClock.job.jobNumber ?? ""}`}
-                        </p>
-                        <p className="mt-2 text-5xl font-bold"><Elapsed since={onTheClock.startedAt} /></p>
-                        <button
-                            type="button" disabled={pending}
-                            onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
-                            className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60"
-                        >
-                            <Pause className="h-5 w-5" />{busy === "stop" ? "Stopping…" : "Stop"}
-                        </button>
-                    </section>
-                ) : (
+                {!onTheClock && (
                     <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-base text-slate-500">Not on the clock. Tap Start on a job.</p>
                 )}
 
@@ -216,6 +202,34 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </section>
                 )}
             </div>
+
+            {/* The clock is pinned to the bottom rather than sitting at the top of
+                the page. A mechanic stops the clock while standing at the car,
+                often one-handed and often with the job list scrolled — and in the
+                old layout Stop scrolled away with everything else, so stopping
+                meant scrolling back up to find it. Here it is always one thumb
+                away, clear of the home indicator, and it says what you are on so
+                there is no doubt which job is about to stop. */}
+            {onTheClock && (
+                <div className="fixed inset-x-0 bottom-0 z-20 border-t border-teal-800 bg-teal-700 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 text-white shadow-[0_-4px_16px_rgba(15,23,42,.25)]">
+                    <div className="mx-auto max-w-lg">
+                        <div className="flex items-baseline justify-between gap-3">
+                            <p className="min-w-0 truncate text-sm">
+                                {onTheClock.job.vehicle && <span className="mr-2 rounded bg-yellow-300 px-1.5 font-bold text-yellow-950">{onTheClock.job.vehicle.plate}</span>}
+                                {onTheClock.job.description ?? `Job ${onTheClock.job.jobNumber ?? ""}`}
+                            </p>
+                            <p className="shrink-0 text-2xl font-bold tabular-nums"><Elapsed since={onTheClock.startedAt} /></p>
+                        </div>
+                        <button
+                            type="button" disabled={pending}
+                            onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
+                            className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60"
+                        >
+                            <Pause className="h-5 w-5" />{busy === "stop" ? "Stopping…" : "Stop"}
+                        </button>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

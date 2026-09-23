@@ -38,7 +38,12 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
         <form ref={formRef} action={formAction} className="space-y-4 max-w-7xl mx-auto pb-12">
             <div className="flex items-center justify-between">
                 <p className="text-sm text-slate-500">{c ? "Edit customer" : "New customer"}</p>
-                <div className="flex items-center gap-2">
+                {/* The message stays outside the block that hides on a phone. It
+                    was inside it, which would have meant a failed save showing
+                    nothing at all on the device most likely to have a flaky
+                    connection. */}
+                {state.message && !state.ok && <span className="text-sm text-red-600 sm:hidden" role="alert">{state.message}</span>}
+                <div className="hidden items-center gap-2 sm:flex">
                     {state.message && !state.ok && <span className="text-sm text-red-600" role="alert">{state.message}</span>}
                     <Button asChild variant="outline" size="sm"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
                     <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={pending}>
@@ -108,6 +113,19 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
                     <textarea id="note" name="note" defaultValue={c?.note ?? ""} rows={3} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
                 </Field>
             </Section>
+
+            {/* On a phone the buttons above scroll away the moment someone starts
+                filling the form, and Save is the one control they will want at
+                the end rather than the beginning. This bar sticks above the tab
+                bar — offset by its height plus the home indicator, or it would
+                sit underneath it — and disappears on desktop, where the header
+                buttons are already in view. */}
+            <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-4 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:hidden">
+                <Button asChild variant="outline" className="h-12 flex-1"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
+                <Button type="submit" className="h-12 flex-[2] bg-teal-600 hover:bg-teal-700" disabled={pending}>
+                    <Save className="mr-1 h-4 w-4" /> {pending ? "Saving…" : "Save"}
+                </Button>
+            </div>
         </form>
     );
 }
