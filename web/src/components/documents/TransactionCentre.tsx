@@ -37,17 +37,17 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
     return (
         <div className="w-full max-w-7xl mx-auto">
             <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
+                <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex items-center gap-3">
-                        <ListChecks className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Transaction Centre</CardTitle>
+                        <ListChecks className="w-5 h-5 shrink-0 text-slate-600" />
+                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">Transaction Centre</CardTitle>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <form action={base} method="get" className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
+                        <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                             {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
                             <input
                                 type="search" name="q" defaultValue={q} placeholder="Number, plate or customer…"
-                                className="h-8 w-64 rounded-sm border border-slate-300 bg-white px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                className="h-8 w-full min-w-0 rounded-sm border border-slate-300 bg-white px-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 sm:w-64 sm:text-sm"
                             />
                         </form>
                         <NewDocumentButtons tenant={tenant} />
@@ -70,7 +70,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
-                        <Table>
+                        <Table data-mobile="cards">
                             <TableHeader>
                                 <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                     <TableHead className="pl-4 text-slate-500 font-semibold">Date</TableHead>
@@ -92,26 +92,26 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                 )}
                                 {data.rows.map((d, i) => (
                                     <TableRow key={d.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none text-sm`}>
-                                        <TableCell className="pl-4 py-2 tabular-nums text-slate-600 whitespace-nowrap">{dateShort(d.scheduledAt ?? d.postDate)}</TableCell>
-                                        <TableCell className="py-2 font-medium">
+                                        <TableCell data-label="Date" className="pl-4 py-2 tabular-nums text-slate-600 whitespace-nowrap">{dateShort(d.scheduledAt ?? d.postDate)}</TableCell>
+                                        <TableCell data-mobile="primary" className="py-2 font-medium">
                                             <Link href={`/${tenant}/dashboard/documents/${d.id}`} className="text-slate-700 hover:text-teal-700">
                                                 {d.number ?? d.jobNumber ?? "draft"}
                                             </Link>
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-600 whitespace-nowrap">
+                                        <TableCell data-label="Type" className="py-2 text-slate-600 whitespace-nowrap">
                                             {DOCUMENT_TYPE_LABELS[d.type]} <StatePill state={d.state} />
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-600">
+                                        <TableCell data-label="Customer" className="py-2 text-slate-600">
                                             {d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-400">Cash sale</span>}
                                             {d.description && <span className="block text-[11px] text-slate-400 truncate max-w-[220px]" title={d.description}>{d.description}</span>}
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-600 whitespace-nowrap">
+                                        <TableCell data-label="Vehicle" className="py-2 text-slate-600 whitespace-nowrap">
                                             {d.vehicle ? <span className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-[11px] font-bold px-1.5 py-0.5 rounded">{d.vehicle.plate}</span> : ""}
                                         </TableCell>
-                                        <TableCell className="py-2">{d.jobStatus ? <JobStatusPill status={d.jobStatus} /> : ""}</TableCell>
-                                        <TableCell className="py-2 text-slate-500 text-xs max-w-[180px] truncate" title={d.statusComment ?? ""}>{d.statusComment}</TableCell>
-                                        <TableCell className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-600 inline" aria-label={`Contacted ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
-                                        <TableCell className="py-2 pr-4 text-right tabular-nums font-medium text-slate-700">
+                                        <TableCell data-label="Status" className="py-2">{d.jobStatus ? <JobStatusPill status={d.jobStatus} /> : ""}</TableCell>
+                                        <TableCell data-mobile="hide" className="py-2 text-slate-500 text-xs max-w-[180px] truncate" title={d.statusComment ?? ""}>{d.statusComment}</TableCell>
+                                        <TableCell data-mobile="hide" className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-600 inline" aria-label={`Contacted ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
+                                        <TableCell data-label="Total" className="py-2 pr-4 text-right tabular-nums font-medium text-slate-700">
                                             {money(d.total)}
                                             {d.amountPaid > 0 && d.amountPaid < d.total && <span className="block text-[10px] text-amber-700">{money(d.total - d.amountPaid)} due</span>}
                                         </TableCell>

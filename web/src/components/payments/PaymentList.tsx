@@ -47,18 +47,18 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
     return (
         <div className="w-full max-w-7xl mx-auto">
             <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
-                    <div className="flex items-center gap-3">
-                        <Wallet className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Receipts &amp; refunds</CardTitle>
-                        <span className="text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>
+                <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <Wallet className="w-5 h-5 shrink-0 text-slate-600" />
+                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">Receipts &amp; refunds</CardTitle>
+                        <span className="whitespace-nowrap text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <form action={base} method="get" className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
+                        <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none">
                             {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
                             <input
                                 type="search" name="q" defaultValue={q} placeholder="Receipt number, reference or customer…"
-                                className="h-8 w-64 rounded-sm border border-slate-300 bg-white px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                className="h-8 w-full min-w-0 rounded-sm border border-slate-300 bg-white px-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 sm:w-64 sm:text-sm"
                             />
                         </form>
                         <form action={createRefund.bind(null, tenant, undefined)}>
@@ -86,7 +86,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
-                        <Table>
+                        <Table data-mobile="cards">
                             <TableHeader>
                                 <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                     <TableHead className="pl-4 text-slate-500 font-semibold">Date</TableHead>
@@ -106,21 +106,21 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                                 )}
                                 {data.rows.map((p, i) => (
                                     <TableRow key={p.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none text-sm`}>
-                                        <TableCell className="pl-4 py-2 tabular-nums text-slate-600 whitespace-nowrap">{dateShort(p.postDate)}</TableCell>
-                                        <TableCell className="py-2 font-medium whitespace-nowrap">
+                                        <TableCell data-label="Date" className="pl-4 py-2 tabular-nums text-slate-600 whitespace-nowrap">{dateShort(p.postDate)}</TableCell>
+                                        <TableCell data-mobile="primary" className="py-2 font-medium whitespace-nowrap">
                                             <Link href={`${base}/${p.id}`} className="text-slate-700 hover:text-teal-700">{p.number ?? "draft"}</Link>{" "}
                                             <PaymentStatePill state={p.state} />
                                             {p.direction === "REFUND" && <span className="ml-1 inline-block rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700">Refund</span>}
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-600">
+                                        <TableCell data-label="Customer" className="py-2 text-slate-600">
                                             {p.customer ? <Link href={`/${tenant}/dashboard/customers/${p.customer.id}`} className="hover:text-teal-700">{p.customer.firstName} {p.customer.lastName}</Link> : <span className="text-slate-400">Not chosen</span>}
                                         </TableCell>
-                                        <TableCell className="py-2 text-slate-500 text-xs max-w-[260px] truncate" title={p.methods.map((m) => `${m.name}${m.reference ? ` ${m.reference}` : ""}`).join(", ")}>
+                                        <TableCell data-label="Tendered as" className="py-2 text-slate-500 text-xs max-w-[260px] truncate" title={p.methods.map((m) => `${m.name}${m.reference ? ` ${m.reference}` : ""}`).join(", ")}>
                                             {p.methods.map((m) => m.name).join(" + ") || "—"}
                                         </TableCell>
-                                        <TableCell className={`py-2 text-right tabular-nums font-medium ${p.direction === "REFUND" ? "text-red-700" : "text-slate-700"}`}>{money(p.amount)}</TableCell>
-                                        <TableCell className="py-2 text-right tabular-nums text-slate-600">{money(p.allocated)}</TableCell>
-                                        <TableCell className={`py-2 pr-4 text-right tabular-nums ${p.unapplied > 0 ? "text-amber-700 font-medium" : "text-slate-400"}`}>{money(p.unapplied)}</TableCell>
+                                        <TableCell data-label="Amount" className={`py-2 text-right tabular-nums font-medium ${p.direction === "REFUND" ? "text-red-700" : "text-slate-700"}`}>{money(p.amount)}</TableCell>
+                                        <TableCell data-label="Applied" className="py-2 text-right tabular-nums text-slate-600">{money(p.allocated)}</TableCell>
+                                        <TableCell data-label="Unapplied" className={`py-2 pr-4 text-right tabular-nums ${p.unapplied > 0 ? "text-amber-700 font-medium" : "text-slate-400"}`}>{money(p.unapplied)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
