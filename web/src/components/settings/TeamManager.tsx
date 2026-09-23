@@ -53,7 +53,7 @@ function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
         <section className="border border-slate-200 rounded-sm bg-white">
             <h3 className={`${heading} px-4 py-2 border-b bg-slate-50`}>Add someone</h3>
             <form
-                className="grid grid-cols-12 items-end gap-2 px-4 py-3"
+                className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-12 sm:items-end sm:gap-2"
                 action={(fd) => start(async () => {
                     setCopied(false);
                     setResult(await inviteMemberAction(tenant, {
@@ -61,15 +61,15 @@ function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
                     }));
                 })}
             >
-                <label className="col-span-4 text-xs text-slate-500 space-y-1"><span>Email</span><input name="email" type="email" required className={`${field} w-full`} placeholder="name@example.com" /></label>
-                <label className="col-span-3 text-xs text-slate-500 space-y-1"><span>Role</span>
+                <label className="space-y-1 text-xs text-slate-500 sm:col-span-4"><span>Email</span><input name="email" type="email" required className={`${field} w-full`} placeholder="name@example.com" /></label>
+                <label className="space-y-1 text-xs text-slate-500 sm:col-span-3"><span>Role</span>
                     <select name="group" defaultValue="MECHANIC" className={`${field} w-full`}>
                         {groups.map((g) => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
                     </select>
                 </label>
-                <label className="col-span-3 text-xs text-slate-500 space-y-1"><span>Mobile (optional, for WhatsApp)</span><input name="mobile" type="tel" className={`${field} w-full`} /></label>
-                <div className="col-span-2 flex justify-end">
-                    <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700" disabled={pending}><UserPlus className="w-3.5 h-3.5 mr-1" />{pending ? "…" : "Invite"}</Button>
+                <label className="space-y-1 text-xs text-slate-500 sm:col-span-3"><span>Mobile (optional, for WhatsApp)</span><input name="mobile" type="tel" className={`${field} w-full`} /></label>
+                <div className="flex sm:col-span-2 sm:justify-end">
+                    <Button type="submit" className="h-11 w-full bg-teal-600 hover:bg-teal-700 sm:h-8 sm:w-auto" disabled={pending}><UserPlus className="w-3.5 h-3.5 mr-1" />{pending ? "…" : "Invite"}</Button>
                 </div>
             </form>
             {result && !result.ok && <p className="px-4 pb-3 text-xs text-red-600" role="alert">{result.message}</p>}

@@ -47,6 +47,24 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* Anything fixed to the bottom of a screen has to clear the phone tab bar, or
+   it sits behind it and simply is not there — which is how an inspection came
+   to have no visible save state and no send button on a phone. Plain CSS with
+   a media query rather than a utility class, because the offset has to include
+   the home indicator and the two values differ per breakpoint.
+
+   57px is MobileNav: a 56px touch target plus its 1px top border. Above the
+   tablet breakpoint the tab bar does not exist, so the offset goes away. */
+.above-tab-bar {
+  bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .above-tab-bar {
+    bottom: 0;
+  }
+}
+
 /* ── Tables that become lists on a phone ───────────────────────────────────
    A table is a grid of columns compared across rows, and a phone has room for
    one column. The customers table rendered 741px wide inside a 375px screen:

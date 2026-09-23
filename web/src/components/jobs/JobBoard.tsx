@@ -31,13 +31,13 @@ export function JobBoard({ tenant, jobs, showCost }: { tenant: string; jobs: Job
     }
 
     return (
-        <div className={`flex h-[calc(100vh-190px)] gap-4 overflow-x-auto pb-4 ${pending ? "opacity-70" : ""}`}>
+        <div className={`flex h-[calc(100vh-190px)] snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 md:snap-none ${pending ? "opacity-70" : ""}`}>
             {BOARD_COLUMNS.map((column) => {
                 const columnJobs = jobs.filter((j) => j.jobStatus === column);
                 const style = COLUMN_STYLE[column];
                 const value = columnJobs.reduce((s, j) => s + j.total, 0);
                 return (
-                    <div key={column} className="flex flex-col w-[320px] shrink-0">
+                    <div key={column} className="flex w-72 shrink-0 snap-center flex-col sm:w-80">
                         <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${style.border} ${style.bg}`}>
                             <div className="flex items-center gap-2 font-semibold text-sm">
                                 {style.icon}

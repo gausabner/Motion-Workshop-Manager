@@ -88,7 +88,7 @@ export function MobileNav({
                             key={tab.href}
                             href={`${base}${tab.href}`}
                             aria-current={active ? "page" : undefined}
-                            className={`flex min-h-[52px] flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+                            className={`flex h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
                                 active ? "text-teal-700" : "text-slate-500"
                             }`}
                         >
@@ -102,7 +102,7 @@ export function MobileNav({
                     onClick={() => setOpen(true)}
                     aria-expanded={open}
                     aria-haspopup="dialog"
-                    className={`flex min-h-[52px] flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+                    className={`flex h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
                         onATab ? "text-slate-500" : "text-teal-700"
                     }`}
                 >
