@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getPayment, openSupplierInvoices } from "@/lib/purchasing/payments";
 import { getPaymentMethods } from "@/lib/payments/queries";
 import { PaymentEditor } from "@/components/purchasing/PaymentEditor";
@@ -14,7 +15,8 @@ const STATE: Record<string, string> = { DRAFT: "Draft — not paid yet", PROCESS
 export default async function SupplierPaymentPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "payments:take")) notFound();
+    if (!can(membership, "payments:take"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="take payments" />;
     const [payment, open, methods] = await Promise.all([getPayment(db, id), openSupplierInvoices(db), getPaymentMethods(db)]);
     if (!payment) notFound();
 

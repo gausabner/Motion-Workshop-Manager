@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
 import { CarFront } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { loanFleet } from "@/lib/loans/service";
 import { LoanFleet } from "@/components/loans/LoanFleet";
 import { toZoned } from "@/lib/diary/time";
@@ -11,7 +11,8 @@ export const metadata = { title: "Courtesy cars | MOTION Workshop Manager" };
 export default async function LoanCarsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "documents:write")) notFound();
+    if (!can(membership, "documents:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="create or edit documents" />;
     const [fleet, customers, jobs] = await Promise.all([
         loanFleet(db),
         db.customer.findMany({ where: { archivedAt: null }, orderBy: [{ lastName: "asc" }], take: 300, select: { id: true, firstName: true, lastName: true } }),

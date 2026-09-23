@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getProduct, productOptions, productSales } from "@/lib/products/queries";
 import { movementsFor } from "@/lib/stock/ledger";
 import { serialsForProduct } from "@/lib/products/serial-service";
@@ -28,7 +29,8 @@ function aYearAgo(): Date {
 export default async function ProductPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "documents:see_cost")) notFound();
+    if (!can(membership, "documents:see_cost"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="see cost prices" />;
     const product = await getProduct(db, id);
     if (!product) notFound();
     const [options, movements, sales, bundleOptions, serials] = await Promise.all([

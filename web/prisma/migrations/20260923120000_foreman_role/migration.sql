@@ -1,0 +1,12 @@
+-- The foreman: the person who runs the floor.
+--
+-- Missing from the original six, and a real position in every workshop of any
+-- size — they assign mechanics, move jobs along, chase parts, and answer for
+-- how long the work took. Until now they had to be given Admin, which also
+-- handed them settings, the team and every report, or Service Advisor, which
+-- did not let them touch products and stock.
+--
+-- Added after ADMIN so the enum reads in order of reach. Postgres allows a new
+-- enum value inside a transaction as long as nothing uses it in the same
+-- transaction, which nothing here does.
+ALTER TYPE "UserGroup" ADD VALUE IF NOT EXISTS 'FOREMAN' AFTER 'ADMIN';

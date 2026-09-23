@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
 import { CompanySettingsForm } from "@/components/settings/CompanySettingsForm";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { parseSettings } from "@/lib/settings/schema";
 
 export const metadata = { title: "Company profile | MOTION Workshop Manager" };
@@ -9,7 +9,8 @@ export const metadata = { title: "Company profile | MOTION Workshop Manager" };
 export default async function CompanySettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     const settings = parseSettings(tenant.settings);
 
     return (

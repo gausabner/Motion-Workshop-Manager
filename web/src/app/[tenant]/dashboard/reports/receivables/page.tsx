@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { FileText, MessageCircle, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { listReceivables } from "@/lib/payments/queries";
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import { businessToday } from "@/lib/tenant/today";
@@ -15,7 +15,8 @@ export const metadata = { title: "Who owes us | MOTION Workshop Manager" };
 export default async function ReceivablesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "reports:view")) notFound();
+    if (!can(membership, "reports:view"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="see reports" />;
 
     const asAt = businessToday(tenant.timezone);
     const { rows, totals, unapplied } = await listReceivables(db, asAt);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getSupplierInvoice, purchasingOptions } from "@/lib/purchasing/queries";
 import { ReceiptEditor } from "@/components/purchasing/ReceiptEditor";
 import { dateShort } from "@/lib/format";
@@ -13,7 +14,8 @@ const STATE: Record<string, string> = { DRAFT: "Draft — nothing on the shelf y
 export default async function SupplierInvoicePage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const [invoice, options] = await Promise.all([getSupplierInvoice(db, id), purchasingOptions(db)]);
     if (!invoice) notFound();
 

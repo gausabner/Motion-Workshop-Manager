@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { ensureDefaultInspectionTemplate } from "@/lib/inspections/defaults";
 import { listTemplates } from "@/lib/inspections/templates";
 import { newTemplateAction } from "@/lib/inspections/template-actions";
@@ -14,7 +14,8 @@ export const metadata = { title: "Inspection templates | MOTION Workshop Manager
 export default async function InspectionTemplatesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     await ensureDefaultInspectionTemplate(db, tenant.id);
     const templates = await listTemplates(db);
     return (

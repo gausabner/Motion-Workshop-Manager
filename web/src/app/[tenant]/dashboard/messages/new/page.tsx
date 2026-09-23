@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { portalSettings } from "@/lib/settings/schema";
 import { CampaignComposer } from "@/components/campaigns/CampaignComposer";
 
@@ -10,7 +10,8 @@ export const metadata = { title: "New campaign | MOTION Workshop Manager" };
 export default async function NewCampaignPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "messages:send")) notFound();
+    if (!can(membership, "messages:send"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="send messages to customers" />;
     const sources = await db.customerSource.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
     return (
         <div className="max-w-5xl space-y-4">

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import type { UserGroup } from "@prisma/client";
 import { Copy, MessageCircle, Mail, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GROUP_LABELS } from "@/lib/auth/permissions";
+import { GROUP_LABELS, GRANTABLE, can } from "@/lib/auth/permissions";
 import { inviteMemberAction, revokeInvitationAction, updateMemberAction, type InviteResult } from "@/lib/team/actions";
 import type { PendingInvitation, TeamMember } from "@/lib/team/queries";
 
@@ -108,6 +108,7 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
     const [pending, start] = useTransition();
     const inactive = member.status !== "ACTIVE";
     const editableGroups = groups.includes(member.group) ? groups : [member.group, ...groups];
+    const grantsOnOffer = GRANTABLE.filter((g) => !can({ group: member.group }, g.permission));
     return (
         <li className={inactive ? "bg-slate-50" : undefined}>
             <form
@@ -119,6 +120,9 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                         isMechanic: fd.get("isMechanic") === "on",
                         showOnDiary: fd.get("showOnDiary") === "on",
                         isServiceAdvisor: fd.get("isServiceAdvisor") === "on",
+                        extraPermissions: GRANTABLE
+                            .filter((g) => fd.get(`grant:${g.permission}`) === "on")
+                            .map((g) => g.permission),
                     });
                     setMessage(result.ok ? { ok: true, text: "Saved" } : { ok: false, text: result.message ?? "Not saved" });
                 })}
@@ -141,6 +145,28 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                 <div className="col-span-1 flex justify-end">
                     <Button type="submit" size="sm" variant="outline" className="h-7" disabled={pending}>{pending ? "…" : "Save"}</Button>
                 </div>
+
+                {/* Only the permissions this role does not already carry. Offering
+                    a foreman "take payments" is a real decision; offering it to a
+                    service advisor, who has it anyway, is noise that makes the
+                    real one easier to miss. */}
+                {grantsOnOffer.length > 0 && (
+                    <div className="col-span-12 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-dashed border-slate-200 pt-2 text-xs text-slate-600">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Also allow</span>
+                        {grantsOnOffer.map((g) => (
+                            <label key={g.permission} className="flex items-center gap-1" title={g.caution}>
+                                <input
+                                    type="checkbox"
+                                    name={`grant:${g.permission}`}
+                                    defaultChecked={member.extraPermissions?.includes(g.permission)}
+                                    className="accent-teal-600"
+                                />
+                                {g.label}
+                                <span className="text-slate-400">— {g.caution}</span>
+                            </label>
+                        ))}
+                    </div>
+                )}
                 {message && <p className={`col-span-12 text-xs ${message.ok ? "text-teal-700" : "text-red-600"}`} role={message.ok ? undefined : "alert"}>{message.text}</p>}
             </form>
         </li>

@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { ImportWizard } from "@/components/settings/ImportWizard";
 
 export const metadata = { title: "Import | MOTION Workshop Manager" };
@@ -8,7 +8,8 @@ export const metadata = { title: "Import | MOTION Workshop Manager" };
 export default async function ImportPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     return (
         <div className="space-y-4">
             <div>

@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
 import { BookingSettingsForm } from "@/components/settings/BookingSettingsForm";
 import { AppointmentTypes } from "@/components/settings/AppointmentTypes";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { diarySettingsSchema, parseSettings } from "@/lib/settings/schema";
 
 export const metadata = { title: "Bookings | MOTION Workshop Manager" };
@@ -10,7 +10,8 @@ export const metadata = { title: "Bookings | MOTION Workshop Manager" };
 export default async function BookingSettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     const parsed = diarySettingsSchema.safeParse(parseSettings(tenant.settings).diary ?? {});
     const diary = parsed.success ? parsed.data : diarySettingsSchema.parse({});
     const types = await db.appointmentType.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, description: true, estimatedHours: true, active: true } });

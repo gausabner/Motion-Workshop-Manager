@@ -46,7 +46,7 @@ export async function destroySession() {
     }
 }
 
-export type SessionUser = Pick<User, "id" | "email" | "firstName" | "lastName" | "isSuperuser">;
+export type SessionUser = Pick<User, "id" | "email" | "firstName" | "lastName" | "isSuperuser" | "mustChangePassword">;
 
 /** The signed-in user for this request, or null. Cached per request. */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
@@ -55,7 +55,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     if (!token) return null;
     const session = await prisma.session.findUnique({
         where: { tokenHash: hashToken(token) },
-        include: { user: { select: { id: true, email: true, firstName: true, lastName: true, isSuperuser: true } } },
+        include: { user: { select: { id: true, email: true, firstName: true, lastName: true, isSuperuser: true, mustChangePassword: true } } },
     });
     if (!session || session.expiresAt < new Date()) return null;
     return session.user;
@@ -83,6 +83,11 @@ export type TenantContext = {
  */
 export const requireTenant = cache(async (slug: string): Promise<TenantContext> => {
     const user = await requireUser(`/${slug}/dashboard`);
+    // An account whose password was set by somebody else can reach exactly one
+    // screen until it is changed. Enforced here rather than in a layout because
+    // this is what every tenant route already passes through, so there is no
+    // page that can quietly forget to ask.
+    if (user.mustChangePassword) redirect(`/${slug}/change-password`);
     const tenant = await prisma.tenant.findUnique({ where: { slug } });
     if (!tenant || !tenant.isActive) notFound();
     const membership = await prisma.membership.findUnique({

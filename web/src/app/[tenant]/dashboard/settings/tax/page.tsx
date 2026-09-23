@@ -1,14 +1,15 @@
-import { notFound } from "next/navigation";
 import { TaxSettingsForm } from "@/components/settings/TaxSettingsForm";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 
 export const metadata = { title: "Tax settings | MOTION Workshop Manager" };
 
 export default async function TaxSettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
 
     return (
         <div className="space-y-4">

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { productOptions } from "@/lib/products/queries";
 import { ProductForm } from "@/components/products/ProductForm";
 
@@ -10,7 +10,8 @@ export const metadata = { title: "New product | MOTION Workshop Manager" };
 export default async function NewProductPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const options = await productOptions(db);
     return (
         <div className="max-w-4xl space-y-4">

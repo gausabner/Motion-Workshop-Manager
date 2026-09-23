@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ClipboardList } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { listStockTakes } from "@/lib/stock/stocktake-service";
 import { StartStockTake } from "@/components/products/StartStockTake";
 import { dateShortIn } from "@/lib/format";
@@ -14,7 +14,8 @@ const STATE: Record<string, string> = { DRAFT: "Counting", APPLIED: "Applied", C
 export default async function StockTakePage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const [takes, groups] = await Promise.all([
         listStockTakes(db),
         db.productGroup.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
