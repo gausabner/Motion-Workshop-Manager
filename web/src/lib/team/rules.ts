@@ -1,3 +1,4 @@
+import { ALL_GROUPS } from "@/lib/auth/permissions";
 import type { MembershipStatus, UserGroup } from "@prisma/client";
 
 /**
@@ -39,7 +40,7 @@ export function flagsForGroup(group: UserGroup): { isMechanic: boolean; showOnDi
 
 /** Groups an inviter may hand out. Only an owner creates another owner. */
 export function invitableGroups(actorGroup: UserGroup): UserGroup[] {
-    const all: UserGroup[] = ["OWNER", "ADMIN", "SERVICE_ADVISOR", "MECHANIC", "INVOICE_PAY", "READ_ONLY"];
+    const all: UserGroup[] = [...ALL_GROUPS];
     return actorGroup === "OWNER" ? all : all.filter((g) => g !== "OWNER");
 }
 

@@ -16,6 +16,8 @@ datasource db {
 enum UserGroup {
   OWNER
   ADMIN
+  /// Runs the floor: assigns mechanics, moves jobs along, watches labour.
+  FOREMAN
   SERVICE_ADVISOR
   MECHANIC
   INVOICE_PAY

@@ -3,13 +3,13 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
-import { assertCan, GROUP_LABELS } from "@/lib/auth/permissions";
+import { assertCan, GROUP_LABELS, ALL_GROUPS } from "@/lib/auth/permissions";
 import { requestOrigin } from "@/lib/http/origin";
 import { toInternational } from "@/lib/messaging/phone";
 import { MailtoDriver, WhatsAppLinkDriver } from "@/lib/messaging/drivers";
 import { createInvitation, revokeInvitation, updateMember } from "@/lib/team/service";
 
-const GROUPS = ["OWNER", "ADMIN", "SERVICE_ADVISOR", "MECHANIC", "INVOICE_PAY", "READ_ONLY"] as const;
+
 
 export type InviteResult =
     | { ok: true; link: string; email: string; whatsappUrl?: string; mailtoUrl?: string }
@@ -17,7 +17,7 @@ export type InviteResult =
 
 const inviteSchema = z.object({
     email: z.email("That email does not look right").transform((s) => s.toLowerCase()),
-    group: z.enum(GROUPS),
+    group: z.enum(ALL_GROUPS),
     mobile: z.string().trim().max(40).optional(),
 });
 
@@ -58,7 +58,7 @@ export async function revokeInvitationAction(slug: string, invitationId: string)
 }
 
 const memberSchema = z.object({
-    group: z.enum(GROUPS),
+    group: z.enum(ALL_GROUPS),
     status: z.enum(["ACTIVE", "INACTIVE"]),
     isMechanic: z.boolean(),
     showOnDiary: z.boolean(),
