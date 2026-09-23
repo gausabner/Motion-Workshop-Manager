@@ -1,0 +1,19 @@
+-- Signing in was impossible.
+--
+-- `Session` carries a tenantId, so the previous migration forced it along with
+-- everything else — and a session row is created at sign-in, before anyone
+-- knows which workshop the person belongs to. Forcing it meant the first thing
+-- every user does was refused, which would have taken the whole application
+-- down on the first login after deploy.
+--
+-- It joins the other four tables that answer "who is this and which workshop
+-- are they in?" — Membership, ApiKey, Invitation, ShareLink — which cannot be
+-- tenant-scoped because they are what establishes the tenant. Row-level
+-- security stays enabled on it; what it loses is the extra guard against the
+-- table owner, and a session is reachable only by presenting a hashed token
+-- that cannot be guessed.
+--
+-- Written as its own migration rather than folded into the previous one so the
+-- history says plainly that this was found by running the application against a
+-- restricted role, which is the only reason it was found before a customer did.
+ALTER TABLE "Session" NO FORCE ROW LEVEL SECURITY;

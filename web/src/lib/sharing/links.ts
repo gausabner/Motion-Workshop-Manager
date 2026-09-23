@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import type { ShareKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { announceTenant } from "@/lib/tenant-db";
 import type { TenantTx } from "@/lib/tenant-db";
 
 /**
@@ -77,9 +78,21 @@ export async function resolveShareToken(token: string): Promise<ResolvedShare> {
     return { ok: true, id: link.id, tenantId: link.tenantId, kind: link.kind, targetId: link.targetId, params: (link.params ?? {}) as Record<string, string> };
 }
 
-/** Count the open. Not awaited by the caller's response path beyond this one write. */
+/**
+ * Count the open. Not awaited by the caller's response path beyond this one write.
+ *
+ * A customer opening a WhatsApp link has no session and no membership, so there
+ * is nothing to scope this by — but the link itself knows which workshop it
+ * belongs to. Both writes run in one transaction that names the tenant, which
+ * is also what lets them share a connection with the setting.
+ */
 export async function recordOpen(id: string): Promise<void> {
     const now = new Date();
-    const link = await prisma.shareLink.update({ where: { id }, data: { openCount: { increment: 1 }, lastOpenedAt: now }, select: { firstOpenedAt: true } });
-    if (!link.firstOpenedAt) await prisma.shareLink.update({ where: { id }, data: { firstOpenedAt: now } });
+    await prisma.$transaction(async (tx) => {
+        const owner = await tx.shareLink.findUnique({ where: { id }, select: { tenantId: true, firstOpenedAt: true } });
+        if (!owner) return;
+        await announceTenant(tx, owner.tenantId);
+        await tx.shareLink.update({ where: { id }, data: { openCount: { increment: 1 }, lastOpenedAt: now } });
+        if (!owner.firstOpenedAt) await tx.shareLink.update({ where: { id }, data: { firstOpenedAt: now } });
+    });
 }

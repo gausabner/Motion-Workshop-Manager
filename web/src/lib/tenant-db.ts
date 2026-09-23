@@ -1,5 +1,18 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { ITXClientDenyList } from "@prisma/client/runtime/library";
+import { Prisma, type PrismaPromise } from "@prisma/client";
 import { prisma } from "@/lib/db";
+
+/**
+ * Whether the current call is already inside a tenant transaction.
+ *
+ * A single query has to open its own transaction so the tenant setting and the
+ * query itself land on the same pooled connection. Inside an interactive
+ * transaction that would be wrong twice over — the setting is already applied,
+ * and opening a second transaction would run the query on a different
+ * connection, outside the one the caller believes they are in.
+ */
+const inTenantTransaction = new AsyncLocalStorage<true>();
 
 /**
  * Models that carry a required `tenantId`. Every query against them is
@@ -57,8 +70,13 @@ function scopeCreateData(data: AnyArgs, tenantId: string, model: string, operati
     return { ...data, tenantId };
 }
 
-export function forTenant(tenantId: string) {
-    if (!tenantId) throw new Error("forTenant: tenantId is required");
+/**
+ * The tenant-scoped client, before the transaction wrapper is layered on.
+ * Named separately so the type it produces can be referred to — it is exactly
+ * what a `$transaction` callback receives, and `TenantTx` is derived from it
+ * rather than from the outer client, which would be a different shape.
+ */
+function scopedFor(tenantId: string) {
     return prisma.$extends({
         name: `tenant:${tenantId}`,
         query: {
@@ -108,14 +126,116 @@ export function forTenant(tenantId: string) {
                             );
                     }
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return query(a as any);
+                    const scoped = query(a as any);
+                    if (inTenantTransaction.getStore()) return scoped;
+
+                    // Outside a transaction, the tenant has to be set on the same
+                    // connection as the query, in the same transaction, or the
+                    // pool hands the query a connection that never heard of it
+                    // and row-level security returns nothing.
+                    const [, result] = await prisma.$transaction([
+                        prisma.$executeRaw`SELECT set_config('motion.tenant_id', ${tenantId}, true)`,
+                        scoped as PrismaPromise<unknown>,
+                    ]);
+                    return result;
                 },
             },
         },
     });
+
 }
 
-export type TenantDb = ReturnType<typeof forTenant>;
+/** What a `$transaction` callback receives: the scoped client, minus the methods a transaction cannot offer. */
+export type TenantTx = Omit<ReturnType<typeof scopedFor>, ITXClientDenyList>;
 
-/** The client handed to a `db.$transaction(async (tx) => …)` callback: still tenant-scoped. */
-export type TenantTx = Omit<TenantDb, ITXClientDenyList>;
+/**
+ * The client `forTenant` hands back: the scoped client with a narrower
+ * `$transaction`.
+ *
+ * Declared as an intersection with the scoped client rather than inferred from
+ * the extended one, so that passing a `TenantDb` where a `TenantTx` is expected
+ * — which most query helpers do, being called with both — is a trivial check
+ * rather than a structural comparison of two enormous generated Prisma types.
+ * Inferring it made the compiler give up with "excessive stack depth" at a
+ * dozen call sites that were perfectly correct.
+ */
+export type TenantDb = ReturnType<typeof scopedFor> & {
+    $transaction<R>(
+        fn: (tx: TenantTx) => Promise<R>,
+        options?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
+    ): Promise<R>;
+};
+
+export function forTenant(tenantId: string): TenantDb {
+    if (!tenantId) throw new Error("forTenant: tenantId is required");
+    const scopedClient = scopedFor(tenantId);
+
+    /**
+     * The same client, with the tenant announced at the start of every
+     * interactive transaction.
+     *
+     * Layered on top of the scoped client rather than on `prisma`, and
+     * delegating to *its* `$transaction`, which is the part that matters: the
+     * transaction client Prisma passes to the callback is then still the scoped
+     * one, so `forTenant`'s rewriting applies inside the transaction exactly as
+     * it does outside. Delegating to the base client instead would hand back an
+     * unscoped client and quietly remove the application-level wall from all 77
+     * places that open a transaction — while switching the database-level one
+     * on. That failure would be silent, which is the worst shape it could take.
+     */
+    /**
+     * The same client, with the tenant announced at the start of every
+     * interactive transaction.
+     *
+     * Layered on top of the scoped client and delegating to *its*
+     * `$transaction`, which is the part that matters: the transaction client
+     * Prisma passes to the callback is then still the scoped one, so
+     * `forTenant`'s rewriting applies inside a transaction exactly as it does
+     * outside. Delegating to the base client instead would hand back an
+     * unscoped client and quietly remove the application-level wall from all
+     * eighty-one places that open a transaction — while switching the
+     * database-level one on. That failure would be silent, which is the worst
+     * shape it could take.
+     *
+     * Typed explicitly rather than spread from Prisma's own signature, because
+     * an untyped override turns every `tx` in the codebase into `any` and every
+     * result into `unknown`. Only the callback form is typed here; nothing uses
+     * the array form, and leaving it untyped would be the same trap in a
+     * quieter corner.
+     */
+    return scopedClient.$extends({
+        name: `tenant-tx:${tenantId}`,
+        client: {
+            $transaction<R>(
+                fn: (tx: TenantTx) => Promise<R>,
+                options?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
+            ): Promise<R> {
+                return scopedClient.$transaction(async (tx) => {
+                    await tx.$executeRaw`SELECT set_config('motion.tenant_id', ${tenantId}, true)`;
+                    return inTenantTransaction.run(true, () => fn(tx as TenantTx));
+                }, options);
+            },
+        },
+    }) as unknown as TenantDb;
+}
+
+
+/**
+ * Announce the tenant on a connection that is not going through `forTenant`.
+ *
+ * There are three places that legitimately write tenant-owned rows without a
+ * session to scope them: registering a workshop, accepting an invitation, and
+ * recording that a customer opened a share link. All three know which tenant
+ * they mean; none of them can use `forTenant`, because in the first two the
+ * membership that would establish it is the row being created.
+ *
+ * Without this, those three paths are the ones that break the day row-level
+ * security is switched on — and they break at registration, which is the worst
+ * possible place to find out.
+ */
+export async function announceTenant(
+    tx: { $executeRaw: (q: TemplateStringsArray, ...values: unknown[]) => Promise<number> },
+    tenantId: string,
+): Promise<void> {
+    await tx.$executeRaw`SELECT set_config('motion.tenant_id', ${tenantId}, true)`;
+}
