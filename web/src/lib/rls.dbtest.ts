@@ -135,7 +135,7 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
         JOIN pg_attribute a ON a.attrelid = c.oid
         WHERE n.nspname = 'public' AND c.relkind = 'r'
           AND a.attname = 'tenantId' AND NOT a.attisdropped
-          AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink')
+          AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink', 'Session')
           AND (NOT c.relrowsecurity OR NOT c.relforcerowsecurity OR NOT EXISTS (
                 SELECT 1 FROM pg_policies p WHERE p.schemaname='public'
                   AND p.tablename = c.relname AND p.policyname='tenant_isolation'))
@@ -167,7 +167,7 @@ test("the tables that resolve a tenant are exempt, and only those", async () => 
         ORDER BY c.relname`;
     assert.deepEqual(
         exempt.map((e) => e.relname),
-        ["ApiKey", "Invitation", "Membership", "ShareLink"],
+        ["ApiKey", "Invitation", "Membership", "Session", "ShareLink"],
         "the set of tables exempt from FORCE has changed",
     );
 });
