@@ -133,9 +133,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
                             <li key={row.key}>
                                 <Link
                                     href={row.href}
-                                    className={`flex items-baseline gap-3 border-l-[3px] px-4 py-3 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 ${toneRule[row.tone]}`}
+                                    className={`flex flex-col gap-0.5 border-l-[3px] px-4 py-3 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 sm:flex-row sm:items-baseline sm:gap-3 ${toneRule[row.tone]}`}
                                 >
-                                    <span className={`text-xl font-bold tabular-nums ${toneLead[row.tone]}`}>{row.lead}</span>
+                                    <span className={`shrink-0 whitespace-nowrap text-xl font-bold tabular-nums ${toneLead[row.tone]}`}>{row.lead}</span>
                                     <span className="text-sm text-slate-700">{row.text}</span>
                                 </Link>
                             </li>

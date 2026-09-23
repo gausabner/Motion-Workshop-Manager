@@ -37,7 +37,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     const base = `/${slug}/book`;
 
     const shell = (children: React.ReactNode, back?: string) => (
-        <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <main className="min-h-svh bg-slate-100 px-4 py-8">
             <div className="mx-auto max-w-lg space-y-5">
                 <header className="text-center">
                     <p className="text-xs uppercase tracking-wider text-slate-500">Book a service</p>

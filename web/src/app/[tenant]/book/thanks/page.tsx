@@ -9,7 +9,7 @@ export default async function ThanksPage({ params, searchParams }: { params: Pro
     const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { name: true, phone: true, isActive: true } });
     if (!tenant?.isActive) notFound();
     return (
-        <main className="min-h-screen bg-slate-100 px-4 py-12">
+        <main className="min-h-svh bg-slate-100 px-4 py-12">
             <div className="mx-auto max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
                 <CheckCircle2 className="mx-auto h-12 w-12 text-teal-600" />
                 <h1 className="text-xl font-bold text-slate-800">Request sent</h1>

@@ -19,7 +19,7 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
 
     if (!membership.isMechanic && !membership.showOnDiary) {
         return (
-            <main className="min-h-screen bg-slate-100 px-4 py-12 text-center">
+            <main className="min-h-svh bg-slate-100 px-4 py-12 text-center">
                 <p className="mx-auto max-w-sm text-base text-slate-600">This is the mechanics&rsquo; clock. You are not set up as a mechanic — ask the workshop owner to mark you as one under Admin → Mechanics.</p>
             </main>
         );

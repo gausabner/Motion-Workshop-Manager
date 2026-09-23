@@ -14,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
         description: "The workshop floor: your jobs, and the clock.",
         start_url: "/",
         display: "standalone",
-        background_color: "#0f172a",
+        background_color: "#f1f5f9",
         theme_color: "#0f172a",
         orientation: "portrait",
         icons: [

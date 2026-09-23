@@ -163,7 +163,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     };
 
     return (
-        <main className="min-h-screen bg-slate-100 pb-10">
+        <main className="min-h-dvh bg-slate-100 pb-10">
             <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 text-white">
                 <div className="mx-auto flex max-w-lg items-center justify-between">
                     <p className="flex items-center gap-2 font-semibold"><Wrench className="h-5 w-5 text-teal-400" />{name}</p>

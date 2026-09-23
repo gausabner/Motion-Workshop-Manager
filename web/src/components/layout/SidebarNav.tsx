@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Bell, Building2, Car, CarFront, CalendarDays, ClipboardList, LayoutDashboard,
+    Bell, Building2, Car, CarFront, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
     ListChecks, Megaphone, Package, Receipt, Settings, Timer, TrendingUp, Truck,
     Users, Wallet, Wrench,
 } from "lucide-react";
@@ -68,6 +68,7 @@ export function SidebarNav({
                 { href: `${base}/dashboard/reports/receivables`, label: "Who owes us", icon: Receipt, show: reports },
                 { href: `${base}/dashboard/reports/margin`, label: "Profit", icon: TrendingUp, show: reports },
                 { href: `${base}/dashboard/reports/labour`, label: "Mechanic time", icon: Timer, show: reports },
+                { href: `${base}/dashboard/reports`, label: "All reports", icon: FileBarChart, show: reports },
             ],
         },
         {

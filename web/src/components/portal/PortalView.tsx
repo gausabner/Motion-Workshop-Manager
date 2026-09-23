@@ -56,7 +56,7 @@ export function PortalView({ customerName, workshop, data, links, banner }: { cu
     const nothing = !data.account && data.inspections.length + data.jobs.length + data.bookings.length + data.vehicles.length + data.invoices.length + data.quotes.length === 0;
 
     return (
-        <div className="min-h-screen bg-slate-100" style={{ ["--accent" as string]: workshop.accent }}>
+        <div className="min-h-svh bg-slate-100" style={{ ["--accent" as string]: workshop.accent }}>
             {banner}
             <header className="bg-white border-b border-slate-200">
                 <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">

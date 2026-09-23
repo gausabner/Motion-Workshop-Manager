@@ -23,7 +23,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
     const access = await portalAccess(token);
     if (!access.ok) {
         return (
-            <main className="grid min-h-screen place-items-center bg-slate-100 p-6">
+            <main className="grid min-h-svh place-items-center bg-slate-100 p-6">
                 <div className="max-w-sm rounded-lg border border-slate-200 bg-white p-6 text-center">
                     <h1 className="text-lg font-bold text-slate-800">Link unavailable</h1>
                     <p className="mt-2 text-slate-600">{REASONS[access.reason]}</p>

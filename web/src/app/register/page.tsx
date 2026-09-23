@@ -5,7 +5,7 @@ export const metadata = { title: "Create your workshop | MOTION Workshop Manager
 
 export default function RegisterPage() {
     return (
-        <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+        <main className="min-h-svh bg-slate-100 flex items-center justify-center p-6">
             <div className="w-full max-w-md bg-white border border-slate-200 rounded-lg shadow-sm p-8">
                 <MotionLogo className="h-7 w-auto text-slate-800 mb-6" />
                 <h1 className="text-xl font-semibold text-slate-800 mb-1">Create your workshop</h1>
