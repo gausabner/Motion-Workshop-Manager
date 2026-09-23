@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { SupplierForm } from "@/components/suppliers/SupplierForm";
 
 export const metadata = { title: "New supplier | MOTION Workshop Manager" };
@@ -9,7 +9,8 @@ export const metadata = { title: "New supplier | MOTION Workshop Manager" };
 export default async function NewSupplierPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     return (
         <div className="max-w-4xl space-y-4">
             <div>

@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 
 export const metadata = { title: "Suppliers | MOTION Workshop Manager" };
 
 export default async function SuppliersPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ archived?: string }> }) {
     const [{ tenant: slug }, sp] = await Promise.all([params, searchParams]);
     const { db, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const archived = sp.archived === "1";
     const suppliers = await db.supplier.findMany({
         where: { archivedAt: archived ? { not: null } : null },

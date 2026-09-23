@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Megaphone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { listCampaigns } from "@/lib/campaigns/queries";
 import { listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
@@ -16,7 +16,8 @@ const STATE = { DRAFT: "Not started", SENDING: "In progress", DONE: "Closed" } a
 export default async function MessagesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "messages:send")) notFound();
+    if (!can(membership, "messages:send"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="send messages to customers" />;
     const [campaigns, messages] = await Promise.all([listCampaigns(db), listMessages(db, {}, 25)]);
 
     return (

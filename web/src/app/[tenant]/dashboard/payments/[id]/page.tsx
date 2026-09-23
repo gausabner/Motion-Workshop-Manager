@@ -6,6 +6,7 @@ import { PaymentEditor } from "@/components/payments/PaymentEditor";
 import { PaymentStatePill } from "@/components/payments/PaymentList";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getOpenItems, getPayment, getPaymentMethods } from "@/lib/payments/queries";
 import { listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
@@ -15,7 +16,8 @@ import { dateShort, money } from "@/lib/format";
 export default async function PaymentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ posted?: string; problem?: string }> }) {
     const [{ tenant: slug, id }, { posted, problem }] = await Promise.all([params, searchParams]);
     const { db, membership } = await requireTenant(slug);
-    if (!can(membership, "payments:take")) notFound();
+    if (!can(membership, "payments:take"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="take payments" />;
 
     const [payment, methods, messages] = await Promise.all([getPayment(db, id), getPaymentMethods(db), listMessages(db, { paymentId: id })]);
     if (!payment) notFound();

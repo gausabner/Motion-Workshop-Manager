@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { AlertTriangle, Timer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { labourReport } from "@/lib/time/queries";
 import { addDays, startOfWeek, toZoned } from "@/lib/diary/time";
 import { hoursLabel } from "@/lib/time/clock";
@@ -23,7 +23,8 @@ function tone(efficiency: number | null): string {
 export default async function LabourReportPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ from?: string; to?: string }> }) {
     const [{ tenant: slug }, sp] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "reports:view")) notFound();
+    if (!can(membership, "reports:view"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="see reports" />;
 
     const today = toZoned(new Date(), tenant.timezone).day;
     const from = valid(sp.from) ?? startOfWeek(today);

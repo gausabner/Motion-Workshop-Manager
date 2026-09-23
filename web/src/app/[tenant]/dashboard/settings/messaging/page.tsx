@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
 import { TemplateEditor } from "@/components/settings/TemplateEditor";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { EDITABLE_TEMPLATES } from "@/lib/templates/catalogue";
 import { workshopValues } from "@/lib/templates/values";
 import { money } from "@/lib/format";
@@ -13,7 +13,8 @@ export const metadata = { title: "Messages and templates | MOTION Workshop Manag
 export default async function MessagingSettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
 
     const rows = await db.template.findMany({ where: { kind: { in: EDITABLE_TEMPLATES.map((t) => t.kind) } }, orderBy: { sortOrder: "asc" }, select: { kind: true, body: true } });
     const saved = new Map<string, string>();

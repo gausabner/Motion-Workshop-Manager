@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getStockTake } from "@/lib/stock/stocktake-service";
 import { StockTakeSheet } from "@/components/products/StockTakeSheet";
 import { dateShortIn } from "@/lib/format";
@@ -11,7 +12,8 @@ export const metadata = { title: "Counting | MOTION Workshop Manager" };
 export default async function StockTakeDetailPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const take = await getStockTake(db, id);
     if (!take) notFound();
     const scope = take.scope as { location?: string; codeFrom?: string; codeTo?: string; includeZero?: boolean };

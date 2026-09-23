@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Plus, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { listOrders, listSupplierInvoices } from "@/lib/purchasing/queries";
 import { newSupplierInvoiceAction } from "@/lib/purchasing/actions";
 import { newSupplierPaymentAction } from "@/lib/purchasing/payment-actions";
@@ -20,7 +20,8 @@ const INVOICE_STATE: Record<string, string> = { DRAFT: "Draft", PROCESSED: "Rece
 export default async function PurchasingPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const [orders, invoices, payments, payables] = await Promise.all([listOrders(db), listSupplierInvoices(db), listPayments(db, 15), payablesReport(db, businessToday(tenant.timezone))]);
     const base = `/${slug}/dashboard/purchasing`;
     const card = "rounded-sm border border-slate-200 bg-white";

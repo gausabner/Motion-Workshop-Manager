@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getTemplateDraft, templateProducts } from "@/lib/inspections/templates";
 import { TemplateBuilder } from "@/components/inspections/TemplateBuilder";
 
@@ -10,7 +11,8 @@ export const metadata = { title: "Edit inspection template | MOTION Workshop Man
 export default async function TemplateEditPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "settings:manage")) notFound();
+    if (!can(membership, "settings:manage"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     const [template, products] = await Promise.all([getTemplateDraft(db, id), templateProducts(db)]);
     if (!template) notFound();
     return (

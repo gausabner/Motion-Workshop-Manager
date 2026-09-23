@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { SupplierForm } from "@/components/suppliers/SupplierForm";
 import { listOrders, listSupplierInvoices } from "@/lib/purchasing/queries";
 import { openSupplierInvoices } from "@/lib/purchasing/payments";
@@ -14,7 +15,8 @@ export const metadata = { title: "Supplier | MOTION Workshop Manager" };
 export default async function SupplierPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const supplier = await db.supplier.findUnique({ where: { id } });
     if (!supplier) notFound();
     const [orders, invoices, open] = await Promise.all([listOrders(db), listSupplierInvoices(db), openSupplierInvoices(db, id)]);

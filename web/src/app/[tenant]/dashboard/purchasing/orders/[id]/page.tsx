@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
 import { businessToday } from "@/lib/tenant/today";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getOrder, purchasingOptions } from "@/lib/purchasing/queries";
 import { RECEIPT_LABELS } from "@/lib/purchasing/rules";
 import { OrderEditor } from "@/components/purchasing/OrderEditor";
@@ -15,7 +16,8 @@ const STATE: Record<string, string> = { SUGGESTED: "Suggested — not sent yet",
 export default async function OrderPage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
     const { tenant: slug, id } = await params;
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "products:write")) notFound();
+    if (!can(membership, "products:write"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="change products and pricing" />;
     const [order, options] = await Promise.all([getOrder(db, id), purchasingOptions(db)]);
     if (!order) notFound();
 

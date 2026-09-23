@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ScanLine } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { AccessDenied } from "@/components/layout/AccessDenied";
 import { findSerial } from "@/lib/products/serial-service";
 import { inWarranty, SERIAL_STATE_LABELS } from "@/lib/products/serials";
 import { businessToday } from "@/lib/tenant/today";
@@ -13,7 +13,8 @@ export const metadata = { title: "Find a serial number | MOTION Workshop Manager
 export default async function SerialLookupPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ q?: string }> }) {
     const [{ tenant: slug }, sp] = await Promise.all([params, searchParams]);
     const { db, tenant, membership } = await requireTenant(slug);
-    if (!can(membership, "documents:see_cost")) notFound();
+    if (!can(membership, "documents:see_cost"))
+        return <AccessDenied tenant={slug} group={membership.group} needs="see cost prices" />;
     const q = sp.q?.trim() ?? "";
     const results = q ? await findSerial(db, q) : [];
     const today = businessToday(tenant.timezone);
