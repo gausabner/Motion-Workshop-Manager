@@ -118,12 +118,11 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
     // column: if a table has `tenantId`, it has the policy — and this fails the
     // build the day that stops being true.
     //
-    // FORCE is deliberately not asserted. It binds the table owner, and on
-    // managed Postgres the application connects as the owner, so forcing it
-    // before the app sets `motion.tenant_id` empties every screen. It is stood
-    // down until activation; the policies themselves are unchanged, and every
-    // test above proves them as `motion_app`, which does not own the tables and
-    // is therefore bound with or without FORCE.
+    // FORCE is asserted again now that the application announces its tenant on
+    // every connection — except on the four tables that answer "which workshop
+    // is this?", which cannot be forced because the query that establishes the
+    // tenant cannot itself be tenant-scoped. Forcing those would mean nobody
+    // could sign in.
     const gaps = await prisma.$queryRaw<{ relname: string; enabled: boolean; forced: boolean; policies: bigint }[]>`
         SELECT c.relname,
                c.relrowsecurity AS enabled,
@@ -136,7 +135,8 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
         JOIN pg_attribute a ON a.attrelid = c.oid
         WHERE n.nspname = 'public' AND c.relkind = 'r'
           AND a.attname = 'tenantId' AND NOT a.attisdropped
-          AND (NOT c.relrowsecurity OR NOT EXISTS (
+          AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink')
+          AND (NOT c.relrowsecurity OR NOT c.relforcerowsecurity OR NOT EXISTS (
                 SELECT 1 FROM pg_policies p WHERE p.schemaname='public'
                   AND p.tablename = c.relname AND p.policyname='tenant_isolation'))
         ORDER BY c.relname`;
@@ -149,5 +149,25 @@ test("the application role cannot simply turn the policies off", async () => {
     await assert.rejects(
         appDb.$executeRawUnsafe(`ALTER TABLE "Customer" DISABLE ROW LEVEL SECURITY`),
         /must be owner|permission denied/i,
+    );
+});
+
+test("the tables that resolve a tenant are exempt, and only those", async () => {
+    // A short list that should stay short. Anything added here is a table the
+    // database stops guarding against the owner, so it wants a reason in
+    // writing rather than a quiet commit.
+    const exempt = await prisma.$queryRaw<{ relname: string }[]>`
+        SELECT c.relname
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_attribute a ON a.attrelid = c.oid
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+          AND a.attname = 'tenantId' AND NOT a.attisdropped
+          AND c.relrowsecurity AND NOT c.relforcerowsecurity
+        ORDER BY c.relname`;
+    assert.deepEqual(
+        exempt.map((e) => e.relname),
+        ["ApiKey", "Invitation", "Membership", "ShareLink"],
+        "the set of tables exempt from FORCE has changed",
     );
 });

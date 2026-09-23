@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import type { Membership, MembershipStatus, UserGroup } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { announceTenant } from "@/lib/tenant-db";
 import type { TenantTx } from "@/lib/tenant-db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { INVITE_DAYS, flagsForGroup, invitableGroups, memberChangeError } from "@/lib/team/rules";
@@ -111,6 +112,9 @@ export async function acceptInvitation(token: string, input: AcceptInput): Promi
             create: { tenantId: invitation.tenantId, userId: user.id, group: invitation.group, ...flags },
             update: { group: invitation.group, status: "ACTIVE", ...flags },
         });
+        // The membership about to be created is what would normally establish
+        // the tenant, so it has to be named explicitly here.
+        await announceTenant(tx, invitation.tenantId);
         await tx.invitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
         await tx.auditEvent.create({
             data: { tenantId: invitation.tenantId, actorUserId: user.id, entityType: "Invitation", entityId: invitation.id, action: "ACCEPTED" },

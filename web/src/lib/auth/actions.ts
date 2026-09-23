@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession, defaultTenantSlug, requireUser } from "@/lib/auth/session";
 import { createTenantDefaults } from "@/lib/tenant/defaults";
+import { announceTenant } from "@/lib/tenant-db";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { slugify } from "@/lib/slug";
 import { COUNTRIES, countryDefaults } from "@/lib/tenant/country";
@@ -93,6 +94,11 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
                     taxName: local.taxName, salesTaxRate: local.taxRate, purchaseTaxRate: local.taxRate,
                 },
             });
+            // Everything below writes tenant-owned rows, and row-level security
+            // has no idea which workshop this is until it is told — there is no
+            // membership yet to establish it, because the membership is one of
+            // the rows being created.
+            await announceTenant(tx, tenant.id);
             await tx.membership.create({
                 data: { tenantId: tenant.id, userId: user.id, group: "OWNER", isServiceAdvisor: true, dashboardPrivileges: true },
             });
