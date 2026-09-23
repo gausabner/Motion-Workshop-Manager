@@ -10,7 +10,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
     const { token } = await params;
     const invitation = await findInvitation(token);
     return (
-        <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+        <main className="min-h-svh bg-slate-100 flex items-center justify-center p-6">
             <div className="w-full max-w-sm bg-white border border-slate-200 rounded-lg shadow-sm p-8">
                 <MotionLogo className="h-7 w-auto text-slate-800 mb-6" />
                 {invitation ? (

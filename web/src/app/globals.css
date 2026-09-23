@@ -47,6 +47,83 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ── The phone platform layer ──────────────────────────────────────────────
+   Each rule here removes one specific tell that this is a website rather than
+   an app. They are cheap, but none is cosmetic — every one has a cause.
+
+   Most cannot be verified in a desktop browser at a phone size: sticky hover,
+   the tap flash, input zoom, overscroll and the URL bar's effect on height are
+   real-hardware behaviours. They are written from the cause, and confirmed on
+   a phone.                                                                  */
+
+html {
+  /* iOS and Android paint a grey box over anything tapped that has a click
+     handler. It is the loudest "this is a web page" signal there is, and it
+     fights whatever press feedback the design already has. */
+  -webkit-tap-highlight-color: transparent;
+
+  /* Stops the text inflation Safari applies when a phone is turned sideways,
+     which silently breaks every carefully set line length. */
+  -webkit-text-size-adjust: 100%;
+
+  /* Without this, dragging down at the top of any screen triggers Android's
+     pull-to-refresh and iOS's whole-page rubber band. Correct on a document;
+     wrong in an app with its own scrolling panes — a job list that bounces the
+     page behind it feels broken. */
+  overscroll-behavior: none;
+}
+
+/* iOS zooms the page in when focus lands on an input whose text is under 16px,
+   and it does not zoom back out afterwards — the counter is left looking at a
+   cropped, drifted screen. The cause is the font size, so that is what is
+   fixed; disabling zoom instead would break the app for anyone who needs to
+   magnify it. Scoped to coarse pointers so desktop keeps its own scale. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* `manipulation` tells the browser this element will never be double-tapped to
+   zoom, so it stops waiting ~300ms to find out and fires the tap immediately.
+   On a phone that delay reads as the app being slow. */
+button,
+a,
+[role="button"],
+summary {
+  touch-action: manipulation;
+}
+
+/* A long press on a web button selects its label or raises the copy callout;
+   native controls never do. Controls only — body text, amounts, plate numbers
+   and error messages must stay selectable, because people copy them. */
+button,
+[role="button"],
+[role="tab"] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A native button answers the instant a finger lands. A web button that only
+   changes on click answers when the finger lifts, which reads as lag even at
+   zero latency. Touch devices only: a mouse already has hover for this. */
+@media (hover: none) {
+  button:active,
+  [role="button"]:active {
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active,
+  [role="button"]:active {
+    transform: none;
+  }
+}
+
 /* Money is the product: every screen here is somebody's books, and a column
    of figures that does not line up is a defect rather than a preference.
    Applying this to table cells rather than to a class means a new screen

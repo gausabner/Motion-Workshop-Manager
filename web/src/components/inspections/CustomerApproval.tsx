@@ -64,7 +64,7 @@ export function CustomerApproval({ token, workshop, vehicle, findings: initial, 
     }
 
     return (
-        <main className="min-h-screen bg-slate-100 pb-28">
+        <main className="min-h-svh bg-slate-100 pb-28">
             <header className="bg-slate-900 px-4 py-5 text-white">
                 <div className="mx-auto max-w-lg">
                     <p className="text-xs uppercase tracking-wider text-slate-400">{workshop.name}</p>
