@@ -18,6 +18,8 @@ enum UserGroup {
   ADMIN
   /// Runs the floor: assigns mechanics, moves jobs along, watches labour.
   FOREMAN
+  /// Owns parts and stock: products, pricing, suppliers, purchase orders.
+  PARTS_MANAGER
   SERVICE_ADVISOR
   MECHANIC
   INVOICE_PAY
@@ -407,6 +409,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  /// Set when an owner or admin creates the account or resets the password.
+  /// Until it is cleared the only screen this user may open is the one that
+  /// changes it — otherwise the person who set the password can go on signing
+  /// in as them, and every action in the audit trail becomes deniable.
+  mustChangePassword Boolean @default(false)
+
   memberships     Membership[]
   sessions        Session[]
   invitationsSent Invitation[] @relation("InvitedBy")
@@ -417,6 +425,12 @@ model User {
 /// point here, never at User, so a user can belong to several workshops.
 model Membership {
   id                  String           @id @default(cuid())
+  /// Permissions granted to this person on top of their role, decided by an
+  /// owner or admin. A workshop where the foreman covers the counter at lunch
+  /// grants them payments here rather than making them an Admin — which would
+  /// also hand over settings, the team and voiding.
+  extraPermissions String[] @default([])
+
   tenantId            String
   userId              String
   group               UserGroup        @default(SERVICE_ADVISOR)

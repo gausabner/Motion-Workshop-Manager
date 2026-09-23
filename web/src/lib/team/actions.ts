@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
-import { assertCan, GROUP_LABELS, ALL_GROUPS } from "@/lib/auth/permissions";
+import { assertCan, GROUP_LABELS, ALL_GROUPS, GRANTABLE } from "@/lib/auth/permissions";
 import { requestOrigin } from "@/lib/http/origin";
 import { toInternational } from "@/lib/messaging/phone";
 import { MailtoDriver, WhatsAppLinkDriver } from "@/lib/messaging/drivers";
@@ -58,6 +58,7 @@ export async function revokeInvitationAction(slug: string, invitationId: string)
 }
 
 const memberSchema = z.object({
+    extraPermissions: z.array(z.enum(GRANTABLE.map((g) => g.permission) as [string, ...string[]])).default([]),
     group: z.enum(ALL_GROUPS),
     status: z.enum(["ACTIVE", "INACTIVE"]),
     isMechanic: z.boolean(),

@@ -7,6 +7,7 @@ import { CustomerForm } from "@/components/customers/CustomerForm";
 import { ArchiveCustomerButton } from "@/components/customers/ArchiveCustomerButton";
 import { AccountSummary } from "@/components/payments/AccountSummary";
 import { requireTenant } from "@/lib/auth/session";
+import { redactContact } from "@/lib/auth/redact";
 import { can } from "@/lib/auth/permissions";
 import { getCustomer, listCustomerSources } from "@/lib/customers/queries";
 import { getCustomerAccount } from "@/lib/payments/queries";
@@ -28,6 +29,9 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         }),
     ]);
     if (!customer) notFound();
+    // Same rule as the list: a role without contact visibility never receives
+    // the details, rather than receiving them and being asked not to look.
+    const shown = redactContact(customer, membership);
     const base = `/${slug}/dashboard`;
     const today = new Date();
     const due = (d: Date | null) => d && d < new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -91,7 +95,14 @@ export default async function CustomerPage({ params, searchParams }: { params: P
 
             <MessageLog tenant={slug} timezone={tenant.timezone} rows={messages} />
 
-            <CustomerForm tenant={slug} customer={customer} sources={sources} />
+            {/* Only for people who can actually save it. The form was shown to
+                everyone, including a mechanic whose save the server would
+                refuse — and once contact details are stripped for a role that
+                may not see them, an editable form full of blanks is a way to
+                erase a customer's telephone number by pressing Save. */}
+            {can(membership, "customers:write") && (
+                <CustomerForm tenant={slug} customer={shown} sources={sources} />
+            )}
         </div>
     );
 }

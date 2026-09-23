@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { createSession, destroySession, defaultTenantSlug } from "@/lib/auth/session";
+import { createSession, destroySession, defaultTenantSlug, requireUser } from "@/lib/auth/session";
 import { createTenantDefaults } from "@/lib/tenant/defaults";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { slugify } from "@/lib/slug";
@@ -116,4 +116,55 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 export async function logoutAction(): Promise<void> {
     await destroySession();
     redirect("/login");
+}
+
+// ───────────────────────── changing your own password ─────────────────────────
+
+const changePasswordSchema = z
+    .object({
+        current: z.string().min(1, "Enter your current password"),
+        password: z.string().min(8, "Use at least 8 characters"),
+        confirm: z.string(),
+    })
+    .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match" });
+
+/**
+ * Change your own password, and clear the flag that forces it.
+ *
+ * The current password is required even when MOTION is the one insisting on
+ * the change. The commonest way this screen is reached is an owner handing
+ * over a first password in person, and asking for it back is what stops the
+ * next person at a shared counter machine — where somebody is often still
+ * signed in — from setting a password on an account that is not theirs.
+ *
+ * Every other session is ended. If the reason for the change is that somebody
+ * else knew the password, leaving their session alive would make the whole
+ * exercise decorative.
+ */
+export async function changePasswordAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const parsed = changePasswordSchema.safeParse({
+        current: str(formData, "current"),
+        password: str(formData, "password"),
+        confirm: str(formData, "confirm"),
+    });
+    if (!parsed.success) return fromZod(parsed.error);
+
+    const row = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
+    if (!row || !(await verifyPassword(parsed.data.current, row.passwordHash))) {
+        return { ok: false, message: "That is not your current password." };
+    }
+    if (await verifyPassword(parsed.data.password, row.passwordHash)) {
+        return { ok: false, message: "Choose a password you have not used here before." };
+    }
+
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: user.id },
+            data: { passwordHash: await hashPassword(parsed.data.password), mustChangePassword: false },
+        });
+        await tx.session.deleteMany({ where: { userId: user.id } });
+    });
+
+    redirect(`/login?changed=1&next=${encodeURIComponent(`/${slug}/dashboard`)}`);
 }

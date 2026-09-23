@@ -7,6 +7,7 @@ export async function listTeam(db: TenantDb) {
             orderBy: [{ status: "asc" }, { createdAt: "asc" }],
             select: {
                 id: true, group: true, status: true, isMechanic: true, showOnDiary: true, isServiceAdvisor: true,
+                extraPermissions: true,
                 user: { select: { firstName: true, lastName: true, email: true, mobile: true } },
             },
         }),
