@@ -37,7 +37,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 overflow-auto bg-white">
-                    <Table>
+                    <Table data-mobile="cards">
                         <TableHeader>
                             <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                 <TableHead className="pl-4 text-slate-500 font-semibold">Plate</TableHead>
@@ -57,11 +57,11 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                             )}
                             {data.rows.map((v, i) => (
                                 <TableRow key={v.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none text-sm`}>
-                                    <TableCell className="pl-4 py-2"><Link href={`${base}/vehicles/${v.id}`} className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded">{v.plate}</Link></TableCell>
-                                    <TableCell className="py-2 text-slate-700">{v.year ? `${v.year} ` : ""}{v.make} {v.model}</TableCell>
-                                    <TableCell className="py-2 text-slate-600">{v.customer ? <Link href={`${base}/customers/${v.customer.id}`} className="hover:text-teal-700">{v.customer.firstName} {v.customer.lastName}</Link> : <span className="text-slate-400">—</span>}</TableCell>
-                                    <TableCell className="py-2 text-right tabular-nums text-slate-600">{v.odometer?.toLocaleString("en-NA") ?? ""}</TableCell>
-                                    <TableCell className={`py-2 tabular-nums ${flag(v.licenceExpiry)}`}>{dateShort(v.licenceExpiry)}</TableCell>
+                                    <TableCell data-mobile="primary" className="pl-4 py-2"><Link href={`${base}/vehicles/${v.id}`} className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded">{v.plate}</Link></TableCell>
+                                    <TableCell data-label="Vehicle" className="py-2 text-slate-700">{v.year ? `${v.year} ` : ""}{v.make} {v.model}</TableCell>
+                                    <TableCell data-label="Customer" className="py-2 text-slate-600">{v.customer ? <Link href={`${base}/customers/${v.customer.id}`} className="hover:text-teal-700">{v.customer.firstName} {v.customer.lastName}</Link> : <span className="text-slate-400">—</span>}</TableCell>
+                                    <TableCell data-label="Odometer" className="py-2 text-right tabular-nums text-slate-600">{v.odometer?.toLocaleString("en-NA") ?? ""}</TableCell>
+                                    <TableCell data-label="Licence disc" className={`py-2 tabular-nums ${flag(v.licenceExpiry)}`}>{dateShort(v.licenceExpiry)}</TableCell>
                                     <TableCell className={`py-2 tabular-nums ${flag(v.roadworthyExpiry)}`}>{dateShort(v.roadworthyExpiry)}</TableCell>
                                     <TableCell className="py-2 pr-4 text-right"><Link href={`${base}/vehicles/${v.id}`} className="inline-flex items-center justify-center w-8 h-7 rounded-sm border border-teal-500 text-teal-600 bg-white hover:bg-teal-50 shadow-sm" title="Edit"><Pencil className="w-4 h-4" /></Link></TableCell>
                                 </TableRow>

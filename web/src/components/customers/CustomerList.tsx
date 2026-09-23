@@ -26,12 +26,16 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
             <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
+                {/* A single non-wrapping row of title, filters, search and Add is
+                    574px wide — it clipped inside a 341px card on a phone, taking
+                    the search field and the Add button off-screen with it. It
+                    wraps to two rows below `sm` and keeps its fixed height above. */}
+                <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex items-center gap-3">
                         <Users className="w-5 h-5 text-slate-600" />
                         <CardTitle className="text-lg text-slate-800 font-bold">Customers</CardTitle>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <CustomerListControls q={q} archived={archived} />
                         <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add customer">
                             <Link href={`${base}/new`}><Plus className="w-5 h-5" /></Link>
@@ -40,7 +44,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                 </CardHeader>
 
                 <CardContent className="p-0 flex-1 overflow-auto bg-white">
-                    <Table>
+                    <Table data-mobile="cards">
                         <TableHeader>
                             <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                 <TableHead className="w-[30%] text-slate-500 font-semibold pl-4">Customer</TableHead>
@@ -60,19 +64,27 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                                 const wa = whatsappLink(c.mobile);
                                 return (
                                     <TableRow key={c.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none transition-colors group`}>
-                                        <TableCell className="text-slate-700 py-2 pl-4 text-sm font-medium">
+                                        <TableCell data-mobile="primary" className="text-slate-700 py-2 pl-4 text-sm font-medium">
                                             <Link href={`${base}/${c.id}`} className="hover:text-teal-700">{c.firstName} {c.lastName}</Link>
                                             {c.isBusiness && <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-400 border border-slate-300 rounded px-1">Business</span>}
                                         </TableCell>
-                                        <TableCell className="text-slate-600 py-2 text-sm tabular-nums">{c.mobile}</TableCell>
-                                        <TableCell className="text-slate-600 py-2 text-sm tabular-nums">{c.phone}</TableCell>
-                                        <TableCell className="text-slate-600 py-2 text-sm text-center tabular-nums">{c._count.vehicles || ""}</TableCell>
+                                        <TableCell data-label="Mobile" className="text-slate-600 py-2 text-sm tabular-nums">{c.mobile}</TableCell>
+                                        <TableCell data-label="Phone" className="text-slate-600 py-2 text-sm tabular-nums">{c.phone}</TableCell>
+                                        <TableCell data-label="Vehicles" className="text-slate-600 py-2 text-sm text-center tabular-nums">{c._count.vehicles || ""}</TableCell>
                                         <TableCell className="text-right py-2 pr-4">
-                                            <div className="flex justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                                <Link href={`${base}/${c.id}`} className={teal} title="Edit"><Pencil className="w-4 h-4" /></Link>
-                                                <Link href={`${base}/${c.id}#vehicles`} className={teal} title="Vehicles"><Car className="w-4 h-4" /></Link>
-                                                <span className={disabled} title="Booking — coming with the diary"><Calendar className="w-4 h-4" /></span>
-                                                <span className={disabled} title="Invoice — coming with documents"><FileText className="w-4 h-4" /></span>
+                                            <div className="flex justify-start gap-3 pt-2 opacity-80 transition-opacity group-hover:opacity-100 sm:justify-end sm:gap-1 sm:pt-0">
+                                                {/* Grouped rather than hidden one by one: `iconBtn` already sets
+                                                    `inline-flex`, so a `hidden` on the same element is two display
+                                                    utilities fighting and stylesheet order decides the winner, not
+                                                    class order. A wrapper with no competing display class settles it.
+                                                    Edit is reachable by tapping the name; booking and invoice are
+                                                    counter work, not something done at a car. */}
+                                                <span className="hidden gap-1 sm:flex">
+                                                    <Link href={`${base}/${c.id}`} className={teal} title="Edit"><Pencil className="w-4 h-4" /></Link>
+                                                    <Link href={`${base}/${c.id}#vehicles`} className={teal} title="Vehicles"><Car className="w-4 h-4" /></Link>
+                                                    <span className={disabled} title="Booking — coming with the diary"><Calendar className="w-4 h-4" /></span>
+                                                    <span className={disabled} title="Invoice — coming with documents"><FileText className="w-4 h-4" /></span>
+                                                </span>
                                                 {wa ? <a href={wa} target="_blank" rel="noreferrer" className={amber} title="WhatsApp"><MessageCircle className="w-4 h-4" /></a> : <span className={disabled} title="No mobile number"><MessageCircle className="w-4 h-4" /></span>}
                                                 {c.email ? <a href={`mailto:${c.email}`} className={amber} title="Email"><Mail className="w-4 h-4" /></a> : <span className={disabled} title="No email address"><Mail className="w-4 h-4" /></span>}
                                             </div>

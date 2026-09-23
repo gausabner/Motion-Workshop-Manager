@@ -47,6 +47,86 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ── Tables that become lists on a phone ───────────────────────────────────
+   A table is a grid of columns compared across rows, and a phone has room for
+   one column. The customers table rendered 741px wide inside a 375px screen:
+   every field but the name was off-screen, reachable only by scrolling
+   sideways inside a narrow strip, and the names themselves clipped mid-word.
+
+   Below the tablet breakpoint a table marked `data-mobile="cards"` stops being
+   a table and becomes a stack of cards — one card per record, the identifying
+   field leading, supporting fields labelled beneath it, and the columns that
+   only make sense in a comparison hidden entirely. That is the shape research
+   on mobile tables keeps arriving at, and it is why the alternative — pinching
+   and scrolling a grid — reads as broken rather than dense.
+
+   Driven by data attributes rather than a component rewrite, because `Table`
+   and `TableCell` already pass unknown props to the DOM. A screen opts in by
+   marking the table, then says what each cell is:
+
+     data-mobile="primary"    the line that identifies the record
+     data-mobile="hide"       desktop-only: ranks, spacers, row actions
+     data-label="Mobile"      prefix shown before the value on a phone
+
+   An unmarked cell still shows, labelled or not, so a table that has not been
+   annotated yet degrades to a readable stack rather than disappearing.       */
+
+@media (max-width: 767px) {
+  table[data-mobile="cards"],
+  table[data-mobile="cards"] tbody,
+  table[data-mobile="cards"] tr,
+  table[data-mobile="cards"] td {
+    display: block;
+    width: 100%;
+  }
+
+  /* The header row names columns that no longer exist side by side. Each cell
+     carries its own label instead. */
+  table[data-mobile="cards"] thead {
+    display: none;
+  }
+
+  table[data-mobile="cards"] tr {
+    margin-bottom: 8px;
+    border: 1px solid var(--color-slate-200, #e2e8f0);
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px 12px;
+  }
+
+  table[data-mobile="cards"] td {
+    border: none;
+    padding: 1px 0;
+    text-align: left;
+    /* Desktop keeps figures on one line; here a long value must wrap rather
+       than push the card sideways. */
+    white-space: normal;
+  }
+
+  table[data-mobile="cards"] td[data-mobile="hide"] {
+    display: none;
+  }
+
+  table[data-mobile="cards"] td[data-mobile="primary"] {
+    font-size: 15px;
+    font-weight: 600;
+    padding-bottom: 3px;
+  }
+
+  /* The label sits inline before the value: on one line it reads as a
+     sentence, and it costs no vertical space in a card that may hold four of
+     these. Empty cells are left unlabelled rather than printing a label with
+     nothing after it. */
+  table[data-mobile="cards"] td[data-label]:not(:empty)::before {
+    content: attr(data-label) " ";
+    color: var(--color-slate-500, #64748b);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
 /* ── The phone platform layer ──────────────────────────────────────────────
    Each rule here removes one specific tell that this is a website rather than
    an app. They are cheap, but none is cosmetic — every one has a cause.
