@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
+import { Camera, Check, ChevronLeft, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { addApproved, decideForCustomer, finaliseInspection, removeFindingPhoto, reopenInspection, saveInspectionItems, sendForApproval, uploadFindingPhoto } from "@/lib/inspections/actions";
@@ -91,7 +91,15 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
     const answered = (i: Item) => (i.approvedAt ? "approved" : i.declinedAt ? "declined" : null);
 
     return (
-        <div className="space-y-4 pb-24">
+        <div className="space-y-4 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] md:pb-24">
+            <Link
+                href={inspection.document ? `/${tenant}/dashboard/documents/${inspection.document.id}` : `/${tenant}/dashboard/jobs`}
+                className="-ml-1 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-teal-700"
+            >
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                {inspection.document ? `Back to job ${inspection.document.number ?? inspection.document.jobNumber ?? ""}`.trim() : "Back to jobs"}
+            </Link>
+
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-slate-800">
@@ -198,8 +206,11 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                 </section>
             ))}
 
-            {/* The actions live in a bar that stays under the thumb. */}
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+            {/* The actions live in a bar that stays under the thumb — and, on a
+                phone, above the tab bar rather than behind it. At z-20 under a
+                z-40 tab bar this was simply invisible, which is why an inspection
+                appeared to have no save state and no way to send it. */}
+            <div className="above-tab-bar fixed inset-x-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
                 <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-2">
                     <span className="mr-auto text-xs text-slate-500">
                         {saving === "saving" ? <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span> : saving === "saved" ? "All changes saved" : saving === "error" ? <span className="text-red-600">Not saved</span> : null}

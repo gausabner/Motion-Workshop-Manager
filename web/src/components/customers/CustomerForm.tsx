@@ -35,7 +35,7 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
     }
 
     return (
-        <form ref={formRef} action={formAction} className="space-y-4 max-w-7xl mx-auto pb-12">
+        <form ref={formRef} action={formAction} style={{ paddingBottom: "calc(calc(57px + env(safe-area-inset-bottom, 0px)) + 5rem)" }} className="mx-auto max-w-7xl space-y-4 sm:!pb-12">
             <div className="flex items-center justify-between">
                 <p className="text-sm text-slate-500">{c ? "Edit customer" : "New customer"}</p>
                 {/* The message stays outside the block that hides on a phone. It
@@ -115,12 +115,19 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
             </Section>
 
             {/* On a phone the buttons above scroll away the moment someone starts
-                filling the form, and Save is the one control they will want at
-                the end rather than the beginning. This bar sticks above the tab
-                bar — offset by its height plus the home indicator, or it would
-                sit underneath it — and disappears on desktop, where the header
-                buttons are already in view. */}
-            <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-4 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:hidden">
+                filling the form, and Save is the one control they want at the end
+                rather than the beginning.
+
+                Fixed rather than sticky, and offset by exactly the tab bar's
+                height. Sticky was wrong: inside a scroll container that carries
+                its own bottom padding it anchors to the padded edge, not to the
+                bar, which left a 67px strip of scrolling page showing between the
+                two. Fixed positions against the viewport, so the two bars meet. */}
+            <div
+                /* 57px is MobileNav: a 56px touch target (h-14) plus its 1px top border. */
+                style={{ bottom: "calc(57px + env(safe-area-inset-bottom, 0px))" }}
+                className="fixed inset-x-0 z-30 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(15,23,42,.06)] sm:hidden"
+            >
                 <Button asChild variant="outline" className="h-12 flex-1"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
                 <Button type="submit" className="h-12 flex-[2] bg-teal-600 hover:bg-teal-700" disabled={pending}>
                     <Save className="mr-1 h-4 w-4" /> {pending ? "Saving…" : "Save"}
