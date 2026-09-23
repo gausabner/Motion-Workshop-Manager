@@ -8,6 +8,7 @@ import { assertCan } from "@/lib/auth/permissions";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { saveDocumentSchema } from "@/lib/documents/schema";
 import { allocateNumber } from "@/lib/documents/numbering";
+import { existingConversion } from "@/lib/documents/convert";
 import { businessToday } from "@/lib/tenant/today";
 import { parseLocalDateTime } from "@/lib/diary/time";
 import { promptErrors, promptFor, type PromptInput } from "@/lib/documents/process-prompt";
@@ -327,6 +328,16 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
     if (!source) throw new Error("Document not found");
 
     const created = await db.$transaction(async (tx) => {
+        // A conversion links back to its source; a copy deliberately does not,
+        // so only the linked case is guarded — copying twice on purpose is a
+        // thing people do.
+        if (opts.link) {
+            const already = await existingConversion(tx, source.id, toType);
+            // Not an error. Whoever asked for a job card gets the job card;
+            // they simply get the one that already exists rather than a second
+            // one wearing the same number.
+            if (already) return { id: already };
+        }
         const jobNumber = JOB_LIKE.has(toType) ? (source.jobNumber ?? (await allocateNumber(tx, tenant.id, "JOB"))) : source.jobNumber;
         const doc = await tx.document.create({
             data: {
