@@ -38,7 +38,7 @@ BEGIN
           --
           -- Every table holding a workshop's actual work — customers,
           -- documents, payments, stock, all fifty of them — is forced.
-          AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink', 'Session')
+          AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink', 'Session', 'PasswordReset')
         ORDER BY c.relname
     LOOP
         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);

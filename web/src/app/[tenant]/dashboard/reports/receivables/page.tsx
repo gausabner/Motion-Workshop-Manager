@@ -35,7 +35,7 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
-                        <Table>
+                        <Table data-mobile="cards">
                             <TableHeader>
                                 <TableRow className="bg-white hover:bg-white text-xs border-b border-slate-200">
                                     <TableHead className="pl-4 text-slate-500 font-semibold">Customer</TableHead>
@@ -55,16 +55,21 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                                     const wa = whatsappLink(r.mobile);
                                     return (
                                         <TableRow key={r.customerId} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none text-sm`}>
-                                            <TableCell className="pl-4 py-2 font-medium">
+                                            <TableCell data-mobile="primary" className="pl-4 py-2 font-medium">
                                                 <Link href={`${base}/customers/${r.customerId}`} className="text-slate-700 hover:text-teal-700">{r.name}</Link>
                                             </TableCell>
-                                            <TableCell className="py-2 tabular-nums text-slate-500 whitespace-nowrap">{r.oldestDue ? dateShort(r.oldestDue) : ""}</TableCell>
+                                            <TableCell data-label="Oldest due" className="py-2 tabular-nums text-slate-500 whitespace-nowrap">{r.oldestDue ? dateShort(r.oldestDue) : ""}</TableCell>
                                             {AGEING_BUCKETS.map((bucket) => (
-                                                <TableCell key={bucket} className={`py-2 text-right tabular-nums ${bucket === "d90" && r.ageing[bucket] > 0 ? "text-red-700 font-medium" : "text-slate-600"}`}>
+                                                <TableCell
+                                                    key={bucket}
+                                                    data-mobile={bucket === "d90" ? undefined : "hide"}
+                                                    data-label={bucket === "d90" ? AGEING_LABELS[bucket] : undefined}
+                                                    className={`py-2 text-right tabular-nums ${bucket === "d90" && r.ageing[bucket] > 0 ? "text-red-700 font-medium" : "text-slate-600"}`}
+                                                >
                                                     {r.ageing[bucket] === 0 ? <span className="text-slate-300">—</span> : money(r.ageing[bucket])}
                                                 </TableCell>
                                             ))}
-                                            <TableCell className={`py-2 text-right tabular-nums font-semibold ${r.ageing.total < 0 ? "text-teal-700" : "text-slate-800"}`}>{money(r.ageing.total)}</TableCell>
+                                            <TableCell data-label="Owing" className={`py-2 text-right tabular-nums font-semibold ${r.ageing.total < 0 ? "text-teal-700" : "text-slate-800"}`}>{money(r.ageing.total)}</TableCell>
                                             <TableCell className="pr-4 py-2 text-right whitespace-nowrap">
                                                 <Link href={`${base}/customers/${r.customerId}/statement`} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700" title="Statement">
                                                     <FileText className="w-3.5 h-3.5" />

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { test as base, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { announceTenant } from "@/lib/tenant-db";
 
 /**
  * A workshop of its own for each test.
@@ -59,42 +60,59 @@ async function createWorkshop(): Promise<Workshop> {
         },
         select: { id: true },
     });
-    await prisma.membership.create({
-        data: { tenantId: tenant.id, userId: user.id, group: "OWNER", isServiceAdvisor: true, dashboardPrivileges: true },
-    });
 
-    // The numbering a workshop would have been given when it signed up.
-    await prisma.sequence.createMany({
-        data: [
-            { tenantId: tenant.id, key: "QUOTE", prefix: "Q-", next: 1001 },
-            { tenantId: tenant.id, key: "JOB", prefix: "JC-", next: 1001 },
-            { tenantId: tenant.id, key: "INVOICE", prefix: "INV-", next: 1001 },
-            { tenantId: tenant.id, key: "CREDIT", prefix: "CR-", next: 1001 },
-            { tenantId: tenant.id, key: "RECEIPT", prefix: "RC-", next: 1001 },
-        ],
-    });
-    await prisma.paymentMethod.create({ data: { tenantId: tenant.id, name: "Cash", code: "CASH", sortOrder: 1 } });
+    /**
+     * Everything from here is tenant-owned, and row-level security is live —
+     * these tests run against the same restricted role the application uses, so
+     * a fixture that could not build a workshop would be telling us something
+     * real about registration rather than something inconvenient about testing.
+     *
+     * One transaction that names the tenant first, exactly as registering a
+     * workshop does. Reaching for an administrative connection here would have
+     * quietly excused the tests from the rules the application lives under.
+     */
+    const seeded = await prisma.$transaction(async (tx) => {
+        await announceTenant(tx, tenant.id);
 
-    const customer = await prisma.customer.create({
-        data: { tenantId: tenant.id, firstName: "Anna", lastName: "Shilongo", mobile: "+264815556677", email: "anna@example.invalid" },
-        select: { id: true },
+        await tx.membership.create({
+            data: { tenantId: tenant.id, userId: user.id, group: "OWNER", isServiceAdvisor: true, dashboardPrivileges: true },
+        });
+
+        // The numbering a workshop would have been given when it signed up.
+        await tx.sequence.createMany({
+            data: [
+                { tenantId: tenant.id, key: "QUOTE", prefix: "Q-", next: 1001 },
+                { tenantId: tenant.id, key: "JOB", prefix: "JC-", next: 1001 },
+                { tenantId: tenant.id, key: "INVOICE", prefix: "INV-", next: 1001 },
+                { tenantId: tenant.id, key: "CREDIT", prefix: "CR-", next: 1001 },
+                { tenantId: tenant.id, key: "RECEIPT", prefix: "RC-", next: 1001 },
+            ],
+        });
+        await tx.paymentMethod.create({ data: { tenantId: tenant.id, name: "Cash", code: "CASH", sortOrder: 1 } });
+
+        const customer = await tx.customer.create({
+            data: { tenantId: tenant.id, firstName: "Anna", lastName: "Shilongo", mobile: "+264815556677", email: "anna@example.invalid" },
+            select: { id: true },
+        });
+        const vehicle = await tx.vehicle.create({
+            data: { tenantId: tenant.id, customerId: customer.id, plate: `N ${id.slice(0, 4).toUpperCase()} W`, make: "Toyota", model: "Hilux 2.8 GD-6", year: 2021, odometer: 88_000 },
+            select: { id: true, plate: true },
+        });
+        const product = await tx.product.create({
+            data: {
+                tenantId: tenant.id,
+                itemCode: "LAB-1",
+                description: "Workshop labour",
+                type: "LABOUR",
+                isService: true,
+                retailPrice: "650.00",
+                costExTax: "0.00",
+            },
+            select: { id: true, itemCode: true, description: true },
+        });
+        return { customer, vehicle, product };
     });
-    const vehicle = await prisma.vehicle.create({
-        data: { tenantId: tenant.id, customerId: customer.id, plate: `N ${id.slice(0, 4).toUpperCase()} W`, make: "Toyota", model: "Hilux 2.8 GD-6", year: 2021, odometer: 88_000 },
-        select: { id: true, plate: true },
-    });
-    const product = await prisma.product.create({
-        data: {
-            tenantId: tenant.id,
-            itemCode: "LAB-1",
-            description: "Workshop labour",
-            type: "LABOUR",
-            isService: true,
-            retailPrice: "650.00",
-            costExTax: "0.00",
-        },
-        select: { id: true, itemCode: true, description: true },
-    });
+    const { customer, vehicle, product } = seeded;
 
     return {
         slug,
@@ -109,28 +127,41 @@ async function createWorkshop(): Promise<Workshop> {
 }
 
 /** Children first: the schema keeps real foreign keys, so a workshop comes apart in order. */
+/**
+ * Take the workshop away again.
+ *
+ * In one transaction that names the tenant, for a reason worth knowing: under
+ * row-level security an unscoped `deleteMany` does not fail, it matches nothing
+ * and reports success. The first version of this left every row in place and
+ * only gave itself away three statements later, when deleting the tenant hit a
+ * foreign key. Anything that deletes by tenant has to say which tenant.
+ */
 async function removeWorkshop(tenantId: string, email: string): Promise<void> {
-    const where = { tenantId };
-    await prisma.paymentAllocation.deleteMany({ where });
-    await prisma.paymentTender.deleteMany({ where });
-    await prisma.payment.deleteMany({ where });
-    await prisma.message.deleteMany({ where });
-    await prisma.shareLink.deleteMany({ where });
-    await prisma.stockMovement.deleteMany({ where });
-    await prisma.timeEntry.deleteMany({ where });
-    await prisma.documentStatusEvent.deleteMany({ where });
-    await prisma.documentLine.deleteMany({ where });
-    await prisma.document.deleteMany({ where });
-    await prisma.vehicle.deleteMany({ where });
-    await prisma.customer.deleteMany({ where });
-    await prisma.product.deleteMany({ where });
-    await prisma.paymentMethod.deleteMany({ where });
-    await prisma.sequence.deleteMany({ where });
-    await prisma.template.deleteMany({ where });
-    await prisma.auditEvent.deleteMany({ where });
-    await prisma.session.deleteMany({ where: { tenantId } });
-    await prisma.membership.deleteMany({ where });
-    await prisma.tenant.delete({ where: { id: tenantId } });
+    await prisma.$transaction(async (tx) => {
+        await announceTenant(tx, tenantId);
+        const where = { tenantId };
+        await tx.paymentAllocation.deleteMany({ where });
+        await tx.paymentTender.deleteMany({ where });
+        await tx.payment.deleteMany({ where });
+        await tx.message.deleteMany({ where });
+        await tx.shareLink.deleteMany({ where });
+        await tx.stockMovement.deleteMany({ where });
+        await tx.timeEntry.deleteMany({ where });
+        await tx.documentStatusEvent.deleteMany({ where });
+        await tx.documentLine.deleteMany({ where });
+        await tx.document.deleteMany({ where });
+        await tx.vehicle.deleteMany({ where });
+        await tx.customer.deleteMany({ where });
+        await tx.product.deleteMany({ where });
+        await tx.paymentMethod.deleteMany({ where });
+        await tx.sequence.deleteMany({ where });
+        await tx.template.deleteMany({ where });
+        await tx.passwordReset.deleteMany({ where });
+        await tx.auditEvent.deleteMany({ where });
+        await tx.session.deleteMany({ where });
+        await tx.membership.deleteMany({ where });
+        await tx.tenant.delete({ where: { id: tenantId } });
+    });
     await prisma.user.deleteMany({ where: { email } });
 }
 
@@ -198,14 +229,21 @@ export async function raiseAndProcessInvoice(page: Page, workshop: Workshop, amo
  * does.
  */
 export async function bookEntry(tenantId: string, number: string): Promise<{ state: string; total: string; paid: string }> {
-    const document = await prisma.document.findFirstOrThrow({
-        where: { tenantId, number },
-        select: {
-            state: true,
-            total: true,
-            allocations: { where: { payment: { state: "PROCESSED" } }, select: { amount: true } },
-        },
+    // Announced, like every other read of tenant-owned rows. Without it
+    // row-level security returns nothing and this reports "no such invoice"
+    // for an invoice that is sitting right there — which reads as the money
+    // path being broken rather than the query being unscoped.
+    return prisma.$transaction(async (tx) => {
+        await announceTenant(tx, tenantId);
+        const document = await tx.document.findFirstOrThrow({
+            where: { tenantId, number },
+            select: {
+                state: true,
+                total: true,
+                allocations: { where: { payment: { state: "PROCESSED" } }, select: { amount: true } },
+            },
+        });
+        const paid = document.allocations.reduce((sum, a) => sum + Number(a.amount), 0);
+        return { state: document.state, total: Number(document.total).toFixed(2), paid: paid.toFixed(2) };
     });
-    const paid = document.allocations.reduce((sum, a) => sum + Number(a.amount), 0);
-    return { state: document.state, total: Number(document.total).toFixed(2), paid: paid.toFixed(2) };
 }

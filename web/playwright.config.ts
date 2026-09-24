@@ -32,7 +32,21 @@ export default defineConfig({
         screenshot: "only-on-failure",
         video: "off",
     },
-    projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+    projects: [
+        { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+        // A phone, because this application is used on one and the whole mobile
+        // layout was built after a real device showed it did not work. Every
+        // defect in that round was found by looking at a narrow screen; nothing
+        // in the desktop suite could have caught a single one of them.
+        //
+        // Chromium rather than the iPhone profile, which needs WebKit: this
+        // checks whether the page fits and the navigation is reachable, which
+        // is a layout question and identical in both engines. The things that
+        // genuinely differ on iOS — input zoom on focus, safe-area insets,
+        // sticky hover after a tap — cannot be tested in any headless browser
+        // and were confirmed on real hardware instead.
+        { name: "phone", use: { ...devices["Pixel 7"] } },
+    ],
     webServer: {
         // The production build, not the dev server: these tests should fail if
         // something only works with hot reloading in front of it.

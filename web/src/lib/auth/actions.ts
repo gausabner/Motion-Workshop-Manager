@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession, defaultTenantSlug, requireUser } from "@/lib/auth/session";
 import { createTenantDefaults } from "@/lib/tenant/defaults";
+import { consumePasswordReset } from "@/lib/team/recovery";
 import { announceTenant } from "@/lib/tenant-db";
 import { type ActionState, fromZod, str } from "@/lib/forms";
 import { slugify } from "@/lib/slug";
@@ -173,4 +174,32 @@ export async function changePasswordAction(slug: string, _prev: ActionState, for
     });
 
     redirect(`/login?changed=1&next=${encodeURIComponent(`/${slug}/dashboard`)}`);
+}
+
+/**
+ * Spend a reset link and set the password.
+ *
+ * No current password is asked for, because not having it is the entire reason
+ * somebody is here. What stands in its place is the link: single-use, expiring,
+ * stored only as a hash, and retired the moment a newer one is issued.
+ */
+export async function setPasswordFromResetAction(
+    slug: string,
+    token: string,
+    _prev: ActionState,
+    formData: FormData,
+): Promise<ActionState> {
+    const parsed = z
+        .object({
+            password: z.string().min(8, "Use at least 8 characters"),
+            confirm: z.string(),
+        })
+        .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match" })
+        .safeParse({ password: str(formData, "password"), confirm: str(formData, "confirm") });
+    if (!parsed.success) return fromZod(parsed.error);
+
+    const done = await consumePasswordReset(token, parsed.data.password);
+    if (!done) return { ok: false, message: "This link has expired or has already been used. Ask for another." };
+
+    redirect(`/login?changed=1&next=${encodeURIComponent(`/${done.slug}/dashboard`)}`);
 }

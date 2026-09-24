@@ -9,6 +9,8 @@ import { can } from "@/lib/auth/permissions";
 import { getDocument, getEditorOptions } from "@/lib/documents/queries";
 import { deliverySummary, listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
+import { DocumentHistory } from "@/components/documents/DocumentHistory";
+import { listAudit } from "@/lib/audit/queries";
 import { JobTimePanel } from "@/components/time/JobTimePanel";
 import { InspectionsPanel } from "@/components/inspections/InspectionsPanel";
 import { loansForDocument } from "@/lib/loans/service";
@@ -28,6 +30,10 @@ export default async function DocumentPage({ params, searchParams }: { params: P
     ]);
     const loans = await loansForDocument(db, id);
     if (!doc) notFound();
+
+    // Fetched after the document exists, so a bad id 404s rather than reading
+    // an audit trail for something that is not there.
+    const history = can(membership, "reports:view") ? await listAudit(db, "Document", id) : [];
 
     const showCost = can(membership, "documents:see_cost");
     const base = `/${slug}/dashboard`;
@@ -170,6 +176,12 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             )}
 
             <MessageLog tenant={slug} rows={messages} showSubject={false} empty="Nothing sent about this document yet. Use Send to share it on WhatsApp or by email." />
+
+            {/* Shown to people who may see reports, which is the same group
+                trusted with money figures. A mechanic editing a job card does
+                not need to know who else has touched it; an owner settling an
+                argument about an invoice does. */}
+            {can(membership, "reports:view") && <DocumentHistory rows={history} timezone={tenant.timezone} />}
 
             {doc.statusEvents.length > 0 && (
                 <section className="border border-slate-200 rounded-sm bg-white">

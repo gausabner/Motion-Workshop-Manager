@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
+import { invitableGroups } from "@/lib/team/rules";
+import { createMemberDirectly, issuePasswordReset } from "@/lib/team/recovery";
 import { assertCan, GROUP_LABELS, ALL_GROUPS, GRANTABLE } from "@/lib/auth/permissions";
 import { requestOrigin } from "@/lib/http/origin";
 import { toInternational } from "@/lib/messaging/phone";
@@ -78,5 +80,112 @@ export async function updateMemberAction(slug: string, membershipId: string, inp
         return { ok: true };
     } catch (error) {
         return { ok: false, message: error instanceof Error ? error.message : "That change was not saved" };
+    }
+}
+
+// ───────────────────────── password recovery ─────────────────────────
+
+/**
+ * Issue a single-use link that lets somebody set a new password.
+ *
+ * Owners and admins only — `users:manage` is the same permission that governs
+ * adding and removing people, and issuing one of these is the same kind of act.
+ * The link is returned to the caller rather than sent: MOTION has no mail
+ * provider by design, and the person who forgot their password is almost always
+ * standing next to the person who can help.
+ *
+ * Recorded in the audit trail with who issued it. An owner resetting a
+ * bookkeeper's password should leave a mark.
+ */
+export async function issuePasswordResetAction(
+    slug: string,
+    membershipId: string,
+): Promise<{ ok: boolean; message?: string; url?: string; expiresAt?: string; name?: string }> {
+    const { db, tenant, membership, user } = await requireTenant(slug);
+    assertCan(membership, "users:manage");
+    try {
+        const issued = await db.$transaction(async (tx) => {
+            const result = await issuePasswordReset(tx, tenant.id, membership, membershipId);
+            await tx.auditEvent.create({
+                data: {
+                    tenantId: tenant.id,
+                    actorUserId: user.id,
+                    entityType: "Membership",
+                    entityId: membershipId,
+                    action: "PASSWORD_RESET_ISSUED",
+                    diff: { expiresAt: result.expiresAt.toISOString() },
+                },
+            });
+            return result;
+        });
+        revalidatePath(teamPath(slug));
+        return {
+            ok: true,
+            url: `${await requestOrigin()}/${slug}/reset/${issued.token}`,
+            expiresAt: issued.expiresAt.toISOString(),
+            name: issued.name,
+        };
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "That link was not created" };
+    }
+}
+
+/**
+ * Add somebody without an invitation: the owner fills in the details and either
+ * types a first password or takes a link away.
+ *
+ * Not everyone in a workshop has an email address they check, and an apprentice
+ * starting this morning should not wait for one.
+ */
+export async function createMemberAction(
+    slug: string,
+    input: {
+        email: string; firstName: string; lastName: string; mobile?: string;
+        group: string; mode: "password" | "link"; password?: string;
+    },
+): Promise<{ ok: boolean; message?: string; url?: string; name?: string }> {
+    const { db, tenant, membership, user } = await requireTenant(slug);
+    assertCan(membership, "users:manage");
+
+    const parsed = z.object({
+        email: z.email("Enter a valid email address"),
+        firstName: z.string().min(1, "Enter a first name"),
+        lastName: z.string().min(1, "Enter a last name"),
+        mobile: z.string().optional(),
+        group: z.enum(ALL_GROUPS),
+        mode: z.enum(["password", "link"]),
+        password: z.string().min(8, "A first password needs at least 8 characters").optional(),
+    }).refine((v) => v.mode !== "password" || !!v.password, {
+        path: ["password"], message: "Type a first password, or choose a link instead",
+    }).safeParse(input);
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the details" };
+
+    if (!invitableGroups(membership.group).includes(parsed.data.group)) {
+        return { ok: false, message: "Only an owner can add another owner." };
+    }
+
+    try {
+        const created = await db.$transaction(async (tx) => {
+            const result = await createMemberDirectly(tx, tenant.id, membership, {
+                ...parsed.data,
+                password: parsed.data.mode === "password" ? parsed.data.password : undefined,
+            });
+            await tx.auditEvent.create({
+                data: {
+                    tenantId: tenant.id, actorUserId: user.id, entityType: "Membership",
+                    entityId: result.membershipId, action: "CREATED",
+                    diff: { group: parsed.data.group, how: parsed.data.mode },
+                },
+            });
+            return result;
+        });
+        revalidatePath(teamPath(slug));
+        return {
+            ok: true,
+            name: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+            url: created.token ? `${await requestOrigin()}/${slug}/reset/${created.token}` : undefined,
+        };
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "That person was not added" };
     }
 }
