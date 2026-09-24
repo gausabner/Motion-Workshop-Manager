@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import type { UserGroup } from "@prisma/client";
-import { Copy, MessageCircle, Mail, UserPlus } from "lucide-react";
+import { Check, Copy, KeyRound, MessageCircle, Mail, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GROUP_LABELS, GRANTABLE, can } from "@/lib/auth/permissions";
-import { inviteMemberAction, revokeInvitationAction, updateMemberAction, type InviteResult } from "@/lib/team/actions";
+import { createMemberAction, inviteMemberAction, issuePasswordResetAction, revokeInvitationAction, updateMemberAction, type InviteResult } from "@/lib/team/actions";
 import type { PendingInvitation, TeamMember } from "@/lib/team/queries";
 
 const field = "h-8 rounded-md border border-slate-300 px-2 text-sm bg-white";
@@ -46,13 +46,35 @@ export function TeamManager({
 }
 
 function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
+    const [mode, setMode] = useState<"invite" | "create">("invite");
     const [result, setResult] = useState<InviteResult | null>(null);
     const [copied, setCopied] = useState(false);
     const [pending, start] = useTransition();
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
             <h3 className={`${heading} px-4 py-2 border-b bg-slate-50`}>Add someone</h3>
+
+            {/* Two ways in, because a workshop has two situations: an apprentice
+                standing at the counter with no email worth checking, and a
+                bookkeeper who will set themselves up on Monday. */}
+            <div className="flex gap-1 border-b bg-white px-4 pt-3">
+                {(["invite", "create"] as const).map((m) => (
+                    <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMode(m)}
+                        className={`rounded-t-sm border-b-2 px-3 py-1.5 text-xs font-medium ${
+                            mode === m ? "border-teal-600 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-700"
+                        }`}
+                    >
+                        {m === "invite" ? "Send an invitation" : "Create them now"}
+                    </button>
+                ))}
+            </div>
+            {mode === "create" && <CreateMember tenant={tenant} groups={groups} />}
+
             <form
+                hidden={mode !== "invite"}
                 className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-12 sm:items-end sm:gap-2"
                 action={(fd) => start(async () => {
                     setCopied(false);
@@ -150,6 +172,10 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                     a foreman "take payments" is a real decision; offering it to a
                     service advisor, who has it anyway, is noise that makes the
                     real one easier to miss. */}
+                <div className="col-span-12 flex flex-wrap items-center gap-3 pt-1 text-xs">
+                    <ResetPassword tenant={tenant} membershipId={member.id} name={member.user.firstName} />
+                </div>
+
                 {grantsOnOffer.length > 0 && (
                     <div className="col-span-12 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-dashed border-slate-200 pt-2 text-xs text-slate-600">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Also allow</span>
@@ -170,5 +196,147 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                 {message && <p className={`col-span-12 text-xs ${message.ok ? "text-teal-700" : "text-red-600"}`} role={message.ok ? undefined : "alert"}>{message.text}</p>}
             </form>
         </li>
+    );
+}
+
+/**
+ * Hand somebody a way back in.
+ *
+ * The link is shown rather than sent, because MOTION has no mail provider and
+ * the person who forgot their password is almost always in the same building.
+ * It is deliberately not pre-filled into WhatsApp: a password link should be
+ * given to a face, not forwarded to a number that might be wrong.
+ */
+function ResetPassword({ tenant, membershipId, name }: { tenant: string; membershipId: string; name: string }) {
+    const [issued, setIssued] = useState<{ url: string; expiresAt: string } | null>(null);
+    const [problem, setProblem] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [pending, start] = useTransition();
+
+    if (issued) {
+        return (
+            <div className="w-full space-y-2 rounded-sm border border-teal-200 bg-teal-50 p-3">
+                <p className="text-sm text-teal-900">
+                    A link for {name}. It works once, expires in a day, and signs them out everywhere when used.
+                </p>
+                <div className="flex items-center gap-2">
+                    <input readOnly value={issued.url} className="min-w-0 flex-1 rounded-sm border border-teal-200 bg-white px-2 py-1 font-mono text-[11px]" />
+                    <Button
+                        type="button" size="sm" variant="outline" className="h-8 shrink-0"
+                        onClick={() => { navigator.clipboard?.writeText(issued.url); setCopied(true); }}
+                    >
+                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        <span className="ml-1">{copied ? "Copied" : "Copy"}</span>
+                    </Button>
+                </div>
+                <p className="text-[11px] text-teal-800">
+                    Give it to them directly. Once this box is closed the link cannot be shown again.
+                </p>
+                <button type="button" onClick={() => setIssued(null)} className="text-[11px] font-medium text-teal-700 underline">
+                    Done
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <button
+                type="button"
+                disabled={pending}
+                onClick={() => start(async () => {
+                    const result = await issuePasswordResetAction(tenant, membershipId);
+                    if (result.ok && result.url) setIssued({ url: result.url, expiresAt: result.expiresAt ?? "" });
+                    else setProblem(result.message ?? "That link was not created");
+                })}
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-teal-700"
+            >
+                <KeyRound className="h-3.5 w-3.5" />
+                {pending ? "Making a link…" : "Reset password"}
+            </button>
+            {problem && <span className="text-red-600" role="alert">{problem}</span>}
+        </>
+    );
+}
+
+/** Add somebody outright: a first password they must change, or a link they set themselves. */
+function CreateMember({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
+    const [how, setHow] = useState<"password" | "link">("password");
+    const [done, setDone] = useState<{ name: string; url?: string } | null>(null);
+    const [problem, setProblem] = useState<string | null>(null);
+    const [pending, start] = useTransition();
+
+    if (done) {
+        return (
+            <div className="m-4 space-y-2 rounded-sm border border-teal-200 bg-teal-50 p-3">
+                <p className="text-sm text-teal-900">
+                    {done.name} is on the team.{" "}
+                    {done.url
+                        ? "Give them this link to set their own password — it works once and lasts a day."
+                        : "They will be asked to choose their own password the first time they sign in."}
+                </p>
+                {done.url && (
+                    <input readOnly value={done.url} className="w-full rounded-sm border border-teal-200 bg-white px-2 py-1 font-mono text-[11px]" />
+                )}
+                <button type="button" onClick={() => setDone(null)} className="text-[11px] font-medium text-teal-700 underline">
+                    Add another
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <form
+            className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-12 sm:items-end sm:gap-2"
+            action={(fd) => start(async () => {
+                setProblem(null);
+                const result = await createMemberAction(tenant, {
+                    email: String(fd.get("email") ?? ""),
+                    firstName: String(fd.get("firstName") ?? ""),
+                    lastName: String(fd.get("lastName") ?? ""),
+                    mobile: String(fd.get("mobile") ?? "") || undefined,
+                    group: String(fd.get("group") ?? ""),
+                    mode: how,
+                    password: how === "password" ? String(fd.get("password") ?? "") : undefined,
+                });
+                if (result.ok) setDone({ name: result.name ?? "They", url: result.url });
+                else setProblem(result.message ?? "That person was not added");
+            })}
+        >
+            <label className="space-y-1 text-xs text-slate-500 sm:col-span-3"><span>First name</span><input name="firstName" required className={`${field} w-full`} /></label>
+            <label className="space-y-1 text-xs text-slate-500 sm:col-span-3"><span>Last name</span><input name="lastName" required className={`${field} w-full`} /></label>
+            <label className="space-y-1 text-xs text-slate-500 sm:col-span-6"><span>Email</span><input name="email" type="email" required className={`${field} w-full`} placeholder="name@example.com" /></label>
+            <label className="space-y-1 text-xs text-slate-500 sm:col-span-4"><span>Mobile (optional)</span><input name="mobile" type="tel" className={`${field} w-full`} /></label>
+            <label className="space-y-1 text-xs text-slate-500 sm:col-span-4"><span>Role</span>
+                <select name="group" defaultValue="MECHANIC" className={`${field} w-full`}>
+                    {groups.map((g) => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
+                </select>
+            </label>
+
+            <div className="space-y-1 text-xs text-slate-500 sm:col-span-4">
+                <span>How they get in</span>
+                <select value={how} onChange={(e) => setHow(e.target.value as "password" | "link")} className={`${field} w-full`}>
+                    <option value="password">I will set a first password</option>
+                    <option value="link">Give me a link for them</option>
+                </select>
+            </div>
+
+            {how === "password" && (
+                <label className="space-y-1 text-xs text-slate-500 sm:col-span-8">
+                    <span>First password</span>
+                    <input name="password" type="text" minLength={8} required className={`${field} w-full`} />
+                    <span className="block text-[11px] text-slate-400">
+                        They must change it the first time they sign in, so this one stops working immediately.
+                    </span>
+                </label>
+            )}
+
+            <div className="flex sm:col-span-4 sm:justify-end">
+                <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-600 hover:bg-teal-700 sm:h-8 sm:w-auto">
+                    <UserPlus className="mr-1 h-3.5 w-3.5" />{pending ? "Adding…" : "Add to the team"}
+                </Button>
+            </div>
+            {problem && <p className="text-xs text-red-600 sm:col-span-12" role="alert">{problem}</p>}
+        </form>
     );
 }

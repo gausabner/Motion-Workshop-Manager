@@ -342,6 +342,7 @@ model Tenant {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
+  passwordResets   PasswordReset[]
   memberships                Membership[]
   invitations                Invitation[]
   sessions                   Session[]
@@ -414,6 +415,7 @@ model User {
   /// changes it — otherwise the person who set the password can go on signing
   /// in as them, and every action in the audit trail becomes deniable.
   mustChangePassword Boolean @default(false)
+  passwordResets     PasswordReset[]
 
   memberships     Membership[]
   sessions        Session[]
@@ -470,6 +472,33 @@ model Membership {
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
+}
+
+/// A single-use link that lets somebody set a new password.
+///
+/// Issued by an owner or admin from the Team screen and handed over however
+/// they like — WhatsApp, read out, typed on the spot. MOTION needs no mail
+/// provider for this, which is the same reason documents go out as share links.
+///
+/// The token is stored hashed, exactly as invitations and sessions are: a
+/// database that leaks must not hand over working links.
+model PasswordReset {
+  id          String    @id @default(cuid())
+  userId      String
+  tenantId    String
+  /// SHA-256 of the token in the link. The link itself is never stored.
+  token       String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  /// The membership that issued it, so a reset is answerable to a person.
+  issuedById  String
+  createdAt   DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([tenantId, createdAt])
 }
 
 model Invitation {
