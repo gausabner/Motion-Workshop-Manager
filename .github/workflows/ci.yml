@@ -27,6 +27,14 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/motion_app?schema=public
+      # `npm run test:db` runs as DATABASE_URL="$DATABASE_URL_ADMIN", so leaving
+      # this unset did not fall back to the line above — it overrode it with an
+      # empty string, and every database test failed on "you must provide a
+      # nonempty URL" rather than on anything it was testing. Building fixtures
+      # across tenants is what the RLS policies forbid, so the suite needs the
+      # owning role; the policies themselves are tested in rls.dbtest.ts, which
+      # opens its own restricted connection as motion_app on purpose.
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@localhost:5432/motion_app?schema=public
       SESSION_SECRET: ci-only-secret-not-for-production-0123456789
     steps:
       - uses: actions/checkout@v4
