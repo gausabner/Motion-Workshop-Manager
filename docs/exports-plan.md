@@ -67,7 +67,7 @@ period end. The customer listing is the data-portability answer, and for that
 reason `redactContact` must apply to the file exactly as it applies to the
 screen, or the export becomes the way around the permission.
 
-## Phase 3 — the machine hand-off
+## Phase 3 — the machine hand-off — **built**
 
 Outbound only. MOTION writes a file; the ERP picks it up. Nothing listens and
 nothing is exposed, which is the only shape a council network team will accept.
@@ -88,6 +88,15 @@ of a month of failed imports is at year end.
 3. **Everything, as a bundle.** A ZIP of every table as CSV. The concrete form
    of the promise that a workshop's data is never withheld, and the
    disaster-recovery answer council IT asks for before signing.
+
+All three are built. The runner is idempotent on tenant, kind, shape and
+period; the journal is refused if any batch does not balance; and a receipt
+file written back by the ERP is what turns "sent" into "confirmed".
+
+No scheduler was added — `POST /api/handoff/run` behind `HANDOFF_SECRET` is
+driven by whatever the host already has. SFTP is the obvious fourth storage
+driver and is deliberately not written: every site asked so far wants a folder,
+and a folder is `local` or `s3` pointed at one.
 
 Scheduled email reports come last: they need a mail provider MOTION does not
 have, and the on-premise buyers asked for a file in a folder.
@@ -117,5 +126,13 @@ have, and the on-premise buyers asked for a file in a folder.
 
 ## Still open
 
-- Council retention — seven years is assumed; confirm before designing the archive.
-- Drop folder per tenant, or per council where one council runs several workshops?
+Both of these are now settings rather than blockers, but neither has been
+confirmed with a buyer:
+
+- **Council retention.** `keepYears` defaults to seven. Nothing is swept yet —
+  the setting is what a future sweep will read, and what the hand-off screen
+  reports against. Confirm the real figure before writing the sweep.
+- **Drop folder per tenant or per council.** Answered by making the folder a
+  template: `{tenant}` gives one each, leaving it out gives one shared, and the
+  workshop's name is in every file either way. Which a council actually wants
+  is still a question for a council.
