@@ -100,9 +100,16 @@ have, and the on-premise buyers asked for a file in a folder.
 - **CSV for re-adding, PDF for filing** — where both exist they are one query
   rendered twice, so they cannot disagree.
 
+## Decided
+
+- **Phase 1 in full** before anything in phase two.
+- **An unexplained gap warns and is recorded**, and does not block a period
+  close. The record is what an auditor wants; blocking would be a support call
+  every time somebody deletes a draft.
+- **The full bundle is owner self-service and audited** — which is the answer
+  council IT asks for, not a weaker one.
+
 ## Still open
 
-- Does an unexplained number gap block a period close, or only warn?
 - Council retention — seven years is assumed; confirm before designing the archive.
 - Drop folder per tenant, or per council where one council runs several workshops?
-- Full bundle self-service, or on request?
