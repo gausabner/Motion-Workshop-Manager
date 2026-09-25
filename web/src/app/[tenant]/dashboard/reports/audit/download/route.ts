@@ -8,10 +8,11 @@ import { pdfResponse } from "@/lib/pdf/respond";
 import { csvPreamble, fileName, type Provenance } from "@/lib/exports/provenance";
 import { csvResponse } from "@/lib/exports/respond";
 import { recordExport } from "@/lib/exports/record";
+import { registerCsv, type Register } from "@/lib/exports/kit";
 import {
-    cashbookRegister, debtorsRegister, registerCsv, REPORTS, REPORT_TITLES,
+    cashbookRegister, debtorsRegister, REPORTS, REPORT_TITLES,
     salesRegister, sequenceRegister, transactionsRegister, vatRegister,
-    type Register, type ReportName,
+    type ReportName,
 } from "@/lib/exports/registers";
 
 /**
@@ -104,5 +105,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
         return pdfResponse(body, fileName(provenance, "pdf"), search.get("download") === "1");
     }
 
-    return csvResponse(`${csvPreamble(provenance)}${registerCsv(register)}`, fileName(provenance, "csv"));
+    return csvResponse(`${csvPreamble(provenance, register.notes)}${registerCsv(register)}`, fileName(provenance, "csv"));
 }

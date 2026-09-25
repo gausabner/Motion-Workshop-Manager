@@ -7,6 +7,7 @@ import { payablesReport } from "@/lib/purchasing/payments";
 import { businessToday } from "@/lib/tenant/today";
 import { AGEING_LABELS } from "@/lib/payments/allocation";
 import { dateShort, money } from "@/lib/format";
+import { DownloadPair } from "@/components/exports/DownloadPair";
 
 export const metadata = { title: "What we owe | MOTION Workshop Manager" };
 
@@ -21,9 +22,12 @@ export default async function PayablesPage({ params }: { params: Promise<{ tenan
 
     return (
         <div className="mx-auto w-full max-w-5xl space-y-4">
-            <div>
-                <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Receipt className="h-6 w-6 text-slate-400" />What we owe</h1>
-                <p className="text-sm text-slate-500">Supplier invoices with money still on them, at {dateShort(asAt)}. Worked out from what has been paid, never stored.</p>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Receipt className="h-6 w-6 text-slate-400" />What we owe</h1>
+                    <p className="text-sm text-slate-500">Supplier invoices with money still on them, at {dateShort(asAt)}. Worked out from what has been paid, never stored.</p>
+                </div>
+                <DownloadPair tenant={slug} report="creditors" />
             </div>
 
             <div className={`${card} px-4 py-3`}>

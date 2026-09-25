@@ -54,6 +54,19 @@ function printable(text: string): string {
 export type Section = {
     heading?: string;
     columns: Column[];
+    /**
+     * The columns the CSV writes, when a spreadsheet should carry more than a
+     * page can hold.
+     *
+     * A listing of six hundred customers wants the postal address and the
+     * account number in it; an A4 page fits seven columns before it becomes
+     * unreadable. Rather than choose — or turn the page sideways and lose the
+     * argument for a filed document that matches every other one the workshop
+     * prints — the section declares both, over the same rows. The two are
+     * still one definition of one report, which is the property worth keeping:
+     * a cell that appears in both cannot disagree with itself.
+     */
+    csvColumns?: Column[];
     rows: Record<string, string>[];
     /** Shown when the section has nothing in it, instead of an empty grid. */
     empty?: string;

@@ -9,6 +9,7 @@ import { listReceivables } from "@/lib/payments/queries";
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import { businessToday } from "@/lib/tenant/today";
 import { dateShort, money, whatsappLink } from "@/lib/format";
+import { DownloadPair } from "@/components/exports/DownloadPair";
 
 export const metadata = { title: "Who owes us | MOTION Workshop Manager" };
 
@@ -30,7 +31,10 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                         <Wallet className="w-5 h-5 text-slate-600" />
                         <CardTitle className="text-lg text-slate-800 font-bold">Who owes us</CardTitle>
                     </div>
-                    <span className="text-xs text-slate-600">As at {dateShort(asAt)}</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-600">As at {dateShort(asAt)}</span>
+                        <DownloadPair tenant={slug} report="debtors" from="audit" />
+                    </div>
                 </CardHeader>
 
                 <CardContent className="p-0 bg-white">

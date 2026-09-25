@@ -1,9 +1,8 @@
 import "server-only";
 import type { Tenant } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
-import type { Column } from "@/lib/pdf/kit";
 import type { Section } from "@/lib/pdf/register";
-import { toCsv } from "@/lib/accounting/export";
+import { col, countRows, dec, iso, stamp, type Register } from "@/lib/exports/kit";
 import { salesFor } from "@/lib/accounting/queries";
 import { auditForPeriod } from "@/lib/audit/period";
 import { sequenceAudit, unexplained } from "@/lib/documents/gaps";
@@ -13,35 +12,13 @@ import { listReceivables } from "@/lib/payments/queries";
 import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 
 /**
- * The six exports a council audit asks for, built once and rendered twice.
+ * The six exports a council audit asks for.
  *
- * The rule the plan committed to is that a CSV and a PDF of the same report can
- * never disagree. The way to keep that promise is not discipline; it is to give
- * them no opportunity. So a report is defined once, as sections of columns and
- * already-formatted string cells, and both outputs are a rendering of the same
- * structure.
- *
- * That has one visible consequence worth stating: money is written as a plain
- * decimal — `1150.00`, not `N$ 1,150.00` — with the currency named in the
- * column header. A spreadsheet can add the first and cannot add the second,
- * and an auditor reading the PDF loses nothing, because the header above the
- * column already says what the figures are in.
- *
- * Dates are ISO in every cell for the same reason. `01/02/2026` means two
- * different days depending on who is reading it, and a workshop in Windhoek
- * sending a file to a council that sends it to an auditor has no idea which of
- * them is which.
+ * Each is a `Register` — defined once and rendered twice, as the PDF that gets
+ * filed and the CSV that gets re-added. The shared shape, the formatters and
+ * the CSV renderer live in `kit.ts`, and the reasoning for writing money and
+ * dates the way these do is there too.
  */
-
-export type Register = {
-    /** Used in the heading, the filename and the audit record. */
-    title: string;
-    sections: Section[];
-    totals?: { label: string; value: string; strong?: boolean }[];
-    notes?: string[];
-    /** What the provenance block promises the file contains. */
-    rows: number;
-};
 
 export const REPORTS = ["transactions", "sequence", "sales", "vat", "cashbook", "debtors"] as const;
 export type ReportName = (typeof REPORTS)[number];
@@ -54,36 +31,6 @@ export const REPORT_TITLES: Record<ReportName, string> = {
     cashbook: "Cash book",
     debtors: "Debtors age analysis",
 };
-
-const dec = (n: number) => n.toFixed(2);
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-const stamp = (d: Date, timeZone: string) =>
-    d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone }).replace(",", "");
-
-/** Every row of every section, which is what the provenance block counts. */
-const countRows = (sections: Section[]) => sections.reduce((total, s) => total + s.rows.length, 0);
-
-/**
- * The same sections as a CSV.
- *
- * A report with more than one section becomes more than one block in the file,
- * each with its own heading line and its own header row, separated by a blank
- * line. That is not elegant, but it is what a bookkeeper's spreadsheet does
- * with a multi-part statement, and the alternative — one wide table with empty
- * columns — is worse to read and worse to sort.
- */
-export function registerCsv(register: Register): string {
-    return register.sections
-        .map((section) => {
-            const header = section.columns.map((c) => c.header);
-            const rows = section.rows.map((row) => section.columns.map((c) => row[c.key] ?? ""));
-            const body = toCsv(header, rows);
-            return section.heading ? `${toCsv([section.heading], [])}${body}` : body;
-        })
-        .join("\r\n");
-}
-
-const col = (key: string, header: string, width: number, align?: Column["align"], muted?: boolean): Column => ({ key, header, width, align, muted });
 
 // -- The six -----------------------------------------------------------------
 

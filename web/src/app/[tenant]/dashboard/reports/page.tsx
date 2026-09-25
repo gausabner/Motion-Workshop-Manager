@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileSpreadsheet, Receipt, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
+import { FileSpreadsheet, LineChart, Receipt, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
@@ -41,6 +41,12 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             blurb: "The six a council asks for: the number sequence and its gaps, the sales register, tax, the cash book, debtors, and who did what.",
             figure: null,
             show: showMoney,
+        },
+        {
+            href: `${base}/business`, icon: LineChart, title: "For the owner",
+            blurb: "What made money, what is standing still, and everyone on file — as files to sort: profit by job, item sales, work in progress, quotes, stock, creditors, renewals.",
+            figure: null,
+            show: true,
         },
         {
             href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",

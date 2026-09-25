@@ -53,3 +53,26 @@ test("the file name says what it is and when", () => {
         "tiptop-autocare-debtors-age-analysis-as-at-2026-09-30.csv",
     );
 });
+
+test("a report's caveats travel with the spreadsheet, at the top where they are read", () => {
+    // The PDF puts these under the totals, where a reader reaches them. A CSV
+    // has no such place: a caveat printed after six hundred rows is a caveat
+    // nobody sees, and the one that matters most here — that the profit is
+    // flattered because some parts had no cost on them — changes what the
+    // figures mean.
+    const csv = csvPreamble(base, [
+        "1 part line was sold with no cost recorded, so the profit above is flattered.",
+        "Internal jobs are excluded.",
+    ]);
+    const lines = csv.split("\r\n");
+    assert.equal(lines.filter((l) => l.startsWith("Note,")).length, 2);
+    // Still the same shape: everything before the blank line is preamble.
+    const blank = lines.indexOf("");
+    assert.ok(blank > 0);
+    assert.ok(lines.slice(0, blank).every((l) => l.includes(",")));
+    assert.ok(csv.indexOf("Rows,") < csv.indexOf("Note,"), "the counts come first, then what qualifies them");
+});
+
+test("a report with nothing to qualify carries no note rows at all", () => {
+    assert.equal(csvPreamble(base).includes("Note,"), false);
+});

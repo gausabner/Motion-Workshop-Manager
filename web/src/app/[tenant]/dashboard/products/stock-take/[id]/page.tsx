@@ -6,6 +6,7 @@ import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getStockTake } from "@/lib/stock/stocktake-service";
 import { StockTakeSheet } from "@/components/products/StockTakeSheet";
 import { dateShortIn } from "@/lib/format";
+import { DownloadPair } from "@/components/exports/DownloadPair";
 
 export const metadata = { title: "Counting | MOTION Workshop Manager" };
 
@@ -21,7 +22,8 @@ export default async function StockTakeDetailPage({ params }: { params: Promise<
 
     return (
         <div className="max-w-4xl space-y-4">
-            <div>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
                 <Link href={`/${slug}/dashboard/products/stock-take`} className="text-xs font-medium text-teal-700 hover:underline">← Stock takes</Link>
                 <h1 className="mt-1 text-xl font-bold text-slate-800">{take.number}</h1>
                 <p className="text-sm text-slate-500">
@@ -30,6 +32,8 @@ export default async function StockTakeDetailPage({ params }: { params: Promise<
                     {what ? ` · ${what}` : ""}{take.blind ? " · blind count" : ""}
                     {take.note ? ` · ${take.note}` : ""}
                 </p>
+                </div>
+                <DownloadPair tenant={slug} report="stocktake" params={{ take: take.id }} />
             </div>
             <StockTakeSheet tenant={slug} take={take} currency={tenant.currency} />
         </div>
