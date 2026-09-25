@@ -9,6 +9,7 @@ import { type ActionState, fromZod, str } from "@/lib/forms";
 import { saveDocumentSchema } from "@/lib/documents/schema";
 import { allocateNumber } from "@/lib/documents/numbering";
 import { existingConversion } from "@/lib/documents/convert";
+import { deleteDocument, NotDeletable } from "@/lib/documents/remove";
 import { businessToday } from "@/lib/tenant/today";
 import { parseLocalDateTime } from "@/lib/diary/time";
 import { promptErrors, promptFor, type PromptInput } from "@/lib/documents/process-prompt";
@@ -464,4 +465,46 @@ export async function markContacted(slug: string, id: string): Promise<void> {
     await ctx.db.document.update({ where: { id }, data: { contactedAt: new Date() } });
     revalidatePath(`/${slug}/dashboard/transactions`);
     revalidatePath(editorPath(slug, id));
+}
+
+/**
+ * Delete a document that should never have existed, keeping what it said.
+ *
+ * Owners and admins only — the same people who may void, because this is the
+ * stronger version of the same act. A reason is required: "duplicate of
+ * JC-1043" is what makes the audit entry worth having a year later.
+ */
+export async function deleteDocumentAction(slug: string, id: string, formData: FormData): Promise<void> {
+    const ctx = await requireTenant(slug);
+    assertCan(ctx.membership, "documents:void");
+    const { db, tenant, user } = ctx;
+
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (reason.length < 3) redirect(`${editorPath(slug, id)}?problem=${encodeURIComponent("Say why it is being deleted.")}`);
+
+    try {
+        await db.$transaction(async (tx) => {
+            const { snapshot, number } = await deleteDocument(tx, id, reason);
+            // Written after the delete, in the same transaction: if the delete
+            // fails there is no record of something that still exists, and if
+            // the record fails the delete is rolled back with it.
+            await tx.auditEvent.create({
+                data: {
+                    tenantId: tenant.id,
+                    actorUserId: user.id,
+                    entityType: "Document",
+                    entityId: id,
+                    action: "DELETED",
+                    diff: { reason, number, document: snapshot as never },
+                },
+            });
+        });
+    } catch (error) {
+        const message = error instanceof NotDeletable ? error.message : "That document was not deleted.";
+        redirect(`${editorPath(slug, id)}?problem=${encodeURIComponent(message)}`);
+    }
+
+    revalidatePath(`/${slug}/dashboard/transactions`);
+    revalidatePath(`/${slug}/dashboard/jobs`);
+    redirect(`/${slug}/dashboard/transactions?deleted=1`);
 }

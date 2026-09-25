@@ -6,6 +6,7 @@ import { can } from "@/lib/auth/permissions";
 import { marginReport, type MarginRow } from "@/lib/stock/reports";
 import { startOfMonth, toZoned } from "@/lib/diary/time";
 import { money } from "@/lib/format";
+import { DownloadPair } from "@/components/exports/DownloadPair";
 
 export const metadata = { title: "Profit | MOTION Workshop Manager" };
 
@@ -68,11 +69,14 @@ export default async function MarginReportPage({ params, searchParams }: { param
                     <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><TrendingUp className="h-6 w-6 text-slate-400" />Profit</h1>
                     <p className="text-sm text-slate-500">Sales less what the work cost, excluding tax. Credit notes come off both sides.</p>
                 </div>
-                <form action={base} method="get" className="flex items-end gap-2 text-sm">
-                    <label className="space-y-1"><span className="block text-xs text-slate-500">From</span><input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-slate-300 px-2" /></label>
-                    <label className="space-y-1"><span className="block text-xs text-slate-500">To</span><input type="date" name="to" defaultValue={to} className="h-9 rounded-md border border-slate-300 px-2" /></label>
-                    <button type="submit" className="h-9 rounded-md border border-slate-300 px-3 hover:bg-slate-50">Show</button>
-                </form>
+                <div className="flex flex-wrap items-end gap-2">
+                    <form action={base} method="get" className="flex items-end gap-2 text-sm">
+                        <label className="space-y-1"><span className="block text-xs text-slate-500">From</span><input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-slate-300 px-2" /></label>
+                        <label className="space-y-1"><span className="block text-xs text-slate-500">To</span><input type="date" name="to" defaultValue={to} className="h-9 rounded-md border border-slate-300 px-2" /></label>
+                        <button type="submit" className="h-9 rounded-md border border-slate-300 px-3 hover:bg-slate-50">Show</button>
+                    </form>
+                    <DownloadPair tenant={slug} report="profit" params={{ from, to }} />
+                </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-4">

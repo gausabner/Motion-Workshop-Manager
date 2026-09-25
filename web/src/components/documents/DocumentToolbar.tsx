@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Undo2, Wallet } from "lucide-react";
+import { Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Trash2, Undo2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { convertDocument, copyDocument, createCreditNote, markContacted, voidDocument } from "@/lib/documents/actions";
+import { convertDocument, copyDocument, createCreditNote, deleteDocumentAction, markContacted, voidDocument } from "@/lib/documents/actions";
 import { ProcessDialog } from "@/components/documents/ProcessDialog";
 import { createPayment, createRefund } from "@/lib/payments/actions";
 import { SendDialog } from "@/components/messaging/SendDialog";
@@ -29,6 +29,7 @@ type Props = {
  */
 export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, canTakePayment, canSend }: Props) {
     const [voiding, setVoiding] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [reworking, setReworking] = useState(false);
     const [reworkNote, setReworkNote] = useState("");
     const [reworkProblem, setReworkProblem] = useState<string>();
@@ -128,6 +129,34 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 ) : (
                     <Button type="button" size="sm" variant="ghost" className="text-slate-500 hover:text-red-700" onClick={() => setVoiding(true)}>
                         <Ban className="w-4 h-4 mr-1" />Void
+                    </Button>
+                )
+            )}
+
+            {/* Deleting is only ever for a document that should not exist — a
+                second job card from a double-tapped Convert, a draft nobody
+                meant to start. Anything real is voided, which keeps it. The
+                reason is required because it is what the audit entry is worth
+                reading for a year later. */}
+            {(doc.state === "VOID" || doc.state === "DRAFT") && canVoid && (
+                deleting ? (
+                    <form action={deleteDocumentAction.bind(null, tenant, doc.id)} className="flex items-center gap-2">
+                        <input
+                            name="reason"
+                            required
+                            autoFocus
+                            minLength={3}
+                            placeholder="Why — e.g. duplicate of JC-1043"
+                            className="h-8 w-64 rounded-sm border border-red-300 px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500"
+                        />
+                        <Button type="submit" size="sm" variant="outline" className="border-red-400 bg-red-50 text-red-800 hover:bg-red-100">
+                            Delete for good
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setDeleting(false)}>Cancel</Button>
+                    </form>
+                ) : (
+                    <Button type="button" size="sm" variant="ghost" className="text-slate-400 hover:text-red-700" onClick={() => setDeleting(true)}>
+                        <Trash2 className="mr-1 h-4 w-4" />Delete
                     </Button>
                 )
             )}

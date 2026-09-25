@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileSpreadsheet, Receipt, Timer, TrendingUp, Wallet } from "lucide-react";
+import { FileSpreadsheet, LineChart, Receipt, Share2, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
@@ -37,10 +37,28 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             show: showMoney && can(membership, "products:write"),
         },
         {
+            href: `${base}/audit`, icon: ShieldCheck, title: "For the auditor",
+            blurb: "The six a council asks for: the number sequence and its gaps, the sales register, tax, the cash book, debtors, and who did what.",
+            figure: null,
+            show: showMoney,
+        },
+        {
+            href: `${base}/business`, icon: LineChart, title: "For the owner",
+            blurb: "What made money, what is standing still, and everyone on file — as files to sort: profit by job, item sales, work in progress, quotes, stock, creditors, renewals.",
+            figure: null,
+            show: true,
+        },
+        {
             href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",
             blurb: "Sales, receipts, purchases and payments for a month, as CSV — plain, Xero or a journal.",
             figure: null,
             show: showMoney,
+        },
+        {
+            href: `${base}/handoff`, icon: Share2, title: "Hand-off",
+            blurb: "The nightly journal to the accounting system: whether last night went out, whether anything took it, and everything as one archive.",
+            figure: null,
+            show: can(membership, "settings:manage"),
         },
         {
             href: `${base}/labour`, icon: Timer, title: "Mechanic time",

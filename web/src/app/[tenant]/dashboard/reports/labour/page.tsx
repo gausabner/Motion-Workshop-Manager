@@ -8,6 +8,7 @@ import { AccessDenied } from "@/components/layout/AccessDenied";
 import { labourReport } from "@/lib/time/queries";
 import { addDays, startOfWeek, toZoned } from "@/lib/diary/time";
 import { hoursLabel } from "@/lib/time/clock";
+import { DownloadPair } from "@/components/exports/DownloadPair";
 
 export const metadata = { title: "Mechanic time | MOTION Workshop Manager" };
 
@@ -51,6 +52,7 @@ export default async function LabourReportPage({ params, searchParams }: { param
                         <input type="date" name="to" defaultValue={to} className="h-8 rounded-sm border border-slate-300 bg-white px-2" aria-label="To" />
                         <button type="submit" className="h-8 rounded-sm border border-slate-300 bg-white px-3 hover:bg-slate-50">Show</button>
                     </form>
+                    <DownloadPair tenant={slug} report="labour" params={{ from, to }} />
                 </CardHeader>
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">

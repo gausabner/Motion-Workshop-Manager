@@ -247,3 +247,23 @@ export async function bookEntry(tenantId: string, number: string): Promise<{ sta
         return { state: document.state, total: Number(document.total).toFixed(2), paid: paid.toFixed(2) };
     });
 }
+
+/**
+ * Enough customers that the list actually scrolls.
+ *
+ * A test about keeping your place in a long list proves nothing against a list
+ * of one, which is what the fixture builds by default.
+ */
+export async function addCustomers(tenantId: string, count: number): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+        await announceTenant(tx, tenantId);
+        await tx.customer.createMany({
+            data: Array.from({ length: count }, (_, i) => ({
+                tenantId,
+                firstName: "ZZTEST",
+                lastName: `Filler ${String(i + 1).padStart(2, "0")}`,
+                mobile: `+2648100000${String(i).padStart(2, "0")}`,
+            })),
+        });
+    });
+}

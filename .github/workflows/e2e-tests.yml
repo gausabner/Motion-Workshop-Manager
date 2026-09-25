@@ -38,8 +38,13 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npx prisma migrate deploy
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      # Two engines, because the suite has two. Chromium covers desktop and
+      # stands in for Android; the iphone project runs on WebKit, which is what
+      # every iPhone runs and where this application's mobile problems have
+      # actually lived. Installing only chromium meant the iphone project
+      # failed to launch a browser at all rather than failing a test.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
       - name: Run the end-to-end tests
         # Playwright builds and starts the app itself; see playwright.config.ts.
         run: npx playwright test

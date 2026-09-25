@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
+import { requestOrigin } from "@/lib/http/origin";
 import { createHash, randomBytes } from "node:crypto";
 import type { Membership, Tenant, User } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -31,7 +32,16 @@ export async function createSession(userId: string, tenantId: string | null, use
     jar.set(SESSION_COOKIE, token, {
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        // Secure whenever the connection actually is, rather than whenever the
+        // build happens to be a production one. `next start` sets production
+        // even when serving plain http locally, which marked the cookie Secure
+        // over http — Chromium stores that on localhost anyway, WebKit refuses
+        // it, and the end-to-end suite could not sign in on an iPhone at all.
+        //
+        // On Render APP_URL is https, so this is unchanged in production. It is
+        // also more correct: the flag now describes the connection instead of
+        // the build.
+        secure: (await requestOrigin()).startsWith("https://"),
         path: "/",
         expires: expiresAt,
     });

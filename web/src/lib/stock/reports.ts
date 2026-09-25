@@ -21,7 +21,13 @@ export async function marginReport(db: TenantDb, _tenant: Tenant, from: Date, to
         where: { document: { state: { in: ["PROCESSED", "CLOSED"] }, type: { in: [...SALE_TYPES] }, postDate: { gte: from, lte: to }, isInternal: false } },
         select: {
             quantity: true, unitPrice: true, unitCost: true, vatRate: true, discountPercent: true, lineType: true, description: true,
-            product: { select: { id: true, itemCode: true, description: true } },
+            product: {
+                select: {
+                    id: true, itemCode: true, description: true,
+                    group: { select: { name: true } },
+                    supplier: { select: { companyName: true } },
+                },
+            },
             document: {
                 select: {
                     id: true, type: true, number: true, jobNumber: true, postDate: true, pricesIncludeTax: true,
@@ -46,6 +52,8 @@ export async function marginReport(db: TenantDb, _tenant: Tenant, from: Date, to
 
     const byType = new Map<string, MarginRow>();
     const byProduct = new Map<string, MarginRow>();
+    const byGroup = new Map<string, MarginRow>();
+    const bySupplier = new Map<string, MarginRow>();
     const byDocument = new Map<string, MarginRow>();
     let sales = 0;
     let cost = 0;
@@ -66,6 +74,12 @@ export async function marginReport(db: TenantDb, _tenant: Tenant, from: Date, to
         add(byType, line.lineType, LINE_TYPE_LABELS[line.lineType] ?? line.lineType, null, quantity, one);
         const productKey = line.product?.id ?? `free:${line.description}`;
         add(byProduct, productKey, line.product?.itemCode ?? line.description, line.product?.description ?? "Typed in, not a product", quantity, one);
+
+        // A line typed in by hand belongs to no group and no supplier, and
+        // saying so is more useful than dropping it: "Not on a product" is
+        // often the largest row here, and that is the finding.
+        add(byGroup, line.product?.group?.name ?? "—", line.product?.group?.name ?? "Ungrouped", line.product ? null : "Typed in, not a product", quantity, one);
+        add(bySupplier, line.product?.supplier?.companyName ?? "—", line.product?.supplier?.companyName ?? "No supplier", null, quantity, one);
         const doc = line.document;
         add(
             byDocument, doc.id, doc.number ?? doc.jobNumber ?? "draft",
@@ -82,6 +96,11 @@ export async function marginReport(db: TenantDb, _tenant: Tenant, from: Date, to
         totals: { sales, cost, profit: round2(sales - cost), percent: sales === 0 ? null : round2(((sales - cost) / sales) * 100) },
         missingCost,
         byType: withPercent([...byType.values()]).sort(byProfit),
+        // The screen shows the best and the worst; an export wants all of them,
+        // because the row somebody is looking for is rarely in the top fifteen.
+        products: withPercent([...byProduct.values()]).sort(byProfit),
+        byGroup: withPercent([...byGroup.values()]).sort(byProfit),
+        bySupplier: withPercent([...bySupplier.values()]).sort(byProfit),
         topProducts: withPercent([...byProduct.values()]).sort(byProfit).slice(0, 15),
         worstProducts: withPercent([...byProduct.values()]).filter((r) => r.margin.profit < 0 || (r.margin.percent !== null && r.margin.percent < 10)).sort((a, b) => a.margin.profit - b.margin.profit).slice(0, 10),
         jobs: withPercent([...byDocument.values()]).sort(byProfit),

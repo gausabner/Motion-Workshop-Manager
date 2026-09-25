@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
 import type { listVehicles } from "@/lib/vehicles/queries";
 import { dateShort } from "@/lib/format";
+import { DownloadIcon } from "@/components/exports/DownloadPair";
 
 type Data = Awaited<ReturnType<typeof listVehicles>>;
 
@@ -31,6 +32,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                     </div>
                     <div className="flex items-center gap-3">
                         <CustomerListControls q={q} archived={archived} />
+                        <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
                         <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add vehicle">
                             <Link href={`${base}/vehicles/new`}><Plus className="w-5 h-5" /></Link>
                         </Button>

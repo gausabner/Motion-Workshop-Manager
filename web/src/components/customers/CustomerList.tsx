@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
 import type { listCustomers } from "@/lib/customers/queries";
+import { DownloadIcon } from "@/components/exports/DownloadPair";
 import { whatsappLink } from "@/lib/format";
 
 type Data = Awaited<ReturnType<typeof listCustomers>>;
@@ -37,6 +38,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                     </div>
                     <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <CustomerListControls q={q} archived={archived} />
+                        <DownloadIcon tenant={tenant} report="customers" params={{ archived: archived ? "1" : undefined }} title="Download every customer as a spreadsheet" />
                         <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add customer">
                             <Link href={`${base}/new`}><Plus className="w-5 h-5" /></Link>
                         </Button>

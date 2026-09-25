@@ -1,4 +1,4 @@
-import { test, expect, signIn } from "./workshop";
+import { test, expect, signIn, addCustomers } from "./workshop";
 
 /**
  * The application on a 375px screen.
@@ -19,7 +19,7 @@ import { test, expect, signIn } from "./workshop";
 test.describe("on a phone", () => {
     // Desktop has its own coverage; running these there proves nothing.
     test.beforeEach(({}, testInfo) => {
-        test.skip(testInfo.project.name !== "phone", "phone project only");
+        test.skip(!["phone", "iphone"].includes(testInfo.project.name), "phone projects only");
     });
 
     const screens = [
@@ -93,5 +93,33 @@ test.describe("on a phone", () => {
         });
         expect(gap, "no sticky action bar found on the form").not.toBeNull();
         expect(Math.abs(gap ?? 999), `the action bar sits ${gap}px from the tab bar`).toBeLessThanOrEqual(2);
+    });
+    test("opening a customer keeps your place in the list", async ({ page, workshop }) => {
+        await addCustomers(workshop.tenantId, 25);
+        await signIn(page, workshop);
+        await page.goto(`/${workshop.slug}/dashboard/customers`);
+        await page.waitForLoadState("networkidle");
+
+        // Clicking the last row rather than scrolling first and clicking the
+        // first: Playwright scrolls an element into view before clicking it, so
+        // pre-scrolling and then clicking a row at the top puts the list back
+        // where it started and measures nothing.
+        // The name in the card, which is the cell marked as the one that
+        // identifies the record — not the desktop-only action icons, which are
+        // present in the markup but hidden at this width.
+        const rows = page.locator('td[data-mobile="primary"] a');
+        await rows.last().click();
+        await expect(page.getByRole("dialog")).toBeVisible();
+
+        // The list scrolls inside <main>, not the window, which is why the
+        // browser never restored this on a back navigation and why a full page
+        // load put somebody back at the top of a long list.
+        const opened = await page.evaluate(() => document.querySelector("main")!.scrollTop);
+        expect(opened, "the list never scrolled, so keeping the place proves nothing").toBeGreaterThan(150);
+
+        await page.goBack();
+        await expect(page.getByRole("dialog")).toBeHidden();
+        const closed = await page.evaluate(() => document.querySelector("main")!.scrollTop);
+        expect(closed, "the place in the list was lost on the way back").toBe(opened);
     });
 });

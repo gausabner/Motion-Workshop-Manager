@@ -391,6 +391,7 @@ model Tenant {
   supplierPaymentAllocations SupplierPaymentAllocation[]
   stockTakes                 StockTake[]
   stockTakeLines             StockTakeLine[]
+  exportRuns                 ExportRun[]
   bundleItems                BundleItem[]
   priceMatrices              PriceMatrix[]
   priceMatrixBands           PriceMatrixBand[]
@@ -1990,4 +1991,55 @@ model ApiKey {
   createdBy Membership? @relation(fields: [createdById], references: [id])
 
   @@index([tenantId, revokedAt])
+}
+
+/// A hand-off that went out, and whether the receiving system took it.
+model ExportRun {
+  id            String         @id @default(cuid())
+  tenantId      String
+  kind          ExportRunKind
+  state         ExportRunState @default(PENDING)
+  /// Which column map was written — a site that moves from Sage to QuickBooks
+  /// should not look like it stopped sending anything.
+  shape         String         @default("motion")
+  periodFrom    DateTime       @db.Date
+  periodTo      DateTime       @db.Date
+  destination   String?
+  storageDriver String?
+  storageKey    String?
+  fileName      String?
+  bytes         Int?
+  rows          Int?
+  /// SHA-256 of what was written: the only way to tell a file truncated in
+  /// transit from a quiet period.
+  checksum      String?
+  error         String?
+  /// The receipt leg. Written when the ERP drops a file back saying it took it.
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  /// "schedule", or the membership that pressed the button.
+  triggeredBy   String         @default("schedule")
+  startedAt     DateTime       @default(now())
+  finishedAt    DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  /// One file per workshop, kind, shape and period. A schedule that fires
+  /// twice must not post the day twice.
+  @@unique([tenantId, kind, shape, periodFrom, periodTo])
+  @@index([tenantId, startedAt])
+  @@index([tenantId, state])
+}
+
+enum ExportRunKind {
+  JOURNAL
+  BUNDLE
+}
+
+enum ExportRunState {
+  PENDING
+  DELIVERED
+  /// The receiving system wrote a receipt back.
+  ACKNOWLEDGED
+  FAILED
 }
