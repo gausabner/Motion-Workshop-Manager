@@ -5,7 +5,7 @@ import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { storeUpload, removeAttachment } from "@/lib/attachments/service";
-import { companySettingsSchema, parseSettings, portalSettingsSchema, taxSettingsSchema } from "@/lib/settings/schema";
+import { accountingSettingsSchema, companySettingsSchema, handoffSettingsSchema, parseSettings, portalSettingsSchema, taxSettingsSchema } from "@/lib/settings/schema";
 
 /**
  * Company profile and tax defaults (PRD SET-01/02).
@@ -126,4 +126,59 @@ export async function savePortalSettings(slug: string, _prev: ActionState, formD
     await ctx.db.auditEvent.create({ data: { tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "Tenant", entityId: ctx.tenant.id, action: "UPDATED", diff: { section: "portal", ...parsed.data } } });
     revalidatePath(`/${slug}/dashboard/settings/portal`);
     return { ok: true, message: parsed.data.enabled ? "Saved. Links you send from a customer's page now open their portal." : "Saved. The portal is off; links already sent say so." };
+}
+
+/**
+ * The nightly hand-off, and the account codes it posts to (R3).
+ *
+ * The two are saved together on purpose. The codes are the thing that makes
+ * the schedule safe to switch on — a journal posted to the wrong account every
+ * night for a month is harder to undo than a month of not sending anything —
+ * and splitting them across two screens is how somebody turns the first one on
+ * without having done the second.
+ */
+export async function saveHandoffSettings(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const ctx = await requireTenant(slug);
+    assertCan(ctx.membership, "settings:manage");
+
+    const handoff = handoffSettingsSchema.safeParse({
+        enabled: bool(formData, "enabled"),
+        shape: str(formData, "shape") ?? "motion",
+        folder: str(formData, "folder") ?? "handoff/{tenant}/{yyyy}/{mm}",
+        receiptFolder: str(formData, "receiptFolder") ?? "",
+        keepYears: Number(str(formData, "keepYears") ?? 7),
+    });
+    if (!handoff.success) return fromZod(handoff.error);
+
+    const accounting = accountingSettingsSchema.safeParse({
+        salesAccount: str(formData, "salesAccount"),
+        salesTaxType: str(formData, "salesTaxType"),
+        debtors: str(formData, "debtors"),
+        sales: str(formData, "sales"),
+        tax: str(formData, "tax"),
+        bank: str(formData, "bank"),
+        creditors: str(formData, "creditors"),
+        purchases: str(formData, "purchases"),
+        inputTax: str(formData, "inputTax"),
+    });
+    if (!accounting.success) return fromZod(accounting.error);
+
+    const settings = parseSettings(ctx.tenant.settings);
+    await ctx.db.tenant.update({
+        where: { id: ctx.tenant.id },
+        data: { settings: { ...settings, handoff: handoff.data, accounting: accounting.data } },
+    });
+    await ctx.db.auditEvent.create({
+        data: {
+            tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "Tenant", entityId: ctx.tenant.id,
+            action: "UPDATED",
+            // Worth recording that the schedule was switched on or off by name:
+            // "when did we start sending the council our journals" is a question.
+            diff: { section: "handoff", enabled: handoff.data.enabled, shape: handoff.data.shape },
+        },
+    });
+
+    revalidatePath(`/${slug}/dashboard/settings/handoff`);
+    revalidatePath(`/${slug}/dashboard/reports/handoff`);
+    return { ok: true, message: "Saved" };
 }

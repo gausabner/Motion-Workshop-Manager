@@ -79,6 +79,13 @@ export const accountingSettingsSchema = z.object({
     debtors: z.string().trim().max(20).default("610"),
     sales: z.string().trim().max(20).default("200"),
     tax: z.string().trim().max(20).default("820"),
+    /// The other side of the entries the nightly hand-off posts, which the
+    /// on-screen exports never needed: money received has to land somewhere,
+    /// and so do supplier invoices and what was paid against them.
+    bank: z.string().trim().max(20).default("090"),
+    creditors: z.string().trim().max(20).default("800"),
+    purchases: z.string().trim().max(20).default("300"),
+    inputTax: z.string().trim().max(20).default("825"),
 });
 
 export type AccountingSettings = z.infer<typeof accountingSettingsSchema>;
@@ -86,6 +93,53 @@ export type AccountingSettings = z.infer<typeof accountingSettingsSchema>;
 export function accountingSettings(value: unknown): AccountingSettings {
     const raw = accountingSettingsSchema.safeParse(parseSettings(value).accounting ?? {});
     return raw.success ? raw.data : accountingSettingsSchema.parse({});
+}
+
+
+/**
+ * The nightly hand-off (R3): where the file goes, in whose shape, and how long
+ * the copies are kept.
+ *
+ * Off by default, and deliberately so. A workshop that has not set up an
+ * integration should not have a job quietly writing files into a folder
+ * nobody reads — and a schedule that runs before the accounts have been
+ * agreed is how a council ends up importing a month of wrong codes.
+ *
+ * `folder` is a template rather than a path because the plan left a question
+ * open that does not need answering: whether a council running four workshops
+ * wants one drop folder or four. `{tenant}` in the template gives four,
+ * leaving it out gives one, and the same build does both. `{yyyy}` and `{mm}`
+ * keep a busy folder navigable, because a directory with nine hundred files in
+ * it is one nobody will look inside.
+ */
+export const handoffSettingsSchema = z.object({
+    enabled: z.boolean().default(false),
+    /** Which accounting package is on the other end. */
+    shape: z.enum(["motion", "quickbooks", "sage", "xero"]).default("motion"),
+    /** Where the file is written, with {tenant}, {yyyy}, {mm} and {dd} replaced. */
+    folder: z.string().trim().max(200).default("handoff/{tenant}/{yyyy}/{mm}"),
+    /**
+     * Where the receiving system writes its receipts, read on the next run.
+     * Blank means the site has not agreed a receipt leg, and every run then
+     * stays "delivered, not confirmed" rather than pretending otherwise.
+     */
+    receiptFolder: z.string().trim().max(200).default(""),
+    /**
+     * How long MOTION keeps its own copy of what it sent.
+     *
+     * Seven years is the working assumption for a Namibian council, and it is
+     * a setting rather than a constant precisely because that has not been
+     * confirmed with one. Nothing is deleted automatically yet; this is what
+     * the screen reports against and what a future sweep will read.
+     */
+    keepYears: z.number().int().min(1).max(15).default(7),
+});
+
+export type HandoffSettings = z.infer<typeof handoffSettingsSchema>;
+
+export function handoffSettings(value: unknown): HandoffSettings {
+    const raw = handoffSettingsSchema.safeParse(parseSettings(value).handoff ?? {});
+    return raw.success ? raw.data : handoffSettingsSchema.parse({});
 }
 
 export const tenantSettingsSchema = z.object({
@@ -97,6 +151,7 @@ export const tenantSettingsSchema = z.object({
     reminders: reminderSettingsSchema.optional(),
     portal: portalSettingsSchema.optional(),
     accounting: accountingSettingsSchema.optional(),
+    handoff: handoffSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
