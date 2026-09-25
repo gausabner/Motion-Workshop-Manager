@@ -4,6 +4,7 @@ import { can } from "@/lib/auth/permissions";
 import { exportFileName, journalCsv, plainMoney, plainSales, salesJournal, xeroSales, type ExportKind, type ExportFormat } from "@/lib/accounting/export";
 import { purchasesFor, receiptsFor, salesFor, supplierPaymentsFor } from "@/lib/accounting/queries";
 import { accountingSettings } from "@/lib/settings/schema";
+import { csvResponse } from "@/lib/exports/respond";
 
 const valid = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 const day = (s: string) => new Date(`${s}T00:00:00Z`);
@@ -37,12 +38,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
         csv = plainMoney(await supplierPaymentsFor(db, day(from), day(to)), tenant.currency, "Supplier");
     }
 
-    return new NextResponse(csv, {
-        headers: {
-            // A BOM, so Excel opens it as UTF-8 rather than mangling the first heading.
-            "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": `attachment; filename="${exportFileName(tenant.name, kind, from, to)}"`,
-            "Cache-Control": "private, no-store",
-        },
-    });
+    return csvResponse(csv, exportFileName(tenant.name, kind, from, to));
 }

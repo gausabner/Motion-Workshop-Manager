@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileSpreadsheet, Receipt, Timer, TrendingUp, Wallet } from "lucide-react";
+import { FileSpreadsheet, Receipt, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
@@ -35,6 +35,12 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             blurb: "Supplier invoices still to pay, aged by supplier.",
             figure: summary ? `${money(summary.owedBySupplier, tenant.currency)} owed` : null,
             show: showMoney && can(membership, "products:write"),
+        },
+        {
+            href: `${base}/audit`, icon: ShieldCheck, title: "For the auditor",
+            blurb: "The six a council asks for: the number sequence and its gaps, the sales register, tax, the cash book, debtors, and who did what.",
+            figure: null,
+            show: showMoney,
         },
         {
             href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",
