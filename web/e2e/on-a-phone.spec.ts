@@ -19,7 +19,7 @@ import { test, expect, signIn } from "./workshop";
 test.describe("on a phone", () => {
     // Desktop has its own coverage; running these there proves nothing.
     test.beforeEach(({}, testInfo) => {
-        test.skip(testInfo.project.name !== "phone", "phone project only");
+        test.skip(!["phone", "iphone"].includes(testInfo.project.name), "phone projects only");
     });
 
     const screens = [

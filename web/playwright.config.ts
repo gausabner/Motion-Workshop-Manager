@@ -39,13 +39,18 @@ export default defineConfig({
         // defect in that round was found by looking at a narrow screen; nothing
         // in the desktop suite could have caught a single one of them.
         //
-        // Chromium rather than the iPhone profile, which needs WebKit: this
-        // checks whether the page fits and the navigation is reachable, which
-        // is a layout question and identical in both engines. The things that
-        // genuinely differ on iOS — input zoom on focus, safe-area insets,
-        // sticky hover after a tap — cannot be tested in any headless browser
-        // and were confirmed on real hardware instead.
+        // Two engines, because they are not interchangeable here. Chromium
+        // stands in for Android; WebKit is what every iPhone runs, and iOS is
+        // where this application's mobile problems have actually lived —
+        // Safari is the one that zooms into a sub-16px input and the one whose
+        // safe-area insets push a bottom bar under the home indicator.
+        //
+        // Neither can test touch behaviour: sticky hover after a tap, the grey
+        // tap flash, the software keyboard. Those were confirmed on hardware
+        // and cannot be automated here. What these catch is layout, which is
+        // where every regression so far has been.
         { name: "phone", use: { ...devices["Pixel 7"] } },
+        { name: "iphone", use: { ...devices["iPhone 13"] } },
     ],
     webServer: {
         // The production build, not the dev server: these tests should fail if
