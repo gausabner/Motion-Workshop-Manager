@@ -46,15 +46,21 @@ audit goes badly: every number issued, the missing ones flagged, each gap
 accounted for as voided, deleted, or unexplained. No benchmark product does
 this well, which makes it a differentiator rather than catch-up.
 
-## Phase 2 — what an owner decides with
+## Phase 2 — what an owner decides with — **built**
 
 Profit by job (ranked) · item sales by product, group and supplier · stock
-valuation and stocktake variance · mechanic time clocked against charged ·
+valuation · stocktake variance · mechanic time clocked against charged ·
 creditors age · work in progress · customer and vehicle listings · service and
 licence renewals due · quote outcomes.
 
-Each is a download button on a screen that already computes the figures. The
-work is one shared exporter, then ten thin call sites.
+Eleven registers on a "For the owner" screen, plus a download on each screen
+that already shows the same figures. The shared definition moved into
+`lib/exports/kit.ts`, so phase one and phase two render through one path.
+
+Quote outcomes was the only one with no data behind it anywhere. The
+conversion is read from `sourceDocumentId` — what the workshop actually did —
+rather than from a status somebody sets, which is what makes the rate worth
+quoting.
 
 Work in progress doubles as auditor material — it is unbilled revenue at a
 period end. The customer listing is the data-portability answer, and for that
