@@ -12,6 +12,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # Rewritten in lower case before it is used; see "The registry only takes
+  # lowercase" below. Left here so the name is still obvious reading down.
   IMAGE: ${{ github.repository }}
 
 jobs:
@@ -88,6 +90,19 @@ jobs:
           code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
           [ "$code" = "503" ] || { echo "::error::health said $code with the database down"; exit 1; }
           echo "503, as it should be"
+
+      # A container registry takes lower case only, and this repository is
+      # named with capitals, so `github.repository` cannot be used as a tag as
+      # it stands: the push failed on `repository name must be lowercase`.
+      #
+      # It could only ever fail on a push, because a pull request skips the two
+      # steps below — which is why this job went green on every pull request
+      # and had not once succeeded on main since it was added.
+      #
+      # `tr` rather than bash's ${VAR,,} so the line can be run and checked
+      # anywhere, including on a Mac, whose bash is too old for that expansion.
+      - name: The registry only takes lowercase
+        run: echo "IMAGE=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
       # ── publish ───────────────────────────────────────────────────────
       # Only from main: a pull request proves the image builds and runs, it
