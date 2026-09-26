@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { anchorsOf, topicBySlug, TOPICS } from "@/lib/help";
 import { Article } from "@/components/help/Article";
-import { OnThisPage } from "@/components/help/OnThisPage";
+import { OnThisPage, ReadingProgress } from "@/components/help/OnThisPage";
 
 /** Every topic ships as a static page: no database, no network, nothing to fail. */
 export function generateStaticParams() {
@@ -26,12 +26,15 @@ export default async function HelpTopicPage({ params }: { params: Promise<{ slug
 
     return (
         <div className="xl:flex xl:gap-10">
+            <ReadingProgress target="help-article" />
             <div className="min-w-0 flex-1">
                 {/* No "all topics" link here on a phone: the contents
                     disclosure directly above already names where you are and
                     opens the list, and two ways back stacked in 100px is one
                     too many. */}
-                <Article topic={topic} />
+                <div id="help-article">
+                    <Article topic={topic} />
+                </div>
 
                 {related.length > 0 && (
                     <div className="mt-12 max-w-[68ch] border-t border-slate-200 pt-5">

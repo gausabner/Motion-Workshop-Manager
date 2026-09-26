@@ -44,7 +44,14 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
             </header>
 
             <div className="mx-auto max-w-6xl lg:flex lg:gap-10 lg:px-4">
-                <aside className="lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:w-56 lg:shrink-0 lg:overflow-y-auto lg:py-9">
+                {/* The fade is the cue that the list continues. A seventeen-item
+                    rail overflows on a short laptop screen and had no edge at
+                    all, so it read as ending wherever it was cut. Masked rather
+                    than drawn, so nothing new is introduced to the palette; on
+                    a tall screen the list ends above it and it is invisible. */}
+                <aside
+                    className="lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:w-56 lg:shrink-0 lg:overflow-y-auto lg:py-9 lg:[mask-image:linear-gradient(to_bottom,#000_calc(100%-2.5rem),transparent)]"
+                >
                     <TopicRail groups={groups} />
                 </aside>
                 <main className="min-w-0 flex-1 px-4 py-9 lg:px-0">{children}</main>

@@ -93,6 +93,15 @@ export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
                             ))}
                         </ul>
                     )}
+                    {hits.length > 0 && (
+                        <p className="flex items-center justify-between gap-3 border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-500">
+                            <span>{hits.length} {hits.length === 1 ? "answer" : "answers"}</span>
+                            {/* Words rather than arrow glyphs: this is read by a
+                                service advisor, not by somebody who already knows
+                                what a caret means. */}
+                            <span className="hidden sm:inline">Arrow keys to move, Enter to open</span>
+                        </p>
+                    )}
                 </div>
             )}
         </div>
