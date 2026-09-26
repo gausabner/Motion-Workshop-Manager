@@ -310,3 +310,66 @@ table th,
     @apply bg-background text-foreground;
   }
 }
+/* ── The surfaces we did not draw ──────────────────────────────────────────
+   Selection, the caret, focus rings and scrollbars ship with browser defaults
+   that belong to no design system — a blue selection and a blue focus ring on
+   a page built from slate and teal. They are cheap to theme and they are the
+   difference between a page that was built and one that was assembled.
+
+   Tabular numerals are set globally rather than per-table: every figure in
+   MOTION is somebody's money, and a column of amounts whose digits are
+   different widths cannot be read down. */
+:root {
+  --motion-accent: #0f766e;   /* teal-700 */
+  --motion-ink: #0f172a;      /* slate-900 */
+  --motion-hairline: #e2e8f0; /* slate-200 */
+}
+
+::selection {
+  background: color-mix(in srgb, var(--motion-accent) 18%, transparent);
+  color: var(--motion-ink);
+}
+
+/* The caret picks up the accent rather than the OS default. */
+input,
+textarea,
+[contenteditable] {
+  caret-color: var(--motion-accent);
+}
+
+/* One focus ring, keyboard only, in the palette. Mouse users never see it;
+   anybody tabbing through a form always does. */
+:focus-visible {
+  outline: 2px solid var(--motion-accent);
+  outline-offset: 2px;
+}
+
+/* Slim, neutral scrollbars: a rail and a drawer both scroll, and the default
+   chrome is heavier than anything else on these pages. */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  /* A transparent inset rather than a white one: hardcoding #fff put a white
+     halo on the thumb of every scroll container that is not white. */
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Underlines that clear their descenders. */
+a { text-underline-offset: 0.2em; }
+
+/* Figures line up down a column where figures are compared down a column.
+   Deliberately not `table` and not a match on Tailwind's own utility: the
+   first would set tabular figures on columns of prose, and the second would
+   restate a utility Tailwind already ships. Opt in with `.tabular`. */
+.tabular { font-variant-numeric: tabular-nums; }

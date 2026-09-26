@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-25T00:00:00Z",
+  "title": "Design System: MOTION Workshop Manager",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Workshop Teal", "canonical": "#0f766e", "tonalRamp": ["#042f2e", "#134e4a", "#115e59", "#0f766e", "#0d9488", "#2dd4bf", "#99f6e4", "#f0fdfa"] },
+      "accent-hover": { "role": "primary", "displayName": "Workshop Teal Pressed", "canonical": "#115e59", "tonalRamp": ["#042f2e", "#0f3f3c", "#134e4a", "#115e59", "#0f766e", "#14b8a6", "#5eead4", "#ccfbf1"] },
+      "accent-tint": { "role": "primary", "displayName": "Teal Wash", "canonical": "#f0fdfa", "tonalRamp": ["#134e4a", "#0f766e", "#14b8a6", "#5eead4", "#99f6e4", "#ccfbf1", "#e6fffb", "#f0fdfa"] },
+      "ink": { "role": "neutral", "displayName": "Ledger Ink", "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"] },
+      "ink-strong": { "role": "neutral", "displayName": "Body Ink", "canonical": "#1e293b", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"] },
+      "secondary-ink": { "role": "neutral", "displayName": "Reading Ink", "canonical": "#475569", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] },
+      "muted-ink": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#64748b", "tonalRamp": ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"] },
+      "faint-ink": { "role": "neutral", "displayName": "Faint Ink", "canonical": "#94a3b8", "tonalRamp": ["#1e293b", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#e2e8f0", "tonalRamp": ["#1e293b", "#475569", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc", "#ffffff"] },
+      "hairline-faint": { "role": "neutral", "displayName": "Faint Hairline", "canonical": "#f1f5f9", "tonalRamp": ["#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc", "#ffffff"] },
+      "field-edge": { "role": "neutral", "displayName": "Field Edge", "canonical": "#cbd5e1", "tonalRamp": ["#1e293b", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"] },
+      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff", "tonalRamp": ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc", "#ffffff"] },
+      "surface-sunken": { "role": "neutral", "displayName": "Sunken Paper", "canonical": "#f8fafc", "tonalRamp": ["#0f172a", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"] },
+      "surface-band": { "role": "neutral", "displayName": "Band Slate", "canonical": "#e2e8f0", "tonalRamp": ["#0f172a", "#475569", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc", "#ffffff"] },
+      "app-ground": { "role": "neutral", "displayName": "App Ground", "canonical": "oklch(0.97 0 0)", "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.30 0 0)", "oklch(0.45 0 0)", "oklch(0.60 0 0)", "oklch(0.75 0 0)", "oklch(0.90 0 0)", "oklch(0.97 0 0)", "oklch(1 0 0)"] },
+      "overdue": { "role": "tertiary", "displayName": "Overdue Red", "canonical": "#b91c1c", "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#f87171", "#fecaca", "#fef2f2"] },
+      "caution": { "role": "tertiary", "displayName": "Caution Amber", "canonical": "#b45309", "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#fbbf24", "#fde68a", "#fffbeb"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The title of a reading page. One per page, 30px/600, tracking-tight." },
+      "headline": { "displayName": "Headline", "purpose": "A section heading inside an article; becomes an anchor and an on-this-page entry." },
+      "title": { "displayName": "Lead", "purpose": "The answer sentence behind a teal left marker, and the compact title inside a panel." },
+      "body": { "displayName": "Body", "purpose": "Running prose at 15px/1.7, capped at a 68-character measure." },
+      "dense": { "displayName": "Dense", "purpose": "Rail items, captions, drawer prose, the secondary line under a title. The app's normal." },
+      "label": { "displayName": "Label", "purpose": "Names a structure: a table column, a topic group, a panel, a summary figure. Never a kicker." },
+      "figure": { "displayName": "Figure", "purpose": "Amounts and totals, tabular so a column reads down." }
+    },
+    "shadows": [
+      { "name": "flat", "value": "none", "purpose": "The default. Anything that belongs to the page has no shadow; a hairline and a tone carry its depth." },
+      { "name": "popover", "value": "0 10px 15px -3px rgb(15 23 42 / 0.05), 0 4px 6px -4px rgb(15 23 42 / 0.05)", "purpose": "A result list or menu hanging under its trigger, always over a 1px slate-200 border." },
+      { "name": "panel", "value": "0 25px 50px -12px rgb(15 23 42 / 0.10)", "purpose": "A drawer or sheet that has come in from an edge, over a hairline on the edge it came from." },
+      { "name": "scrim", "value": "background: rgb(15 23 42 / 0.20)", "purpose": "Dims the work behind a panel without hiding it. 0.40 for the mobile nav sheet." }
+    ],
+    "motion": [
+      { "name": "colour-only", "value": "transition: color 150ms, background-color 150ms, border-color 150ms", "purpose": "The default state transition. Nothing moves; the colour changes." },
+      { "name": "panel-in", "value": "slide-in-from-right 200ms cubic-bezier(0, 0, 0.2, 1)", "purpose": "The screen-keyed drawer entering from the right edge. Wrapped in motion-safe:." },
+      { "name": "scrim-in", "value": "fade-in 150ms", "purpose": "The scrim appearing under a panel. Wrapped in motion-safe:." },
+      { "name": "disclosure", "value": "transform 200ms", "purpose": "The chevron rotating 180 degrees on the phone contents disclosure." },
+      { "name": "press", "value": "transform: scale(0.985)", "purpose": "Touch-only press feedback so a control answers the finger, not the lift. Suppressed under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "container", "value": "1152px" },
+      { "name": "measure", "value": "68ch" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled control on a screen: the action that commits.",
+      "html": "<button class=\"ds-btn-primary\">Take payment</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: #0f766e; color: #fff; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; border: none; border-radius: 2px; transition: background-color 150ms; } .ds-btn-primary:hover { background: #115e59; } .ds-btn-primary:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; } .ds-btn-primary:active { background: #115e59; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "The secondary control: white ground, hairline edge, slate label.",
+      "html": "<button class=\"ds-btn-outline\">Export</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: #fff; color: #475569; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; border: 1px solid #e2e8f0; border-radius: 2px; transition: background-color 150ms, color 150ms; } .ds-btn-outline:hover { background: #f8fafc; color: #0f172a; } .ds-btn-outline:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "A bare 32px square target for chrome actions — help, close, dismiss.",
+      "html": "<button class=\"ds-btn-icon\" aria-label=\"Help for this screen\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"18\" height=\"18\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"/><path d=\"M12 17h.01\"/></svg></button>",
+      "css": ".ds-btn-icon { display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; background: transparent; color: #64748b; border: none; border-radius: 2px; transition: background-color 150ms, color 150ms; } .ds-btn-icon:hover { background: #f1f5f9; color: #0f172a; } .ds-btn-icon:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "The square hairline field: a leading 16px glyph, and a border that goes teal when anything inside it has focus.",
+      "html": "<div class=\"ds-field\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-field-input\" placeholder=\"Ask it the way you would say it\" aria-label=\"Search help\"></div>",
+      "css": ".ds-field { display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 0; color: #94a3b8; transition: border-color 150ms; } .ds-field:focus-within { border-color: #0f766e; } .ds-field-input { height: 40px; width: 100%; min-width: 0; background: transparent; border: none; outline: none; caret-color: #0f766e; color: #0f172a; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; } .ds-field-input::placeholder { color: #64748b; }"
+    },
+    {
+      "name": "Report Panel",
+      "kind": "card",
+      "refersTo": "panel-flat",
+      "description": "The app's container: square, hairline all round, flat at rest, a filled slate band at the top and a sunken summary strip at the foot.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-band\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg><h2 class=\"ds-panel-title\">Who owes us</h2></header><div class=\"ds-panel-body\">Every invoice on the books is settled.</div><footer class=\"ds-panel-foot\"><span>12 accounts</span><span class=\"ds-panel-total\">N$ 48 210.00</span></footer></section>",
+      "css": ".ds-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 0; box-shadow: none; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-panel-band { display: flex; align-items: center; gap: 12px; height: 56px; padding: 8px 16px; background: #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #475569; } .ds-panel-title { margin: 0; font-size: 18px; font-weight: 700; color: #1e293b; } .ds-panel-body { padding: 40px 16px; text-align: center; font-size: 14px; color: #64748b; } .ds-panel-foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; } .ds-panel-total { font-size: 16px; font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Ledger Table",
+      "kind": "custom",
+      "refersTo": "table-head-cell",
+      "description": "Zebra rows, 10px uppercase column labels, figures right-aligned and tabular. Stacks to one card per record below 768px.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Customer</th><th>Oldest due</th><th class=\"ds-num\">Owing</th></tr></thead><tbody><tr><td class=\"ds-key\">Namib Panel Beaters</td><td>04 Aug 2026</td><td class=\"ds-num ds-late\">12 480.00</td></tr><tr><td class=\"ds-key\">Khomas Fleet Services</td><td>19 Aug 2026</td><td class=\"ds-num\">3 105.50</td></tr><tr><td class=\"ds-key\">Windhoek Municipality</td><td>02 Sep 2026</td><td class=\"ds-num\">32 624.50</td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; text-align: left; } .ds-table th { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; background: #fff; color: #64748b; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; } .ds-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #475569; font-variant-numeric: tabular-nums; } .ds-table tbody tr:nth-child(odd) { background: #f8fafc; } .ds-table tbody tr:hover { background: #f1f5f9; } .ds-key { font-weight: 500; color: #1e293b; } .ds-num { text-align: right; } .ds-late { color: #b91c1c; font-weight: 500; }"
+    },
+    {
+      "name": "Topic Rail",
+      "kind": "nav",
+      "refersTo": "rail-item",
+      "description": "Every topic visible at once. The signature left marker: slate hairline at rest, teal on the current item.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Topics\"><p class=\"ds-rail-label\">Money</p><ul class=\"ds-rail-list\"><li><a class=\"ds-rail-item\" href=\"#\">Taking a deposit</a></li><li><a class=\"ds-rail-item ds-rail-item-active\" href=\"#\" aria-current=\"page\">Why can't I void this?</a></li><li><a class=\"ds-rail-item\" href=\"#\">Who owes us</a></li></ul></nav>",
+      "css": ".ds-rail { font-family: Geist, ui-sans-serif, system-ui, sans-serif; width: 224px; } .ds-rail-label { margin: 0 0 8px; color: #64748b; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; } .ds-rail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; } .ds-rail-item { display: block; margin-left: -1px; padding: 4px 0 4px 12px; border-left: 1px solid #e2e8f0; color: #475569; font-size: 13px; text-decoration: none; transition: color 150ms, border-color 150ms; } .ds-rail-item:hover { border-left-color: #94a3b8; color: #0f172a; } .ds-rail-item:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; } .ds-rail-item-active { border-left-color: #0f766e; color: #0f172a; font-weight: 500; }"
+    },
+    {
+      "name": "Answer Lead",
+      "kind": "custom",
+      "refersTo": "panel-flat",
+      "description": "The answer before anything else: one 17px sentence behind a 1px teal marker, under the page title.",
+      "html": "<article class=\"ds-answer\"><h1 class=\"ds-answer-title\">Why can't I void this?</h1><p class=\"ds-answer-lead\">Once a document has a payment allocated against it, voiding would change books that have already been reconciled — credit it instead.</p></article>",
+      "css": ".ds-answer { font-family: Geist, ui-sans-serif, system-ui, sans-serif; max-width: 68ch; } .ds-answer-title { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.25; letter-spacing: -0.015em; color: #0f172a; } .ds-answer-lead { margin: 12px 0 0; padding-left: 12px; border-left: 1px solid #0f766e; font-size: 17px; line-height: 1.6; color: #1e293b; }"
+    },
+    {
+      "name": "Note Band",
+      "kind": "custom",
+      "refersTo": "panel-flat",
+      "description": "Something that will cost money or time if it is missed. One tone only — never a three-colour callout family.",
+      "html": "<p class=\"ds-note\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/></svg><span>A receipt cannot be edited after it is allocated. Refund it and take the payment again.</span></p>",
+      "css": ".ds-note { display: flex; gap: 10px; margin: 20px 0 0; padding: 10px 12px; background: rgb(248 250 252 / 0.7); border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.7; color: #475569; } .ds-note > svg { flex-shrink: 0; margin-top: 2px; color: #94a3b8; }"
+    },
+    {
+      "name": "Screen-Keyed Drawer",
+      "kind": "custom",
+      "refersTo": "drawer-panel",
+      "description": "Help over the work, already on the right page. Right-anchored, square, hairline left edge, the work dimmed but visible behind it.",
+      "html": "<div class=\"ds-drawer-wrap\"><div class=\"ds-scrim\"></div><div class=\"ds-drawer\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Help\"><div class=\"ds-drawer-head\"><span class=\"ds-drawer-label\">Help</span><button class=\"ds-drawer-close\" aria-label=\"Close help\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div><div class=\"ds-drawer-body\"><h2 class=\"ds-drawer-title\">Counting stock</h2><p class=\"ds-drawer-lead\">A stocktake freezes the count you started, so movements after it do not change the figures you are entering.</p></div></div></div>",
+      "css": ".ds-drawer-wrap { position: relative; display: flex; justify-content: flex-end; height: 320px; overflow: hidden; } .ds-scrim { position: absolute; inset: 0; background: rgb(15 23 42 / 0.2); } .ds-drawer { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 448px; height: 100%; background: #fff; border-left: 1px solid #e2e8f0; border-radius: 0; box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.1); font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; } .ds-drawer-label { color: #64748b; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; } .ds-drawer-close { display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; background: transparent; border: none; border-radius: 2px; color: #94a3b8; transition: color 150ms, background-color 150ms; } .ds-drawer-close:hover { background: #f1f5f9; color: #0f172a; } .ds-drawer-close:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; } .ds-drawer-body { padding: 20px 16px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; } .ds-drawer-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: #0f172a; } .ds-drawer-lead { margin: 12px 0 0; padding-left: 12px; border-left: 1px solid #0f766e; font-size: 13px; line-height: 1.6; color: #1e293b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ledger Page",
+    "overview": "MOTION looks like a well-kept book of account rendered at screen resolution. Structure is drawn with 1px slate rules rather than with shadows and boxes; a heading is a heading because a hairline runs under it, and a group of figures is a group because a rule closes it. Nothing floats unless it is genuinely floating above the page. The ground is white, the ink is near-black slate, and exactly one colour — a deep teal — marks anything that acts or anything that is where you are. Every figure is somebody's money, so figures are tabular by default and columns of them line up down the page whether or not a screen remembered to ask.\n\nDensity is high and deliberate. The signed-in app is read at a counter by somebody being interrupted: 14px and 11-13px carry most of it, labels drop to 10px uppercase, and the vertical rhythm is tight enough that a whole report fits above the fold. The help library, built inside this same world, is the one place the ramp opens up — 15px body at 1.7 on a 68-character measure, a 30px title — because a manual is read in sentences rather than scanned in columns. Same palette, same hairlines, same teal, same near-zero corners; only the reading scale changes.\n\nThe confirmed rejection is decoration. There is no gradient, no tinted card, no coloured chrome, no illustration, and no second accent competing with the teal. Where other systems reach for a raised card, MOTION draws a rule. Where they reach for a badge colour, MOTION reaches for weight. Light only: dark tokens exist in globals.css and nothing in the product switches to them.",
+    "keyCharacteristics": [
+      "White ground, slate-900 ink, a single deep-teal accent on anything actionable or current",
+      "1px slate-200 hairlines carry the structure that shadows carry elsewhere",
+      "Near-zero corners: square by default, 2px at most, pills only on the round-affordance leftovers",
+      "10px uppercase tracked labels naming structures — columns, groups, panels",
+      "Tabular numerals on every figure, set globally rather than per screen",
+      "Lucide icons at strokeWidth 1.75, sized 12-20px, never as a decorative motif",
+      "Tables become stacked cards below 768px; nothing scrolls sideways to be read",
+      "Light only, and the status bar says so (themeColor: \"#ffffff\", colorScheme: \"light\")"
+    ],
+    "rules": [
+      { "name": "The One Teal Rule", "body": "Teal means \"this acts\" or \"you are here\", and nothing else. A decorative teal, a teal heading, or a teal panel ground breaks the signal that makes the accent readable at a glance.", "section": "colors" },
+      { "name": "The Hairline Rule", "body": "Structure is a 1px slate-200 rule. Reach for a rule before reaching for a border-box, a tint, or a shadow. If a division needs more emphasis than a hairline, the answer is a label above it, not a heavier line.", "section": "colors" },
+      { "name": "The Red Is A Verdict Rule", "body": "Red and amber report the state of money and nothing else. They never carry brand, emphasis, or category.", "section": "colors" },
+      { "name": "The Label Names A Structure Rule", "body": "The 10px uppercase tracked label belongs to a thing that contains other things: a table column, a topic group, a panel header, a figure in a summary strip. It never sits above a heading as a kicker or an eyebrow, and it never introduces prose.", "section": "typography" },
+      { "name": "The Measure Rule", "body": "Prose is capped at 68 characters (max-w-[68ch]). Whatever the viewport does, a paragraph does not get wider; the third column disappears before the measure does.", "section": "typography" },
+      { "name": "The Answer First Rule", "body": "A reading page opens with one sentence at 17px behind a 1px teal rule. Somebody who reads only that sentence has still been helped.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Figures are tabular. table td, table th and [data-money] get font-variant-numeric: tabular-nums globally so a new screen cannot forget it; .tabular is the opt-in for figures outside a table.", "section": "typography" },
+      { "name": "The Flat-At-Rest Rule", "body": "Nothing that belongs to the page has a shadow. If an element is not floating above the page, its depth is a hairline and a tone.", "section": "elevation" },
+      { "name": "The Border Comes With The Shadow Rule", "body": "Every floating surface carries both a 1px slate border and its soft shadow. The border does the work on a display that renders the shadow away.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do draw structure with a 1px hairline rule before reaching for a box, a tint, or a shadow.",
+      "Do keep the accent to things that act or say \"you are here\" — The One Teal Rule.",
+      "Do set panels and fields square, and cap any softening at 2px (rounded-sm).",
+      "Do open a reading page with one 17px sentence behind a teal left marker.",
+      "Do cap prose at 68 characters and drop a column rather than widen the measure.",
+      "Do label a structure with the 10px/600/0.05em uppercase label — a column, a group, a panel, a summary figure.",
+      "Do give every figure tabular numerals; use [data-money] or .tabular outside a table.",
+      "Do mark any comparison table data-mobile=\"cards\" and annotate its cells, so it stacks below 768px instead of scrolling sideways.",
+      "Do use lucide at strokeWidth={1.75}, sized 12-20px, and mark it aria-hidden when a label is already present.",
+      "Do set the input's own font-size to 16px at coarse pointers.",
+      "Do wrap entrance and movement in motion-safe: and keep transitions to colour at ~150ms.",
+      "Do give a floating surface both a 1px border and its soft shadow.",
+      "Do override the component library's stock radius and shadow-sm on any panel you design (rounded-none shadow-none border border-slate-200)."
+    ],
+    "donts": [
+      "Don't put a shadow on anything that belongs to the page. Flat at rest.",
+      "Don't use a hard offset shadow; this is not a neobrutalist world.",
+      "Don't introduce a second accent, a gradient, a coloured panel ground, or a tinted card. Red and amber report the state of money and nothing else.",
+      "Don't set the 10px uppercase label above a heading as a kicker or an eyebrow. It names a structure or it is not used.",
+      "Don't reach for a radius above 2px on a content container; the pill is reserved for the app header's round chrome.",
+      "Don't use a glyph or a character as a bullet, a divider, or an icon — a hairline or a lucide icon, nothing else.",
+      "Don't render the same content twice from two components; one renderer, a compact scale.",
+      "Don't ship a dark variant. The product is light only, colorScheme: \"light\", and the dark tokens in globals.css are dormant.",
+      "Don't put a figure in a column of figures without tabular numerals. Money that does not line up is a defect, not a preference.",
+      "Don't fix an input-zoom or a tap-highlight problem by disabling zoom or hover; fix the cause, as the platform layer in globals.css does."
+    ]
+  }
+}

@@ -131,7 +131,7 @@ export function ImportWizard({ tenant }: { tenant: string }) {
                         )}
                         {mappedFields.length > 0 && preview.sample.length > 0 && (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
+                                <table className="w-full text-xs tabular-nums">
                                     <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
                                         <tr><th className="px-3 py-1.5 text-left">Line</th>{mappedFields.map((f) => <th key={f.key} className="px-3 py-1.5 text-left font-semibold">{f.label}</th>)}</tr>
                                     </thead>

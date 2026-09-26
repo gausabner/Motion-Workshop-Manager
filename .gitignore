@@ -52,3 +52,13 @@ skills/
 skills-lock.json
 .claude/skills/
 .github/hooks/
+
+# Impeccable workbench output: review captures and the detector's cache are
+# regenerated on demand and say nothing a reader of this repo needs.
+# The surface briefs, DESIGN.md and design.json ARE tracked — they are the
+# durable record of what was decided.
+web/.impeccable/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/review/
+.impeccable/questions/

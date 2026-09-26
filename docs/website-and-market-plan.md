@@ -51,11 +51,19 @@ internet. **Every public page must render with no outward request.** That rules
 out a hosted CMS, an analytics tag, an embedded chat widget, a font from a CDN
 and an image from a bucket.
 
-This is not hypothetical. This month the Next build failed outright because it
-fetches Geist from Google Fonts at build time and the network blipped. The same
-dependency in a page served inside a council would fail every time. Fonts get
-self-hosted, images ship in the repo, and the on-premise build is verified with
-the network switched off before it is ever shipped.
+One correction to an earlier draft of this plan, because it changes the work:
+**fonts are already safe.** `next/font/google` downloads at build time and
+self-hosts into the bundle — the built CSS points at `/_next/static/media/*.woff2`
+and nothing in the shipped output names Google at all. The build needs the
+network; the served page does not, and the image is built in CI either way.
+There is no font work to do.
+
+What the constraint does still rule out is everything that reaches out *at
+runtime*: a hosted search index, an analytics tag, an embedded chat widget, a
+CDN script, an image served from a bucket. Search is therefore computed in the
+browser from content that ships with the page, and images live in the repo.
+The on-premise build is still verified with the network switched off, because
+the cheapest way to be sure is to look.
 
 ### The pages
 

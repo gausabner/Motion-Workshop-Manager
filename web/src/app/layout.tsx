@@ -58,9 +58,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    /* The font variables belong on <html>, not <body>.
+       globals.css maps Tailwind's --font-sans to var(--font-geist-sans) inside
+       @theme inline, which resolves at :root — so with the variables defined a
+       level lower on <body> the lookup found nothing and every page in MOTION
+       fell back to the system stack while still downloading and serving Geist.
+       The fonts were paid for on every request and never once used. */
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="font-sans antialiased"
       >
         <Providers>
           {children}

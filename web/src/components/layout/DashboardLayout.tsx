@@ -7,6 +7,7 @@ import { logoutAction } from "@/lib/auth/actions";
 import { can } from "@/lib/auth/permissions";
 import { GROUP_LABELS } from "@/lib/auth/permissions";
 import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
+import { HelpButton } from "@/components/help/HelpButton";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 
@@ -67,6 +68,9 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
                     </div>
                 </form>
             </div>
+            {/* Beside the work, not in a menu: help that takes three clicks
+                to reach is help nobody reaches. */}
+            <HelpButton />
             <Button variant="ghost" size="icon" className="rounded-full" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
             </Button>
