@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "MOTION - Workshop Manager",
-  description: "Enterprise Workshop Management SaaS",
+  title: "MOTION Workshop Manager",
+  // The fallback for any page that does not set its own. "Enterprise
+  // Workshop Management SaaS" said nothing, and it was what showed in a link
+  // preview when somebody sent the site to a workshop owner.
+  description: "Workshop management for Namibia: the diary, job cards, invoicing, payments and parts a workshop runs its day on.",
 };
 
 /**
