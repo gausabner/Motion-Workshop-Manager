@@ -128,23 +128,29 @@ Eight documents. This is the whole list for a private workshop sale.
 | Invoice and quote templates | The paperwork of actually being a business |
 | Care plan description | Hand-holding is **sold**, not bundled — already decided |
 
-### Tier two — before a council will sign
+### Tier two — before a council will sign — **written**
 
 Procurement will ask for these by name and a missing one stalls a tender for a
 month. The good news is how much of it already exists as working code rather
 than as prose to invent.
 
-| Document | What it is written from |
+Written as four documents rather than nine, because several of them are one
+document in practice: a council asks for a DPA and expects retention inside it,
+and nobody runs a UAT plan separately from the cutover checklist it leads to.
+
+| Document | Covers |
 | --- | --- |
-| Security whitepaper | RLS forced on every tenant table with isolation tests; hashed sessions, invitations and API keys; permissions per role |
-| Data protection / DPA | Where data lives, who can reach it, the audit trail of who read and exported what |
-| Data retention & deletion | Settings exist (`keepYears`); the policy is the sentence around them |
-| Business continuity & DR | The image publishes to a registry, `/api/health` proves a deploy, migrations run from empty — all demonstrated in CI |
-| Exit / data portability | **The bundle already does this**: every table as CSV with a README saying how they join |
-| Integration guide | `docs/public-api.md` plus the hand-off: outbound only, never inbound |
-| UAT plan & acceptance sign-off | What "working" means, agreed before go-live rather than argued after |
-| Cutover & rollback checklist | Import, verify, switch, and what happens if it goes wrong |
-| Escalation matrix | Who to ring at each severity, with names |
+| [security-whitepaper.md](security-whitepaper.md) | Isolation, credential storage, permissions, the audit trail, the outbound-only posture — and a named list of what MOTION does not have |
+| [data-protection.md](data-protection.md) | Controller and processor, what is held, who can reach it, retention, deletion, and getting everything out |
+| [continuity-and-recovery.md](continuity-and-recovery.md) | What recovery depends on, what the pipeline proves on every change, and what cannot be promised until a host is chosen |
+| [integration-guide.md](integration-guide.md) | The nightly journal, the four column maps, the receipt leg, the archive, and the API |
+| [implementation-pack.md](implementation-pack.md) | RACI, a 24-row UAT script, the cutover, rollback rules, the escalation matrix and an acceptance signature |
+
+Each was written from the shipped code and its figures verified rather than
+recalled. What they share is the section naming what is absent: no MFA, no SSO,
+no automated backups, no encryption at rest MOTION can attest to, no SOC 2, no
+penetration test, no uptime commitment, no subprocessor list, no registered
+entity. Procurement finds those anyway — later, and with less goodwill.
 
 **This is the real finding.** The security questionnaire that usually takes a
 small vendor a month is mostly a description of decisions already made and
