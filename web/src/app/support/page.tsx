@@ -51,17 +51,19 @@ export default function SupportPage() {
     ].filter((c): c is NonNullable<typeof c> => Boolean(c));
 
     return (
-        <PublicShell>
-            <div className="mx-auto max-w-3xl px-4 py-14">
-                <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-slate-900">Support</h1>
-                <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-slate-600">
+        <PublicShell
+            title="Support"
+            intro="How to reach a person, what to have ready, and what counts as urgent."
+        >
+            <div className="mx-auto max-w-3xl px-5 pb-16">
+                <p className="-mt-4 max-w-2xl text-[15px] leading-relaxed text-slate-600">
                     Most questions are answered faster in{" "}
                     <Link href="/help" className="text-teal-700 underline underline-offset-4">the help library</Link> than by waiting for a
-                    reply — it is written as the questions people actually ring about.
+                    reply — it is written as the questions people actually ring about. What is not there is below.
                 </p>
 
                 {onPrem && (
-                    <section className="mt-8 border-y border-slate-200 bg-slate-50/70 px-4 py-4">
+                    <section className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4">
                         <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">Ask your own administrator first</h2>
                         <p className="mt-1.5 text-[14px] leading-relaxed text-slate-700">
                             {admin ? <>At this site that is <span className="font-medium text-slate-900">{admin}</span>.</> : "Whoever set up the staff logins at this site."}{" "}

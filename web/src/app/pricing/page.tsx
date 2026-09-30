@@ -25,23 +25,18 @@ export default function PricingPage() {
     if (!isCloud()) notFound();
 
     return (
-        <PublicShell>
-            <div className="mx-auto max-w-5xl px-4 py-14">
-                <div className="max-w-2xl">
-                    <h1 className="text-[34px] font-semibold leading-tight tracking-tight text-slate-900">
-                        What it costs
-                    </h1>
-                    <p className="mt-4 text-[16px] leading-relaxed text-slate-600">
-                        Priced for this market rather than converted from somewhere else. Every tier includes every member of staff, and your data
-                        leaves with you whenever you ask for it.
-                    </p>
-                </div>
-
-                <div className="mt-10 grid gap-4 lg:grid-cols-3">
+        <PublicShell
+            title="What it costs"
+            intro="Priced for this market rather than converted from somewhere else. Every tier includes every member of staff, and your data leaves with you whenever you ask for it."
+        >
+            <div className="mx-auto max-w-5xl px-5 pb-16">
+                <div className="-mt-10 grid gap-4 lg:grid-cols-3">
                     {PLANS.map((plan) => (
                         <section
                             key={plan.id}
-                            className={`flex flex-col border bg-white p-5 ${plan.featured ? "border-teal-700" : "border-slate-200"}`}
+                            className={`flex flex-col rounded-2xl border bg-white p-6 shadow-sm motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-900/5 ${
+                                plan.featured ? "border-teal-500 shadow-lg shadow-teal-900/10" : "border-slate-200"
+                            }`}
                         >
                             <h2 className="text-[17px] font-semibold tracking-tight text-slate-900">{plan.name}</h2>
                             <p className="mt-1 text-[13px] text-slate-500">{plan.who}</p>
@@ -79,10 +74,10 @@ export default function PricingPage() {
 
                             <Link
                                 href={plan.cta.href}
-                                className={`mt-5 inline-flex items-center justify-center rounded-sm px-4 py-2 text-[14px] font-medium transition-colors ${
+                                className={`mt-6 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[14px] font-medium motion-safe:transition-[transform,background-color,border-color] motion-safe:duration-150 active:scale-[0.97] ${
                                     plan.featured
-                                        ? "bg-slate-900 text-white hover:bg-slate-700"
-                                        : "border border-slate-300 text-slate-800 hover:bg-slate-50"
+                                        ? "bg-teal-600 text-white hover:bg-teal-500"
+                                        : "border border-slate-300 text-slate-800 hover:border-slate-400 hover:bg-slate-50"
                                 }`}
                             >
                                 {plan.cta.label}
@@ -91,7 +86,7 @@ export default function PricingPage() {
                     ))}
                 </div>
 
-                <section className="mt-10 border-t border-slate-200 pt-8">
+                <section className="mt-14 border-t border-slate-200 pt-9">
                     <h2 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Whichever tier you are on</h2>
                     <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                         {ALWAYS.map((line) => (
@@ -103,7 +98,7 @@ export default function PricingPage() {
                     </ul>
                 </section>
 
-                <section className="mt-8 border border-slate-200 bg-slate-50/70 px-5 py-4">
+                <section className="mt-9 rounded-2xl border border-slate-200 bg-slate-50/70 px-6 py-5">
                     <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">{CARE.name}</h2>
                     <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-slate-700">{CARE.pitch}</p>
                     <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-500">{CARE.note}</p>

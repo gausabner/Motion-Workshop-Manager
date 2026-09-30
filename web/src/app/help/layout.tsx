@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { MotionLogo } from "@/components/brand/MotionLogo";
 import { byGroup } from "@/lib/help";
 import { HelpSearch } from "@/components/help/HelpSearch";
 import { TopicRail } from "@/components/help/TopicRail";
@@ -21,9 +22,14 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
             <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
                 <div className="mx-auto max-w-6xl px-4">
                     <div className="flex h-14 items-center justify-between gap-4">
-                        <Link href="/help" className="flex shrink-0 items-center gap-2 text-slate-900">
-                            <BookOpen aria-hidden strokeWidth={1.75} className="h-[18px] w-[18px] text-slate-400" />
-                            <span className="text-[14px] font-semibold tracking-tight">MOTION Help</span>
+                        {/* The mark rather than the words "MOTION Help": the
+                            manual keeps its own light reading world, which was
+                            settled against its direction contract, but the
+                            brand should be the same object here as everywhere
+                            else. */}
+                        <Link href="/help" className="flex shrink-0 items-center gap-2.5 text-slate-900">
+                            <MotionLogo className="h-[18px] w-auto" />
+                            <span className="hidden text-[13px] text-slate-400 sm:inline">Help</span>
                         </Link>
                         {/* Desktop: search sits between the brand and the way
                             back in, reachable from every page of the manual. */}
@@ -32,9 +38,21 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
                                 <HelpSearch />
                             </div>
                         </div>
-                        <Link href="/login" className="shrink-0 text-[13px] text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline">
-                            Sign in
-                        </Link>
+                        <span className="flex shrink-0 items-center gap-4">
+                            <Link
+                                href="/"
+                                className="group hidden items-center gap-1.5 text-[13px] text-slate-500 underline-offset-4 hover:text-slate-900 sm:inline-flex"
+                            >
+                                <ArrowLeft
+                                    className="h-3.5 w-3.5 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:-translate-x-0.5"
+                                    strokeWidth={2}
+                                />
+                                Site
+                            </Link>
+                            <Link href="/login" className="rounded-full bg-slate-900 px-3.5 py-1.5 text-[13px] font-medium text-white motion-safe:transition-colors motion-safe:duration-150 hover:bg-slate-700">
+                                Sign in
+                            </Link>
+                        </span>
                     </div>
                     {/* Phone: its own row rather than a cramped third of one. */}
                     <div className="pb-3 md:hidden">

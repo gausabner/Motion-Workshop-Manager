@@ -1,14 +1,20 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { edition, support } from "@/lib/edition";
 
 /**
- * The frame around everything a signed-out visitor sees.
+ * The frame every public page except the landing sits in.
  *
- * Written once for both editions because almost all of it is the same: a
- * masthead, a way in, and a foot that says how to reach a person. What differs
- * is what the masthead offers — a price and a way to start on the hosted
- * service, nothing of the kind on a server a council already paid for.
+ * It carries the landing's register rather than a second one: a dark masthead,
+ * an optional dark band for the page's own title, then the content on white.
+ * The seam between the two is the same gradient the landing uses, so moving
+ * between them reads as one site rather than as a marketing page and then
+ * some other pages somebody built later.
+ *
+ * What differs by edition is the masthead's offer — a price and a way to start
+ * on the hosted service, nothing of the kind on a server a council has already
+ * paid for.
  */
 
 const NAV_CLOUD = [
@@ -17,89 +23,118 @@ const NAV_CLOUD = [
     { href: "/support", label: "Support" },
 ];
 
-// No "this installation" entry: those facts are on the front page, which the
-// masthead already returns to. A second page carrying the same four rows is
-// the duplication that makes people stop trusting either copy.
 const NAV_ONPREM = [
     { href: "/help", label: "Help" },
     { href: "/support", label: "Support" },
 ];
 
-export function PublicShell({ children }: { children: ReactNode }) {
+export const PUBLIC_GLOW =
+    "radial-gradient(50rem 26rem at 50% -8rem, rgba(45,212,191,0.15), transparent 70%), radial-gradient(34rem 20rem at 85% 20%, rgba(13,148,136,0.12), transparent 65%)";
+
+export function PublicShell({
+    children,
+    title,
+    intro,
+}: {
+    children: ReactNode;
+    /** Shown on the dark band. Omit and the page starts straight on white. */
+    title?: string;
+    intro?: string;
+}) {
     const cloud = edition() === "cloud";
     const nav = cloud ? NAV_CLOUD : NAV_ONPREM;
     const reach = support();
 
     return (
         <div className="flex min-h-dvh flex-col bg-white">
-            <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-                <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
-                    <Link href="/" className="text-[15px] font-semibold tracking-tight text-slate-900">
-                        MOTION
-                    </Link>
-                    {/* The links stay on a phone. Most people arrive here from a
-                        WhatsApp link on a handset, and a masthead offering
-                        nothing but "Sign in" to somebody who has not bought
-                        anything yet is a dead end. They fit at this size. */}
-                    <nav className="flex items-center gap-4 sm:gap-5">
-                        {nav.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className="text-[13px] text-slate-600 underline-offset-4 hover:text-slate-900 hover:underline"
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
-                        <Link
-                            href="/login"
-                            className="rounded-sm bg-slate-900 px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-slate-700"
-                        >
-                            Sign in
+            <div className="relative overflow-hidden bg-teal-950 text-white">
+                <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: PUBLIC_GLOW }} />
+
+                <header className="relative z-10">
+                    <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+                        <Link href="/" aria-label="MOTION" className="text-white">
+                            <MotionLogo className="h-5 w-auto" />
                         </Link>
-                    </nav>
-                </div>
-            </header>
+                        <nav className="flex items-center gap-1 sm:gap-2">
+                            {nav.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    // Hidden on the narrowest screens for the same
+                                    // reason as the landing: four items plus the
+                                    // button overflow 375px, and the band clips
+                                    // rather than scrolls, so "Sign in" would go
+                                    // off the edge. All of them are in the footer.
+                                    className="hidden rounded-full px-3 py-1.5 text-[13px] text-teal-100/80 motion-safe:transition-colors motion-safe:duration-150 hover:bg-white/10 hover:text-white sm:inline-block"
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                            <Link
+                                href="/login"
+                                className="ml-1 rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-medium text-white ring-1 ring-inset ring-white/15 motion-safe:transition-colors motion-safe:duration-150 hover:bg-white/20"
+                            >
+                                Sign in
+                            </Link>
+                        </nav>
+                    </div>
+                </header>
+
+                {title && (
+                    <div className="relative z-10 mx-auto max-w-6xl px-5 pb-16 pt-10">
+                        <h1 className="max-w-3xl text-[34px] font-semibold leading-tight tracking-[-0.02em] sm:text-[42px]">{title}</h1>
+                        {intro && <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-teal-100/70">{intro}</p>}
+                    </div>
+                )}
+
+                <div aria-hidden className={`bg-gradient-to-b from-transparent to-white ${title ? "h-16" : "h-10"}`} />
+            </div>
 
             <main className="page-in flex-1">{children}</main>
 
             <footer className="border-t border-slate-200">
-                <div className="mx-auto max-w-5xl px-4 py-8">
-                    <div className="flex flex-wrap items-start justify-between gap-6">
+                <div className="mx-auto max-w-6xl px-5 py-10">
+                    <div className="flex flex-wrap items-start justify-between gap-8">
                         <div>
-                            <p className="text-[14px] font-semibold tracking-tight text-slate-900">MOTION Workshop Manager</p>
-                            <p className="mt-1 max-w-sm text-[13px] leading-relaxed text-slate-500">
-                                Workshop management built for Namibia: the licence disc, the roadworthy, VAT at 15 %, and WhatsApp as the way you
-                                reach a customer.
+                            <MotionLockup className="w-48 text-slate-900" />
+                            <p className="mt-4 max-w-sm text-[13px] leading-relaxed text-slate-500">
+                                Workshop management built for Namibia: the licence disc, the roadworthy, VAT at 15 %, and WhatsApp as the way
+                                you reach a customer.
                             </p>
                         </div>
                         <div className="text-[13px]">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Reach a person</p>
-                            <ul className="mt-2 space-y-1">
+                            <ul className="mt-2.5 space-y-1.5">
                                 {reach.whatsapp && (
                                     <li>
-                                        <a href={`https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`} className="text-teal-700 underline-offset-4 hover:underline">
+                                        <a
+                                            href={`https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`}
+                                            className="text-teal-700 underline-offset-4 hover:underline"
+                                        >
                                             WhatsApp {reach.whatsapp}
                                         </a>
                                     </li>
                                 )}
-                                {reach.phone && reach.phone !== reach.whatsapp && (
-                                    <li><a href={`tel:${reach.phone.replace(/\s/g, "")}`} className="text-slate-700 hover:text-slate-900">{reach.phone}</a></li>
-                                )}
                                 {reach.email && (
-                                    <li><a href={`mailto:${reach.email}`} className="text-teal-700 underline-offset-4 hover:underline">{reach.email}</a></li>
+                                    <li>
+                                        <a href={`mailto:${reach.email}`} className="text-teal-700 underline-offset-4 hover:underline">
+                                            {reach.email}
+                                        </a>
+                                    </li>
                                 )}
                                 {reach.hours && <li className="text-slate-500">{reach.hours}</li>}
                             </ul>
                         </div>
                     </div>
 
-                    <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 text-[12px] text-slate-500">
+                    <div className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-[12px] text-slate-500">
                         <span>© {new Date().getFullYear()} MOTION Workshop Manager</span>
-                        <span className="flex gap-4">
+                        <span className="flex flex-wrap gap-5">
+                            {cloud && <Link href="/pricing" className="underline-offset-4 hover:text-slate-900 hover:underline">Pricing</Link>}
+                            <Link href="/help" className="underline-offset-4 hover:text-slate-900 hover:underline">Help</Link>
+                            <Link href="/support" className="underline-offset-4 hover:text-slate-900 hover:underline">Support</Link>
                             <Link href="/terms" className="underline-offset-4 hover:text-slate-900 hover:underline">Terms</Link>
                             <Link href="/privacy" className="underline-offset-4 hover:text-slate-900 hover:underline">Privacy</Link>
-                            <Link href="/support" className="underline-offset-4 hover:text-slate-900 hover:underline">Support</Link>
                         </span>
                     </div>
                 </div>
