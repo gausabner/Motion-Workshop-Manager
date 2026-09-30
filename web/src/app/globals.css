@@ -373,3 +373,85 @@ a { text-underline-offset: 0.2em; }
    first would set tabular figures on columns of prose, and the second would
    restate a utility Tailwind already ships. Opt in with `.tabular`. */
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* ── Motion tokens ─────────────────────────────────────────────────────────
+   The browser's built-in easings are too weak to read as deliberate. These
+   are the two curves the whole product uses; anything reaching for a third
+   should have a reason it can name. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ── Skeletons ─────────────────────────────────────────────────────────────
+   Shown while a page's data is being fetched on the server. They exist to
+   stop content teleporting in and to make the wait legible — not to
+   entertain, which is why the sweep is barely there.
+
+   A CSS animation rather than anything driven from JavaScript, deliberately:
+   the main thread is busy during exactly the moment a skeleton is on screen,
+   and a requestAnimationFrame loop drops frames precisely when it is being
+   watched. This one runs off the main thread and cannot stutter.
+
+   The sweep moves a gradient with `transform`. The common implementation
+   animates `background-position`, which repaints the element on every frame
+   for no visual gain. */
+@keyframes motion-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.85),
+    transparent
+  );
+  animation: motion-sweep 1.6s linear infinite;
+}
+
+/* Fewer and gentler, not none: the block still reads as a placeholder, it
+   simply stops moving. Somebody who asked the system not to animate things
+   still needs to know the page is loading. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+  .skeleton { background-color: #e2e8f0; } /* slate-200, so it reads without the sweep */
+}
+
+/* ── Arriving on a marketing page ──────────────────────────────────────────
+   A short rise-and-fade when a public page mounts, which on the App Router
+   means on every navigation between them. Deliberately not used inside the
+   signed-in product: a service advisor moves between screens tens of times an
+   hour, and at that frequency a transition is a tax rather than a pleasure.
+   The skeleton is the transition there.
+
+   Transform and opacity only, so it composites and cannot cause a reflow
+   while the page is still settling. */
+@keyframes motion-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.page-in {
+  animation: motion-page-in 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the fade, drop the movement. */
+  .page-in { animation: motion-page-in 200ms ease both; transform: none; }
+  @keyframes motion-page-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}

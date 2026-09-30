@@ -54,7 +54,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
                 >
                     <TopicRail groups={groups} />
                 </aside>
-                <main className="min-w-0 flex-1 px-4 py-9 lg:px-0">{children}</main>
+                <main className="page-in min-w-0 flex-1 px-4 py-9 lg:px-0">{children}</main>
             </div>
         </div>
     );
