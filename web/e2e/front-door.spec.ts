@@ -48,7 +48,12 @@ test("the legal drafts say they are drafts", async ({ page }) => {
 });
 
 test("support names a real way to reach a person", async ({ page }) => {
+    // CI sets the contact environment, as a deployment must. With none set the
+    // page says so loudly rather than rendering an empty list — which is the
+    // behaviour that makes a misconfigured deployment obvious instead of
+    // quietly shipping a support page with nobody on it.
     await page.goto("/support");
     await expect(page.getByRole("heading", { name: "Support" })).toBeVisible();
     await expect(page.getByRole("link", { name: /@/ }).first()).toBeVisible();
+    await expect(page.getByText("No support channels are configured")).toHaveCount(0);
 });

@@ -29,6 +29,16 @@ jobs:
       SESSION_SECRET: ci-only-secret-not-for-production-0123456789
       # Each spec builds its own workshop, so the suite needs no seed data.
       E2E_PORT: 3011
+      # The public pages read these from the environment, and with none set the
+      # support page correctly renders "no support channels are configured".
+      # Setting them here means CI exercises the configured page rather than
+      # the warning — and a deployment that forgets them now fails visibly
+      # instead of shipping a support page with nobody to contact.
+      MOTION_EDITION: cloud
+      MOTION_SUPPORT_WHATSAPP: "+264815765935"
+      MOTION_SUPPORT_PHONE: "+264815765935"
+      MOTION_SUPPORT_EMAIL: "gausabner@gmail.com"
+      MOTION_SUPPORT_HOURS: "Monday to Friday, 08:00-17:00 (Africa/Windhoek)"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
