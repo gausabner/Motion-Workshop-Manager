@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { MotionLogo } from "@/components/brand/MotionLogo";
+import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { HeroCards } from "@/components/public/HeroCards";
 import { Reveal } from "@/components/public/Reveal";
 import { CURRENCY, PLANS } from "@/lib/pricing/plans";
@@ -101,7 +101,7 @@ export function CloudLanding() {
                 <header className="relative z-10">
                     <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
                         <Link href="/" aria-label="MOTION" className="text-white">
-                            <MotionLogo className="h-6 w-auto" accent="#2dd4bf" />
+                            <MotionLogo className="h-5 w-auto" />
                         </Link>
                         <nav className="flex items-center gap-1 sm:gap-2">
                             {[
@@ -218,14 +218,14 @@ export function CloudLanding() {
 
                 <section className="px-5 pb-20">
                     <Reveal>
-                        <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl bg-teal-950 px-8 py-12 text-center">
+                        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-teal-950 px-8 py-12 text-center">
                             <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: TEAL_GLOW }} />
-                            <h2 className="text-[26px] font-semibold tracking-tight text-white sm:text-[32px]">See it on your own jobs</h2>
-                            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-teal-100/70">
+                            <h2 className="relative z-10 text-[26px] font-semibold tracking-tight text-white sm:text-[32px]">See it on your own jobs</h2>
+                            <p className="relative z-10 mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-teal-100/70">
                                 Half an hour, on a call or at your counter. Bring a job you ran last week and we will put it through MOTION
                                 in front of you.
                             </p>
-                            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                            <div className="relative z-10 mt-7 flex flex-wrap items-center justify-center gap-3">
                                 <PillLink href="/support">
                                     Book a demo
                                     <ArrowRight className="h-4 w-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" strokeWidth={2} />
@@ -246,9 +246,11 @@ export function CloudLanding() {
 
             <footer className="border-t border-slate-200">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-[13px] text-slate-500">
-                    <span className="flex items-center gap-3 text-slate-900">
-                        <MotionLogo className="h-5 w-auto" />
-                    </span>
+                    <Reveal>
+                        <span className="flex items-center text-slate-900">
+                            <MotionLockup className="w-52" />
+                        </span>
+                    </Reveal>
                     <span className="flex flex-wrap gap-5">
                         <Link href="/pricing" className="underline-offset-4 hover:text-slate-900 hover:underline">Pricing</Link>
                         <Link href="/help" className="underline-offset-4 hover:text-slate-900 hover:underline">Help</Link>

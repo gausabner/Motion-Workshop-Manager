@@ -53,9 +53,15 @@ export function Reveal({
                 setShown(true);
                 observer.disconnect();
             },
-            // Fire a little before it reaches the fold, so the motion finishes
-            // about when the reader's eye arrives rather than starting then.
-            { rootMargin: "0px 0px -12% 0px", threshold: 0.05 },
+            // No negative bottom margin. It read as "fire a little before the
+            // reader reaches it", and what it actually did was shrink the
+            // observed area so that anything sitting in the last 12% of the
+            // viewport never intersected at all. The footer lockup is the last
+            // thing on the page: scrolled fully down it still fell inside that
+            // band, so it was never revealed and never could be. Content that
+            // can never appear is the worst failure this pattern has, and it
+            // was one line of cleverness away.
+            { threshold: 0.12 },
         );
         observer.observe(el);
         return () => observer.disconnect();

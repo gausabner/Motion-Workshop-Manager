@@ -455,3 +455,27 @@ a { text-underline-offset: 0.2em; }
     to   { opacity: 1; }
   }
 }
+
+/* ── The mark drawing itself in ────────────────────────────────────────────
+   Landing and sign-in only. The frame arrives first and the letters follow in
+   reading order — the order the thing was drawn in, and the order anybody
+   reads it.
+
+   The frame wipes rather than fades: clip-path is the sanctioned property for
+   this and it composites, where animating a dash offset across six filled
+   rectangles would not. */
+@keyframes motion-frame-in {
+  from { clip-path: inset(0 100% 0 0); opacity: 0.4; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes motion-letter-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* It still assembles; it simply does not move or wipe. */
+  @keyframes motion-frame-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes motion-letter-in { from { opacity: 0; } to { opacity: 1; } }
+}

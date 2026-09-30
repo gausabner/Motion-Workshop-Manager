@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { MotionLogo } from "@/components/brand/MotionLogo";
+import { ACCENT_ON_DARK, MotionLockup } from "@/components/brand/MotionLogo";
 import { getSessionUser, defaultTenantSlug } from "@/lib/auth/session";
 import { LoginForm } from "./LoginForm";
 
@@ -43,8 +43,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                     Back
                 </Link>
 
+                {/* Above the card rather than inside it. The lockup carries a
+                    tagline, and inside a 384px card it renders at four pixels
+                    tall — present, and unreadable. Out here it has the width,
+                    and it is the one place in the product where the whole mark
+                    earns an entrance: seen once, at the moment somebody
+                    arrives. */}
+                <MotionLockup className="mb-7 w-64 text-white" accent={ACCENT_ON_DARK} animated />
+
                 <div className="rounded-2xl border border-white/10 bg-white p-8 shadow-2xl shadow-teal-950/50">
-                    <MotionLogo className="mb-7 h-7 w-auto text-slate-900" />
                     <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Sign in</h1>
                     <p className="mb-7 mt-1 text-[14px] text-slate-500">Your workshop, where you left it.</p>
                     <LoginForm next={next} />
