@@ -46,10 +46,10 @@ export const TERMS: Clause[] = [
     {
         heading: "What we will do",
         paragraphs: [
-            "Keep the hosted service running, and fix it when it breaks. Keep your data backed up. Tell you before we change something that would alter how you work, rather than after.",
+            "Keep the hosted service running, and fix it when it breaks. Tell you before we change something that would alter how you work, rather than after.",
             "Answer support as set out on the support page. Respond faster when the workshop is stopped than when the question is how something works.",
         ],
-        decide: "An uptime figure with a credit attached to it. Do not publish one until you can hold it — a promise of 99.9 % you cannot measure is worse than no promise.",
+        decide: "An uptime figure with a credit attached to it, and a backup commitment. Neither can be written until a host is chosen — MOTION has no automated off-site backup of its own today, and the security whitepaper says so. Promising one here and denying it there is the contradiction procurement finds.",
     },
     {
         heading: "What you will do",
