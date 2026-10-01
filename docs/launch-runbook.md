@@ -194,12 +194,12 @@ migration, and starts; the tunnel dials out to Cloudflare and the hostname goes
 live.
 
 **Check the init script actually ran**, because this is the one failure here
-that wears a disguise. AlmaLinux runs SELinux enforcing; a bind mount the
-container cannot read means the script never executes, the `motion` role is
-never created, and what you see is the application failing to authenticate —
-which looks like a wrong password, not an unreadable mount. The compose file
-labels the mount `:ro,z` to prevent exactly this, so the line below should
-appear:
+that wears a disguise. If the container cannot read the mounted directory the
+script never executes, the `motion` role is never created, and what you see is
+the application failing to authenticate — which looks like a wrong password,
+not an unreadable mount. The compose file labels the mount `:ro,z` against
+that, which is a no-op on this image because SELinux ships disabled, and
+insurance if that ever changes. Either way the line below should appear:
 
 ```bash
 docker compose --env-file /etc/motion/motion.env logs db | grep "created role motion"
