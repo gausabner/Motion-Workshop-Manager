@@ -474,6 +474,144 @@ a { text-underline-offset: 0.2em; }
   to   { opacity: 1; transform: none; }
 }
 
+/* ── The isometric engine ──────────────────────────────────────────────────
+   Solid objects built from three painted faces — top, side and west — rotated
+   into one shared isometric projection. No library, no WebGL, no model files:
+   a box is three divs and a cylinder is a stack of discs.
+
+   `--dz` and `--fz` are registered rather than merely declared, because an
+   unregistered custom property animates as a discrete swap — it would jump
+   from 90px to 0 with nothing in between. Registered as a <length> with an
+   initial value, the browser can interpolate it, which is what lets a piece
+   settle onto the platform in CSS alone.
+
+   The reference build did this choreography with GSAP from a CDN. It is not
+   worth 70 KB and a second origin on a page read in Windhoek on mobile data:
+   everything below is the same motion, in the vocabulary the rest of this
+   codebase already uses. */
+@property --dz { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fz { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+.iso-scene {
+  --p: 380px;
+  --tx: 0deg;
+  --tz: 0deg;
+  --sx: 0px;
+  --sy: 0px;
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: var(--p);
+  height: var(--p);
+  margin: calc(var(--p) / -2) 0 0 calc(var(--p) / -2);
+  transform-style: preserve-3d;
+  /* 58/-45 is the isometric pair this scene is drawn for. The two custom
+     properties are the only things pointer parallax touches, so the base
+     projection cannot drift. */
+  transform:
+    translate(var(--sx), var(--sy))
+    rotateX(calc(58deg + var(--tx)))
+    rotateZ(calc(-45deg + var(--tz)));
+  transition: transform 1100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.iso-box,
+.iso-cyl {
+  position: absolute;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--z) + var(--dz) + var(--fz)));
+}
+.iso-box { width: var(--w); height: var(--d); }
+.iso-box > .f { position: absolute; }
+.iso-box > .t { inset: 0; background: var(--ft); transform: translateZ(var(--h)); overflow: hidden; }
+.iso-box > .s { left: 0; top: 100%; width: var(--w); height: var(--h); background: var(--fs); transform-origin: top; transform: rotateX(90deg); }
+.iso-box > .e { right: 100%; top: 0; width: var(--h); height: var(--d); background: var(--fe); transform-origin: right; transform: rotateY(90deg); }
+
+/* A cylinder is a stack of circles two pixels apart. Crude, and it reads
+   perfectly at this scale — the alternative is an SVG lathe nobody can edit. */
+.iso-cyl { width: calc(var(--r) * 2); height: calc(var(--r) * 2); }
+.iso-cyl > i { position: absolute; inset: 0; border-radius: 50%; transform: translateZ(var(--i)); }
+
+.iso-shade {
+  position: absolute;
+  border-radius: 10px;
+  background: #042f2e;
+  filter: blur(7px);
+  transform: translate(10px, 10px) translateZ(var(--z));
+}
+
+/* Pieces drop onto the platform in order, once the scene has been reached —
+   never before. The stage sets data-seen from an IntersectionObserver and
+   does it once, so scrolling back up a long page does not replay five scenes.
+   An object carries only its position in the queue; what that costs in
+   milliseconds is decided here. */
+@media (prefers-reduced-motion: no-preference) {
+  .iso-stage[data-seen="true"] [data-settle] {
+    animation: iso-settle 900ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--settle, 0) * 70ms) both;
+  }
+  .iso-stage[data-seen="true"] [data-settle][data-float] {
+    animation:
+      iso-settle 900ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--settle, 0) * 70ms) both,
+      iso-float calc(2600ms + var(--settle, 0) * 320ms) ease-in-out calc(1100ms + var(--settle, 0) * 150ms) infinite;
+  }
+}
+
+@keyframes iso-settle {
+  from { --dz: 90px; opacity: 0; }
+  to   { --dz: 0px; opacity: 1; }
+}
+
+/* And then breathe, each slightly out of phase with its neighbour. */
+@keyframes iso-float {
+  0%, 100% { --fz: 0px; }
+  50%      { --fz: var(--float, 10px); }
+}
+
+/* An invoice is torn off a roll, so its bottom edge is not straight. The side
+   face is hidden with it — a zigzag top over a square side reads as a bug. */
+.iso-receipt > .t > * {
+  clip-path: polygon(0 0, 100% 0, 100% 96%, 90% 100%, 80% 96%, 70% 100%, 60% 96%,
+                     50% 100%, 40% 96%, 30% 100%, 20% 96%, 10% 100%, 0 96%);
+}
+.iso-receipt > .s { opacity: 0; }
+
+/* ── The document spine ───────────────────────────────────────────────────
+   The ribbon fills as the page is scrolled, because the ribbon *is* the
+   document and the argument is that one document travels the whole way.
+
+   Driven by a scroll-driven animation rather than a scroll listener: it runs
+   off the main thread, it cannot jank, and where it is unsupported the ribbon
+   is simply drawn in full — which still reads correctly. A scroll handler that
+   writes a style on every frame is the usual way this is built and the usual
+   reason a long page stutters on a phone. */
+/* `clip` rather than `hidden`: hidden on one axis forces the other to scroll,
+   which would trap the page in its own scroll container. A rotated isometric
+   scene is wider than the box it is positioned in, and on a 375px screen that
+   overhang became 43px of horizontal scroll — the kind of bug that reads as
+   "the site is broken" on a phone and is invisible on a laptop. */
+.spine { view-timeline-name: --spine; view-timeline-axis: block; overflow-x: clip; }
+.spine-fill { clip-path: inset(0 0 0 0); }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .spine-fill {
+      animation: spine-draw linear both;
+      animation-timeline: --spine;
+      animation-range: cover 8% cover 72%;
+    }
+  }
+}
+@keyframes spine-draw {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iso-scene { transition: none; }
+  @keyframes iso-settle { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes iso-float  { 0%, 100% { --fz: 0px; } }
+}
+
 /* The hero field: the grid flowing toward the viewer.
    One cell of travel, then it repeats — the plane is oversized and the mask
    fades both ends, so the reset lands where there is nothing to see. Twenty-
