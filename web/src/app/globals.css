@@ -474,6 +474,42 @@ a { text-underline-offset: 0.2em; }
   to   { opacity: 1; transform: none; }
 }
 
+/* The hero field: the grid flowing toward the viewer.
+   One cell of travel, then it repeats — the plane is oversized and the mask
+   fades both ends, so the reset lands where there is nothing to see. Twenty-
+   eight seconds is deliberately slower than it reads: fast enough to be alive,
+   slow enough that nobody follows a line with their eye and stops reading the
+   headline. Transform only, so it composites on the GPU and never touches
+   layout. */
+@keyframes motion-field-flow {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 11%, 0); }
+}
+
+/* The horizon, breathing. Opacity only; nine seconds is long enough to
+   register as atmosphere rather than as a pulse. */
+@keyframes motion-field-breathe {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 1; }
+}
+
+/* The hero's own arrival. Not a scroll reveal — there is nothing above the
+   fold to reveal from, and hiding the first frame behind an observer is how a
+   landing page opens on a blank screen. This runs on load, with `both`, so the
+   headline is already on its way before anything is scrolled. */
+@keyframes motion-hero-in {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The field holds still. It is depth, not movement, and the depth survives
+     without the flow. */
+  @keyframes motion-field-flow { from { transform: none; } to { transform: none; } }
+  @keyframes motion-field-breathe { 0%, 100% { opacity: 0.85; } }
+  @keyframes motion-hero-in { from { opacity: 0; } to { opacity: 1; } }
+}
+
 /* The compact mark's dot, dropping into the gap the frame leaves for it.
    The only overshoot anywhere in the brand, and it is deliberate: the dot is
    the one part of the mark that is a shape rather than a stroke or a letter,

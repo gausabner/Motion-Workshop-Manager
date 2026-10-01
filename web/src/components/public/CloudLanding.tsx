@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { HeroCards } from "@/components/public/HeroCards";
+import { HeroField } from "@/components/public/HeroField";
 import { Reveal } from "@/components/public/Reveal";
 import { CURRENCY, PLANS } from "@/lib/pricing/plans";
 import { support } from "@/lib/edition";
@@ -96,7 +97,7 @@ export function CloudLanding() {
         <div className="flex min-h-dvh flex-col bg-white">
             {/* ── The dark half ─────────────────────────────────────────── */}
             <div className="relative overflow-hidden bg-teal-950 text-white">
-                <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: TEAL_GLOW }} />
+                <HeroField tone="deep" />
 
                 <header className="relative z-10">
                     <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
@@ -133,14 +134,14 @@ export function CloudLanding() {
                 </header>
 
                 <section className="relative z-10 mx-auto max-w-6xl px-5 pb-24 pt-14 text-center sm:pt-20">
-                    <div>
+                    <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "60ms" }}>
                         <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/25 bg-teal-400/10 px-3.5 py-1.5 text-[12px] font-medium text-teal-200">
                             <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
                             Built in Namibia, for Namibian workshops
                         </span>
                     </div>
 
-                    <div>
+                    <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "140ms" }}>
                         <h1 className="mx-auto mt-7 max-w-5xl text-[36px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[54px]">
                             Run the whole job on{" "}
                             <span className="bg-gradient-to-br from-teal-200 to-teal-400 bg-clip-text italic text-transparent">
@@ -150,14 +151,14 @@ export function CloudLanding() {
                         </h1>
                     </div>
 
-                    <div>
+                    <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "230ms" }}>
                         <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-teal-100/70 sm:text-[17px]">
                             The quote becomes the job card becomes the invoice, without anybody retyping it. Licence discs, roadworthies,
                             VAT at 15 %, and WhatsApp as the way you reach a customer.
                         </p>
                     </div>
 
-                    <div>
+                    <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "320ms" }}>
                         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
                             <PillLink href="/support">
                                 Book a demo

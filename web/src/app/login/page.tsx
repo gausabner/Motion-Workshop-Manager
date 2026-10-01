@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ACCENT_ON_DARK, MotionLockup } from "@/components/brand/MotionLogo";
+import { HeroField } from "@/components/public/HeroField";
 import { getSessionUser, defaultTenantSlug } from "@/lib/auth/session";
 import { LoginForm } from "./LoginForm";
 
@@ -22,14 +23,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
          * behind it is a ledger page.
          */
         <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-teal-950 p-6">
-            <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0"
-                style={{
-                    backgroundImage:
-                        "radial-gradient(50rem 28rem at 50% -6rem, rgba(45,212,191,0.18), transparent 70%), radial-gradient(34rem 20rem at 80% 90%, rgba(13,148,136,0.12), transparent 65%)",
-                }}
-            />
+            {/* The same room as the front door. This page is the threshold —
+                the last thing a prospect sees and the first thing a customer
+                sees every morning — and it is the one dark surface both of them
+                cross. Keeping the geometry here is what makes signing in feel
+                like going inside rather than leaving for somewhere else. */}
+            <HeroField tone="deep" />
 
             <div className="relative z-10 w-full max-w-sm">
                 <Link

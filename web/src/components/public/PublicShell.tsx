@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
+import { HeroField } from "@/components/public/HeroField";
 import { edition, support } from "@/lib/edition";
 
 /**
@@ -28,9 +29,6 @@ const NAV_ONPREM = [
     { href: "/support", label: "Support" },
 ];
 
-export const PUBLIC_GLOW =
-    "radial-gradient(50rem 26rem at 50% -8rem, rgba(45,212,191,0.15), transparent 70%), radial-gradient(34rem 20rem at 85% 20%, rgba(13,148,136,0.12), transparent 65%)";
-
 export function PublicShell({
     children,
     title,
@@ -48,7 +46,13 @@ export function PublicShell({
     return (
         <div className="flex min-h-dvh flex-col bg-white">
             <div className="relative overflow-hidden bg-teal-950 text-white">
-                <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: PUBLIC_GLOW }} />
+                {/* The same room as the landing, stood further back. Pricing,
+                    help and support are not a different site that happens to
+                    share a logo — walking from the front door to the prices
+                    should feel like moving through one building, and the
+                    geometry is what carries that. The `lifted` tone is quieter
+                    because these pages are read rather than looked at. */}
+                <HeroField tone="lifted" />
 
                 <header className="relative z-10">
                     <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
