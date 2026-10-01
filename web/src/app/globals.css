@@ -511,11 +511,12 @@ a { text-underline-offset: 0.2em; }
 }
 
 /* The compact mark's dot, dropping into the gap the frame leaves for it.
-   The only overshoot anywhere in the brand, and it is deliberate: the dot is
-   the one part of the mark that is a shape rather than a stroke or a letter,
-   and settling rather than arriving is what makes a square of rules read as a
-   thing that was assembled. Kept small — 1.56 on the easing, 6px of travel —
-   because a logo that bounces is a logo nobody takes seriously twice. */
+   The dot is the one part of the mark that is a shape rather than a stroke or
+   a letter, and settling rather than arriving is what makes a square of rules
+   read as a thing that was assembled. The settle comes from the scale and the
+   six pixels of travel, on the same deceleration curve as everything else in
+   the brand — not from an overshoot. Bounce reads as dated on a logo, and
+   this one has to survive being seen every morning. */
 @keyframes motion-dot-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.6); }
   to   { opacity: 1; transform: none; }
