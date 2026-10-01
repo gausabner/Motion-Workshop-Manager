@@ -128,6 +128,68 @@ ENV
 export MOTION_BACKUP_ENV="$tmp/backup.env"
 
 echo
+echo "row-level security against the dump"
+# This is the case that reached a live server before it was caught. The suite
+# dumped as the superuser, which bypasses RLS unconditionally, so it never
+# exercised the configuration production actually uses — and the first real
+# backup failed on the first table:
+#
+#   ERROR: query would be affected by row-level security policy
+#
+# A dump that cannot read is a loud failure, which is the good outcome. The
+# bad outcome this guards against is the opposite: a configuration that
+# silently captures nothing. So both halves are checked.
+RLS_FORCED=$(src "select count(*) from pg_class where relforcerowsecurity and relnamespace='"'"'public'"'"'::regnamespace")
+if [ "${RLS_FORCED:-0}" -gt 0 ]; then
+    # Clearing up after a previous run is best-effort and its noise is not a
+    # result. DROP ROLE refuses while the role still holds grants, so a run
+    # that ended early leaves one behind, and counting that as a setup failure
+    # made this check pass or fail depending on how the *last* run ended. A
+    # flaky test is worse than no test: people learn to ignore it.
+    rls_cleanup() {
+        ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -tAc "drop owned by zz_e2e_norls" >/dev/null 2>&1 </dev/null || true
+        ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1 </dev/null || true
+    }
+    rls_cleanup
+
+    # NOLOGIN and no password, because the dump reaches this role through
+    # pg_dump --role, which issues SET ROLE after connecting as somebody who
+    # can. A superuser that has SET ROLE to a NOBYPASSRLS role is subject to
+    # the policies, which is the whole point.
+    #
+    # The previous version gave the role a password, and the shell quoting
+    # mangled it. It passed on a laptop anyway, because `docker exec` connects
+    # from inside the container where pg_hba trusts local connections and never
+    # checks a password; CI connects over TCP and does. A test that only works
+    # where authentication is switched off is not testing what it claims to.
+    rls_setup=$(
+        ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -v ON_ERROR_STOP=1 -tAc \
+            "create role zz_e2e_norls nologin nosuperuser nobypassrls" 2>&1 </dev/null
+        ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -v ON_ERROR_STOP=1 -tAc \
+            "grant usage on schema public to zz_e2e_norls; grant select on all tables in schema public to zz_e2e_norls" 2>&1 </dev/null
+    )
+    check "the restricted role is created and granted" \
+        "$(printf '%s' "$rls_setup" | grep -ci 'error')" "0"
+
+    # The whole schema, not one --table pattern: quoting a mixed-case relation
+    # through two layers of shell produced "no matching tables were found"
+    # rather than an RLS error, failing for a reason with nothing to do with RLS.
+    rls_out=$(${CLIENT_PREFIX}pg_dump -d "${E2E_DB_URL%%\?*}" --role=zz_e2e_norls \
+        --format=custom --data-only --schema=public 2>&1 >/dev/null </dev/null || true)
+
+    if printf '%s' "$rls_out" | grep -q 'row-level security'; then
+        check "a dump by a NOBYPASSRLS role is refused, not silently empty" refused refused
+    else
+        check "a dump by a NOBYPASSRLS role is refused, not silently empty" \
+            "not refused — pg_dump said: $(printf '%s' "$rls_out" | head -2 | tr '\n' ' ')" "refused"
+    fi
+
+    rls_cleanup
+else
+    echo "  skip  this database has no FORCEd policies to test against"
+fi
+
+echo
 echo "taking a backup"
 if ./motion-backup.sh > "$tmp/backup.log" 2>&1; then
     check "the backup script succeeds" ok ok
