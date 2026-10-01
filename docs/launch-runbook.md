@@ -193,6 +193,24 @@ the database; the app container waits for the health check, applies every
 migration, and starts; the tunnel dials out to Cloudflare and the hostname goes
 live.
 
+**Check the init script actually ran**, because this is the one failure here
+that wears a disguise. If the container cannot read the mounted directory the
+script never executes, the `motion` role is never created, and what you see is
+the application failing to authenticate — which looks like a wrong password,
+not an unreadable mount. The compose file labels the mount `:ro,z` against
+that, which is a no-op on this image because SELinux ships disabled, and
+insurance if that ever changes. Either way the line below should appear:
+
+```bash
+docker compose --env-file /etc/motion/motion.env logs db | grep "created role motion"
+```
+
+If it is missing, the data directory has already initialised without it and
+re-running will not help — PostgreSQL only runs init scripts on an empty data
+directory. Fix the mount, then `docker compose --env-file /etc/motion/motion.env down -v`
+to discard the volume and start again. That is safe now and ruinous later, so
+do this check before any real data exists.
+
 ### Why the database role matters
 
 The application connects as `motion`, which owns every table but is **not** a

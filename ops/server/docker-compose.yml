@@ -32,7 +32,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Runs once, on an empty data directory only.
-      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+      #
+      # `z` relabels the directory for SELinux. The Namecheap AlmaLinux 9
+      # image ships with SELinux *disabled*, where this is a no-op — but the
+      # label costs nothing and an image or a host that enables it would
+      # otherwise deny the container this directory, and the failure would
+      # arrive wearing a disguise: no init script, so no `motion` role, so an
+      # application that cannot authenticate, and the obvious suspect is the
+      # password rather than a mount the database quietly could not read.
+      # Lower case `z` because the content is shared, not private to one
+      # container.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro,z
     # No `ports:`. Postgres is reachable only from the compose network. A
     # database on a public IP is found by scanners within the hour.
     healthcheck:
