@@ -1,0 +1,16 @@
+[Unit]
+Description=Take a MOTION off-site backup nightly
+
+[Timer]
+# 02:10 in the workshop's own time. Late enough that the day's work is in,
+# early enough to finish before anyone opens the doors.
+OnCalendar=*-*-* 02:10:00
+# Spread the load if several installations share a bucket, and keep the exact
+# minute from being a predictable thing to interfere with.
+RandomizedDelaySec=20m
+# A machine that was off at 02:10 takes its backup when it comes back, rather
+# than skipping the night entirely.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

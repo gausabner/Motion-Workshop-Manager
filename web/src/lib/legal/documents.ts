@@ -48,8 +48,9 @@ export const TERMS: Clause[] = [
         paragraphs: [
             "Keep the hosted service running, and fix it when it breaks. Tell you before we change something that would alter how you work, rather than after.",
             "Answer support as set out on the support page. Respond faster when the workshop is stopped than when the question is how something works.",
+            "Back up your data every night to storage away from the machine that runs MOTION, encrypted so that neither we nor the storage provider can read it, and restore one of those backups every week to prove it still works. A night is the granularity: if the worst happens you could lose up to a day of entries, and you would re-enter them from the paper the floor already works from.",
         ],
-        decide: "An uptime figure with a credit attached to it, and a backup commitment. Neither can be written until a host is chosen — MOTION has no automated off-site backup of its own today, and the security whitepaper says so. Promising one here and denying it there is the contradiction procurement finds.",
+        decide: "An uptime figure with a credit attached to it. That one still waits on a host being chosen, because a figure nobody is measuring is worse than no figure. The backup paragraph above is now safe to make — ops/backup/ does it, the security whitepaper describes it in section 8, and it is tested in CI and restored weekly — but check the wording says only what you want to be held to.",
     },
     {
         heading: "What you will do",

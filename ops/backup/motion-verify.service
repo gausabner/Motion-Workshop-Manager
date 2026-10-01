@@ -1,0 +1,27 @@
+[Unit]
+Description=MOTION backup verification — restore the latest backup and check it
+Documentation=file:///opt/motion/ops/backup/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/motion/ops/backup/motion-verify.sh
+User=motion
+Group=motion
+
+# This one needs the private key, so it belongs on the machine that holds it.
+# If that is not the server — and it should not be — run it from there on a
+# schedule of its own instead of enabling this unit.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/motion
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+
+TimeoutStartSec=2h

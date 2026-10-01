@@ -37,7 +37,11 @@ scope, we will do it next month" is the one who makes the date.
 - [ ] Tax rate, currency and timezone confirmed.
 - [ ] Logo and letterhead details supplied.
 - [ ] **Installed sites only:** server meets requirements, drop folder exists
-      and is writable, backup arrangement agreed in writing.
+      and is writable.
+- [ ] Off-site backup configured: a bucket, and a key pair whose private half
+      is held by the client **off the server**, in two places. See
+      `ops/backup/README.md`. *Commissioning is not complete until a restore
+      has been run and passed — step 7 below.*
 - [ ] Support contacts exchanged both ways.
 
 ## 3. Testing, before it is anybody's real work
@@ -112,7 +116,11 @@ one and payments in the other.
 - [ ] Open balances entered and reconciled.
 - [ ] Raise one real job end to end and take a payment on it.
 - [ ] Sequence numbers set so they continue rather than restart.
-- [ ] Backup taken and **restore tested**, not assumed.
+- [ ] Backup taken, and **restored** — `ops/backup/motion-verify.sh`, which
+      restores the night's backup into a scratch database and checks the data
+      and the tenant policies came back. Note the time it reports: that is this
+      site's recovery time, and it is the number to quote rather than a
+      generic one. The weekly timer then keeps proving it.
 
 **The first week**
 - [ ] Someone from MOTION reachable at short notice each morning.
