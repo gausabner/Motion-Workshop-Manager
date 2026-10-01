@@ -20,6 +20,18 @@ export const metadata: Metadata = {
   // Workshop Management SaaS" said nothing, and it was what showed in a link
   // preview when somebody sent the site to a workshop owner.
   description: "Workshop management for Namibia: the diary, job cards, invoicing, payments and parts a workshop runs its day on.",
+  // The mark, at every size a platform asks for. The SVG is listed after the
+  // .ico deliberately: browsers that understand it prefer it and it follows
+  // the tab bar's own light or dark, while the .ico remains for the ones that
+  // do not. app/favicon.ico is picked up by convention and needs no entry.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 /**

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff, Pause, Play, Wrench } from "lucide-react";
+import { CloudOff, Pause, Play } from "lucide-react";
+import { ACCENT_ON_DARK } from "@/components/brand/MotionLogo";
+import { MotionMark } from "@/components/brand/MotionMark";
 import { clockOffAction, clockOnAction } from "@/lib/time/actions";
 import { hoursLabel } from "@/lib/time/clock";
 import { minuteLabel } from "@/lib/diary/time";
@@ -168,7 +170,17 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 the bar is the workshop's colour rather than a black letterbox. */}
             <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] text-white">
                 <div className="mx-auto flex max-w-lg items-center justify-between">
-                    <p className="flex items-center gap-2 font-semibold"><Wrench className="h-5 w-5 text-teal-400" />{name}</p>
+                    {/* The mark rather than a generic spanner. This screen is
+                        the installed app, and the icon the mechanic just
+                        tapped on their home screen is this exact shape — the
+                        header should answer it. It draws in once, on open,
+                        which the floor app affords because it is one screen
+                        opened at the start of a shift rather than chrome seen
+                        on every navigation. */}
+                    <p className="flex items-center gap-2 font-semibold">
+                        <MotionMark className="h-5 w-5 shrink-0" accent={ACCENT_ON_DARK} animated />
+                        {name}
+                    </p>
                     <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
                 </div>
             </header>

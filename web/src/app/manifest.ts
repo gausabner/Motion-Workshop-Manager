@@ -18,10 +18,16 @@ export default function manifest(): MetadataRoute.Manifest {
         theme_color: "#0f172a",
         orientation: "portrait",
         icons: [
+            { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
             { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
             { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-            // Android crops a maskable icon to whatever shape the launcher uses.
-            { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+            // A separate file, not the same one declared twice. Android crops a
+            // maskable icon to whatever shape the launcher uses, and the mark's
+            // frame runs to the edge of its own artwork — declared maskable
+            // unchanged, the launcher would cut the frame off and take the
+            // brand with it. The maskable tile draws the mark at 64% so the
+            // crop lands on ground.
+            { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
     };
 }
