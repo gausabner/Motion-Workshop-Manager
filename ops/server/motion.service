@@ -1,0 +1,23 @@
+[Unit]
+Description=MOTION Workshop Manager
+Documentation=file:///opt/motion/docs/launch-runbook.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/opt/motion/ops/server
+
+# Pulls before starting, so a restart after a push lands the new image rather
+# than silently keeping the old one. Harmless when nothing has changed.
+ExecStartPre=/usr/bin/docker compose --env-file /etc/motion/motion.env pull --quiet
+ExecStart=/usr/bin/docker compose --env-file /etc/motion/motion.env up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /etc/motion/motion.env down
+
+# Pulling an image over a slow link from the United States takes a while.
+TimeoutStartSec=15m
+
+[Install]
+WantedBy=multi-user.target

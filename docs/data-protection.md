@@ -60,8 +60,10 @@ process cards and stores nothing that could be used to take money.
 | Your customers | Only their own documents, through an expiring, revocable link. No account, no password, no access to anything else. |
 | Anyone else | Nothing. |
 
-> **To decide.** A named subprocessor list. It cannot be written until hosting
-> is chosen, and a council will ask for it by name. Owed before any contract.
+> **To decide.** A named subprocessor list, in the form a council will ask for.
+> The parties are now known — Namecheap for the server, Cloudflare for DNS and
+> the edge, and whichever provider holds the backup bucket — so this is drafting
+> rather than deciding. Owed before any contract.
 
 ## 5. How long it is kept
 
@@ -121,10 +123,18 @@ better.
 
 ## 9. Transfers
 
-On the hosted service, data is held wherever the platform is hosted. **No
-platform has been chosen yet**, so no country can be stated. A council with a
-data-residency requirement should raise it before contract, not after — it is a
-constraint on where MOTION is hosted for that client, and it is satisfiable.
+On the hosted service, your data is held **in Phoenix, Arizona, in the United
+States**, on a server rented from Namecheap. Traffic reaches it through
+Cloudflare, which terminates the encrypted connection at its nearest point of
+presence — for a Namibian user, Johannesburg or Cape Town — and carries it on.
+Backups are held in object storage and are encrypted before they leave the
+server, with a key the server does not hold.
 
-On an installed site the question does not arise: the data is on your hardware
-and does not leave it.
+This is stated rather than buried because it is a real constraint: Namecheap
+confirmed their VPS estate is United States only, so the hosted service cannot
+be moved within that contract.
+
+**A client who requires their data to stay in Namibia is served by the
+installed edition**, on their own hardware, where the data never leaves the
+building. That is what the installed edition is for, and it is the right answer
+to a council tender that specifies residency — not a workaround for one.

@@ -223,11 +223,12 @@ later is worse than being told now.
 | **Single sign-on / Active Directory** | Not implemented. Understood to be a procurement requirement for councils and planned as one; no work has started. |
 | **Point-in-time recovery** | Not implemented. Backups are nightly, so the recovery point is up to 24 hours. Continuous WAL archiving would close this and is not built. See section 8. |
 | **Backups configured by default** | The scripts ship with the product; the bucket and key pair are set up per installation. A site that has not been commissioned has no off-site backup, which is why commissioning is not complete until a restore has been run and passed. |
-| **Encryption at rest for the live database** | Depends on the host, which is not chosen. PostgreSQL and the storage layer both support it; it is not something MOTION currently configures or can attest to. Note that this is separate from the backups, which *are* encrypted before they leave the machine — see section 8. |
+| **Encryption at rest for the live database** | Not configured. The hosted service runs PostgreSQL on a Namecheap VPS with NVMe storage; disk-level encryption is not enabled and is not something MOTION can currently attest to. Separate from the backups, which *are* encrypted before they leave the machine — see section 8. |
 | **SOC 2 / ISO 27001** | Neither held. Both are a year and six figures; there is no honest way to have them before revenue. |
 | **Independent penetration test** | Not yet commissioned. Worth doing before a first council go-live. |
-| **A published uptime commitment** | None. A figure that cannot be measured is worse than no figure. |
-| **Named subprocessor list** | Not published, because hosting is not chosen. Owed before any council contract. |
+| **A published uptime commitment** | None. Nothing is measuring it yet. A figure nobody is measuring is worse than no figure. |
+| **Data held in Namibia** | No. The hosted service runs in Phoenix, Arizona; Namecheap confirmed their VPS estate is United States only. A client who requires Namibian residency is served by the installed edition on their own hardware, which is what it is for. |
+| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any council contract. |
 | **A registered legal entity** | Not yet registered. The terms and privacy policy are drafts and say so. |
 
 ## Asking us about this

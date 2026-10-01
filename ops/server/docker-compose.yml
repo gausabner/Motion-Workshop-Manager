@@ -1,0 +1,94 @@
+# MOTION in production, on one server.
+#
+# Three containers: PostgreSQL, the application, and a Cloudflare tunnel that
+# carries traffic in. Nothing here publishes a port to the host — the tunnel
+# dials out to Cloudflare, so the server has no inbound HTTP at all and the
+# firewall can stay shut to everything but SSH.
+#
+# That is the same property the installed edition already claims in the
+# security whitepaper ("sends outbound only; nothing listens for an inbound
+# connection"). It was worth keeping for the hosted edition too: an origin with
+# no open web port cannot be found by scanning, cannot be hit directly, and
+# cannot be DDoSed around the edge.
+#
+#   docker compose --env-file /etc/motion/motion.env up -d
+#
+# Or let systemd do it: ops/server/motion.service.
+
+name: motion
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      # The superuser is for administration only. The application connects as
+      # `motion`, created by the init script below — see the comment there for
+      # why that distinction is the whole of the tenant boundary.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in motion.env}
+      POSTGRES_DB: motion_app
+      MOTION_DB_PASSWORD: ${MOTION_DB_PASSWORD:?set in motion.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, on an empty data directory only.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    # No `ports:`. Postgres is reachable only from the compose network. A
+    # database on a public IP is found by scanners within the hour.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d motion_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 256mb
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  app:
+    image: ${MOTION_IMAGE:-ghcr.io/gausabner/motion-workshop-manager:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # `motion` owns the tables and is not a superuser. Row-level security is
+      # FORCEd, so the policies bind the owner too — but a superuser ignores
+      # RLS entirely, which would silently dissolve every tenant boundary in
+      # the product. This one connection string is load-bearing.
+      DATABASE_URL: postgresql://motion:${MOTION_DB_PASSWORD}@db:5432/motion_app?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?set in motion.env}
+      NODE_ENV: production
+      MOTION_EDITION: ${MOTION_EDITION:-hosted}
+      MOTION_VERSION: ${MOTION_VERSION:-}
+      MOTION_DATA_LOCATION: ${MOTION_DATA_LOCATION:-Phoenix, Arizona, United States}
+      MOTION_SUPPORT_WHATSAPP: ${MOTION_SUPPORT_WHATSAPP:-}
+      MOTION_SUPPORT_PHONE: ${MOTION_SUPPORT_PHONE:-}
+      MOTION_SUPPORT_EMAIL: ${MOTION_SUPPORT_EMAIL:-}
+      MOTION_SUPPORT_HOURS: ${MOTION_SUPPORT_HOURS:-}
+      MOTION_SITE_ADMIN: ${MOTION_SITE_ADMIN:-}
+      MOTION_INSTALLED_BY: ${MOTION_INSTALLED_BY:-}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_ROOT: /app/.data/attachments
+      HANDOFF_SECRET: ${HANDOFF_SECRET:-}
+    volumes:
+      # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
+      # ops/backup archives this; see ops/backup/README.md.
+      - attachments:/app/.data
+    logging: *logging
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on: [app]
+    command: tunnel --no-autoupdate --protocol http2 run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?create the tunnel in the Cloudflare dashboard and paste its token}
+    # The tunnel reaches the app over the compose network as http://app:3000.
+    # That hop is inside the host; everything leaving the machine is TLS to
+    # Cloudflare.
+    logging: *logging
+
+volumes:
+  pgdata:
+  attachments:
