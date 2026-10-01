@@ -141,21 +141,48 @@ echo "row-level security against the dump"
 # silently captures nothing. So both halves are checked.
 RLS_FORCED=$(src "select count(*) from pg_class where relforcerowsecurity and relnamespace='"'"'public'"'"'::regnamespace")
 if [ "${RLS_FORCED:-0}" -gt 0 ]; then
-    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1
-    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "create role zz_e2e_norls login password '"'"'zze2e'"'"' nosuperuser nobypassrls" >/dev/null 2>&1
-    ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -tAc "grant usage on schema public to zz_e2e_norls; grant select on all tables in schema public to zz_e2e_norls" >/dev/null 2>&1
-    forced_table=$(src "select c.relname from pg_class c where c.relforcerowsecurity and c.relnamespace='"'"'public'"'"'::regnamespace limit 1")
-    # Swap the credentials into the URL rather than passing --username: libpq
-    # takes the user from the connection string, so --username is ignored and
-    # the dump would quietly run as the superuser — which is the very mistake
-    # this check exists to catch.
+    # Clearing up after a previous run is best-effort and its noise is not a
+    # result. DROP ROLE refuses while the role still holds grants — "cannot be
+    # dropped because some objects depend on it" — so a run that ended early
+    # leaves one behind, and counting that as a setup failure made this check
+    # pass or fail depending on how the *last* run ended. A flaky test is worse
+    # than no test: people learn to ignore it.
+    rls_cleanup() {
+        ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -tAc "drop owned by zz_e2e_norls" >/dev/null 2>&1 </dev/null || true
+        ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1 </dev/null || true
+    }
+    rls_cleanup
+
+    # Setting it up, though, is a result — and its errors are kept rather than
+    # sent to /dev/null. An earlier version hid them, and when this check failed
+    # in CI but passed locally there was nothing to read: it could report that a
+    # dump had not been refused, but not why.
+    rls_setup=$(
+        ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -v ON_ERROR_STOP=1 -tAc \
+            "create role zz_e2e_norls login password '"'"'zze2e'"'"' nosuperuser nobypassrls" 2>&1 </dev/null
+        ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -v ON_ERROR_STOP=1 -tAc \
+            "grant usage on schema public to zz_e2e_norls; grant select on all tables in schema public to zz_e2e_norls" 2>&1 </dev/null
+    )
+    check "the restricted role is created and granted" \
+        "$(printf '%s' "$rls_setup" | grep -ci 'error')" "0"
+
+    # The whole schema, not one --table pattern. Quoting a mixed-case relation
+    # through two layers of shell and sometimes through `docker exec` as well
+    # produced "no matching tables were found" rather than an RLS error, which
+    # failed the check for a reason that had nothing to do with RLS.
     rls_url="postgresql://zz_e2e_norls:zze2e@${E2E_DB_URL#*@}"
     rls_url=${rls_url%%\?*}
-    rls_out=$(${CLIENT_PREFIX}pg_dump -d "$rls_url" --format=custom \
-        --table="public.\"$forced_table\"" 2>&1 >/dev/null </dev/null || true)
-    check "a dump by a NOBYPASSRLS role is refused, not silently empty" \
-        "$(printf '%s' "$rls_out" | grep -c 'row-level security')" "1"
-    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1
+    rls_out=$(${CLIENT_PREFIX}pg_dump -d "$rls_url" --format=custom --data-only \
+        --schema=public 2>&1 >/dev/null </dev/null || true)
+
+    if printf '%s' "$rls_out" | grep -q 'row-level security'; then
+        check "a dump by a NOBYPASSRLS role is refused, not silently empty" refused refused
+    else
+        check "a dump by a NOBYPASSRLS role is refused, not silently empty" \
+            "not refused — pg_dump said: $(printf '%s' "$rls_out" | head -2 | tr '\n' ' ')" "refused"
+    fi
+
+    rls_cleanup
 else
     echo "  skip  this database has no FORCEd policies to test against"
 fi
