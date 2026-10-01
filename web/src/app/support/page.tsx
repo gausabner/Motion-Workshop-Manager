@@ -32,14 +32,16 @@ export default function SupportPage() {
             label: "WhatsApp",
             value: reach.whatsapp,
             href: `https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`,
-            note: "Fastest. Send a screenshot with it.",
+            note: "Send a screenshot with it. Most things are solved in one exchange.",
+            primary: true,
         } : null,
         reach.email ? {
             icon: Mail,
             label: "Email",
             value: reach.email,
             href: `mailto:${reach.email}`,
-            note: "Best for anything with detail, or where you want a record.",
+            note: "Best for anything with detail, or where you want a record of what was agreed.",
+            primary: false,
         } : null,
         reach.phone ? {
             icon: Phone,
@@ -47,6 +49,7 @@ export default function SupportPage() {
             value: reach.phone,
             href: `tel:${reach.phone.replace(/\s/g, "")}`,
             note: "When the workshop is stopped and typing is not on.",
+            primary: false,
         } : null,
     ].filter((c): c is NonNullable<typeof c> => Boolean(c));
 
@@ -88,16 +91,44 @@ export default function SupportPage() {
                             and the other contact values.
                         </p>
                     ) : (
-                        <ul className="mt-3 divide-y divide-slate-100 border-y border-slate-200">
+                        // Trays and plates rather than a divided list, so three
+                        // ways of reaching a person read as three choices. The
+                        // whole card is the link: on a phone the target is the
+                        // card, not a line of text inside it.
+                        <ul className="mt-4 grid gap-3 sm:grid-cols-3">
                             {channels.map((c) => (
-                                <li key={c.label} className="flex items-start gap-4 py-3.5">
-                                    <c.icon aria-hidden strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                                    <div className="min-w-0">
-                                        <a href={c.href} className="text-[15px] font-medium text-teal-700 underline-offset-4 hover:underline">
+                                <li
+                                    key={c.label}
+                                    className={`rounded-[1.4rem] p-1.5 ${
+                                        c.primary
+                                            ? "bg-teal-500/15 ring-1 ring-inset ring-teal-500/30"
+                                            : "bg-slate-900/[0.04] ring-1 ring-inset ring-slate-900/[0.06]"
+                                    }`}
+                                >
+                                    <a
+                                        href={c.href}
+                                        className={`group flex h-full flex-col gap-3 rounded-[calc(1.4rem-0.375rem)] border bg-white p-5 motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-teal-900/5 ${
+                                            c.primary ? "border-teal-500/60" : "border-slate-200"
+                                        }`}
+                                    >
+                                        <span
+                                            className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                                                c.primary ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600"
+                                            }`}
+                                        >
+                                            <c.icon aria-hidden strokeWidth={2} className="h-4 w-4" />
+                                        </span>
+                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                            {c.label}
+                                            {c.primary && <span className="ml-1.5 text-teal-700">— fastest</span>}
+                                        </span>
+                                        {/* Tabular, because a phone number read
+                                            off a screen is checked digit by digit. */}
+                                        <span className="tabular break-words text-[15px] font-medium text-slate-900 group-hover:text-teal-700">
                                             {c.value}
-                                        </a>
-                                        <p className="mt-0.5 text-[13px] text-slate-500">{c.note}</p>
-                                    </div>
+                                        </span>
+                                        <span className="mt-auto text-[13px] leading-snug text-slate-500">{c.note}</span>
+                                    </a>
                                 </li>
                             ))}
                         </ul>
@@ -126,13 +157,36 @@ export default function SupportPage() {
                     </ul>
                 </section>
 
-                <section className="mt-9 border-t border-slate-200 pt-6">
-                    <h2 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">What counts as urgent</h2>
-                    <p className="mt-2 text-[14px] leading-relaxed text-slate-700">
-                        The workshop cannot invoice, cannot take money, or cannot get in at all. Say so in the first line and ring rather than
-                        write. Everything else — a figure that looks wrong, a report you want, a question about how something works — is answered
-                        in hours rather than minutes, and honestly most of it is in the help library already.
-                    </p>
+                {/* Two routes, told apart. Amber is used once on this page and
+                    this is it: a stopped workshop is the only thing here that
+                    is actually urgent, and a page where everything is flagged
+                    is a page where nothing is. */}
+                <section className="mt-10 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[1.4rem] bg-amber-500/10 p-1.5 ring-1 ring-inset ring-amber-500/25">
+                        <div className="h-full rounded-[calc(1.4rem-0.375rem)] border border-amber-300/70 bg-white p-5">
+                            <h2 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                <i aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                The workshop is stopped
+                            </h2>
+                            <p className="mt-2.5 text-[14px] leading-relaxed text-slate-700">
+                                Cannot invoice, cannot take money, or cannot get in at all. <span className="font-medium text-slate-900">Ring
+                                rather than write</span>, and say so in the first line.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-[1.4rem] bg-slate-900/[0.04] p-1.5 ring-1 ring-inset ring-slate-900/[0.06]">
+                        <div className="h-full rounded-[calc(1.4rem-0.375rem)] border border-slate-200 bg-white p-5">
+                            <h2 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                <i aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+                                Everything else
+                            </h2>
+                            <p className="mt-2.5 text-[14px] leading-relaxed text-slate-700">
+                                A figure that looks wrong, a report you want, a question about how something works. Answered in hours rather than
+                                minutes — and honestly, most of it is already in the help library.
+                            </p>
+                        </div>
+                    </div>
                 </section>
             </div>
         </PublicShell>
