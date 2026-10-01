@@ -255,8 +255,15 @@ Commissioning is not finished until a restore has passed. Full detail in
    `PG_DUMP="docker exec -i motion-db-1 pg_dump"` and so on for `pg_dumpall`,
    `pg_restore` and `psql`.
 4. `ops/backup/motion-backup.sh`, then enable `motion-backup.timer`.
-5. **`ops/backup/motion-verify.sh`.** It restores the night's backup into a
-   scratch database and reports how long it took. That number is this site's
+6. **`ops/backup/motion-verify.sh`.** It restores the night's backup into a
+   scratch database and reports how long it took.
+
+   Note the tension to resolve: verification needs the private key *and* the
+   database, and those are deliberately on different machines. Running it on
+   the server means putting the key there, which is the one thing the design
+   avoids. The drill performed at commissioning instead pulled the objects to
+   a laptop and restored there — which is a better rehearsal anyway, because
+   it proves recovery onto hardware that is not the one that failed. That number is this site's
    recovery time, and it belongs in `docs/continuity-and-recovery.md` in place
    of the generic figure.
 

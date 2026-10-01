@@ -128,6 +128,39 @@ ENV
 export MOTION_BACKUP_ENV="$tmp/backup.env"
 
 echo
+echo "row-level security against the dump"
+# This is the case that reached a live server before it was caught. The suite
+# dumped as the superuser, which bypasses RLS unconditionally, so it never
+# exercised the configuration production actually uses — and the first real
+# backup failed on the first table:
+#
+#   ERROR: query would be affected by row-level security policy
+#
+# A dump that cannot read is a loud failure, which is the good outcome. The
+# bad outcome this guards against is the opposite: a configuration that
+# silently captures nothing. So both halves are checked.
+RLS_FORCED=$(src "select count(*) from pg_class where relforcerowsecurity and relnamespace='"'"'public'"'"'::regnamespace")
+if [ "${RLS_FORCED:-0}" -gt 0 ]; then
+    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1
+    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "create role zz_e2e_norls login password '"'"'zze2e'"'"' nosuperuser nobypassrls" >/dev/null 2>&1
+    ${CLIENT_PREFIX}psql -d "$E2E_DB_URL" -tAc "grant usage on schema public to zz_e2e_norls; grant select on all tables in schema public to zz_e2e_norls" >/dev/null 2>&1
+    forced_table=$(src "select c.relname from pg_class c where c.relforcerowsecurity and c.relnamespace='"'"'public'"'"'::regnamespace limit 1")
+    # Swap the credentials into the URL rather than passing --username: libpq
+    # takes the user from the connection string, so --username is ignored and
+    # the dump would quietly run as the superuser — which is the very mistake
+    # this check exists to catch.
+    rls_url="postgresql://zz_e2e_norls:zze2e@${E2E_DB_URL#*@}"
+    rls_url=${rls_url%%\?*}
+    rls_out=$(${CLIENT_PREFIX}pg_dump -d "$rls_url" --format=custom \
+        --table="public.\"$forced_table\"" 2>&1 >/dev/null </dev/null || true)
+    check "a dump by a NOBYPASSRLS role is refused, not silently empty" \
+        "$(printf '%s' "$rls_out" | grep -c 'row-level security')" "1"
+    ${CLIENT_PREFIX}psql -d "$ADMIN_URL" -tAc "drop role if exists zz_e2e_norls" >/dev/null 2>&1
+else
+    echo "  skip  this database has no FORCEd policies to test against"
+fi
+
+echo
 echo "taking a backup"
 if ./motion-backup.sh > "$tmp/backup.log" 2>&1; then
     check "the backup script succeeds" ok ok
