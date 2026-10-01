@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { DocumentSpine } from "@/components/public/DocumentSpine";
+import { MondayMorning } from "@/components/public/MondayMorning";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoScene } from "@/components/public/iso/primitives";
 import { HeroScene } from "@/components/public/iso/scenes";
@@ -54,10 +55,17 @@ function PillLink({
         <Link
             href={href}
             className={
-                // Both variants are for a light ground now. The ghost used to
-                // be white-on-white here: it was in the DOM, focusable, and
-                // completely invisible — the worst kind of broken, because
-                // nothing reports it and a keyboard user still tabs to it.
+                // Solid is used on both grounds — the light hero and the dark
+                // closing band — and teal-600 under white holds on either, so
+                // it needs no variant of its own.
+                //
+                // Ghost is light-ground only, and is used once. It was written
+                // for the dark hero as white-on-white borders; when the hero
+                // went to paper it became invisible while staying in the DOM
+                // and in the tab order, which is the worst kind of broken —
+                // nothing reports it and a keyboard user still lands on it. If
+                // a ghost is ever needed on dark again, give it a prop rather
+                // than changing these.
                 variant === "solid"
                     ? `${base} bg-teal-600 text-white shadow-lg shadow-teal-900/15 hover:bg-teal-700 hover:shadow-teal-900/20`
                     : `${base} border border-teal-600/40 text-teal-700 hover:border-teal-600 hover:bg-teal-50`
@@ -198,12 +206,29 @@ export function CloudLanding() {
                     rather than stated. */}
                 <DocumentSpine />
 
-                <Reveal>
-                    <p className="mx-auto max-w-2xl px-5 pb-16 pt-14 text-center text-[14px] leading-relaxed text-slate-500">
-                        Most systems make you copy a quote into a job card and the job card into an invoice, and the three drift apart.
-                        This is the difference you feel on the first busy Friday.
-                    </p>
-                </Reveal>
+                {/* The journey, then what the journey leaves on your screen.
+                    Five drawn stages are an argument; a month's figure, four
+                    bays and three things nobody has got to yet are the same
+                    argument with the abstraction taken off. */}
+                <section className="mx-auto max-w-6xl px-5 pb-20 pt-20">
+                    <Reveal>
+                        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Monday morning, as you find it
+                        </p>
+                        <h2 className="mx-auto mt-3 max-w-2xl text-balance text-center text-[26px] font-semibold leading-tight tracking-[-0.025em] text-slate-900 sm:text-[32px]">
+                            You open one screen and already know what the week owes you.
+                        </h2>
+                    </Reveal>
+                    <Reveal delay={90} className="mt-10">
+                        <MondayMorning />
+                    </Reveal>
+                    <Reveal delay={150}>
+                        <p className="mx-auto mt-10 max-w-2xl text-center text-[14px] leading-relaxed text-slate-500">
+                            Most systems make you copy a quote into a job card and the job card into an invoice, and the three drift apart.
+                            This is the difference you feel on the first busy Friday.
+                        </p>
+                    </Reveal>
+                </section>
 
                 <section className="mx-auto max-w-5xl px-5 pb-16">
                     <div className="grid gap-x-12 gap-y-9 sm:grid-cols-2">
