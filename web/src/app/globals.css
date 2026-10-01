@@ -474,8 +474,20 @@ a { text-underline-offset: 0.2em; }
   to   { opacity: 1; transform: none; }
 }
 
+/* The compact mark's dot, dropping into the gap the frame leaves for it.
+   The only overshoot anywhere in the brand, and it is deliberate: the dot is
+   the one part of the mark that is a shape rather than a stroke or a letter,
+   and settling rather than arriving is what makes a square of rules read as a
+   thing that was assembled. Kept small — 1.56 on the easing, 6px of travel —
+   because a logo that bounces is a logo nobody takes seriously twice. */
+@keyframes motion-dot-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.6); }
+  to   { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* It still assembles; it simply does not move or wipe. */
   @keyframes motion-frame-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes motion-letter-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes motion-dot-in    { from { opacity: 0; } to { opacity: 1; } }
 }
