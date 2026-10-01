@@ -4,19 +4,27 @@ What happens when something breaks, how MOTION comes back, and — stated plainl
 — what is not yet in place. For the IT manager who has to satisfy themselves
 that a workshop can keep trading.
 
-Last reviewed 30 September 2026 against the shipped pipeline.
+Last reviewed 1 October 2026 against the shipped pipeline.
 
 ---
 
 ## The honest position first
 
-**MOTION has no automated off-site backup of its own.** Not on an installed
-site, where backups are the site's own responsibility today, and not on the
-hosted service, because no hosting platform has been chosen yet.
+MOTION now takes its own off-site backups: a nightly `pg_dump`, encrypted
+before it leaves the machine, uploaded to an S3-compatible bucket, pruned on a
+fixed schedule, and restored into a scratch database every week to prove it
+still works. `ops/backup/` holds it and `ops/backup/README.md` describes it.
 
-Everything below is true and demonstrable. This paragraph is here because a
-continuity document that opens with its strengths and buries that is not a
-continuity document.
+Two things are still true and are stated here rather than buried:
+
+- **It is per-installation configuration, not a default.** A site that has not
+  been given a bucket and a key pair has no off-site backup. Commissioning is
+  not complete until `motion-verify.sh` has been run once and passed.
+- **The recovery point is up to twenty-four hours.** A nightly dump is a
+  nightly dump. Getting below that needs continuous WAL archiving, which is a
+  larger piece of work and is not built. For a workshop, a day re-entered from
+  paper is survivable — but it has to be said in the contract rather than
+  implied away.
 
 ## 1. What recovery actually depends on
 
@@ -25,11 +33,11 @@ Two things, and they are separable:
 | | Where it lives | How it comes back |
 | --- | --- | --- |
 | **The application** | A container image, built and published by pipeline | Pull the image and start it. Minutes |
-| **Your data** | PostgreSQL, plus stored files | From a backup. **This is the part that needs a decision** |
+| **Your data** | PostgreSQL, plus stored files | From the night's off-site backup. Section 4 |
 
 The application is genuinely disposable — it holds no state, and a lost server
 is replaced by starting the same published image somewhere else. The data is
-the whole problem, which is why it gets the honest paragraph above.
+the whole problem, which is why most of this document is about it.
 
 ## 2. What the pipeline proves on every change
 
@@ -74,35 +82,84 @@ keep their numbers, deleted documents keep their entire contents in the audit
 trail, and the stock ledger is a record of movements rather than a number that
 was overwritten.
 
-## 4. What each client should have in place
+## 4. What the backup actually does
 
-Because MOTION does not do this for you yet, and saying so is more useful than
-implying otherwise.
+Nightly, at 02:10 in the workshop's own time:
 
-**Installed sites.** A nightly `pg_dump` of the MOTION database, kept off the
-machine that runs it; a copy of the attachments directory or S3 bucket; and the
-environment file, which holds the settings but should be handled as a secret. A
-restore tested once, not assumed — an untested backup is a belief.
+1. **Dumps the database** with `pg_dump --format=custom`. Ownership and grants
+   are kept, not stripped — row-level security is enforced through them, and a
+   dump that discarded them would restore a database whose tenant boundaries no
+   longer bite.
+2. **Dumps the cluster roles** as well. Roles are not part of a database dump,
+   and without them a restore onto bare metal produces policies referring to
+   roles that do not exist. Role *passwords* are deliberately excluded — those
+   hashes are not something to ship off-site — and are set from the
+   deployment's own environment on restore.
+3. **Archives the attachments**, where they are on local disk. With the S3
+   storage driver they are already in a bucket and are not copied into a
+   second one.
+4. **Encrypts everything** before upload. A fresh random passphrase per backup
+   encrypts the dump; that passphrase is wrapped with an RSA public key. The
+   server holds only the public half, so it can write backups it cannot itself
+   read: a compromised server cannot decrypt its own history, and a leaked
+   bucket is noise. The private key is held by the owner, off the server.
+5. **Writes a plaintext manifest** — sizes, hashes, server version, table
+   count — so bucket contents can be audited without the private key. It names
+   no customer, vehicle or amount.
+6. **Moves the `LATEST` pointer last**, once every other object is uploaded. A
+   run that dies halfway leaves the previous backup as the newest complete one,
+   rather than leaving a torn backup to be discovered during a restore.
+7. **Prunes** to fourteen dailies, roughly eleven month-end copies and a
+   yearly. Two years of history is twenty-five objects.
+8. **Sends a heartbeat**, if one is configured. The ordinary way backups fail
+   is that the job stops running and nobody notices for months; nobody notices
+   the absence of an email.
 
-**Hosted service.** Whatever the chosen platform provides, plus MOTION's own
-full export as an independent copy. The export is deliberately readable without
-MOTION, so it survives even the scenario where we do not.
+### What proves it
 
-> **To decide.** Whether a managed platform's automated backups are sufficient
-> for the hosted service or whether MOTION runs its own on top. This is the
-> single open item that most affects what can be promised in a contract.
+Four test suites run in CI on every change, and a weekly restore runs against
+the live backup.
 
-## 5. What cannot be promised yet
+| | What it establishes |
+| --- | --- |
+| `s3.test.sh` | The request signing matches the worked example AWS publishes — the same vectors the application's own S3 client is checked against |
+| `rotate.test.sh` | The retention policy keeps what it claims. Pruning is the one part whose bugs are silent: it deletes what you were going to need and says nothing until you need it |
+| `crypt.test.sh` | The encryption round-trips, and refuses the wrong key, a single flipped byte, and a damaged envelope — rather than restoring something subtly wrong |
+| `e2e.test.sh` | The whole path against a real PostgreSQL: dump, seal, upload, list, prune, fetch, unseal, restore, and confirm the rows **and the row-level security** came back |
+| `motion-verify.sh` | Weekly, against the actual latest backup: restores it into a scratch database, checks the data is there and the policies survived, and reports how long it took |
+
+That last one is the one that matters. Everything above it can work perfectly
+and still leave you with nothing; a backup is a belief until it has been
+restored.
+
+## 4a. What each client should still have in place
+
+**Installed sites.** A bucket and a key pair, configured at commissioning —
+and the private key kept somewhere other than the server, in two places,
+because one copy is not a copy. Losing it makes every backup unreadable; that
+is a property of the design rather than a flaw in it, and the alternative is a
+server that can decrypt its own off-site history.
+
+**Hosted service.** The above, plus MOTION's own full export as an independent
+copy. The export is deliberately readable without MOTION, so it survives even
+the scenario where we do not.
+
+## 5. What can and cannot be promised
 
 | | Position |
 | --- | --- |
-| **Recovery time objective** | Not committed. The application side is minutes; the database side depends on a backup arrangement that does not exist yet |
-| **Recovery point objective** | Not committed, for the same reason. An RPO is a statement about backup frequency |
-| **Uptime percentage** | None published. A figure that cannot be measured is worse than no figure, and there is no monitoring in place to measure one |
-| **A tested failover** | Not performed. There is no second environment to fail over to |
+| **Recovery point objective** | **24 hours.** One backup a night. A workshop that loses its server loses at most that day's entries, which are re-entered from the paper the floor already works from |
+| **Recovery time objective** | **Under an hour**, for a site with a configured bucket. The application is a container image and starts in minutes; the restore itself is dominated by downloading the dump, not by PostgreSQL. A 300 KiB dump restores and verifies in two seconds on local hardware; at realistic sizes over a Namibian link the download is the whole of it. The weekly verification reports the real figure for each site, which is the number to quote rather than this one |
+| **Backups are tested** | **Yes, weekly**, by restoring them. This is the claim most backup policies cannot make |
+| **Backups are encrypted off-site** | **Yes**, and the server that writes them cannot read them |
+| **Point-in-time recovery** | **No.** Nightly granularity only. Sub-day recovery needs WAL archiving, which is not built |
+| **Uptime percentage** | **None published.** There is no monitoring in place to measure one, and a figure that cannot be measured is worse than no figure. Blocked on choosing a host, not on engineering |
+| **A tested failover** | **Not performed.** There is no second environment to fail over to. Recovery is restore-and-start, not switch-over |
 
-These are answerable, and none is expensive — they are blocked on choosing a
-host, not on engineering.
+> **To decide.** The host. Not for the backup's sake — the backup arrangement
+> is deliberately independent of it, and works the same on any Linux server
+> with a bucket — but the uptime figure and the data-residency answer both
+> wait on it.
 
 ## 6. Keeping trading while MOTION is down
 

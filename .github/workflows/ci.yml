@@ -52,3 +52,58 @@ jobs:
       - name: Database tests — tenant isolation, messaging, storage
         run: npm run test:db
       - run: npm run build
+
+  backup:
+    name: Off-site backup scripts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: motion_app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/motion_app?schema=public
+      SESSION_SECRET: ci-only-secret-not-for-production-0123456789
+      # The end-to-end test finds PostgreSQL through this, and prefers the
+      # runner's own client tools over a container — ubuntu-latest ships them.
+      E2E_DB_URL: postgresql://postgres:postgres@localhost:5432/motion_app
+    steps:
+      - uses: actions/checkout@v4
+
+      # The signer, the retention policy and the envelope need nothing but
+      # bash and openssl, so they run before anything is installed. If one of
+      # these fails, the rest of the job is noise.
+      - name: Signing, against AWS's published vectors
+        run: bash ops/backup/s3.test.sh
+      - name: Retention, against generated histories
+        run: bash ops/backup/rotate.test.sh
+      - name: Envelope encryption, including every way it must refuse
+        run: bash ops/backup/crypt.test.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: ./web
+      - run: npx prisma migrate deploy
+        working-directory: ./web
+
+      # Seeded on purpose. The end-to-end test compares the restored database
+      # against the source rather than against numbers in the test, so an
+      # empty schema would let a backup that captured structure and no rows
+      # pass every check.
+      - run: npm run db:seed
+        working-directory: ./web
+
+      - name: Dump, seal, upload, prune, restore, and check what came back
+        run: bash ops/backup/e2e.test.sh

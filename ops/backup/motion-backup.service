@@ -1,0 +1,32 @@
+[Unit]
+Description=MOTION off-site backup
+Documentation=file:///opt/motion/ops/backup/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/motion/ops/backup/motion-backup.sh
+User=motion
+Group=motion
+
+# The config holds bucket credentials and the script reads it itself, so it is
+# not passed in here where `systemctl show` would print it.
+#
+# Hardening: this unit needs to read the database, read the attachments, and
+# talk to one bucket. Nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/motion
+ReadWritePaths=/var/lib/motion
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# A backup that hangs must not still be hanging when tomorrow's starts.
+TimeoutStartSec=2h

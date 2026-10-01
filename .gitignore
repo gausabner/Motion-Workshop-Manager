@@ -5,6 +5,14 @@ keys/
 !.env.example
 *.pem
 
+# Off-site backup configuration: bucket credentials and key paths. The example
+# is tracked; a filled-in copy never is. (*.pem above already covers the key
+# pair, which should not be in a repository on any machine.)
+ops/backup/backup.env
+!ops/backup/backup.env.example
+ops/server/motion.env
+!ops/server/motion.env.example
+
 # macOS / editors
 .DS_Store
 .idea/

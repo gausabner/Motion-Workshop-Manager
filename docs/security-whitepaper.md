@@ -27,6 +27,8 @@ Last reviewed 30 September 2026 against the shipped code.
 - An installed site sends **outbound only**. Nothing listens for an inbound
   connection, and no integration requires your network to open a door.
 - Your data is exportable in full, by you, at any time, without asking us.
+- Backups leave the building **encrypted with a key the server does not hold**,
+  and are restored every week to prove they work.
 
 ---
 
@@ -177,6 +179,39 @@ the audit trail like any other.
   against a real PostgreSQL including the isolation tests above, and browser
   tests across Chromium, Android and iOS engines.
 
+## 8. Backups, and how they are protected
+
+A nightly dump of the database and its roles, plus the attachments where they
+sit on local disk, uploaded to an S3-compatible bucket and pruned to fourteen
+daily copies, roughly eleven month-end copies and a yearly one.
+
+Three properties are worth a procurement officer's attention:
+
+**The server cannot read its own backups.** Each backup is encrypted with a
+fresh random key, and that key is wrapped with an RSA public key. Only the
+public half is on the server. Someone who takes the server, or the bucket, or
+both, has ciphertext. The private half is held by the workshop or the council,
+not by MOTION, and not on the machine — which also means MOTION cannot read
+your backups either.
+
+**The backups are restored, not merely taken.** A scheduled job restores the
+latest backup into a scratch database every week, checks the data is present,
+checks the row-level security policies survived, and reports how long it took.
+That figure is the recovery time, measured rather than estimated. An untested
+backup is a belief, and most backup policies are exactly that.
+
+**A damaged backup is refused rather than half-restored.** The hash of the
+dump is recorded inside the encrypted envelope at the time it is taken. A
+single altered byte anywhere in the stored object makes the restore stop and
+say so, instead of producing a database that looks plausible.
+
+What this does **not** give you is point-in-time recovery. The granularity is
+one night, so a failure can cost up to a day of entry — re-entered from the
+paper the floor already works from. Going finer needs continuous WAL
+archiving, which is not built.
+
+The scripts, and a plain account of their limits, are in `ops/backup/`.
+
 ## What MOTION does not have yet
 
 Named here rather than omitted, because procurement will ask and finding out
@@ -186,12 +221,14 @@ later is worse than being told now.
 | --- | --- |
 | **Multi-factor authentication** | Not implemented. Realistic to add, and the right first ask for a council. |
 | **Single sign-on / Active Directory** | Not implemented. Understood to be a procurement requirement for councils and planned as one; no work has started. |
-| **Automated off-site backups** | Not implemented in the product. On an installed site, backups are the site's own responsibility today. For the hosted service this will be the platform's, and no hosting platform has been chosen yet. |
-| **Encryption at rest** | Depends on the host, which is not chosen. PostgreSQL and the storage layer both support it; it is not something MOTION currently configures or can attest to. |
+| **Point-in-time recovery** | Not implemented. Backups are nightly, so the recovery point is up to 24 hours. Continuous WAL archiving would close this and is not built. See section 8. |
+| **Backups configured by default** | The scripts ship with the product; the bucket and key pair are set up per installation. A site that has not been commissioned has no off-site backup, which is why commissioning is not complete until a restore has been run and passed. |
+| **Encryption at rest for the live database** | Not configured. The hosted service runs PostgreSQL on a Namecheap VPS with NVMe storage; disk-level encryption is not enabled and is not something MOTION can currently attest to. Separate from the backups, which *are* encrypted before they leave the machine — see section 8. |
 | **SOC 2 / ISO 27001** | Neither held. Both are a year and six figures; there is no honest way to have them before revenue. |
 | **Independent penetration test** | Not yet commissioned. Worth doing before a first council go-live. |
-| **A published uptime commitment** | None. A figure that cannot be measured is worse than no figure. |
-| **Named subprocessor list** | Not published, because hosting is not chosen. Owed before any council contract. |
+| **A published uptime commitment** | None. Nothing is measuring it yet. A figure nobody is measuring is worse than no figure. |
+| **Data held in Namibia** | No. The hosted service runs in Phoenix, Arizona; Namecheap confirmed their VPS estate is United States only. A client who requires Namibian residency is served by the installed edition on their own hardware, which is what it is for. |
+| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any council contract. |
 | **A registered legal entity** | Not yet registered. The terms and privacy policy are drafts and say so. |
 
 ## Asking us about this

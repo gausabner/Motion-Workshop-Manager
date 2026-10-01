@@ -1,0 +1,11 @@
+[Unit]
+Description=Prove the latest MOTION backup restores, weekly
+
+[Timer]
+# Sunday 04:00, after the night's backup and before anyone needs the machine.
+OnCalendar=Sun *-*-* 04:00:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
