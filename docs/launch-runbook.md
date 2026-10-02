@@ -81,6 +81,26 @@ origin IP that the tunnel exists to hide.
 
 ## 2. Lock the account and the box
 
+> **Reaching the box.** `server1.motionworkshopmanager.com` is the machine's own
+> hostname and **not** a DNS record — nothing resolves it, because web traffic
+> arrives through the Cloudflare Tunnel rather than to the server, so the host
+> has no public A record at all. SSH goes to the address directly. `~/.ssh/config`
+> on the admin laptop carries both:
+>
+> ```
+> Host motion-root        # root, for /etc/motion and systemd
+>     HostName 162.0.239.92
+>     User root
+>     IdentityFile ~/.ssh/motion_server1
+>
+> Host motion-server1     # the unprivileged day-to-day login
+>     HostName 162.0.239.92
+>     User motion
+>     IdentityFile ~/.ssh/motion_server1
+> ```
+>
+> So it is `ssh motion-root`, not `ssh root@server1.…`.
+
 **Namecheap two-factor is currently OFF.** That account holds a *Reinstall*
 button that wipes this server. Turn it on before anything of value is on the
 machine — the dashboard offers a TOTP app, which is the right choice over SMS.
@@ -300,7 +320,7 @@ repository — `motion.env.example` is the template, the real file is deliberate
 only ever on the box:
 
 ```
-ssh root@server1.motionworkshopmanager.com
+ssh motion-root
 nano /etc/motion/motion.env
 ```
 
@@ -309,11 +329,29 @@ APP_URL=https://motionworkshopmanager.com
 MAIL_DRIVER=smtp
 MAIL_SMTP_HOST=mail.privateemail.com
 MAIL_SMTP_PORT=465
-MAIL_SMTP_USER=no-reply@motionworkshopmanager.com
-MAIL_SMTP_PASSWORD=…
+MAIL_SMTP_USER=info@motionworkshopmanager.com
 MAIL_FROM=no-reply@motionworkshopmanager.com
 MAIL_FROM_NAME=MOTION
 ```
+
+The password is not in that list because it should not be typed into an editor —
+the server has no `nano`, and an editor puts a live credential on the terminal.
+From the admin laptop:
+
+```
+ssh -t motion-root /usr/local/sbin/motion-set-mail-password
+```
+
+It prompts without echo, backs the file up, and writes only that one line.
+`ops/server/motion-set-mail-password` is the copy under version control; install
+it with `install -m 700 ops/server/motion-set-mail-password /usr/local/sbin/`.
+
+**`MAIL_SMTP_USER` must be a real mailbox, not an alias.** This cost an hour on
+the first setup. `no-reply@` is an alias on `info@`, and an alias cannot log in.
+The failure is a bare `535` with no explanation, identical in shape to a wrong
+password — the only tell is the wording, which differs very slightly between an
+unknown user and a bad password. Authenticate as the mailbox and *send* as the
+alias; that is tested and allowed, and is what `MAIL_FROM` is separate for.
 
 Then `systemctl restart motion`, because the container reads its environment at
 start and nothing re-reads this file.
