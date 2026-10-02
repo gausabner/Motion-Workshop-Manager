@@ -142,8 +142,55 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
     ], NOTES_WIDTH);
 
     doc.y = Math.max(afterTotals, notesBottom);
+
+    // A quote is an offer, and an offer wants somewhere to be accepted.
+    //
+    // Taken from the quotation this workshop's own supplier sends: three ruled
+    // fields, name, signature and date. Without them a customer who agrees has
+    // to say so in a separate message, which is the version nobody can produce
+    // eighteen months later when the job is disputed. A printed line is the
+    // cheapest contract there is.
+    //
+    // Quotes only. An invoice is not accepted, it is paid, and a signature
+    // block on one invites somebody to sign instead of settling.
+    if (input.type === "QUOTE") doc.y = drawAcceptance(doc, doc.y + 18);
+
     stampPageNumbers(doc, `${input.workshop.name}${input.number ? ` · ${input.number}` : ""}`);
     return toBuffer(doc);
+}
+
+/**
+ * Where a quote is accepted: name, signature, date.
+ *
+ * Ruled lines rather than boxes, because this is printed or signed on a phone
+ * screen with a finger, and a box implies a size the signature will not be.
+ */
+function drawAcceptance(doc: import("@/lib/pdf/kit").Doc, y: number): number {
+    // A new page rather than a signature block split across the fold, which is
+    // the one place a reader stops believing the document is whole.
+    if (y > PAGE.height - MARGIN.bottom - 54) {
+        doc.addPage();
+        y = MARGIN.top;
+    }
+
+    rule(doc, y, INK.band);
+    y += 10;
+    doc.font("Helvetica").fontSize(7.5).fillColor(INK.muted).text("ACCEPTED BY", MARGIN.left, y, { characterSpacing: 0.6 });
+    y = doc.y + 14;
+
+    const fields: [string, number][] = [
+        ["Name", 0.38],
+        ["Signature", 0.34],
+        ["Date", 0.28],
+    ];
+    let x = MARGIN.left;
+    for (const [label, share] of fields) {
+        const w = CONTENT_WIDTH * share - 12;
+        doc.save().moveTo(x, y).lineTo(x + w, y).lineWidth(0.75).strokeColor(INK.rule).stroke().restore();
+        doc.font("Helvetica").fontSize(7.5).fillColor(INK.muted).text(label, x, y + 4, { width: w });
+        x += CONTENT_WIDTH * share;
+    }
+    return y + 20;
 }
 
 /** A banded note across the top, for a state the reader has to notice before the numbers. */
