@@ -40,14 +40,46 @@ const inTenantTransaction = new AsyncLocalStorage<true>();
  *      by default means the next operation Prisma adds fails loudly here
  *      instead of quietly crossing the wall.
  */
-const TENANT_MODELS = new Set([
+export const TENANT_MODELS = new Set([
     "Membership", "Invitation", "Customer", "Contact", "Vehicle", "Supplier",
     "ProductGroup", "ProductCategory", "Product", "CustomerSource", "PaymentMethod",
     "AppointmentType", "Sequence", "Template", "Document", "DocumentLine",
     "DocumentStatusEvent", "TimeEntry", "Payment", "PaymentAllocation", "Credit",
     "Attachment", "AuditEvent", "PaymentTender", "ExternalRef", "ShareLink", "Message", "WorkingHours", "TimeOff", "BookingRequest", "InspectionTemplate",
     "InspectionTemplateItem", "Inspection", "InspectionItem", "Reminder", "Campaign", "CampaignRecipient", "StockMovement", "PurchaseOrder", "PurchaseOrderLine", "SupplierInvoice", "SupplierInvoiceLine", "SupplierPayment", "SupplierPaymentAllocation", "StockTake", "StockTakeLine", "BundleItem", "PriceMatrix", "PriceMatrixBand", "SerialUnit", "LoanVehicle", "Loan", "ApiKey",
+    // Both of these were missing, and the omission is invisible in development.
+    //
+    // A model absent from this set is passed straight through: no tenant
+    // injected, and — the part that bites — no transaction announcing the
+    // tenant. Against a superuser connection, which is what development and CI
+    // use, the query then reads across every workshop and the tests pass. In
+    // production, where the app is NOBYPASSRLS and these tables are FORCE RLS,
+    // the same query returns nothing and a create fails outright.
+    //
+    // `Subscription` was caught by that failure while the registration flow was
+    // first walked through in a browser. `ExportRun` was found by then checking
+    // the whole set against the schema, and was live: every access in
+    // `handoff/run.ts` and `handoff/receipts.ts` is outside a transaction, so
+    // the accounting hand-off would have failed on its first real run. It is
+    // dormant only because HANDOFF_SECRET is unset, which turns the endpoint
+    // off. `tenant-models.test.ts` now asserts this set against the schema so
+    // the next one is a build failure rather than a surprise in production.
+    "ExportRun", "Subscription",
 ]);
+
+/**
+ * Models that carry a `tenantId` and are deliberately *not* scoped here.
+ *
+ * Both answer "who is this, and which workshop are they in?", so the query that
+ * finds them cannot itself be scoped by the answer — a session is looked up
+ * before anybody knows the tenant, and somebody following a reset link is not
+ * signed in at all. They keep their row-level security policy but are NO FORCE,
+ * so the owner is not bound, and a row is reachable only by presenting a token
+ * that cannot be guessed.
+ *
+ * Exported so the test can tell a considered exemption from an oversight.
+ */
+export const UNSCOPED_TENANT_MODELS = new Set(["Session", "PasswordReset"]);
 
 type AnyArgs = Record<string, unknown>;
 

@@ -6,8 +6,9 @@ import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { createSession, destroySession, defaultTenantSlug, requireUser } from "@/lib/auth/session";
+import { createSession, destroySession, requireUser, signedInLanding } from "@/lib/auth/session";
 import { createTenantDefaults } from "@/lib/tenant/defaults";
+import { isReservedSlug } from "@/lib/auth/reserved-slugs";
 import { consumePasswordReset } from "@/lib/team/recovery";
 import { announceTenant } from "@/lib/tenant-db";
 import { type ActionState, fromZod, str } from "@/lib/forms";
@@ -17,6 +18,36 @@ import { COUNTRIES, countryDefaults } from "@/lib/tenant/country";
 function safeNext(next: string | undefined): string | null {
     if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
     return next;
+}
+
+/**
+ * `next` is where the visitor was heading before being asked to sign in. It is
+ * safe as a *URL* once `safeNext` has checked it is relative — but safe is not
+ * the same as usable, and the gap showed up the first time somebody signed out
+ * of one workshop and straight into another on the same machine. The stale
+ * `next` still named the first workshop, so the second person was redirected to
+ * a dashboard they are not a member of and met a 404 on the far side of a
+ * successful sign-in.
+ *
+ * Two people at one counter machine is not an edge case in a workshop.
+ *
+ * A path whose first segment is a reserved name is a static route and belongs
+ * to nobody, so it passes. Anything else is a workshop address, and is only
+ * honoured if this user is actually a member of it. A workshop they *are* in
+ * but which has not paid is still allowed through: `requireTenant` redirects it
+ * to `/activate`, which is the right destination and is better reached by the
+ * route that owns that decision.
+ */
+async function usableNext(userId: string, next: string | null): Promise<string | null> {
+    if (!next) return null;
+    const first = next.split("?")[0].split("/").filter(Boolean)[0];
+    if (!first || isReservedSlug(first)) return next;
+
+    const membership = await prisma.membership.findFirst({
+        where: { userId, status: "ACTIVE", tenant: { slug: first } },
+        select: { id: true },
+    });
+    return membership ? next : null;
 }
 
 const loginSchema = z.object({
@@ -34,10 +65,11 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     const ok = user ? await verifyPassword(password, user.passwordHash) : false;
     if (!user || !ok) return { ok: false, message: "Email or password is incorrect." };
 
-    const slug = await defaultTenantSlug(user.id);
     const ua = (await headers()).get("user-agent");
     await createSession(user.id, null, ua);
-    redirect(safeNext(next) ?? (slug ? `/${slug}/dashboard` : "/register"));
+    // `signedInLanding` rather than a dashboard-or-register guess: a workshop
+    // awaiting payment has a home now, and it is not the registration form.
+    redirect((await usableNext(user.id, safeNext(next))) ?? (await signedInLanding(user.id)));
 }
 
 const registerSchema = z.object({
@@ -56,7 +88,6 @@ const registerSchema = z.object({
 });
 
 // "share" is the public document link route, which sits beside the workshop slugs.
-const RESERVED_SLUGS = new Set(["login", "register", "api", "admin", "app", "www", "static", "_next", "share", "approve", "join", "portal"]);
 
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -73,7 +104,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
     if (!parsed.success) return fromZod(parsed.error);
     const d = parsed.data;
     const local = countryDefaults(d.country);
-    if (RESERVED_SLUGS.has(d.slug)) return { ok: false, errors: { slug: ["That address is reserved — pick another"] } };
+    if (isReservedSlug(d.slug)) return { ok: false, errors: { slug: ["That address is reserved — pick another"] } };
 
     const passwordHash = await hashPassword(d.password);
     let userId: string;
@@ -93,6 +124,11 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
                     slug: d.slug, name: d.workshopName, email: d.email, mobile: d.mobile, whatsapp: d.mobile,
                     country: d.country, timezone: local.timezone, currency: local.currency, locale: local.locale,
                     taxName: local.taxName, salesTaxRate: local.taxRate, purchaseTaxRate: local.taxRate,
+                    // Registering is not the same as being allowed in. Stated
+                    // here as well as being the column default, because this is
+                    // the one line that decides whether MOTION is sold or given
+                    // away, and it should be readable at the place it happens.
+                    status: "PENDING_PAYMENT",
                 },
             });
             // Everything below writes tenant-owned rows, and row-level security
@@ -117,7 +153,10 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 
     const ua = (await headers()).get("user-agent");
     await createSession(userId, null, ua);
-    redirect(`/${d.slug}/dashboard`);
+    // Signed in, but to a workshop that cannot be used yet. `/activate` is the
+    // only page the new tenant can reach, and it is outside `/[tenant]` because
+    // `requireTenant` is what sends people there.
+    redirect("/activate");
 }
 
 export async function logoutAction(): Promise<void> {

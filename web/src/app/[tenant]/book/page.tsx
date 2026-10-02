@@ -8,6 +8,7 @@ import { onlineBookingSettings } from "@/lib/settings/schema";
 import { minuteLabel, parseMinute } from "@/lib/diary/time";
 import { dayHeading } from "@/components/diary/shared";
 import { PublicBookingForm } from "@/components/booking/PublicBookingForm";
+import { StepProgress } from "@/components/auth/StepProgress";
 
 /**
  * Online booking (R4). Four short steps — service, day, time, details — each
@@ -15,7 +16,24 @@ import { PublicBookingForm } from "@/components/booking/PublicBookingForm";
  * back button always does what the customer expects.
  *
  * It shows times, never who is booked in them.
+ *
+ * The four steps are now also *visible*. They had been named in these comments
+ * and nowhere on the screen, which is the one place in the product where that
+ * costs money: this is the only funnel containing a stranger rather than a
+ * customer or an employee, it is reached on a phone over mobile data, and
+ * somebody who gives up half way is a job the workshop never hears about. Four
+ * screens with no sense of how many remain is the shape people abandon.
  */
+
+/** Short enough to survive four abreast at 375px, which is where this is read. */
+const BOOK_STEPS = [
+    { id: "service", label: "Service" },
+    { id: "day", label: "Day" },
+    { id: "time", label: "Time" },
+    { id: "details", label: "You" },
+] as const;
+
+type BookStep = (typeof BOOK_STEPS)[number]["id"];
 
 export async function generateMetadata({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -36,7 +54,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     const db = forTenant(tenant.id);
     const base = `/${slug}/book`;
 
-    const shell = (children: React.ReactNode, back?: string) => (
+    const shell = (children: React.ReactNode, step?: BookStep, back?: string) => (
         <main className="min-h-svh bg-slate-100 px-4 py-8">
             <div className="mx-auto max-w-lg space-y-5">
                 <header className="text-center">
@@ -45,7 +63,17 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                     {tenant.city && <p className="text-sm text-slate-500">{tenant.city}</p>}
                 </header>
                 {back && <Link href={back} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700"><ArrowLeft className="w-4 h-4" />Back</Link>}
-                <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">{children}</section>
+                <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                    {/* Omitted on the screens that are not part of the journey —
+                        a closed workshop or a service with nothing bookable is
+                        a dead end, and a progress bar on a dead end is a lie. */}
+                    {step && (
+                        <div className="mb-5">
+                            <StepProgress steps={BOOK_STEPS} current={step} />
+                        </div>
+                    )}
+                    {children}
+                </section>
             </div>
         </main>
     );
@@ -78,6 +106,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                 </ul>
                 {types.length === 0 && <p className="text-slate-600">No services are open for online booking yet.</p>}
             </div>,
+            "service",
         );
     }
 
@@ -110,6 +139,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                 </ul>
                 {open.every((d) => d.slots.length === 0) && <p className="text-slate-600">Nothing is free in the next {online.horizonDays} days for this job. {tenant.phone && <>Phone us on <a href={`tel:${tenant.phone}`} className="font-semibold text-teal-700">{tenant.phone}</a>.</>}</p>}
             </div>,
+            "day",
             base,
         );
     }
@@ -131,6 +161,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                 </ul>
                 <p className="text-xs text-slate-500">Bring the car in at this time. The job takes about {hoursLabel(minutes)}.</p>
             </div>,
+            "time",
             `${base}?type=${type.id}`,
         );
     }
@@ -144,6 +175,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             </div>
             <PublicBookingForm slug={slug} type={type.id} day={day.day} time={minuteLabel(minute)} />
         </div>,
+        "details",
         `${base}?type=${type.id}&day=${day.day}`,
     );
 }

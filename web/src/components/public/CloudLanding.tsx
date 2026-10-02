@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { DocumentSpine } from "@/components/public/DocumentSpine";
 import { MondayMorning } from "@/components/public/MondayMorning";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoScene } from "@/components/public/iso/primitives";
+import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { HeroScene } from "@/components/public/iso/scenes";
 import { Reveal } from "@/components/public/Reveal";
 import { CURRENCY, PLANS } from "@/lib/pricing/plans";
@@ -144,26 +145,19 @@ export function CloudLanding() {
                 <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-6 px-5 pb-32 pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:pt-4">
                     <div className="flex flex-col items-start gap-6">
                         <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "60ms" }}>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700">
-                                <Sparkles className="h-3.5 w-3.5 text-teal-600" strokeWidth={2} />
-                                Built in Namibia, for Namibian workshops
-                            </span>
-                        </div>
-
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "140ms" }}>
                             <h1 className="max-w-[13ch] text-balance text-[40px] font-semibold leading-[1.03] tracking-[-0.04em] text-slate-900 sm:text-[clamp(2.75rem,5.4vw,4.5rem)]">
                                 Run the whole job on{" "}
                                 <span className="italic text-teal-700">one document</span>
                             </h1>
                         </div>
 
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "230ms" }}>
+                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "150ms" }}>
                             <p className="max-w-[34ch] text-[17px] leading-relaxed text-slate-500 sm:text-[19px]">
                                 From the call to the money — without anybody retyping it.
                             </p>
                         </div>
 
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "320ms" }}>
+                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "240ms" }}>
                             <div className="flex flex-wrap items-center gap-3">
                                 <PillLink href="/support">
                                     Book a demo
@@ -181,11 +175,20 @@ export function CloudLanding() {
 
                     {/* Eager: this is the first frame. Waiting for an observer
                         here would mean the page opens on an empty half. */}
-                    <IsoStage height={600} className="max-md:h-[360px]" eager>
-                        <IsoScene size={380} className="max-md:[zoom:0.62]">
-                            <HeroScene />
-                        </IsoScene>
-                    </IsoStage>
+                    {/* The whole first band steers the object, not just the
+                        half it sits in — somebody reading the headline is
+                        nowhere near the figure, and a scene that ignores them
+                        until they wander over it reads as broken rather than
+                        still. The band is a `header` — checked, not assumed:
+                        `section` matched nothing here and would have fallen
+                        back to the figure alone. */}
+                    <IsoMotion scope="header" tilt={12} drift={24}>
+                        <IsoStage height={600} className="max-md:h-[360px]" eager>
+                            <IsoScene size={380} className="max-md:[zoom:0.62]">
+                                <HeroScene />
+                            </IsoScene>
+                        </IsoStage>
+                    </IsoMotion>
                 </div>
 
                 {/* Where the document leaves the platform and starts down the

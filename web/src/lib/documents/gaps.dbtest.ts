@@ -35,7 +35,7 @@ async function invoice(number: string, state: "PROCESSED" | "VOID" = "PROCESSED"
 }
 
 before(async () => {
-    const t = await prisma.tenant.create({ data: { slug: SLUG, name: "ZZTEST Gap Motors", country: "NA" }, select: { id: true } });
+    const t = await prisma.tenant.create({ data: { status: "ACTIVE", slug: SLUG, name: "ZZTEST Gap Motors", country: "NA" }, select: { id: true } });
     tenantId = t.id;
 
     // 1001, 1002 and 1004 are on the books; 1003 was voided but is still there;

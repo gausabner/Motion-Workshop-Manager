@@ -44,7 +44,7 @@ before(async () => {
     resetDriversForTest();
 
     const t = await prisma.tenant.create({
-        data: {
+        data: { status: "ACTIVE",
             slug: SLUG, name: "ZZTEST Handoff Motors", country: "NA", timezone: "Africa/Windhoek", currency: "NAD",
             settings: {
                 handoff: { enabled: true, shape: "motion", folder: "drop/{tenant}/{yyyy}", receiptFolder: "drop/{tenant}/receipts", keepYears: 7 },

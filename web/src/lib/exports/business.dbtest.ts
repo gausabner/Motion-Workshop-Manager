@@ -25,7 +25,7 @@ let tenantId = "";
 const ASAT = new Date("2026-04-15T12:00:00Z");
 
 before(async () => {
-    const t = await prisma.tenant.create({ data: { slug: SLUG, name: "ZZTEST Business Motors", country: "NA" }, select: { id: true } });
+    const t = await prisma.tenant.create({ data: { status: "ACTIVE", slug: SLUG, name: "ZZTEST Business Motors", country: "NA" }, select: { id: true } });
     tenantId = t.id;
 });
 

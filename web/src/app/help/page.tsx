@@ -1,49 +1,70 @@
-import Link from "next/link";
+import { IsoScene } from "@/components/public/iso/primitives";
+import { IsoStage } from "@/components/public/iso/IsoStage";
+import { IsoMotion } from "@/components/public/iso/IsoMotion";
+import { ManualScene } from "@/components/public/iso/scenes";
+import { PublicPage, PublicBar, PublicFoot, PublicButton } from "@/components/public/frame";
+import { TopicFinder, type FinderGroup } from "@/components/help/TopicFinder";
 import { byGroup, TOPICS } from "@/lib/help";
+import { haystack } from "@/lib/help/content";
+
+export const metadata = {
+    title: "Help | MOTION Workshop Manager",
+    description: "How to run a workshop on MOTION: the job, the money, the parts and the reports.",
+};
 
 /**
- * The way in.
+ * The way into the manual.
  *
- * The contents lead. Search lives in the masthead above, on every page of the
- * manual, which leaves this page free to do the thing the whole structure was
- * chosen for: set out everything there is, in full, so nobody has to already
- * know the right word to ask for.
+ * The contents lead. Everything there is, set out in full, so nobody has to
+ * already know the right word to ask for — and a finder above it for the
+ * people who do.
  *
- * Not a grid of identical cards but the manual's own table of contents, each
- * entry carrying the question it answers, so the list can be scanned for a
- * sentence matching the one already in the reader's head.
+ * It sits outside `(library)`, the route group that holds the articles and
+ * their reading shell. An article wants a sticky masthead and a rail of its
+ * neighbours; this page wants the same chrome as pricing and support, because
+ * somebody arriving from the front door should not feel they have crossed into
+ * a different site to read the manual.
+ *
+ * The search text is built here rather than in the browser. `haystack` already
+ * flattens a topic's blocks into one lower-cased string for the manual's own
+ * search; reusing it means the two searches agree about what a topic says,
+ * and it ships as data instead of as every article's full prose.
  */
 export default function HelpIndex() {
-    const groups = byGroup();
-    return (
-        <div className="max-w-[68ch]">
-            <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-slate-900">Help</h1>
-            <p className="mt-3 text-[15px] leading-[1.7] text-slate-600">
-                {TOPICS.length} topics, written as the questions people actually ring about. Every one opens with its answer in a
-                single sentence.
-            </p>
+    const groups: FinderGroup[] = byGroup().map((g) => ({
+        id: g.id,
+        label: g.label,
+        topics: g.topics.map((t) => ({
+            slug: t.slug,
+            title: t.title,
+            question: t.question,
+            haystack: `${g.label} ${t.title} ${t.question} ${haystack(t)}`.toLowerCase().replace(/[‘’]/g, "'"),
+        })),
+    }));
 
-            <div className="mt-12 space-y-10">
-                {groups.map((group) => (
-                    <section key={group.id}>
-                        <h2 className="border-b border-slate-200 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                            {group.label}
-                        </h2>
-                        <ul className="mt-1 divide-y divide-slate-100">
-                            {group.topics.map((topic) => (
-                                <li key={topic.slug}>
-                                    <Link href={`/help/${topic.slug}`} className="group block py-3">
-                                        <span className="block text-[15px] font-medium text-slate-900 underline-offset-4 group-hover:underline">
-                                            {topic.title}
-                                        </span>
-                                        <span className="mt-0.5 block text-[13px] leading-snug text-slate-500">{topic.question}</span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                ))}
-            </div>
-        </div>
+    return (
+        <PublicPage>
+            <TopicFinder
+                bar={<PublicBar current="/help" />}
+                groups={groups}
+                total={TOPICS.length}
+                figure={
+                    // Keyed, though it is a single element. This is a server
+                    // component handed as a prop into a client one, which React
+                    // serialises as a list — without a key it warns about a
+                    // missing one, and the warning names a render method that
+                    // has no list in it, which is a confusing half hour for
+                    // whoever meets it next.
+                    <IsoMotion key="help-figure" scope="header" tilt={10} drift={18}>
+                        <IsoStage height={440} className="max-lg:h-[380px] max-md:h-[290px]" eager>
+                            <IsoScene size={320} className="max-lg:[zoom:0.8] max-md:[zoom:0.72]">
+                                <ManualScene />
+                            </IsoScene>
+                        </IsoStage>
+                    </IsoMotion>
+                }
+            />
+            <PublicFoot cta={<PublicButton href="/support" tone="onDark">Reach a person</PublicButton>} />
+        </PublicPage>
     );
 }

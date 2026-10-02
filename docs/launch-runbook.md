@@ -413,12 +413,14 @@ send resets either.
 - **Buy `motionworkshopmanager.com.na`** from Namhost, N$790/yr. A Namibian
   business selling to Namibian councils should hold the Namibian name, if only
   so nobody else does.
-- **Move off `gausabner@gmail.com`** to `hello@motionworkshopmanager.com`.
-  Create it as a mailbox or alias in Private Email, then update
-  `MOTION_SUPPORT_EMAIL` and the support page. Not Cloudflare Email Routing,
-  which this runbook used to suggest: Email Routing takes over the domain's MX
-  records, so switching it on would stop Private Email receiving anything and
-  take the reset mailbox down with it.
+- **Done: moved off `gausabner@gmail.com`** to
+  `support@motionworkshopmanager.com`, an alias on the `info@` mailbox. Set as
+  `MOTION_SUPPORT_EMAIL`, which the help and support pages read.
+  Not Cloudflare Email Routing, which this runbook used to suggest: Email
+  Routing takes over the domain's MX records, so switching it on would stop
+  Private Email receiving anything and take the reset mailbox down with it.
+  Worth remembering that only `info@` can authenticate — the aliases are
+  send-as and receive-only, which is the trap that cost an hour in section 8.
 - **Decide on monitoring.** The uptime figure in the terms is still blank
   because nothing measures it. A free external check hitting `/api/health`
   every minute would close that, and gives the backup heartbeat somewhere to

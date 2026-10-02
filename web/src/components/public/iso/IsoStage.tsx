@@ -25,11 +25,18 @@ export function IsoStage({
     className = "",
     height = 420,
     eager = false,
+    fill = false,
 }: {
     children: ReactNode;
     className?: string;
     height?: number;
     eager?: boolean;
+    /**
+     * Take the height of whatever contains this, rather than a fixed number.
+     * For a stage that fills a column of its own — the sign-in artwork — where
+     * a pixel height would have to guess at the viewport.
+     */
+    fill?: boolean;
 }) {
     const ref = useRef<HTMLDivElement>(null);
 
@@ -58,8 +65,8 @@ export function IsoStage({
         <div
             ref={ref}
             aria-hidden
-            className={`iso-stage relative ${className}`}
-            style={{ height: `${height}px` }}
+            className={`iso-stage relative ${fill ? "h-full" : ""} ${className}`}
+            style={fill ? undefined : { height: `${height}px` }}
         >
             {children}
         </div>

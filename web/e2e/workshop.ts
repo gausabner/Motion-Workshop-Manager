@@ -40,6 +40,14 @@ async function createWorkshop(): Promise<Workshop> {
     const tenant = await prisma.tenant.create({
         data: {
             slug,
+            // A workshop that has paid. The column defaults to PENDING_PAYMENT,
+            // which is right for a stranger registering and wrong for a fixture:
+            // without this every test signs in, is redirected to /activate
+            // because the workshop is not active yet, and then waits for a
+            // dashboard that will never render until Playwright gives up. That
+            // is a twenty-minute stall rather than a failed assertion, which is
+            // why it is called out here rather than left to be rediscovered.
+            status: "ACTIVE",
             name: `ZZTEST ${id} Motors`,
             country: "NA",
             timezone: "Africa/Windhoek",

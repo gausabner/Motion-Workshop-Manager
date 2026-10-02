@@ -51,8 +51,8 @@ before(async () => {
     // one in every clone. The test sets its own against its own database.
     await prisma.$executeRawUnsafe(`ALTER ROLE motion_app WITH PASSWORD '${TEST_PASSWORD}'`);
 
-    const a = await prisma.tenant.create({ data: { slug: `${ID}-a`, name: "ZZTEST RLS Alpha", country: "NA" }, select: { id: true } });
-    const b = await prisma.tenant.create({ data: { slug: `${ID}-b`, name: "ZZTEST RLS Bravo", country: "NA" }, select: { id: true } });
+    const a = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-a`, name: "ZZTEST RLS Alpha", country: "NA" }, select: { id: true } });
+    const b = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-b`, name: "ZZTEST RLS Bravo", country: "NA" }, select: { id: true } });
     alpha = a.id;
     bravo = b.id;
 

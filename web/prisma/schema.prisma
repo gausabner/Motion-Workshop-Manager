@@ -309,8 +309,8 @@ enum SequenceKey {
 // ───────────────────────── tenancy & people ─────────────────────────
 
 model Tenant {
-  id                      String   @id @default(cuid())
-  slug                    String   @unique
+  id                      String       @id @default(cuid())
+  slug                    String       @unique
   name                    String
   // Company profile (PRD SET-01)
   registrationNumber      String?
@@ -321,28 +321,37 @@ model Tenant {
   city                    String?
   region                  String?
   postcode                String?
-  country                 String   @default("NA")
+  country                 String       @default("NA")
   phone                   String?
   mobile                  String?
   whatsapp                String?
   email                   String?
   web                     String?
-  timezone                String   @default("Africa/Windhoek")
-  currency                String   @default("NAD")
-  locale                  String   @default("en-NA")
+  timezone                String       @default("Africa/Windhoek")
+  currency                String       @default("NAD")
+  locale                  String       @default("en-NA")
   // Tax defaults (PRD SET-02) — rates are percentages, e.g. 15.00
-  taxName                 String   @default("VAT")
-  salesTaxRate            Decimal  @default(15.00) @db.Decimal(5, 2)
-  purchaseTaxRate         Decimal  @default(15.00) @db.Decimal(5, 2)
-  pricesIncludeTax        Boolean  @default(true)
-  defaultPaymentTermsDays Int      @default(0)
+  taxName                 String       @default("VAT")
+  salesTaxRate            Decimal      @default(15.00) @db.Decimal(5, 2)
+  purchaseTaxRate         Decimal      @default(15.00) @db.Decimal(5, 2)
+  pricesIncludeTax        Boolean      @default(true)
+  defaultPaymentTermsDays Int          @default(0)
   // Everything else lives in a typed JSON blob validated by zod (PRD SET-09)
-  settings                Json     @default("{}")
-  isActive                Boolean  @default(true)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  settings                Json         @default("{}")
+  /// Where this workshop stands with MOTION. See TenantStatus.
+  status                  TenantStatus @default(PENDING_PAYMENT)
+  /// Derived from `status` by a database trigger — never write it.
+  ///
+  /// Eight places already ask "is this workshop allowed in?" and all of them
+  /// read this boolean. Replacing them with an enum comparison would be eight
+  /// chances to miss one, and a missed one is a tenant boundary that silently
+  /// stops being enforced. So the boolean stays and the trigger keeps it
+  /// honest; a value written here is overwritten before it is stored.
+  isActive                Boolean      @default(true)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
-  passwordResets   PasswordReset[]
+  passwordResets             PasswordReset[]
   memberships                Membership[]
   invitations                Invitation[]
   sessions                   Session[]
@@ -398,6 +407,71 @@ model Tenant {
   serialUnits                SerialUnit[]
   loanVehicles               LoanVehicle[]
   loans                      Loan[]
+  subscription               Subscription?
+}
+
+/// Where a workshop stands with MOTION — distinct from anything about its own
+/// trading. The names are deliberately about money owed to us, because that is
+/// the only reason this column exists.
+enum TenantStatus {
+  /// Registered, no payment confirmed. Reaches the activation page and nothing
+  /// else. The default, because the failure to set it should lock a workshop
+  /// out rather than quietly give the product away.
+  PENDING_PAYMENT
+  /// Paid. The product.
+  ACTIVE
+  /// Was paying, a renewal is outstanding. Still `isActive`, because the terms
+  /// promise read-only rather than a closed door: "we do not lock a workshop
+  /// out of its own floor". The write refusal lives above the database.
+  PAST_DUE
+  /// Switched off deliberately. Indistinguishable from not existing.
+  SUSPENDED
+  /// Gone.
+  CANCELLED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  /// A reference has been issued and no payment is confirmed.
+  AWAITING_PAYMENT
+  ACTIVE
+  CANCELLED
+}
+
+/// What a workshop agreed to pay, and the reference its money arrives under.
+///
+/// The plan catalogue stays in `lib/pricing/plans.ts` — it is already the one
+/// source for the pricing page, a proposal and what a salesperson says aloud,
+/// and a copy in the database would make two. What is stored here is the deal:
+/// the name and the amount as they stood on the day, snapshotted. A row that
+/// re-reads today's price list silently rewrites what a customer agreed to,
+/// which is the same reason tax is snapshotted onto a document rather than
+/// recalculated from current settings.
+model Subscription {
+  id          String             @id @default(cuid())
+  tenantId    String             @unique
+  /// The plan's id in the catalogue — "workshop", "full", "council".
+  planId      String
+  /// The plan's name on the day. Kept so a renamed tier still reads correctly.
+  planName    String
+  /// Excluding VAT, as published. The VAT rate is applied at display time.
+  priceAmount Decimal            @db.Decimal(12, 2)
+  currency    String             @default("NAD")
+  period      BillingPeriod      @default(MONTHLY)
+  status      SubscriptionStatus @default(AWAITING_PAYMENT)
+  /// What the customer types into the bank. Unique across every workshop,
+  /// which is why `Sequence` cannot issue it — that is per-tenant, and two
+  /// workshops would both be handed 0001.
+  reference   String             @unique
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -415,7 +489,7 @@ model User {
   /// Until it is cleared the only screen this user may open is the one that
   /// changes it — otherwise the person who set the password can go on signing
   /// in as them, and every action in the audit trail becomes deniable.
-  mustChangePassword Boolean @default(false)
+  mustChangePassword Boolean         @default(false)
   passwordResets     PasswordReset[]
 
   memberships     Membership[]
@@ -427,7 +501,7 @@ model User {
 /// A person inside a workshop. Advisors, mechanics and document authors all
 /// point here, never at User, so a user can belong to several workshops.
 model Membership {
-  id                  String           @id @default(cuid())
+  id               String   @id @default(cuid())
   /// Permissions granted to this person on top of their role, decided by an
   /// owner or admin. A workshop where the foreman covers the counter at lunch
   /// grants them payments here rather than making them an Admin — which would
@@ -484,16 +558,16 @@ model Membership {
 /// The token is stored hashed, exactly as invitations and sessions are: a
 /// database that leaks must not hand over working links.
 model PasswordReset {
-  id          String    @id @default(cuid())
-  userId      String
-  tenantId    String
+  id         String    @id @default(cuid())
+  userId     String
+  tenantId   String
   /// SHA-256 of the token in the link. The link itself is never stored.
-  token       String    @unique
-  expiresAt   DateTime
-  usedAt      DateTime?
+  token      String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
   /// The membership that issued it, so a reset is answerable to a person.
-  issuedById  String
-  createdAt   DateTime  @default(now())
+  issuedById String
+  createdAt  DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id])
@@ -1995,32 +2069,32 @@ model ApiKey {
 
 /// A hand-off that went out, and whether the receiving system took it.
 model ExportRun {
-  id            String         @id @default(cuid())
-  tenantId      String
-  kind          ExportRunKind
-  state         ExportRunState @default(PENDING)
+  id             String         @id @default(cuid())
+  tenantId       String
+  kind           ExportRunKind
+  state          ExportRunState @default(PENDING)
   /// Which column map was written — a site that moves from Sage to QuickBooks
   /// should not look like it stopped sending anything.
-  shape         String         @default("motion")
-  periodFrom    DateTime       @db.Date
-  periodTo      DateTime       @db.Date
-  destination   String?
-  storageDriver String?
-  storageKey    String?
-  fileName      String?
-  bytes         Int?
-  rows          Int?
+  shape          String         @default("motion")
+  periodFrom     DateTime       @db.Date
+  periodTo       DateTime       @db.Date
+  destination    String?
+  storageDriver  String?
+  storageKey     String?
+  fileName       String?
+  bytes          Int?
+  rows           Int?
   /// SHA-256 of what was written: the only way to tell a file truncated in
   /// transit from a quiet period.
-  checksum      String?
-  error         String?
+  checksum       String?
+  error          String?
   /// The receipt leg. Written when the ERP drops a file back saying it took it.
   acknowledgedAt DateTime?
   acknowledgedBy String?
   /// "schedule", or the membership that pressed the button.
-  triggeredBy   String         @default("schedule")
-  startedAt     DateTime       @default(now())
-  finishedAt    DateTime?
+  triggeredBy    String         @default("schedule")
+  startedAt      DateTime       @default(now())
+  finishedAt     DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 

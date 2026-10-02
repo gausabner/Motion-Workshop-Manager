@@ -99,13 +99,47 @@ export const requireTenant = cache(async (slug: string): Promise<TenantContext> 
     // page that can quietly forget to ask.
     if (user.mustChangePassword) redirect(`/${slug}/change-password`);
     const tenant = await prisma.tenant.findUnique({ where: { slug } });
-    if (!tenant || !tenant.isActive) notFound();
+    if (!tenant) notFound();
+
+    // Membership is checked before status, which is the order that matters.
+    // A stranger probing slugs must not be able to tell an unpaid workshop from
+    // one that does not exist, so a non-member always gets the 404 and only a
+    // member ever learns there is something to pay.
     const membership = await prisma.membership.findUnique({
         where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
     });
     if (!membership || membership.status !== "ACTIVE") notFound();
+
+    // Registered and unpaid: send them to the one page they can use. This is
+    // the reason `TenantStatus` exists — the `isActive` check below would 404 a
+    // customer who has just paid and is waiting, which is the right answer for
+    // a workshop that has been switched off and the wrong one here.
+    if (tenant.status === "PENDING_PAYMENT") redirect("/activate");
+
+    if (!tenant.isActive) notFound();
     return { user, tenant, membership, db: forTenant(tenant.id) };
 });
+
+/**
+ * Where a signed-in person belongs, in one place.
+ *
+ * `/` and `/login` both used `defaultTenantSlug(...) ?? "/register"`, which was
+ * right while every workshop was active the moment it was created. It stopped
+ * being right when registration started waiting on a payment: that user *has* a
+ * workshop, it is simply not switched on yet, and sending them to `/register`
+ * invites them to create a second one — the surest way to end up with a paid
+ * workshop and an abandoned duplicate under a slug they wanted.
+ */
+export async function signedInLanding(userId: string): Promise<string> {
+    const slug = await defaultTenantSlug(userId);
+    if (slug) return `/${slug}/dashboard`;
+
+    const pending = await prisma.membership.findFirst({
+        where: { userId, status: "ACTIVE", tenant: { status: "PENDING_PAYMENT" } },
+        select: { id: true },
+    });
+    return pending ? "/activate" : "/register";
+}
 
 /** First active workshop for a user — where "/" sends them after login. */
 export async function defaultTenantSlug(userId: string): Promise<string | null> {
