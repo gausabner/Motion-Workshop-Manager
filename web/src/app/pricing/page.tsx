@@ -31,11 +31,31 @@ export default function PricingPage() {
         >
             <div className="mx-auto max-w-5xl px-5 pb-16">
                 <div className="-mt-10 grid gap-4 lg:grid-cols-3">
-                    {PLANS.map((plan) => (
-                        <section
+                    {PLANS.map((plan, i) => (
+                        // A tray and a plate rather than a card on a page. The
+                        // outer shell is a hairline enclosure with its own
+                        // padding; the inner core carries the content and a
+                        // slightly smaller radius, so the two curves are
+                        // concentric rather than coincidental. It is the
+                        // difference between a panel drawn on a page and an
+                        // object sitting on one — and it earns its keep here,
+                        // where three prices sit side by side and the eye needs
+                        // an edge to separate them.
+                        <div
                             key={plan.id}
-                            className={`flex flex-col rounded-2xl border bg-white p-6 shadow-sm motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-900/5 ${
-                                plan.featured ? "border-teal-500 shadow-lg shadow-teal-900/10" : "border-slate-200"
+                            className={`rounded-[1.4rem] p-1.5 motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both] ${
+                                plan.featured
+                                    ? "bg-teal-500/15 ring-1 ring-inset ring-teal-500/30"
+                                    : "bg-slate-900/[0.04] ring-1 ring-inset ring-slate-900/[0.06]"
+                            }`}
+                            // Left to right, as they are read. Short enough
+                            // that the third is in place before anyone has
+                            // finished the first.
+                            style={{ animationDelay: `${80 + i * 90}ms` }}
+                        >
+                        <section
+                            className={`flex h-full flex-col rounded-[calc(1.4rem-0.375rem)] border bg-white p-6 shadow-sm motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-900/5 ${
+                                plan.featured ? "border-teal-500/60 shadow-lg shadow-teal-900/10" : "border-slate-200"
                             }`}
                         >
                             <h2 className="text-[17px] font-semibold tracking-tight text-slate-900">{plan.name}</h2>
@@ -83,6 +103,7 @@ export default function PricingPage() {
                                 {plan.cta.label}
                             </Link>
                         </section>
+                        </div>
                     ))}
                 </div>
 

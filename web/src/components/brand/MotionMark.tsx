@@ -58,7 +58,10 @@ export function MotionMark({
             />
             {/* The dot lands after the frame has drawn past its gap, so it
                 reads as dropping into a space that was waiting for it rather
-                than appearing on top of a line. */}
+                than appearing on top of a line. The house easing, like the
+                rest of the mark — an earlier version overshot, and a logo that
+                bounces is a logo nobody takes seriously twice. The settle
+                comes from the scale and the travel, which is enough. */}
             <circle
                 cx={DOT.cx}
                 cy={DOT.cy}
@@ -66,7 +69,7 @@ export function MotionMark({
                 fill="currentColor"
                 className={
                     animated
-                        ? "motion-safe:origin-[70.5%_9%] motion-safe:[animation:motion-dot-in_420ms_cubic-bezier(0.34,1.56,0.64,1)_both]"
+                        ? "motion-safe:origin-[70.5%_9%] motion-safe:[animation:motion-dot-in_460ms_cubic-bezier(0.23,1,0.32,1)_both]"
                         : undefined
                 }
                 style={animated ? { animationDelay: "330ms" } : undefined}

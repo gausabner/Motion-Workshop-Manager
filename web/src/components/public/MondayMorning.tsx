@@ -1,31 +1,41 @@
 import { ArrowUpRight, Check, Clock } from "lucide-react";
 
 /**
- * The light cards floating over the dark hero.
+ * Monday morning, as the owner finds it.
  *
- * The reference shows a sales dashboard. These show a workshop's actual
- * afternoon — a job on a ramp, what the month made, the bays — because the
- * person reading this runs a workshop and a screenshot of somebody else's
- * revenue chart proves nothing to them. Invented figures, plausible ones,
- * labelled as an illustration in the markup rather than dressed as a customer.
+ * This used to float over a dark hero. The hero is now the isometric platform,
+ * and these had nowhere to be — but the content was the best thing on the
+ * page: a workshop's actual afternoon rather than a stock revenue chart. So
+ * they moved to where they do more work, directly after the five stages.
  *
- * They lift on scroll and on hover; the motion is in the parent so the whole
- * cluster behaves as one object rather than three things twitching separately.
+ * The order is the argument. The spine shows a document travelling, in the
+ * abstract, as drawn objects. This is the same claim with figures on it — the
+ * bays, the month, the three things nobody has got to yet. Abstract then
+ * concrete; the journey, then what the journey leaves on your screen.
+ *
+ * The figures are invented and plausible, and the whole block is aria-hidden
+ * because it is an illustration of a screen, not a screen. Nothing here is
+ * dressed up as a named customer.
  */
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
         <div
-            className={`rounded-2xl border border-white/10 bg-white/95 p-4 shadow-2xl shadow-teal-950/40 backdrop-blur ${className}`}
+            // Paper on paper now, so the lift comes from a hairline and a
+            // soft shadow rather than from contrast against a dark ground.
+            // The backdrop-blur went with the dark hero and is not missed: a
+            // blur on a large scrolling surface is a frame-rate problem on a
+            // phone, and it was buying nothing here.
+            className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-900/[0.04] ${className}`}
         >
             {children}
         </div>
     );
 }
 
-export function HeroCards() {
+export function MondayMorning() {
     return (
-        <div aria-hidden className="relative mx-auto mt-14 w-full max-w-4xl">
+        <div aria-hidden className="relative mx-auto w-full max-w-4xl">
             <div className="grid gap-4 sm:grid-cols-3">
                 {/* On the floor now */}
                 <Card className="sm:translate-y-6">

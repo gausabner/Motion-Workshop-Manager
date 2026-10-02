@@ -61,9 +61,10 @@ process cards and stores nothing that could be used to take money.
 | Anyone else | Nothing. |
 
 > **To decide.** A named subprocessor list, in the form a council will ask for.
-> The parties are now known — Namecheap for the server, Cloudflare for DNS and
-> the edge, and whichever provider holds the backup bucket — so this is drafting
-> rather than deciding. Owed before any contract.
+> The parties are now known — Namecheap for the server and for Private Email,
+> which carries password-reset messages and so handles a name and an address;
+> Cloudflare for DNS and the edge; and whichever provider holds the backup
+> bucket — so this is drafting rather than deciding. Owed before any contract.
 
 ## 5. How long it is kept
 
