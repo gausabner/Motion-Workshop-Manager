@@ -21,6 +21,12 @@ export type PdfLine = {
     unitPrice: number;
     discountPercent: number;
     lineTotal: number;
+    /**
+     * A section this line opens, printed as a banded row above it — "Parts",
+     * "Labour". Set it on the first line of each run; repeating it on every
+     * line of the same group prints the heading again.
+     */
+    groupHeading?: string | null;
     serialNumbers?: string | null;
     /** Printed indented, under the bundle it belongs to. */
     isBundleComponent?: boolean;
@@ -96,27 +102,44 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
     y = drawParties(doc, y, parties, meta);
 
     const columns: Column[] = [
+        // The supplier's quotation leads with a number, and a customer ringing
+        // about one line says "number seven" rather than reading the
+        // description back. It costs 22pt.
+        { key: "no", header: "No.", width: 22, muted: true },
         { key: "code", header: "Code", width: 62, muted: true },
-        { key: "description", header: "Description", width: CONTENT_WIDTH - 62 - 44 - 74 - 40 - 82 },
+        { key: "description", header: "Description", width: CONTENT_WIDTH - 22 - 62 - 44 - 74 - 40 - 82 },
         { key: "quantity", header: "Qty", width: 44, align: "right" },
         { key: "unitPrice", header: "Unit", width: 74, align: "right" },
         { key: "discount", header: "Disc", width: 40, align: "right" },
         { key: "amount", header: "Amount", width: 82, align: "right" },
     ];
 
+    // Numbered across the whole document, not within a section, and headings
+    // take no number: a heading is not an item and cannot be ordered.
+    let itemNumber = 0;
+    let openGroup: string | null = null;
+
     y = table(doc, y, {
         columns,
-        rows: input.lines.map((line) => {
+        rows: input.lines.flatMap((line) => {
+            const rows: import("@/lib/pdf/kit").TableRow[] = [];
+            if (line.groupHeading && line.groupHeading !== openGroup) {
+                openGroup = line.groupHeading;
+                rows.push({ group: line.groupHeading });
+            }
+            itemNumber += 1;
             // What is inside a bundle is listed under it, without repeating money that the bundle line already carries.
             const included = line.isBundleComponent && line.lineTotal === 0;
-            return {
+            rows.push({
+                no: line.isBundleComponent ? "" : String(itemNumber),
                 code: line.isBundleComponent ? "" : line.itemCode ?? "",
                 description: `${line.isBundleComponent ? "   · " : ""}${line.serialNumbers ? `${line.description}\nSerial: ${line.serialNumbers}` : line.description}`,
                 quantity: formatQuantity(line.quantity),
                 unitPrice: included ? "" : money(line.unitPrice),
                 discount: line.discountPercent ? `${line.discountPercent}%` : "",
                 amount: included ? "included" : money(line.lineTotal),
-            };
+            });
+            return rows;
         }),
         onNewPage: (page) => drawLetterhead(page, input.workshop, title, input.number ?? ""),
     });
