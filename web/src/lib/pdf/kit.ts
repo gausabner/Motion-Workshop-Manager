@@ -63,9 +63,25 @@ export type Column = {
     muted?: boolean;
 };
 
+/**
+ * A row that spans the whole table instead of filling the columns.
+ *
+ * For the section headings a priced document groups its lines under — parts,
+ * then labour, then sundries. A reader scanning a long quote finds the part of
+ * it they care about by these and nothing else.
+ *
+ * Deliberately **outside the numbering**. The supplier's quotation this is
+ * drawn from lets its headings consume row numbers, which is why its sequence
+ * reads 11, 12, 12, 13 and skips 16: the heading took a number and the line
+ * under it took the same one. A heading is not an item and cannot be ordered.
+ */
+export type TableRow = Record<string, string> | { group: string };
+
+const isGroup = (row: TableRow): row is { group: string } => "group" in row;
+
 export type TableOptions = {
     columns: Column[];
-    rows: Record<string, string>[];
+    rows: TableRow[];
     /** Drawn again at the top of every page the table runs onto. */
     repeatHeader?: boolean;
     zebra?: boolean;
@@ -99,15 +115,24 @@ export function table(doc: Doc, startY: number, options: TableOptions): number {
 
     for (const [index, row] of rows.entries()) {
         doc.font("Helvetica").fontSize(8.5);
-        const height = Math.max(
-            ...columns.map((column) => doc.heightOfString(row[column.key] ?? "", { width: column.width - 6 })),
-            11,
-        );
+        const height = isGroup(row)
+            ? 12
+            : Math.max(...columns.map((column) => doc.heightOfString(row[column.key] ?? "", { width: column.width - 6 })), 11);
 
         if (y + height + ROW_PADDING > PAGE.height - MARGIN.bottom) {
             doc.addPage();
             y = options.onNewPage ? options.onNewPage(doc) : MARGIN.top;
             if (repeatHeader) drawHeader();
+        }
+
+        if (isGroup(row)) {
+            // Banded and in small caps, so it reads as a divider rather than
+            // as an item with most of its cells missing.
+            doc.save().rect(MARGIN.left, y - ROW_PADDING + 1, CONTENT_WIDTH, height + ROW_PADDING * 2 - 2).fill(INK.band).restore();
+            doc.font("Helvetica-Bold").fontSize(7.5).fillColor(INK.text)
+                .text(row.group.toUpperCase(), MARGIN.left + 3, y + 1, { width: CONTENT_WIDTH - 6, characterSpacing: 0.5 });
+            y += height + ROW_PADDING * 2;
+            continue;
         }
 
         if (zebra && index % 2 === 1) {

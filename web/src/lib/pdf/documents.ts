@@ -21,6 +21,12 @@ export type PdfLine = {
     unitPrice: number;
     discountPercent: number;
     lineTotal: number;
+    /**
+     * A section this line opens, printed as a banded row above it — "Parts",
+     * "Labour". Set it on the first line of each run; repeating it on every
+     * line of the same group prints the heading again.
+     */
+    groupHeading?: string | null;
     serialNumbers?: string | null;
     /** Printed indented, under the bundle it belongs to. */
     isBundleComponent?: boolean;
@@ -96,27 +102,44 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
     y = drawParties(doc, y, parties, meta);
 
     const columns: Column[] = [
+        // The supplier's quotation leads with a number, and a customer ringing
+        // about one line says "number seven" rather than reading the
+        // description back. It costs 22pt.
+        { key: "no", header: "No.", width: 22, muted: true },
         { key: "code", header: "Code", width: 62, muted: true },
-        { key: "description", header: "Description", width: CONTENT_WIDTH - 62 - 44 - 74 - 40 - 82 },
+        { key: "description", header: "Description", width: CONTENT_WIDTH - 22 - 62 - 44 - 74 - 40 - 82 },
         { key: "quantity", header: "Qty", width: 44, align: "right" },
         { key: "unitPrice", header: "Unit", width: 74, align: "right" },
         { key: "discount", header: "Disc", width: 40, align: "right" },
         { key: "amount", header: "Amount", width: 82, align: "right" },
     ];
 
+    // Numbered across the whole document, not within a section, and headings
+    // take no number: a heading is not an item and cannot be ordered.
+    let itemNumber = 0;
+    let openGroup: string | null = null;
+
     y = table(doc, y, {
         columns,
-        rows: input.lines.map((line) => {
+        rows: input.lines.flatMap((line) => {
+            const rows: import("@/lib/pdf/kit").TableRow[] = [];
+            if (line.groupHeading && line.groupHeading !== openGroup) {
+                openGroup = line.groupHeading;
+                rows.push({ group: line.groupHeading });
+            }
+            itemNumber += 1;
             // What is inside a bundle is listed under it, without repeating money that the bundle line already carries.
             const included = line.isBundleComponent && line.lineTotal === 0;
-            return {
+            rows.push({
+                no: line.isBundleComponent ? "" : String(itemNumber),
                 code: line.isBundleComponent ? "" : line.itemCode ?? "",
                 description: `${line.isBundleComponent ? "   · " : ""}${line.serialNumbers ? `${line.description}\nSerial: ${line.serialNumbers}` : line.description}`,
                 quantity: formatQuantity(line.quantity),
                 unitPrice: included ? "" : money(line.unitPrice),
                 discount: line.discountPercent ? `${line.discountPercent}%` : "",
                 amount: included ? "included" : money(line.lineTotal),
-            };
+            });
+            return rows;
         }),
         onNewPage: (page) => drawLetterhead(page, input.workshop, title, input.number ?? ""),
     });
@@ -142,8 +165,55 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
     ], NOTES_WIDTH);
 
     doc.y = Math.max(afterTotals, notesBottom);
+
+    // A quote is an offer, and an offer wants somewhere to be accepted.
+    //
+    // Taken from the quotation this workshop's own supplier sends: three ruled
+    // fields, name, signature and date. Without them a customer who agrees has
+    // to say so in a separate message, which is the version nobody can produce
+    // eighteen months later when the job is disputed. A printed line is the
+    // cheapest contract there is.
+    //
+    // Quotes only. An invoice is not accepted, it is paid, and a signature
+    // block on one invites somebody to sign instead of settling.
+    if (input.type === "QUOTE") doc.y = drawAcceptance(doc, doc.y + 18);
+
     stampPageNumbers(doc, `${input.workshop.name}${input.number ? ` · ${input.number}` : ""}`);
     return toBuffer(doc);
+}
+
+/**
+ * Where a quote is accepted: name, signature, date.
+ *
+ * Ruled lines rather than boxes, because this is printed or signed on a phone
+ * screen with a finger, and a box implies a size the signature will not be.
+ */
+function drawAcceptance(doc: import("@/lib/pdf/kit").Doc, y: number): number {
+    // A new page rather than a signature block split across the fold, which is
+    // the one place a reader stops believing the document is whole.
+    if (y > PAGE.height - MARGIN.bottom - 54) {
+        doc.addPage();
+        y = MARGIN.top;
+    }
+
+    rule(doc, y, INK.band);
+    y += 10;
+    doc.font("Helvetica").fontSize(7.5).fillColor(INK.muted).text("ACCEPTED BY", MARGIN.left, y, { characterSpacing: 0.6 });
+    y = doc.y + 14;
+
+    const fields: [string, number][] = [
+        ["Name", 0.38],
+        ["Signature", 0.34],
+        ["Date", 0.28],
+    ];
+    let x = MARGIN.left;
+    for (const [label, share] of fields) {
+        const w = CONTENT_WIDTH * share - 12;
+        doc.save().moveTo(x, y).lineTo(x + w, y).lineWidth(0.75).strokeColor(INK.rule).stroke().restore();
+        doc.font("Helvetica").fontSize(7.5).fillColor(INK.muted).text(label, x, y + 4, { width: w });
+        x += CONTENT_WIDTH * share;
+    }
+    return y + 20;
 }
 
 /** A banded note across the top, for a state the reader has to notice before the numbers. */
