@@ -9,6 +9,8 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession, requireUser, signedInLanding } from "@/lib/auth/session";
 import { createTenantDefaults } from "@/lib/tenant/defaults";
 import { isReservedSlug } from "@/lib/auth/reserved-slugs";
+import { PLANS } from "@/lib/pricing/plans";
+import { newReference } from "@/lib/billing/reference";
 import { consumePasswordReset } from "@/lib/team/recovery";
 import { announceTenant } from "@/lib/tenant-db";
 import { type ActionState, fromZod, str } from "@/lib/forms";
@@ -85,6 +87,17 @@ const registerSchema = z.object({
     password: z.string().min(8, "At least 8 characters").max(200),
     mobile: z.string().max(40).optional(),
     country: z.enum(COUNTRIES as [string, ...string[]]).default("NA"),
+    /**
+     * Chosen here rather than afterwards.
+     *
+     * It used to be a second screen: register, then pick a tier at /activate.
+     * A real registration walked straight into the gap — a workshop existed
+     * with no plan, no agreed amount and no reference, which is a record
+     * nobody can act on and a customer nobody can invoice. The tier is part of
+     * the same form and the same transaction now, so that state cannot be
+     * reached by closing a tab.
+     */
+    planId: z.string().refine((id) => PLANS.some((p) => p.id === id && p.price !== null), "Choose a plan"),
 });
 
 // "share" is the public document link route, which sits beside the workshop slugs.
@@ -92,6 +105,7 @@ const registerSchema = z.object({
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
     const parsed = registerSchema.safeParse({
+        planId: str(formData, "planId"),
         workshopName: str(formData, "workshopName"),
         slug: str(formData, "slug") ?? slugify(str(formData, "workshopName") ?? ""),
         firstName: str(formData, "firstName"),
@@ -105,6 +119,20 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
     const d = parsed.data;
     const local = countryDefaults(d.country);
     if (isReservedSlug(d.slug)) return { ok: false, errors: { slug: ["That address is reserved — pick another"] } };
+
+    // Looked up before the transaction opens, so a bad plan id fails as a form
+    // error rather than as a rolled-back workshop.
+    const plan = PLANS.find((p) => p.id === d.planId);
+    if (!plan || plan.price === null) return { ok: false, errors: { planId: ["Choose a plan"] } };
+    // Held as its own const: the narrowing above does not survive into the
+    // transaction's closure, where TypeScript widens it back to number | null.
+    const planPrice = plan.price;
+
+    // Minted outside the transaction: a duplicate is a unique-constraint
+    // violation that would abort the whole thing, and 28^6 makes one remote
+    // enough that retrying the registration is the right answer rather than
+    // looping inside it.
+    const reference = newReference();
 
     const passwordHash = await hashPassword(d.password);
     let userId: string;
@@ -140,6 +168,20 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
                 data: { tenantId: tenant.id, userId: user.id, group: "OWNER", isServiceAdvisor: true, dashboardPrivileges: true },
             });
             await createTenantDefaults(tx, tenant.id);
+
+            // The agreed deal, in the same transaction as the workshop. The
+            // price is copied out of the catalogue rather than referenced, so
+            // a later change to the published list cannot rewrite what this
+            // customer signed up for.
+            await tx.subscription.create({
+                data: {
+                    tenantId: tenant.id,
+                    planId: plan.id,
+                    planName: plan.name,
+                    priceAmount: new Prisma.Decimal(planPrice),
+                    reference,
+                },
+            });
             await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Tenant", entityId: tenant.id, action: "REGISTERED" } });
             return user.id;
         });
