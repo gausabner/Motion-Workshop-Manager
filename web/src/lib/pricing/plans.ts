@@ -6,10 +6,19 @@
  * salesperson says out loud — and a tier that reads differently in two of them
  * is how a customer ends up owed something nobody meant to sell.
  *
- * Prices are monthly, in Namibian dollars, excluding VAT. The floor is
- * N$1,200: below that the support volume at these margins does not work, and
- * the workshops who would only ever pay less are the ones who go back to
- * Excel anyway.
+ * Prices are monthly, in Namibian dollars. The floor is N$1,200: below that
+ * the support volume at these margins does not work, and the workshops who
+ * would only ever pay less are the ones who go back to Excel anyway.
+ *
+ * These figures carry **no VAT**, and that is a statement about MOTION Dynamic
+ * Systems rather than a presentation choice: it is not registered for VAT, so
+ * it cannot charge any. They previously read "excluding VAT", which is worse
+ * than untidy — it tells a workshop N$1,200 is the pre-tax figure, and a
+ * VAT-registered customer reading that would try to claim input VAT on an
+ * invoice that never charged it. That is their tax problem, caused by our copy.
+ *
+ * Unrelated to the 15 % the product applies to a workshop's own invoices. That
+ * is their VAT on their work, and it stays.
  */
 
 export type Plan = {
@@ -37,7 +46,7 @@ export const PLANS: Plan[] = [
         id: "workshop",
         name: "Workshop",
         price: 1200,
-        priceNote: "per month, excluding VAT",
+        priceNote: "per month, no VAT",
         who: "A workshop running two or three bays",
         pitch: "The whole job, from the first phone call to the money in the bank.",
         includes: [
@@ -59,7 +68,7 @@ export const PLANS: Plan[] = [
         id: "full",
         name: "Full workshop",
         price: 2400,
-        priceNote: "per month, excluding VAT",
+        priceNote: "per month, no VAT",
         who: "Five to ten bays, with a parts counter",
         pitch: "Everything above, plus the parts, the suppliers and the reports an owner decides with.",
         includes: [

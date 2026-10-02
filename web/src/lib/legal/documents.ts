@@ -63,7 +63,9 @@ export const TERMS: Clause[] = [
     {
         heading: "Paying",
         paragraphs: [
-            "Subscriptions are monthly, in Namibian dollars, excluding VAT, per workshop rather than per user. Prices are published and can change, but not with less than 30 days' notice and not in the middle of a month you have already paid for.",
+            "Subscriptions are monthly, in Namibian dollars, per workshop rather than per user. Prices are published and can change, but not with less than 30 days' notice and not in the middle of a month you have already paid for.",
+            "MOTION Dynamic Systems is not registered for VAT, so no VAT is charged on a subscription and what we send you is not a tax invoice. Do not claim input VAT on it. If that changes we will say so before it does, not afterwards.",
+            "Payment is by bank deposit or transfer to MOTION Dynamic Systems, using the reference we give you when you register. Card payment is not available yet.",
             "Onboarding, data migration and training are quoted separately and are not part of the subscription.",
         ],
     },

@@ -50,7 +50,7 @@ So a tenant needs a *status*, not a boolean:
 | --- | --- | --- |
 | `PENDING_PAYMENT` | Registered, no confirmed payment | The holding page: reference, amount, bank details, upload proof |
 | `ACTIVE` | Paid and confirmed | The product |
-| `PAST_DUE` | Was active, renewal unpaid | The product, with a banner; then the holding page after a grace period |
+| `PAST_DUE` | Was active, renewal unpaid | The product, **read-only**, with a banner — see §9 |
 | `SUSPENDED` | Shut off deliberately | 404, as today |
 | `CANCELLED` | Gone | 404, as today |
 
@@ -219,8 +219,25 @@ monthly, but it cuts the reconciliation burden by a factor of twelve at exactly
 the moment there are no staff to absorb it. Revisit when cards arrive, which is
 the real fix.
 
-`PAST_DUE` with a grace period exists in §3 for this reason: the first renewal
-somebody forgets must not take a workshop's diary away mid-morning.
+`PAST_DUE` exists in §3 for this reason, and what it does is **already
+committed to in the terms of service**, which is a stronger constraint than my
+preference:
+
+> "You get a grace period. After it, MOTION becomes read-only: you can still see
+> everything, still print, still export, still get your books out. You cannot
+> raise new documents until the account is settled."
+>
+> "We do not lock a workshop out of its own floor… Cash flow here is seasonal and
+> a workshop that cannot invoice cannot pay us either."
+
+So `PAST_DUE` is **not** the holding page. It is the full product with writes
+refused on new documents and a banner saying why. An earlier draft of this
+document had it falling back to the holding page, which would have broken a
+published promise — worth recording, because the terms are the specification
+here and the schema has to follow them rather than the reverse.
+
+Read-only is also more work than a closed door, and that cost is already
+agreed.
 
 ## 10. The demo path
 
@@ -247,16 +264,36 @@ in Windhoek, and the real competitor here is paper. If conversations stall at
 "can I see it first", the trial moves up the list. If a trial is built, it must
 be unable to message real customers and must mark every PDF.
 
-## 11. What I need from you before building
+## 10a. Decisions taken
+
+| Question | Answer |
+| --- | --- |
+| Demo path | **Staff-led only.** No trial, no tour. "Book a demo" → `/support` stays as it is |
+| Billing period | **Monthly.** Chosen against the recommendation in §9, knowingly — so §9's mitigations are not optional: renewal reminders, a real grace period, and an admin list ordered by what is due |
+| One-off registration fee | **None.** One amount, one reference: the first month's subscription |
+| VAT | **Not registered.** No VAT is charged, nothing is a tax invoice, and the copy has been corrected — see below |
+
+**The VAT answer changed three pieces of customer-facing copy**, which is why it
+was worth asking rather than assuming. The pricing page and the terms of service
+both said subscriptions are "excluding VAT". That is worse than untidy: it tells
+a workshop N$1,200 is a pre-tax figure, and a VAT-registered customer reading it
+would try to claim input VAT on an invoice that never charged any — their tax
+problem, caused by our wording. The terms now say plainly that MOTION Dynamic
+Systems is not VAT registered, that no VAT is charged, that what it sends is not
+a tax invoice, and that payment is by deposit or transfer with a reference.
+
+That is legal copy and it needs your sign-off, not mine.
+
+Nothing here touches the 15 % the product applies to a workshop's own invoices.
+That is their VAT on their work, and it is unaffected.
+
+## 11. What I still need from you before building
 
 | | Why it blocks |
 | --- | --- |
 | **Bank account details** — account name, bank, branch code, account number and type | They go on the confirmation page and in every registration email. They belong in configuration, not in the repository |
-| **VAT registration status and number** | Published prices exclude VAT. If MOTION Dynamic Systems is registered, the amount shown and the invoice must add 15 % and show the number — getting this wrong is a tax problem, not a display problem |
 | **Which accounts are MOTION staff** | `isPlatformStaff` has to be set for somebody, or nobody can activate anyone |
-| **Default billing period** | §9. Changes the price shown and the operational load |
-| **Is there a one-off registration fee** separate from the subscription? | "Collect funds for registrations" could mean either. It changes the amount, the email and the schema |
-| **The demo decision** | §10 |
+| **Sign-off on the amended terms** | §10a. I have changed what the terms say about tax. That should not stand on my judgement alone |
 
 ## 12. Phasing
 
