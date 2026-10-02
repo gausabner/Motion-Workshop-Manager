@@ -260,7 +260,70 @@ Commissioning is not finished until a restore has passed. Full detail in
    recovery time, and it belongs in `docs/continuity-and-recovery.md` in place
    of the generic figure.
 
-## 8. Before Saturday
+## 8. Mail, because a locked-out owner has no other way back
+
+Everything else MOTION sends is a hand-off — a `wa.me` or `mailto:` link the
+workshop clicks in their own client. A password reset cannot be: the person who
+needs it is locked out and there is nobody on this side to hand it to. That one
+path sends for itself over SMTP, through Namecheap Private Email.
+
+Four records on the domain, all in Cloudflare, all **DNS only** (grey cloud —
+proxying a TXT or MX record does nothing useful and an orange cloud on the apex
+does not affect mail, but the habit is worth keeping):
+
+| Type | Name | Value |
+|---|---|---|
+| MX | `@` | `10 mx1.privateemail.com`, `10 mx2.privateemail.com` |
+| TXT | `@` | `v=spf1 include:spf.privateemail.com ~all` |
+| TXT | `privateemail._domainkey` | `v=DKIM1;k=rsa;p=…` — copy from the Private Email dashboard |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:…; fo=1` |
+
+Three things that are easy to get wrong and silent when you do:
+
+- **The DKIM selector is `privateemail`, not `default`.** Most guides say
+  `default`. A key published under the wrong name is a key nobody finds.
+- **The DKIM value is longer than 255 bytes**, which is the maximum for a single
+  DNS string. Cloudflare splits it for you — paste it whole, and do not add
+  quotes or line breaks by hand.
+- **Exactly one SPF record.** Two is worse than none: SPF permanently fails, so
+  adding a second rather than editing the first breaks what already worked.
+
+Then `/etc/motion/motion.env` on the server:
+
+```
+MAIL_DRIVER=smtp
+MAIL_SMTP_HOST=mail.privateemail.com
+MAIL_SMTP_PORT=465
+MAIL_SMTP_USER=no-reply@motionworkshopmanager.com
+MAIL_SMTP_PASSWORD=…
+MAIL_FROM=no-reply@motionworkshopmanager.com
+```
+
+`MAIL_FROM` is separate from `MAIL_SMTP_USER` on purpose, and must be on the
+domain that signs with DKIM — a From address outside it fails alignment and is
+spam-filed however correct the records are. `APP_URL` must also be set, or the
+link in the mail has no host to point at.
+
+Check it before a user does:
+
+```
+npm run mail:check                       # credentials and all four records
+npm run mail:check you@yourmailbox.com   # and a real message
+```
+
+A delivery failure is deliberately invisible to the visitor — it has to be, or
+the error page would reveal which addresses are on an account — so a silent
+mailbox fails silently. This command is the only thing that notices. Run it
+after any DNS change, and read the headers of the test message for `dkim=pass`
+and `spf=pass`: arriving is not the same as being trusted.
+
+One standing limit. Private Email is a mailbox, not a transactional service: it
+is rate-limited far more aggressively and shares the domain's reputation with
+everything else sent from it. It is sized for the handful of resets a day this
+produces. Routing bulk invoicing through it is how the domain ends up unable to
+send resets either.
+
+## 9. Before Saturday
 
 - [ ] Seed or create the demo workshop, and walk every flow you intend to show.
 - [ ] Load the site on a phone over mobile data, not office wifi. That is the
@@ -275,7 +338,7 @@ Commissioning is not finished until a restore has passed. Full detail in
       that has already run is not undone by starting an older image, so a
       rollback across a schema change needs the database restored to match.
 
-## 9. Shortly after
+## 10. Shortly after
 
 - **Switch to annual billing.** $12.88/mo against $15.88 is about $36 a year,
   roughly N$590. Worth doing once you are confident you are keeping this box —
@@ -284,8 +347,11 @@ Commissioning is not finished until a restore has passed. Full detail in
   business selling to Namibian councils should hold the Namibian name, if only
   so nobody else does.
 - **Move off `gausabner@gmail.com`** to `hello@motionworkshopmanager.com`.
-  Cloudflare Email Routing forwards to Gmail for free and takes ten minutes.
-  Then update `MOTION_SUPPORT_EMAIL` and the support page.
+  Create it as a mailbox or alias in Private Email, then update
+  `MOTION_SUPPORT_EMAIL` and the support page. Not Cloudflare Email Routing,
+  which this runbook used to suggest: Email Routing takes over the domain's MX
+  records, so switching it on would stop Private Email receiving anything and
+  take the reset mailbox down with it.
 - **Decide on monitoring.** The uptime figure in the terms is still blank
   because nothing measures it. A free external check hitting `/api/health`
   every minute would close that, and gives the backup heartbeat somewhere to

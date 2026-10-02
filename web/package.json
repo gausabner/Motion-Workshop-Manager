@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
+    "mail:check": "tsx --env-file-if-exists=.env --conditions=react-server scripts/mail-check.ts",
     "postinstall": "prisma generate",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:db": "DATABASE_URL=\"$DATABASE_URL_ADMIN\" tsx --conditions=react-server --test \"src/**/*.dbtest.ts\""
@@ -25,6 +26,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
+    "nodemailer": "^10.0.13",
     "pdfkit": "^0.20.2",
     "prisma": "^6.19.3",
     "radix-ui": "^1.4.3",
@@ -40,6 +42,7 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

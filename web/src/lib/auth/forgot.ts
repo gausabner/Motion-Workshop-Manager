@@ -1,7 +1,9 @@
 import "server-only";
 
 import { randomBytes } from "node:crypto";
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
+import { sendMail } from "@/lib/mail/send";
 import { hashResetToken } from "@/lib/team/recovery";
 
 /**
@@ -53,9 +55,8 @@ export async function requestPasswordReset(rawEmail: string): Promise<void> {
         },
     });
 
-    // Silence, deliberately. Not an error, not a different timing path worth
-    // worrying about at this scale — the caller returns the same screen either
-    // way.
+    // Silence, deliberately. Not an error — the caller returns the same screen
+    // either way, and `after` below keeps it the same *length* of time too.
     const membership = user?.memberships[0];
     if (!user || !membership) return;
 
@@ -84,31 +85,68 @@ export async function requestPasswordReset(rawEmail: string): Promise<void> {
         });
     });
 
-    await deliverResetLink({
-        email,
-        firstName: user.firstName,
-        workshop: membership.tenant.name,
-        token,
-        expiresAt,
-    });
+    // Delivery happens after the response, and cannot fail into it.
+    //
+    // Two separate leaks are being closed here, and both are leaks of the same
+    // fact — whether this address is on an account.
+    //
+    // **The error page.** A sender that throws undoes every careful line above
+    // from the outside: an unknown address returns quietly, a known one with a
+    // broken mailbox returns a server error. So a failure is recorded on the
+    // server and swallowed. The visitor is then told to check an inbox for mail
+    // that is not coming, which is the lesser of the two and is why
+    // `npm run mail:check` exists — the answer to silent failure is noticing
+    // before a user does, not telling an unauthenticated caller what is real.
+    //
+    // **The clock.** Measured, before this was moved: 3,187 ms for an address
+    // on an account against 7 ms for one that is not. An SMTP handshake is not
+    // a subtle side channel at that scale; anybody can time the form in a
+    // browser and read the answer straight off, which makes the identical copy
+    // decorative. `after` runs this once the response is already on its way, so
+    // both paths return in single-digit milliseconds and the difference is the
+    // database round trip rather than a mail server.
+    //
+    // `after` is used rather than a bare dangling promise because Next keeps
+    // the work alive until it settles instead of letting it be cut off when the
+    // request finishes. Outside a request — a script, a test — there is nothing
+    // to run after, so it is awaited inline; the same work either way.
+    const deliver = () =>
+        deliverResetLink({
+            email,
+            firstName: user.firstName,
+            workshop: membership.tenant.name,
+            token,
+            expiresAt,
+        }).catch((error: unknown) => {
+            console.error("[forgot] a reset link was minted and could not be sent.", {
+                to: email,
+                workshop: membership.tenant.name,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        });
+
+    try {
+        after(deliver);
+    } catch {
+        await deliver();
+    }
 }
 
 /**
  * Where the link goes.
  *
- * MOTION has no transactional mail sender. Every channel it has is a *hand-off*
- * — a `wa.me` link or a `mailto:` URL that a human clicks in their own client —
- * which is deliberate, and is what lets a workshop send invoices without
- * anybody buying a mail provider. It is also exactly the wrong shape here: the
- * person who needs this link is locked out and alone, and there is nobody to
- * hand anything to.
+ * Every other channel MOTION has is a *hand-off* — a `wa.me` link or a
+ * `mailto:` URL that a human clicks in their own client — which is deliberate,
+ * and is what lets a workshop send invoices without anybody buying a mail
+ * provider. It is exactly the wrong shape here: the person who needs this link
+ * is locked out and alone, and there is nobody to hand anything to. So this one
+ * path sends for itself, through `lib/mail/send`.
  *
- * So this needs a real sender. It is written as the seam for one rather than
- * left as a hole: configure `MAIL_DRIVER` and the flow completes. Until then
- * the request is recorded, the link is minted, and this logs loudly on the
- * server while the visitor still sees the same neutral screen — because
- * telling them "email is not configured" would also tell them their address
- * exists.
+ * Mail stays optional. With no `MAIL_DRIVER` the request is still recorded, the
+ * link is still minted, and this logs loudly on the server while the visitor
+ * sees the same neutral screen — because telling them "email is not configured"
+ * would also tell them their address exists. That is the state a developer
+ * working locally is in, and it should not be a crash.
  */
 async function deliverResetLink(message: {
     email: string;
@@ -136,17 +174,80 @@ async function deliverResetLink(message: {
         return;
     }
 
-    // A sender slots in here and builds the link itself:
-    //
-    //     const link = `${base}/reset/${message.token}`;
-    //     await send({ to: message.email, subject: ..., body: ... });
-    //
-    // The token is passed in rather than the finished URL so the sender owns
-    // the address it puts in the mail — the same reason `base` is read here
-    // and checked above rather than assumed.
-    throw new Error(
-        `Unknown MAIL_DRIVER ${JSON.stringify(driver)}. Add a transactional sender, or unset it to fall back to logging.`,
-    );
+    // The token is passed in rather than a finished URL so that the address in
+    // the mail is built here, from `base`, next to the check that `base` exists.
+    const link = `${base}/reset/${message.token}`;
+    const minutes = Math.max(1, Math.round((message.expiresAt.getTime() - Date.now()) / 60_000));
+
+    await sendMail({
+        to: message.email,
+        // No workshop name in the subject. A subject line shows on a lock
+        // screen, and this mail goes to an address that may not be the
+        // person's — naming their workshop there is the same leak the neutral
+        // screen above exists to prevent.
+        subject: "Reset your MOTION password",
+        text: [
+            `Hi ${message.firstName},`,
+            "",
+            `Somebody asked to reset the MOTION password for ${message.workshop}. If that was you, open this link:`,
+            "",
+            link,
+            "",
+            `It works once, and for ${minutes} minutes.`,
+            "",
+            "If it wasn't you, nothing has changed and you can ignore this. Your current password still works.",
+            "",
+            "— MOTION",
+        ].join("\n"),
+        html: resetHtml({ firstName: message.firstName, workshop: message.workshop, link, minutes }),
+    });
+}
+
+/** The entities that matter in an attribute or a text node, and no others. */
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+/**
+ * The same words as the text part, in a shape a mail client will render.
+ *
+ * Table-free, inline-styled and narrow on purpose: mail clients strip
+ * stylesheets, ignore most selectors and render at widths nobody chose. The
+ * link is also written out in full underneath the button, because a client that
+ * refuses to render the button at all is common enough that a reset must not
+ * depend on one.
+ *
+ * `firstName` and `workshop` come from the database and are escaped. They are
+ * typed by a user at sign-up, so they are not safe to interpolate — a workshop
+ * called `Mike & Sons <Pty>` would otherwise arrive broken, which is the benign
+ * version of the same bug.
+ */
+function resetHtml(parts: { firstName: string; workshop: string; link: string; minutes: number }): string {
+    const name = escapeHtml(parts.firstName);
+    const workshop = escapeHtml(parts.workshop);
+    // The URL is ours — base from config, token from `randomBytes(...).toString("base64url")`,
+    // whose alphabet has nothing to escape. Escaped anyway, so that a future
+    // change to either cannot quietly turn this into an injection.
+    const href = escapeHtml(parts.link);
+
+    return `<!doctype html>
+<html lang="en"><body style="margin:0;padding:24px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5">Hi ${name},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5">Somebody asked to reset the MOTION password for <strong>${workshop}</strong>. If that was you, set a new one here.</p>
+    <p style="margin:0 0 24px">
+      <a href="${href}" style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:12px 20px;border-radius:8px">Set a new password</a>
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#475569">It works once, and for ${parts.minutes} minutes. If the button does nothing, copy this into your browser:<br>
+      <span style="word-break:break-all;color:#0f766e">${href}</span>
+    </p>
+    <p style="margin:0;font-size:14px;line-height:1.5;color:#475569">If it wasn't you, nothing has changed and you can ignore this — your current password still works.</p>
+  </div>
+</body></html>`;
 }
 
 /**

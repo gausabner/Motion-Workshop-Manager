@@ -228,7 +228,7 @@ later is worse than being told now.
 | **Independent penetration test** | Not yet commissioned. Worth doing before a first council go-live. |
 | **A published uptime commitment** | None. Nothing is measuring it yet. A figure nobody is measuring is worse than no figure. |
 | **Data held in Namibia** | No. The hosted service runs in Phoenix, Arizona; Namecheap confirmed their VPS estate is United States only. A client who requires Namibian residency is served by the installed edition on their own hardware, which is what it is for. |
-| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any council contract. |
+| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States, and Private Email, which carries password-reset messages and therefore sees a name and an address), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any council contract. |
 | **A registered legal entity** | Not yet registered. The terms and privacy policy are drafts and say so. |
 
 ## Asking us about this
