@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+#
+# Switch a workshop on, once its payment has been seen on the bank statement.
+#
+#   motion-activate-tenant --pending       # what is waiting, oldest first
+#   motion-activate-tenant MOT-7KQX4F      # by the reference they paid with
+#   motion-activate-tenant --slug tiptop   # by workshop address
+#
+# Phase 1 of the registration flow has no admin panel, deliberately: a screen
+# that can grant any workshop access to the product is the most dangerous
+# surface there is, and it should be built last and reviewed hardest. Until it
+# exists, activation is this — a person who has looked at a bank statement, on
+# the server, confirming one workshop at a time.
+#
+# Three things it does that a hand-written UPDATE would not:
+#
+#   * shows the whole registration before changing anything, so the reference
+#     being matched is read rather than assumed;
+#   * sets `Subscription.status` as well as the tenant's, so the two cannot
+#     drift into saying different things about the same customer;
+#   * sends the "you are in" mail, which is the only signal the customer gets
+#     that their deposit was found. Without it they are active and unaware.
+#
+# `Tenant.isActive` is never written. A database trigger derives it from the
+# status, so setting it would be at best redundant and at worst a second
+# opinion about whether somebody has paid.
+#
+# **Two roles, on purpose.** Finding a workshop *by its payment reference* is a
+# cross-tenant read, and `Subscription` is FORCE RLS — the owner cannot read
+# across workshops and `SET row_security = off` raises an error rather than
+# lifting the policy (checked, not assumed). So the lookup runs as
+# `motion_backup`, which is BYPASSRLS and holds SELECT and nothing else: it can
+# find the row and could not change it if it tried. The writes then run as
+# `motion`, announcing the tenant like any other caller. Reaching for the
+# superuser instead would have been one line shorter and would have made this
+# script the one thing in the deployment that can rewrite anybody's books.
+set -euo pipefail
+
+ENV_FILE=/etc/motion/motion.env
+cd /opt/motion/ops/server
+
+compose() { docker compose --env-file "$ENV_FILE" "$@"; }
+
+# Read-only, across every workshop.
+look() { compose exec -T db psql -U motion_backup -d motion_app -v ON_ERROR_STOP=1 "$@"; }
+# Writes, bound by the policies like the application is.
+sql() { compose exec -T db psql -U motion -d motion_app -v ON_ERROR_STOP=1 "$@"; }
+
+usage() {
+    echo "usage: motion-activate-tenant --pending | <REFERENCE> | --slug <slug>" >&2
+    exit 64
+}
+
+[ $# -ge 1 ] || usage
+
+if [ "$1" = "--pending" ]; then
+    echo
+    look -c "
+        SELECT s.reference      AS \"Reference\",
+               t.name           AS \"Workshop\",
+               s.\"planName\"     AS \"Plan\",
+               'N\$ ' || s.\"priceAmount\" AS \"Excl VAT\",
+               date_trunc('minute', s.\"createdAt\") AS \"Registered\"
+        FROM \"Subscription\" s
+        JOIN \"Tenant\" t ON t.id = s.\"tenantId\"
+        WHERE t.status = 'PENDING_PAYMENT'
+        ORDER BY s.\"createdAt\" ASC;"
+    echo
+    # Registered but never got as far as choosing a tier. Worth showing
+    # separately: these are people who stalled on the plan chooser, which is a
+    # sales problem rather than a payment one.
+    look -c "
+        SELECT t.slug AS \"No plan chosen\", t.name AS \"Workshop\",
+               date_trunc('minute', t.\"createdAt\") AS \"Registered\"
+        FROM \"Tenant\" t
+        LEFT JOIN \"Subscription\" s ON s.\"tenantId\" = t.id
+        WHERE t.status = 'PENDING_PAYMENT' AND s.id IS NULL
+        ORDER BY t.\"createdAt\" ASC;"
+    exit 0
+fi
+
+if [ "$1" = "--slug" ]; then
+    [ $# -eq 2 ] || usage
+    # Stripped to the slug alphabet, so nothing from the argument reaches the
+    # query but letters, digits and dashes.
+    WHERE="t.slug = '$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')'"
+    SUBJECT="$2"
+else
+    # Uppercased and stripped to the reference alphabet, so one copied out of an
+    # email with a stray space still matches.
+    REF=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z0-9-')
+    WHERE="s.reference = '${REF}'"
+    SUBJECT="$REF"
+fi
+
+ROW=$(
+    look -At -F'|' -c "
+    SELECT t.id, t.slug, t.name, t.status,
+           COALESCE(s.\"planName\", '(no plan chosen)'),
+           COALESCE(s.\"priceAmount\"::text, '0'),
+           COALESCE(s.reference, '(none)'),
+           COALESCE(u.\"firstName\", ''), COALESCE(u.email, '')
+    FROM \"Tenant\" t
+    LEFT JOIN \"Subscription\" s ON s.\"tenantId\" = t.id
+    LEFT JOIN \"Membership\" m ON m.\"tenantId\" = t.id AND m.\"group\" = 'OWNER'
+    LEFT JOIN \"User\" u ON u.id = m.\"userId\"
+    WHERE ${WHERE}
+    ORDER BY m.\"createdAt\" ASC
+    LIMIT 1;"
+)
+
+if [ -z "$ROW" ]; then
+    echo "No registration found for ${SUBJECT}." >&2
+    echo "Check it against the bank statement, or list what is waiting:" >&2
+    echo "  motion-activate-tenant --pending" >&2
+    exit 1
+fi
+
+IFS='|' read -r TENANT_ID SLUG NAME STATUS PLAN AMOUNT REFERENCE FIRST_NAME EMAIL <<<"$ROW"
+
+printf '\n'
+printf '  Workshop    %s  (/%s)\n' "$NAME" "$SLUG"
+printf '  Status      %s\n' "$STATUS"
+printf '  Plan        %s\n' "$PLAN"
+printf '  Amount      N$ %s excluding VAT\n' "$AMOUNT"
+printf '  Reference   %s\n' "$REFERENCE"
+printf '  Owner       %s <%s>\n' "$FIRST_NAME" "$EMAIL"
+printf '\n'
+
+if [ "$STATUS" = "ACTIVE" ]; then
+    echo "Already active. Nothing to do."
+    exit 0
+fi
+
+if [ "$REFERENCE" = "(none)" ]; then
+    echo "This workshop has not chosen a plan, so there is no agreed amount and" >&2
+    echo "nothing to match a payment against. Ask them to finish at /activate." >&2
+    exit 1
+fi
+
+printf 'Confirm the payment has arrived and switch this workshop on? [y/N] '
+read -r answer
+case "$answer" in
+    y | Y | yes | YES) ;;
+    *)
+        echo "Left as it was."
+        exit 0
+        ;;
+esac
+
+sql -q <<SQL
+BEGIN;
+UPDATE "Tenant" SET "status" = 'ACTIVE', "updatedAt" = now() WHERE id = '${TENANT_ID}';
+-- The policy has to be told which workshop this is before the row is reachable,
+-- even to the role that owns the table. That is the point of FORCE.
+SELECT set_config('motion.tenant_id', '${TENANT_ID}', true);
+UPDATE "Subscription" SET "status" = 'ACTIVE', "updatedAt" = now() WHERE "tenantId" = '${TENANT_ID}';
+COMMIT;
+SQL
+
+echo "Activated: $(look -At -c "SELECT status || ' / isActive=' || \"isActive\" FROM \"Tenant\" WHERE id = '${TENANT_ID}'")"
+
+# The mail goes from inside the app container, the only place with both
+# nodemailer and the SMTP credentials. A failure here does not undo the
+# activation — the workshop is in, and the fallback is telling them by hand.
+if [ -n "$EMAIL" ]; then
+    compose exec -T app node --input-type=module -e '
+const [to, firstName, workshop, slug] = process.argv.slice(1);
+const { default: nodemailer } = await import("nodemailer");
+const port = Number(process.env.MAIL_SMTP_PORT || 465);
+const base = (process.env.APP_URL || "").replace(/\/$/, "");
+const t = nodemailer.createTransport({
+  host: process.env.MAIL_SMTP_HOST, port, secure: port === 465, requireTLS: port !== 465,
+  auth: { user: process.env.MAIL_SMTP_USER, pass: process.env.MAIL_SMTP_PASSWORD },
+});
+await t.sendMail({
+  from: `"${process.env.MAIL_FROM_NAME || "MOTION"}" <${process.env.MAIL_FROM}>`,
+  to,
+  subject: `${workshop} is live on MOTION`,
+  text: [
+    `Hi ${firstName},`,
+    "",
+    `Your payment has been received and ${workshop} is switched on. Sign in here:`,
+    "",
+    `${base}/${slug}/dashboard`,
+    "",
+    "Use the same email and password you registered with. If you have forgotten it, there is a link on the sign-in page.",
+    "",
+    "Welcome aboard.",
+    "",
+    "— MOTION",
+  ].join("\n"),
+});
+console.log("Told", to);
+' "$EMAIL" "$FIRST_NAME" "$NAME" "$SLUG" || echo "Activated, but the welcome email failed — tell them by hand." >&2
+fi

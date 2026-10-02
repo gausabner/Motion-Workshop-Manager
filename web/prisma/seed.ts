@@ -13,6 +13,11 @@ async function main() {
         create: {
             slug: "tiptop",
             name: "TipTop AutoCare",
+            // The demo workshop is meant to be usable the moment it is seeded,
+            // so it does not sit behind the registration gate. Said explicitly
+            // because the column default is PENDING_PAYMENT — the safe default
+            // for a stranger registering, and the wrong one for a fixture.
+            status: "ACTIVE",
             registrationNumber: "CC/2019/04421",
             vatNumber: "4523874",
             address1: "435 Windhoek West",

@@ -40,7 +40,7 @@ async function quote(number: string, opts: { on?: string; followUp?: string | nu
 }
 
 before(async () => {
-    const t = await prisma.tenant.create({ data: { slug: SLUG, name: "ZZTEST Quote Motors", country: "NA" }, select: { id: true } });
+    const t = await prisma.tenant.create({ data: { status: "ACTIVE", slug: SLUG, name: "ZZTEST Quote Motors", country: "NA" }, select: { id: true } });
     tenantId = t.id;
 });
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { DocumentSpine } from "@/components/public/DocumentSpine";
 import { MondayMorning } from "@/components/public/MondayMorning";
@@ -144,26 +144,19 @@ export function CloudLanding() {
                 <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-6 px-5 pb-32 pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:pt-4">
                     <div className="flex flex-col items-start gap-6">
                         <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "60ms" }}>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700">
-                                <Sparkles className="h-3.5 w-3.5 text-teal-600" strokeWidth={2} />
-                                Built in Namibia, for Namibian workshops
-                            </span>
-                        </div>
-
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "140ms" }}>
                             <h1 className="max-w-[13ch] text-balance text-[40px] font-semibold leading-[1.03] tracking-[-0.04em] text-slate-900 sm:text-[clamp(2.75rem,5.4vw,4.5rem)]">
                                 Run the whole job on{" "}
                                 <span className="italic text-teal-700">one document</span>
                             </h1>
                         </div>
 
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "230ms" }}>
+                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "150ms" }}>
                             <p className="max-w-[34ch] text-[17px] leading-relaxed text-slate-500 sm:text-[19px]">
                                 From the call to the money — without anybody retyping it.
                             </p>
                         </div>
 
-                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "320ms" }}>
+                        <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "240ms" }}>
                             <div className="flex flex-wrap items-center gap-3">
                                 <PillLink href="/support">
                                     Book a demo

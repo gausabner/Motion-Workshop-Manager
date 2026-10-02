@@ -24,8 +24,8 @@ let bravo = "";
 let bravoCustomerId = "";
 
 before(async () => {
-    const a = await prisma.tenant.create({ data: { slug: `${ID}-a`, name: "ZZTEST Alpha Motors", country: "NA" }, select: { id: true } });
-    const b = await prisma.tenant.create({ data: { slug: `${ID}-b`, name: "ZZTEST Bravo Motors", country: "NA" }, select: { id: true } });
+    const a = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-a`, name: "ZZTEST Alpha Motors", country: "NA" }, select: { id: true } });
+    const b = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-b`, name: "ZZTEST Bravo Motors", country: "NA" }, select: { id: true } });
     alpha = a.id;
     bravo = b.id;
     const customer = await prisma.customer.create({ data: { tenantId: bravo, firstName: "ZZTEST", lastName: "BravoOnly" }, select: { id: true } });

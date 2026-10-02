@@ -54,7 +54,7 @@ async function removeFixture(): Promise<void> {
 before(async () => {
     await removeFixture();
     tenant = await prisma.tenant.create({
-        data: { slug: ID, name: "ZZTEST Messaging Motors", country: "NA", timezone: "Africa/Windhoek", currency: "NAD" },
+        data: { status: "ACTIVE", slug: ID, name: "ZZTEST Messaging Motors", country: "NA", timezone: "Africa/Windhoek", currency: "NAD" },
     });
     db = forTenant(tenant.id);
 

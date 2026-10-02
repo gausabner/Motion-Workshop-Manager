@@ -57,7 +57,7 @@ const jobCardsFrom = (sourceId: string) =>
 
 before(async () => {
     const t = await prisma.tenant.create({
-        data: { slug: ID, name: "ZZTEST Convert Once", country: "NA" },
+        data: { status: "ACTIVE", slug: ID, name: "ZZTEST Convert Once", country: "NA" },
         select: { id: true },
     });
     tenantId = t.id;

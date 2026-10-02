@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ACCENT_ON_DARK, MotionLockup } from "@/components/brand/MotionLogo";
 import { HeroField } from "@/components/public/HeroField";
-import { getSessionUser, defaultTenantSlug } from "@/lib/auth/session";
+import { getSessionUser, signedInLanding } from "@/lib/auth/session";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = { title: "Sign in | MOTION Workshop Manager" };
@@ -12,8 +12,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     const { next } = await searchParams;
     const user = await getSessionUser();
     if (user) {
-        const slug = await defaultTenantSlug(user.id);
-        redirect(slug ? `/${slug}/dashboard` : "/register");
+        redirect(await signedInLanding(user.id));
     }
     return (
         /**

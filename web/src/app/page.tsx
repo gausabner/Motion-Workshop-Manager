@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getSessionUser, defaultTenantSlug } from "@/lib/auth/session";
+import { getSessionUser, signedInLanding } from "@/lib/auth/session";
 import { isCloud } from "@/lib/edition";
 import { CloudLanding } from "@/components/public/CloudLanding";
 import { InstalledWelcome } from "@/components/public/InstalledWelcome";
@@ -29,8 +29,7 @@ export function generateMetadata(): Metadata {
 export default async function Home() {
     const user = await getSessionUser();
     if (user) {
-        const slug = await defaultTenantSlug(user.id);
-        redirect(slug ? `/${slug}/dashboard` : "/register");
+        redirect(await signedInLanding(user.id));
     }
     return isCloud() ? <CloudLanding /> : <InstalledWelcome />;
 }

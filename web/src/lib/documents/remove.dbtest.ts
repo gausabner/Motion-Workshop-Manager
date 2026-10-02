@@ -24,7 +24,7 @@ const doc = async (state: "DRAFT" | "VOID" | "PROCESSED", number: string) =>
     })).id;
 
 before(async () => {
-    const t = await prisma.tenant.create({ data: { slug: ID, name: "ZZTEST Remove", country: "NA" }, select: { id: true } });
+    const t = await prisma.tenant.create({ data: { status: "ACTIVE", slug: ID, name: "ZZTEST Remove", country: "NA" }, select: { id: true } });
     tenantId = t.id;
     db = forTenant(tenantId);
     const c = await prisma.customer.create({ data: { tenantId, firstName: "ZZTEST", lastName: "Owner" }, select: { id: true } });
