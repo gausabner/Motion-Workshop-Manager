@@ -6,10 +6,22 @@
  * salesperson says out loud — and a tier that reads differently in two of them
  * is how a customer ends up owed something nobody meant to sell.
  *
- * Prices are monthly, in Namibian dollars, excluding VAT. The floor is
+ * Prices are monthly, in Namibian dollars, **excluding VAT**. The floor is
  * N$1,200: below that the support volume at these margins does not work, and
- * the workshops who would only ever pay less are the ones who go back to
- * Excel anyway.
+ * the workshops who would only ever pay less are the ones who go back to Excel
+ * anyway.
+ *
+ * "Excluding VAT" is the honest phrasing because the supplier is registered for
+ * it — Omzizi Investment CC, VAT 06658872-015 — so 15 % is added and the
+ * invoice is a tax invoice a workshop can claim against. Quoting the headline
+ * before tax is the convention this business already uses on its own
+ * quotations, and the audience is other VAT-registered businesses who read
+ * prices that way.
+ *
+ * What must not happen is a customer meeting the 15 % for the first time at the
+ * bank, so the inclusive figure is shown underneath — computed, not typed. Two
+ * numbers that can drift apart are how a published price and an invoiced amount
+ * end up disagreeing.
  */
 
 export type Plan = {
@@ -31,6 +43,21 @@ export type Plan = {
 };
 
 export const CURRENCY = "N$";
+
+/**
+ * Namibian VAT, as a percentage.
+ *
+ * The same 15 % the product applies to a workshop's own invoices, but reached
+ * independently and deliberately not shared: this is the supplier's rate on a
+ * subscription, while a workshop's rate is a per-tenant setting it may change.
+ * One constant serving both would tie a customer's tax configuration to ours.
+ */
+export const VAT_RATE = 15;
+
+/** What actually leaves the bank account. Rounded to the cent, because money is. */
+export function withVat(price: number): number {
+    return Math.round(price * (1 + VAT_RATE / 100) * 100) / 100;
+}
 
 export const PLANS: Plan[] = [
     {

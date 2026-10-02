@@ -99,6 +99,14 @@ services:
       MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      # Where a new client pays. Optional on purpose: with these unset the
+      # registration page cannot print bank details, which is a visible failure
+      # rather than a confidently wrong account number.
+      BILLING_ENTITY_NAME: ${BILLING_ENTITY_NAME:-}
+      BILLING_BANK_NAME: ${BILLING_BANK_NAME:-}
+      BILLING_BANK_BRANCH_CODE: ${BILLING_BANK_BRANCH_CODE:-}
+      BILLING_BANK_ACCOUNT_NUMBER: ${BILLING_BANK_ACCOUNT_NUMBER:-}
+      BILLING_BANK_ACCOUNT_TYPE: ${BILLING_BANK_ACCOUNT_TYPE:-}
     volumes:
       # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
       # ops/backup archives this; see ops/backup/README.md.
