@@ -27,9 +27,18 @@ type Vars = CSSProperties & Record<`--${string}`, string | number>;
  * mixed from the lit one and the light direction is decided once, here.
  */
 function shade(top: string, into = "#042f2e"): { fs: string; fe: string } {
+    // Mixing a colour with itself returns that colour, so a box whose lit face
+    // *is* the ground colour came out with three identical faces: the sides
+    // were drawn, at full size, in exactly the shade of the top. A solid with
+    // no edges reads as a flat silhouette, which is why the scenes looked
+    // shallow — the depth was there and invisible.
+    //
+    // Found in the live DOM rather than the source: --ft, --fs and --fe all
+    // resolved to rgb(4, 47, 46) on the hero platform.
+    const toward = top.trim().toLowerCase() === into.trim().toLowerCase() ? "#000000" : into;
     return {
-        fs: `color-mix(in srgb, ${top} 75%, ${into})`,
-        fe: `color-mix(in srgb, ${top} 52%, ${into})`,
+        fs: `color-mix(in srgb, ${top} 75%, ${toward})`,
+        fe: `color-mix(in srgb, ${top} 52%, ${toward})`,
     };
 }
 
