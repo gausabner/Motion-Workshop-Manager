@@ -8,6 +8,7 @@ import { COUNTRY_DEFAULTS } from "@/lib/tenant/country";
 import { initialActionState } from "@/lib/forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PLANS, CURRENCY, VAT_RATE, withVat } from "@/lib/pricing/plans";
 import { Label } from "@/components/ui/label";
 
 function Field({ label, name, error, children }: { label: string; name: string; error?: string[]; children: React.ReactNode }) {
@@ -28,6 +29,44 @@ export function RegisterForm() {
     const local = COUNTRY_DEFAULTS[country];
     return (
         <form action={action} className="space-y-4">
+            {/* The tier, in the form rather than on a screen afterwards.
+                A workshop used to be created first and asked to choose later,
+                and a real registration walked into the gap: a workshop with no
+                plan, no amount and no reference — nothing anybody could act
+                on. Chosen here, it is written in the same transaction as the
+                workshop, so that state cannot exist. */}
+            <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-slate-900">Plan</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                    {PLANS.filter((p): p is typeof p & { price: number } => p.price !== null).map((plan) => (
+                        <label
+                            key={plan.id}
+                            className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-3 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50/40"
+                        >
+                            <input type="radio" name="planId" value={plan.id} required className="mt-1 accent-teal-600" />
+                            <span className="min-w-0">
+                                <span className="block text-sm font-medium text-slate-900">{plan.name}</span>
+                                <span className="block text-[13px] tabular-nums text-slate-900">
+                                    {CURRENCY}{plan.price.toLocaleString("en-GB")}{" "}
+                                    <span className="text-slate-500">per month, excluding VAT</span>
+                                </span>
+                                {/* The figure that leaves the bank, derived
+                                    rather than typed beside it. */}
+                                <span className="block text-[12px] text-slate-500">
+                                    {CURRENCY}{withVat(plan.price).toLocaleString("en-GB", { maximumFractionDigits: 2 })} including VAT at {VAT_RATE}%
+                                </span>
+                                <span className="mt-1 block text-[12px] text-slate-500">{plan.who}</span>
+                            </span>
+                        </label>
+                    ))}
+                </div>
+                {state.errors?.planId && <p className="text-xs text-red-600">{state.errors.planId[0]}</p>}
+                <p className="text-[12px] text-slate-500">
+                    More than one workshop, or buying for a municipality? That is quoted per site —{""}
+                    <Link href="/support" className="font-medium text-teal-700 hover:underline">talk to us</Link>.
+                </p>
+            </fieldset>
+
             <Field label="Workshop name" name="workshopName" error={state.errors?.workshopName}>
                 <Input id="workshopName" name="workshopName" required autoFocus onChange={(e) => { if (!slugTouched) setSlug(slugify(e.target.value)); }} />
             </Field>
