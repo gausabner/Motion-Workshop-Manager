@@ -674,3 +674,59 @@ a { text-underline-offset: 0.2em; }
   @keyframes motion-letter-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes motion-dot-in    { from { opacity: 0; } to { opacity: 1; } }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   The public pages' spine.
+
+   One line runs down the left of pricing, help and support, bending from band
+   to band, with a node where each one starts. It is the same idea as the
+   landing page's DocumentSpine stood on its side: the document travelling.
+
+   `--spx` is where that line sits. It tracks the content column rather than
+   the viewport, so the line stays beside the text at every width instead of
+   drifting into the margin on a wide screen — which is why it is arithmetic
+   rather than a percentage.
+   ───────────────────────────────────────────────────────────────────────────── */
+.pub {
+  --wrapmax: 76rem;
+  --gut: 2rem;
+  --so: 1.25rem;   /* the spine's offset inside that padding */
+  --indent: 4.5rem; /* how far content clears the spine */
+  --spx: calc(max(0px, (100% - var(--wrapmax)) / 2) + var(--gut) + var(--so));
+}
+
+@media (max-width: 767.98px) {
+  .pub {
+    --gut: 1rem;
+    --so: 0.25rem;
+    --indent: 2rem;
+  }
+}
+
+.pub-seg path {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* The fill is drawn as the band passes, on the scroll timeline rather than on
+   a scroll listener, so it runs off the main thread. The landing page's ribbon
+   does the same; this is the per-band version of it.
+
+   `view()` without arguments measures this element against the scrollport. The
+   range is deliberately narrow — the line should finish a little before the
+   band leaves, so it reads as having arrived rather than as still going. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .pub-seg-fill {
+      animation: pub-seg-draw linear both;
+      animation-timeline: view();
+      animation-range: cover 18% cover 72%;
+    }
+  }
+}
+
+@keyframes pub-seg-draw {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}

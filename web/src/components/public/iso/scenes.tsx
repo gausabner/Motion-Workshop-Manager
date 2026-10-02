@@ -221,3 +221,88 @@ export function HeroScene() {
         </>
     );
 }
+
+/**
+ * Pricing: three columns, each taller than the last, each with a card hovering
+ * over it.
+ *
+ * The tiers as a physical thing. Height is the only variable — same footprint,
+ * same spacing, rising left to right — because the difference between the
+ * plans is how much is included rather than how different they are, and three
+ * columns of different widths would say the opposite.
+ *
+ * The ribbon runs up the diagonal past all three, so the document's journey
+ * crosses the prices rather than stopping at them.
+ */
+export function PricingScene() {
+    return (
+        <>
+            <IsoBox x={0} y={0} w={340} d={340} h={20} z={0} top={GROUND}>
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 34px)" }} />
+                <svg viewBox="0 0 340 340" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
+                    <path d="M20 320 C 60 300, 50 250, 75 225 S 150 170, 170 160 S 250 120, 265 105 S 320 30, 320 20" fill="none" stroke="rgba(45,212,191,0.22)" strokeWidth={16} strokeLinecap="round" />
+                    <path d="M20 320 C 60 300, 50 250, 75 225 S 150 170, 170 160 S 250 120, 265 105 S 320 30, 320 20" fill="none" stroke={BRIGHT} strokeWidth={5} strokeLinecap="round" />
+                </svg>
+            </IsoBox>
+
+            <IsoShade x={42} y={192} w={70} h={70} z={21} opacity={0.45} />
+            <IsoShade x={137} y={132} w={70} h={70} z={21} opacity={0.45} />
+            <IsoShade x={232} y={72} w={70} h={70} z={21} opacity={0.45} />
+
+            {/* 30, 66, 112 — the steps are not even. Workshop to Full is a real
+                jump; Full to a quoted council contract is a larger one. */}
+            <IsoBox x={40} y={190} w={70} d={70} h={30} z={20} top={BRAND} settle={0} />
+            <IsoBox x={135} y={130} w={70} d={70} h={66} z={20} top={BRIGHT} into={BRAND} settle={1} />
+            <IsoBox x={230} y={70} w={70} d={70} h={112} z={20} top={PAPER} into="#64748b" settle={2} />
+
+            <IsoCylinder x={150} y={250} r={16} h={12} z={20} body={BRAND} cap={BRIGHT} settle={3} />
+            <IsoCylinder x={184} y={262} r={16} h={20} z={20} body={BRAND} cap={BRIGHT} settle={4} />
+
+            <IsoBox x={45} y={195} w={60} d={42} h={3} z={76} top={PAPER} into="#64748b" settle={5} float={7}>
+                <Sheet><Line w={70} /><Line w={46} /></Sheet>
+            </IsoBox>
+            <IsoBox x={140} y={135} w={60} d={42} h={3} z={112} top={PAPER} into="#64748b" settle={6} float={9}>
+                <Sheet><Line w={70} /><Line w={46} /></Sheet>
+            </IsoBox>
+            <IsoBox x={235} y={75} w={60} d={42} h={3} z={158} top={BRAND} settle={7} float={11}>
+                <Sheet>
+                    <b style={{ display: "block", height: 6, width: "70%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                    <b style={{ display: "block", height: 6, width: "46%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                </Sheet>
+            </IsoBox>
+        </>
+    );
+}
+
+/**
+ * Getting started: boxes going into a crate, and one still in the air.
+ *
+ * What a migration actually is — your records picked up from wherever they are
+ * and set down here. The one still floating is the point: it is in progress,
+ * not finished, and somebody is doing it with you.
+ */
+export function MigrationScene() {
+    return (
+        <>
+            <IsoBox x={0} y={0} w={260} d={260} h={12} z={0} top={TINT} into="#64748b">
+                <svg viewBox="0 0 260 260" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
+                    <path d="M60 160 C 100 160, 100 110, 132 110 S 170 146, 206 146" fill="none" stroke="rgba(13,148,136,0.14)" strokeWidth={16} strokeLinecap="round" />
+                    <path d="M60 160 C 100 160, 100 110, 132 110 S 170 146, 206 146" fill="none" stroke={BRAND} strokeWidth={5} strokeLinecap="round" />
+                </svg>
+            </IsoBox>
+
+            <IsoShade x={22} y={122} w={60} h={60} z={13} opacity={0.18} />
+            {/* The old system: a stack, lighter than everything else, on its way out. */}
+            <IsoBox x={20} y={120} w={60} d={60} h={34} z={12} top={TINT} into="#64748b" settle={0} />
+            <IsoBox x={28} y={128} w={44} d={44} h={26} z={46} top={TINT} into="#64748b" settle={1} />
+
+            {/* The crate it lands in, and three records already set down. */}
+            <IsoBox x={165} y={105} w={82} d={82} h={6} z={12} top={GROUND} settle={2} />
+            <IsoBox x={172} y={112} w={32} d={32} h={24} z={18} top={BRAND} settle={3} />
+            <IsoBox x={208} y={112} w={32} d={32} h={24} z={18} top={BRAND} settle={4} />
+            <IsoBox x={172} y={148} w={32} d={32} h={24} z={18} top={BRAND} settle={5} />
+
+            <IsoBox x={118} y={96} w={28} d={28} h={22} z={58} top={BRIGHT} into={BRAND} settle={6} float={10} />
+        </>
+    );
+}
