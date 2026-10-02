@@ -3,7 +3,7 @@ import { IsoScene } from "@/components/public/iso/primitives";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { PricingScene, MigrationScene } from "@/components/public/iso/scenes";
-import { PublicPage, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
+import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
 import { ALWAYS, CARE, CURRENCY, PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
 
 export const metadata = {
@@ -31,7 +31,7 @@ export default function PricingPage() {
     return (
         <PublicPage>
             <PublicHero
-                current="/pricing"
+                bar={<PublicBar current="/pricing" />}
                 pill={<Pill>Pricing</Pill>}
                 title="What it costs"
                 sub="Priced for this market rather than converted from somewhere else. Every tier includes every member of staff, and your data leaves with you whenever you ask for it."

@@ -306,3 +306,75 @@ export function MigrationScene() {
         </>
     );
 }
+
+/**
+ * Help: a stack of pages, with the answer on the top one.
+ *
+ * Six sheets at the same footprint, each a little higher and a little further
+ * along, so the stack leans the way a real pile of paper does. The lowest is
+ * brand-coloured and the rest are white — the manual has a cover.
+ *
+ * Only the top sheet carries any content, and what it carries is a heading,
+ * then a short teal bar, then body lines. That bar is the answer-in-one-
+ * sentence every article opens with, which is the whole shape of this manual
+ * said without a word.
+ */
+export function ManualScene() {
+    const SHEETS = [
+        { z: 30, x: 90, y: 76, top: BRAND, amp: 3.0 },
+        { z: 39, x: 92, y: 74, top: PAPER, amp: 4.6 },
+        { z: 48, x: 94, y: 72, top: PAPER, amp: 6.2 },
+        { z: 57, x: 96, y: 70, top: PAPER, amp: 7.8 },
+        { z: 66, x: 98, y: 68, top: PAPER, amp: 9.4 },
+    ];
+
+    return (
+        <>
+            <IsoBox x={0} y={0} w={320} d={320} h={14} z={0} top={PAPER} into="#64748b">
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 32px), repeating-linear-gradient(90deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 32px)" }} />
+                <svg viewBox="0 0 320 320" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
+                    <path d="M16 304 C 90 300, 70 214, 140 196 S 262 96, 304 16" fill="none" stroke="rgba(13,148,136,0.14)" strokeWidth={16} strokeLinecap="round" />
+                    <path d="M16 304 C 90 300, 70 214, 140 196 S 262 96, 304 16" fill="none" stroke={BRAND} strokeWidth={5} strokeLinecap="round" />
+                </svg>
+            </IsoBox>
+
+            <IsoShade x={96} y={72} w={152} h={182} z={15} opacity={0.16} />
+
+            <IsoCylinder x={34} y={214} r={24} h={28} z={14} body={BRAND} cap={BRIGHT} settle={0} />
+            <IsoBox x={246} y={238} w={40} d={40} h={40} z={14} top={BRIGHT} into={BRAND} settle={1} />
+
+            {SHEETS.map((s, i) => (
+                <IsoBox
+                    key={s.z}
+                    x={s.x}
+                    y={s.y}
+                    w={152}
+                    d={182}
+                    h={3}
+                    z={s.z}
+                    top={s.top}
+                    into={s.top === PAPER ? "#64748b" : GROUND}
+                    settle={2 + i}
+                    float={s.amp}
+                />
+            ))}
+
+            {/* The top sheet, and the only one anybody reads. */}
+            <IsoBox x={100} y={66} w={152} d={182} h={3} z={75} top={PAPER} into="#64748b" settle={7} float={11}>
+                <Sheet>
+                    <Line w={74} tone="#0f172a" />
+                    <Line w={46} tone="#0f172a" />
+                    <b style={{ display: "block", height: 11, width: "60%", borderRadius: 4, background: BRAND, margin: "5px 0 2px" }} />
+                    <Line w={84} /><Line w={70} /><Line w={78} /><Line w={52} />
+                </Sheet>
+            </IsoBox>
+
+            <IsoBox x={26} y={34} w={84} d={54} h={4} z={132} top={BRAND} settle={8} float={13}>
+                <Sheet>
+                    <b style={{ display: "block", height: 6, width: "72%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                    <b style={{ display: "block", height: 6, width: "48%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                </Sheet>
+            </IsoBox>
+        </>
+    );
+}
