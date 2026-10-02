@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Check, Minus } from "lucide-react";
 import { isCloud } from "@/lib/edition";
 import { PublicShell } from "@/components/public/PublicShell";
-import { ALWAYS, CARE, CURRENCY, PLANS } from "@/lib/pricing/plans";
+import { ALWAYS, CARE, CURRENCY, PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
 
 export const metadata = {
     title: "Pricing | MOTION Workshop Manager",
@@ -74,6 +74,16 @@ export default function PricingPage() {
                                 )}
                             </p>
                             <p className="mt-1 text-[12px] text-slate-500">{plan.priceNote}</p>
+                            {/* What leaves the bank account, derived from the price
+                                above rather than written beside it, so a published
+                                number and an invoiced one cannot drift apart. */}
+                            {plan.price !== null && (
+                                <p className="text-[12px] text-slate-500">
+                                    {CURRENCY}
+                                    {withVat(plan.price).toLocaleString("en-GB", { maximumFractionDigits: 2 })} including VAT at{" "}
+                                    {VAT_RATE}%
+                                </p>
+                            )}
 
                             <p className="mt-4 border-t border-slate-200 pt-4 text-[14px] leading-relaxed text-slate-700">{plan.pitch}</p>
 

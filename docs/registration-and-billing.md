@@ -271,29 +271,68 @@ be unable to message real customers and must mark every PDF.
 | Demo path | **Staff-led only.** No trial, no tour. "Book a demo" → `/support` stays as it is |
 | Billing period | **Monthly.** Chosen against the recommendation in §9, knowingly — so §9's mitigations are not optional: renewal reminders, a real grace period, and an admin list ordered by what is due |
 | One-off registration fee | **None.** One amount, one reference: the first month's subscription |
-| VAT | **Not registered.** No VAT is charged, nothing is a tax invoice, and the copy has been corrected — see below |
+| VAT | **Registered.** Omzizi Investment CC, VAT `06658872-015`. 15 % is added, and what MOTION sends is a tax invoice a workshop can claim against |
 
-**The VAT answer changed three pieces of customer-facing copy**, which is why it
-was worth asking rather than assuming. The pricing page and the terms of service
-both said subscriptions are "excluding VAT". That is worse than untidy: it tells
-a workshop N$1,200 is a pre-tax figure, and a VAT-registered customer reading it
-would try to claim input VAT on an invoice that never charged any — their tax
-problem, caused by our wording. The terms now say plainly that MOTION Dynamic
-Systems is not VAT registered, that no VAT is charged, that what it sends is not
-a tax invoice, and that payment is by deposit or transfer with a reference.
+**The VAT answer was given as "not registered", then corrected by evidence.**
+A quotation from the operating company shows a VAT registration number and a
+15 % line on the total, so the answer is yes. Both versions of the copy have now
+been written, which is worth recording rather than quietly tidying away:
+
+- Answered "not registered", I changed the pricing page and the terms to say no
+  VAT is charged and nothing is a tax invoice.
+- Shown the quotation, that is reversed. 15 % is charged, the VAT number is
+  published, and the invoice is a tax invoice.
+
+The reversal matters because the wrong version was the more dangerous one. A
+workshop told "no VAT is charged" on an invoice that *did* charge it cannot
+reclaim the 15 % it paid, and a customer told the opposite reclaims tax that was
+never charged. Either way the error lands on their return, not ours. The lesson
+is narrow and worth stating: a tax status is a fact to be evidenced, not a
+preference to be asked about.
+
+The copy now says prices are quoted excluding VAT, names Omzizi Investment CC
+and its VAT number, states that 15 % is added, and spells the arithmetic out —
+N$1,200 a month is N$1,380 paid — because a customer meeting the 15 % for the
+first time at the bank is a complaint, not a surprise.
 
 That is legal copy and it needs your sign-off, not mine.
 
 Nothing here touches the 15 % the product applies to a workshop's own invoices.
-That is their VAT on their work, and it is unaffected.
+That is their VAT on their work, and it is unaffected — the two rates are
+separate constants on purpose, so a workshop changing its own rate cannot move
+what MOTION charges.
 
 ## 11. What I still need from you before building
 
 | | Why it blocks |
 | --- | --- |
-| **Bank account details** — account name, bank, branch code, account number and type | They go on the confirmation page and in every registration email. They belong in configuration, not in the repository |
 | **Which accounts are MOTION staff** | `isPlatformStaff` has to be set for somebody, or nobody can activate anyone |
-| **Sign-off on the amended terms** | §10a. I have changed what the terms say about tax. That should not stand on my judgement alone |
+| **Sign-off on the amended terms** | §10a. I have changed what the terms say about tax, twice. That should not rest on my judgement |
+
+### Supplied
+
+**The entity.** The contracting party is **Omzizi Investment CC**, trading as
+Motion Dynamic Systems — registration `CC/2014/11996`, VAT `06658872-015`,
+Office II – 435 Ellis Street, Windhoek North, Windhoek, with a second office in
+Oshakati West and a postal address at P.O. Box 630, Oshakati West. Now filled
+into `LEGAL_ENTITY`, which existed for this and had `registered: false`.
+
+The brand is not the party. "Motion Dynamic Systems" appears on no register and
+could neither be sued nor paid, so the registered name leads everywhere it
+matters and the trading name follows it.
+
+**The bank details**, as configuration rather than constants
+(`BILLING_BANK_*`): First National Bank, branch `280475`, account
+`64283593331`. Out of the repository because an account number shown to
+customers is the highest-value line in that file to an attacker — change it and
+payments go elsewhere silently, with the first symptom being a customer
+insisting they paid — and because an installed edition at a council does not
+bill through Omzizi at all.
+
+**A reference convention already in use.** The supplied quotation carries
+`Payment Reference 0428726T CN-003T`, so references against deposits are
+existing practice rather than something being introduced. §6 should stay close
+to that habit instead of inventing a competing scheme.
 
 ## 12. Phasing
 

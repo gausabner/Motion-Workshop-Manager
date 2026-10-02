@@ -3,9 +3,9 @@
  *
  * Two reasons. They are needed in more than one place — on the site, in a
  * proposal, and attached to an order form — and a version that differs between
- * those is the one a dispute turns on. And the entity is not registered yet,
- * so every place the legal name belongs has to be swappable in one edit rather
- * than hunted through prose.
+ * those is the one a dispute turns on. And the legal name belongs in one place
+ * rather than hunted through prose — which is what made filling it in a single
+ * edit once the entity was identified.
  *
  * **These are drafts.** They are written to be read and argued with, not to be
  * relied on: the workshop owns the last word on both, and neither has been
@@ -13,13 +13,29 @@
  * real decision is marked rather than guessed.
  */
 
+/**
+ * Who "we" is, legally.
+ *
+ * The contracting party is the close corporation, not the brand. A customer
+ * disputing an invoice, or a council's procurement checking a supplier, needs
+ * the registered name and number — "Motion Dynamic Systems" appears on no
+ * register and could not be sued or paid.
+ */
 export const LEGAL_ENTITY = {
-    /** Swap for the registered name and number once the company exists. */
-    name: "MOTION Workshop Manager",
-    registered: false,
+    /** The registered name. What goes on an invoice and in a contract. */
+    name: "Omzizi Investment CC",
+    /** The brand this product is sold under. The same business, a different name. */
+    tradingAs: "Motion Dynamic Systems",
+    registered: true,
+    registrationNumber: "CC/2014/11996",
+    /** Registered for VAT, so 15 % is charged and an invoice is a tax invoice. */
+    vatNumber: "06658872-015",
     jurisdiction: "Namibia",
-    /** Where a notice is served. Not set until there is a registered address. */
-    address: null as string | null,
+    /** Where a notice is served. The Windhoek office, being the trading address. */
+    address: "Office II – 435 Ellis Street, Windhoek North, Windhoek, Namibia" as string | null,
+    postalAddress: "P.O. Box 630, Oshakati West, Oshakati, Namibia",
+    /** The second office. Named because a council asks where a supplier actually is. */
+    otherAddress: "Office I – 464 Oshakati West, Oshakati, Namibia",
 };
 
 export type Clause = { heading: string; paragraphs: string[]; decide?: string };
@@ -64,8 +80,8 @@ export const TERMS: Clause[] = [
         heading: "Paying",
         paragraphs: [
             "Subscriptions are monthly, in Namibian dollars, per workshop rather than per user. Prices are published and can change, but not with less than 30 days' notice and not in the middle of a month you have already paid for.",
-            "MOTION Dynamic Systems is not registered for VAT, so no VAT is charged on a subscription and what we send you is not a tax invoice. Do not claim input VAT on it. If that changes we will say so before it does, not afterwards.",
-            "Payment is by bank deposit or transfer to MOTION Dynamic Systems, using the reference we give you when you register. Card payment is not available yet.",
+            "Prices are quoted excluding VAT. Omzizi Investment CC, trading as Motion Dynamic Systems, is registered for VAT under number 06658872-015, so 15 % is added and what we send you is a tax invoice you can claim against. N$1,200 a month is N$1,380 paid.",
+            "Payment is by bank deposit or transfer to Omzizi Investment CC, using the reference we give you when you register. Quote that reference or we cannot match your payment, and an unmatched payment is an account nobody activates. Card payment is not available yet.",
             "Onboarding, data migration and training are quoted separately and are not part of the subscription.",
         ],
     },

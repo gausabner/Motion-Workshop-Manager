@@ -35,11 +35,16 @@ export function LegalPage({
                 <div className="mt-6 flex gap-3 border-y border-amber-300 bg-amber-50 px-4 py-3">
                     <AlertTriangle aria-hidden strokeWidth={1.75} className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                     <p className="text-[13px] leading-relaxed text-slate-800">
-                        <span className="font-semibold">This is a draft.</span> It has not been reviewed by a lawyer, and
+                        {/* Read the two branches out loud before changing either.
+                            This once rendered "…by a lawyer, and Do not rely on
+                            it" when the entity was registered, because the
+                            sentence only ever worked in the other branch. */}
+                        <span className="font-semibold">This is a draft.</span> It has not been reviewed by a lawyer, so do
+                        not rely on it as it stands.
                         {LEGAL_ENTITY.registered
                             ? " "
-                            : " the business behind MOTION is not yet a registered entity, so the name below is a placeholder. "}
-                        Do not rely on it as it stands. Points still to be decided are marked in the text.
+                            : " The business behind MOTION is not yet a registered entity, so the name below is a placeholder. "}
+                        Points still to be decided are marked in the text.
                     </p>
                 </div>
 
@@ -60,9 +65,31 @@ export function LegalPage({
                 </div>
 
                 <p className="mt-12 border-t border-slate-200 pt-5 text-[13px] leading-relaxed text-slate-500">
-                    {LEGAL_ENTITY.registered
-                        ? `${LEGAL_ENTITY.name}, ${LEGAL_ENTITY.jurisdiction}.`
-                        : `Trading as ${LEGAL_ENTITY.name} in ${LEGAL_ENTITY.jurisdiction}. A registered entity and its address go here once one exists — until then no clause naming a company should be relied on.`}
+                    {LEGAL_ENTITY.registered ? (
+                        // The identity a council's procurement checks, and the
+                        // VAT number a customer needs to claim against an
+                        // invoice. "Motion Dynamic Systems" appears on no
+                        // register, so the registered name leads.
+                        <>
+                            {LEGAL_ENTITY.name}, trading as {LEGAL_ENTITY.tradingAs}. Registered in {LEGAL_ENTITY.jurisdiction}
+                            {LEGAL_ENTITY.registrationNumber ? `, ${LEGAL_ENTITY.registrationNumber}` : ""}.
+                            {LEGAL_ENTITY.vatNumber ? ` VAT ${LEGAL_ENTITY.vatNumber}.` : ""}
+                            {LEGAL_ENTITY.address ? (
+                                <>
+                                    <br />
+                                    {LEGAL_ENTITY.address}
+                                </>
+                            ) : null}
+                            {LEGAL_ENTITY.postalAddress ? (
+                                <>
+                                    <br />
+                                    {LEGAL_ENTITY.postalAddress}
+                                </>
+                            ) : null}
+                        </>
+                    ) : (
+                        `Trading as ${LEGAL_ENTITY.name} in ${LEGAL_ENTITY.jurisdiction}. A registered entity and its address go here once one exists — until then no clause naming a company should be relied on.`
+                    )}
                 </p>
             </div>
         </PublicShell>
