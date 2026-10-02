@@ -329,11 +329,29 @@ APP_URL=https://motionworkshopmanager.com
 MAIL_DRIVER=smtp
 MAIL_SMTP_HOST=mail.privateemail.com
 MAIL_SMTP_PORT=465
-MAIL_SMTP_USER=no-reply@motionworkshopmanager.com
-MAIL_SMTP_PASSWORD=…
+MAIL_SMTP_USER=info@motionworkshopmanager.com
 MAIL_FROM=no-reply@motionworkshopmanager.com
 MAIL_FROM_NAME=MOTION
 ```
+
+The password is not in that list because it should not be typed into an editor —
+the server has no `nano`, and an editor puts a live credential on the terminal.
+From the admin laptop:
+
+```
+ssh -t motion-root /usr/local/sbin/motion-set-mail-password
+```
+
+It prompts without echo, backs the file up, and writes only that one line.
+`ops/server/motion-set-mail-password` is the copy under version control; install
+it with `install -m 700 ops/server/motion-set-mail-password /usr/local/sbin/`.
+
+**`MAIL_SMTP_USER` must be a real mailbox, not an alias.** This cost an hour on
+the first setup. `no-reply@` is an alias on `info@`, and an alias cannot log in.
+The failure is a bare `535` with no explanation, identical in shape to a wrong
+password — the only tell is the wording, which differs very slightly between an
+unknown user and a bad password. Authenticate as the mailbox and *send* as the
+alias; that is tested and allowed, and is what `MAIL_FROM` is separate for.
 
 Then `systemctl restart motion`, because the container reads its environment at
 start and nothing re-reads this file.
