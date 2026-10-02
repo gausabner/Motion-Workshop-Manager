@@ -81,6 +81,26 @@ origin IP that the tunnel exists to hide.
 
 ## 2. Lock the account and the box
 
+> **Reaching the box.** `server1.motionworkshopmanager.com` is the machine's own
+> hostname and **not** a DNS record — nothing resolves it, because web traffic
+> arrives through the Cloudflare Tunnel rather than to the server, so the host
+> has no public A record at all. SSH goes to the address directly. `~/.ssh/config`
+> on the admin laptop carries both:
+>
+> ```
+> Host motion-root        # root, for /etc/motion and systemd
+>     HostName 162.0.239.92
+>     User root
+>     IdentityFile ~/.ssh/motion_server1
+>
+> Host motion-server1     # the unprivileged day-to-day login
+>     HostName 162.0.239.92
+>     User motion
+>     IdentityFile ~/.ssh/motion_server1
+> ```
+>
+> So it is `ssh motion-root`, not `ssh root@server1.…`.
+
 **Namecheap two-factor is currently OFF.** That account holds a *Reinstall*
 button that wipes this server. Turn it on before anything of value is on the
 machine — the dashboard offers a TOTP app, which is the right choice over SMS.
@@ -300,7 +320,7 @@ repository — `motion.env.example` is the template, the real file is deliberate
 only ever on the box:
 
 ```
-ssh root@server1.motionworkshopmanager.com
+ssh motion-root
 nano /etc/motion/motion.env
 ```
 
