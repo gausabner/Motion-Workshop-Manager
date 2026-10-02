@@ -378,3 +378,60 @@ export function ManualScene() {
         </>
     );
 }
+
+/**
+ * Support: a phone with a conversation on it, and a checklist beside it.
+ *
+ * The two things this page is about, set down next to each other. The thread
+ * alternates — them, us, them, us — because support here is a conversation in
+ * one exchange rather than a ticket queue. The list has three ticked and two
+ * not, which is what "what to have ready" looks like while you are still
+ * gathering it.
+ */
+export function SupportScene() {
+    return (
+        <>
+            <IsoBox x={0} y={0} w={320} d={320} h={14} z={0} top={PAPER} into="#64748b">
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 32px), repeating-linear-gradient(90deg, rgba(45,212,191,0.14) 0 1px, transparent 1px 32px)" }} />
+                <svg viewBox="0 0 320 320" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
+                    <path d="M16 120 C 70 120, 60 200, 120 230 S 250 250, 304 304" fill="none" stroke="rgba(13,148,136,0.14)" strokeWidth={16} strokeLinecap="round" />
+                    <path d="M16 120 C 70 120, 60 200, 120 230 S 250 250, 304 304" fill="none" stroke={BRAND} strokeWidth={5} strokeLinecap="round" />
+                </svg>
+            </IsoBox>
+
+            <IsoShade x={76} y={68} w={112} h={196} z={15} opacity={0.2} />
+
+            {/* The phone. Dark, because it is the one object here that is a
+                device rather than paper. */}
+            <IsoBox x={74} y={66} w={112} d={196} h={12} z={14} top={GROUND} settle={0}>
+                <div style={{ position: "absolute", inset: "9px 9px 16px", background: PAPER, borderRadius: 9, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <b style={{ display: "block", height: 24, width: "64%", borderRadius: 8, background: HAIR }} />
+                    <b style={{ display: "block", height: 24, width: "56%", borderRadius: 8, background: BRAND, alignSelf: "flex-end" }} />
+                    <b style={{ display: "block", height: 24, width: "40%", borderRadius: 8, background: HAIR }} />
+                    <b style={{ display: "block", height: 24, width: "40%", borderRadius: 8, background: BRAND, alignSelf: "flex-end" }} />
+                </div>
+            </IsoBox>
+
+            <IsoCylinder x={30} y={238} r={20} h={24} z={14} body={BRAND} cap={BRIGHT} settle={1} />
+
+            <IsoBox x={200} y={170} w={94} d={116} h={3} z={54} top={PAPER} into="#64748b" settle={2} float={8}>
+                <div style={{ position: "absolute", inset: 0, padding: 12, display: "flex", flexDirection: "column", gap: 9 }}>
+                    {[true, true, true, false, false].map((done, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <b style={{ width: 11, height: 11, borderRadius: 3, flex: "none", border: `2px solid ${done ? BRAND : HAIR}`, background: done ? BRAND : "transparent" }} />
+                            <i style={{ display: "block", height: 6, borderRadius: 3, background: HAIR, width: `${[70, 54, 64, 46, 58][i]}%` }} />
+                        </div>
+                    ))}
+                </div>
+            </IsoBox>
+
+            <IsoBox x={196} y={36} w={98} d={58} h={5} z={106} top={BRAND} settle={3} float={10}>
+                <Sheet>
+                    <b style={{ display: "block", height: 6, width: "74%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                    <b style={{ display: "block", height: 6, width: "52%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                    <b style={{ display: "block", height: 6, width: "62%", borderRadius: 3, background: "rgba(255,255,255,0.7)" }} />
+                </Sheet>
+            </IsoBox>
+        </>
+    );
+}
