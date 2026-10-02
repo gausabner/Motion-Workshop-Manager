@@ -1,5 +1,6 @@
 import { IsoScene } from "@/components/public/iso/primitives";
 import { IsoStage } from "@/components/public/iso/IsoStage";
+import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { DiaryScene, InvoiceScene, JobCardScene, PaymentScene, QuoteScene } from "@/components/public/iso/scenes";
 import { Reveal } from "@/components/public/Reveal";
 
@@ -67,7 +68,7 @@ export function DocumentSpine() {
             {STAGES.map(({ n, label, line, Scene, tint }, i) => {
                 const figureFirst = i % 2 === 0;
                 return (
-                    <div key={n} className={`relative ${tint ? "bg-slate-100" : "bg-white"}`}>
+                    <div key={n} data-stage className={`relative ${tint ? "bg-slate-100" : "bg-white"}`}>
                         <span
                             aria-hidden
                             className="absolute left-[var(--spine-x)] top-0 z-20 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-teal-600 bg-white text-[12px] font-medium text-slate-900 tabular max-md:h-6 max-md:w-6 max-md:text-[10px]"
@@ -77,11 +78,20 @@ export function DocumentSpine() {
 
                         <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-4 px-5 py-24 md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] max-md:py-20 max-md:pl-12">
                             <div className={figureFirst ? "md:order-1" : "md:order-3"}>
-                                <IsoStage height={420} className="max-md:h-80">
-                                    <IsoScene size={260} scale={1.18} top="56%" className="max-md:[zoom:0.78]">
-                                        <Scene />
-                                    </IsoScene>
-                                </IsoStage>
+                                {/* Each scene listens to its own band via
+                                    `data-stage`. The only `section` here wraps
+                                    all five, so a `section` scope would give
+                                    every scene the same enormous region.
+                                    Quieter than the hero too: five of these
+                                    pass in one scroll, and a tilt that reads as
+                                    alive once reads as restless by the fifth. */}
+                                <IsoMotion scope="[data-stage]" tilt={6} drift={10}>
+                                    <IsoStage height={420} className="max-md:h-80">
+                                        <IsoScene size={260} scale={1.18} top="56%" className="max-md:[zoom:0.78]">
+                                            <Scene />
+                                        </IsoScene>
+                                    </IsoStage>
+                                </IsoMotion>
                             </div>
 
                             <div aria-hidden className="hidden md:order-2 md:block" />

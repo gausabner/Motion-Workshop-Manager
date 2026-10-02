@@ -5,6 +5,7 @@ import { DocumentSpine } from "@/components/public/DocumentSpine";
 import { MondayMorning } from "@/components/public/MondayMorning";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoScene } from "@/components/public/iso/primitives";
+import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { HeroScene } from "@/components/public/iso/scenes";
 import { Reveal } from "@/components/public/Reveal";
 import { CURRENCY, PLANS } from "@/lib/pricing/plans";
@@ -174,11 +175,20 @@ export function CloudLanding() {
 
                     {/* Eager: this is the first frame. Waiting for an observer
                         here would mean the page opens on an empty half. */}
-                    <IsoStage height={600} className="max-md:h-[360px]" eager>
-                        <IsoScene size={380} className="max-md:[zoom:0.62]">
-                            <HeroScene />
-                        </IsoScene>
-                    </IsoStage>
+                    {/* The whole first band steers the object, not just the
+                        half it sits in — somebody reading the headline is
+                        nowhere near the figure, and a scene that ignores them
+                        until they wander over it reads as broken rather than
+                        still. The band is a `header` — checked, not assumed:
+                        `section` matched nothing here and would have fallen
+                        back to the figure alone. */}
+                    <IsoMotion scope="header" tilt={12} drift={24}>
+                        <IsoStage height={600} className="max-md:h-[360px]" eager>
+                            <IsoScene size={380} className="max-md:[zoom:0.62]">
+                                <HeroScene />
+                            </IsoScene>
+                        </IsoStage>
+                    </IsoMotion>
                 </div>
 
                 {/* Where the document leaves the platform and starts down the
