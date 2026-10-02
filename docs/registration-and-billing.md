@@ -334,6 +334,94 @@ bill through Omzizi at all.
 existing practice rather than something being introduced. §6 should stay close
 to that habit instead of inventing a competing scheme.
 
+## 11a. Phase 2, ready to execute
+
+Written after walking the live flow and finding the gap: a workshop registered,
+reached `/activate`, and there was no screen anywhere for MOTION to act on it.
+`motion-activate-tenant` covers it from the server — proven against a real
+registration — and the panel replaces that with something a person can use
+without SSH.
+
+The order below is deliberate. The policy lands before anything can read
+across workshops, and the screen lands last.
+
+### Step 1 — who is staff
+
+```prisma
+model User {
+  // …
+  /// MOTION's own people. Not a membership: staff are not members of a
+  /// customer's workshop, and modelling them as one would give them a seat
+  /// inside somebody's business.
+  isPlatformStaff Boolean @default(false)
+}
+```
+
+Set by hand in the database to begin with. There is no screen that grants it,
+on purpose — the one account that can create more admins should not be
+reachable from a browser until somebody has thought about that properly.
+
+### Step 2 — the exemption, argued for rather than assumed
+
+Every billing table is FORCE RLS, so a cross-tenant read is refused by
+construction. The panel needs one, and it gets the narrowest possible:
+
+```sql
+CREATE OR REPLACE FUNCTION motion_is_platform_admin() RETURNS boolean
+LANGUAGE sql STABLE AS $$
+    SELECT current_setting('motion.platform_admin', true) = 'on';
+$$;
+
+DROP POLICY tenant_isolation ON "Subscription";
+CREATE POLICY platform_or_tenant ON "Subscription"
+    USING ("tenantId" = NULLIF(current_setting('motion.tenant_id', true), '')
+           OR motion_is_platform_admin())
+    WITH CHECK ("tenantId" = NULLIF(current_setting('motion.tenant_id', true), '')
+           OR motion_is_platform_admin());
+```
+
+**Only on the billing tables.** `Subscription`, and `SubscriptionPayment` when
+it exists. Not `Document`, not `Customer`, not `Payment`. MOTION staff
+confirming a deposit have no business reading a workshop's invoices, and the
+database should enforce that rather than the panel choosing not to offer it.
+
+`announcePlatformAdmin(tx)` mirrors `announceTenant`: a `set_config(..., true)`
+inside the transaction, so it is local and cannot leak to the next borrower of
+a pooled connection. It is called only after `isPlatformStaff` has been read
+from the session's user — never from a header, a query parameter or a cookie.
+
+### Step 3 — the tests, before the screen
+
+Written against `motion_app`, the NOBYPASSRLS role, because the dev connection
+is a superuser and a test on it would pass while proving nothing:
+
+- a connection with neither flag set reads no subscriptions
+- with `motion.tenant_id` set, exactly that workshop's
+- with `motion.platform_admin` set, all of them
+- with `motion.platform_admin` set, **`Document` and `Customer` still return
+  nothing** — this is the test that matters, and the one that would catch a
+  future policy copied onto the wrong table
+- the flag does not survive the transaction
+
+### Step 4 — the screen
+
+`/admin`, already in `RESERVED_SLUGS`. A list of registrations by status,
+oldest first; open one to see plan, amount, reference and the uploaded proof;
+confirm the payment; activate. Deactivate and suspend too, because the panel
+that can grant should be the panel that can revoke.
+
+Every action written to a platform audit trail — not `AuditEvent`, which is
+tenant-scoped and belongs to the workshop. The question being answered later is
+"which of our staff granted this access", and that is MOTION's record.
+
+### What is deliberately out of scope
+
+**Customer data.** No screen in the panel shows a workshop's customers,
+vehicles, documents or payments. Support happens over WhatsApp and email, and a
+MOTION admin reading a workshop's books is the tenant boundary this entire
+architecture exists to hold. If a support case ever genuinely needs it, the
+answer is the workshop grants access to its own data, not that MOTION takes it.
+
 ## 12. Phasing
 
 **Phase 1 — stop giving it away, and be able to take money.** Tenant status,
