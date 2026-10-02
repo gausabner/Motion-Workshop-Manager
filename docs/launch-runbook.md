@@ -288,21 +288,43 @@ Three things that are easy to get wrong and silent when you do:
 - **Exactly one SPF record.** Two is worse than none: SPF permanently fails, so
   adding a second rather than editing the first breaks what already worked.
 
-Then `/etc/motion/motion.env` on the server:
+Then `/etc/motion/motion.env`, which lives **on the server** and not in this
+repository — `motion.env.example` is the template, the real file is deliberately
+only ever on the box:
 
 ```
+ssh root@server1.motionworkshopmanager.com
+nano /etc/motion/motion.env
+```
+
+```
+APP_URL=https://motionworkshopmanager.com
 MAIL_DRIVER=smtp
 MAIL_SMTP_HOST=mail.privateemail.com
 MAIL_SMTP_PORT=465
 MAIL_SMTP_USER=no-reply@motionworkshopmanager.com
 MAIL_SMTP_PASSWORD=…
 MAIL_FROM=no-reply@motionworkshopmanager.com
+MAIL_FROM_NAME=MOTION
 ```
+
+Then `systemctl restart motion`, because the container reads its environment at
+start and nothing re-reads this file.
+
+`APP_URL` is **required** — compose refuses to start without it. A reset mail
+has no incoming request to infer a host from, so the alternative is a link
+nobody can click, and a guessed default would put a wrong address in a mail
+somebody is locked out behind.
 
 `MAIL_FROM` is separate from `MAIL_SMTP_USER` on purpose, and must be on the
 domain that signs with DKIM — a From address outside it fails alignment and is
-spam-filed however correct the records are. `APP_URL` must also be set, or the
-link in the mail has no host to point at.
+spam-filed however correct the records are.
+
+One trap worth knowing if you add settings later: `docker-compose.yml` passes
+variables to the app through an explicit `environment:` list, not by handing it
+the whole file. A name that is in `motion.env` but not in that list is simply
+not there at runtime, with no error anywhere — which is how `APP_URL` came to
+be documented as required while being wired nowhere.
 
 Check it before a user does:
 

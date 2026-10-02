@@ -81,6 +81,24 @@ services:
       STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
       STORAGE_LOCAL_ROOT: /app/.data/attachments
       HANDOFF_SECRET: ${HANDOFF_SECRET:-}
+      # Where links we hand out point. Required rather than defaulted: a
+      # password-reset mail has no request to infer a host from, so a missing
+      # value here is a link nobody can click — and guessing one would put a
+      # wrong address in a mail somebody is locked out behind. Refusing to
+      # start is the loud version of a mistake that is otherwise silent until
+      # a customer reports it.
+      APP_URL: ${APP_URL:?set in motion.env, e.g. https://motionworkshopmanager.com}
+      # Mail MOTION sends itself — only the password reset, today. Every one of
+      # these is optional: with no MAIL_DRIVER a reset is still recorded and
+      # still minted, it just cannot be delivered and says so in the log.
+      # See docs/launch-runbook.md section 8 and `npm run mail:check`.
+      MAIL_DRIVER: ${MAIL_DRIVER:-}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-465}
+      MAIL_SMTP_USER: ${MAIL_SMTP_USER:-}
+      MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
     volumes:
       # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
       # ops/backup archives this; see ops/backup/README.md.
