@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Clock } from "lucide-react";
 import type { BankDetails } from "@/lib/billing/config";
 
@@ -26,6 +27,8 @@ export function PaymentDetails({
     reference,
     bank,
     supportEmail,
+    heading = "One payment and you are in",
+    intro,
 }: {
     workshopName: string;
     planName: string;
@@ -35,16 +38,23 @@ export function PaymentDetails({
     reference: string;
     bank: BankDetails;
     supportEmail: string | null;
+    /** Shared with `/paused`, where the same money restores access rather than grants it. */
+    heading?: string;
+    intro?: ReactNode;
 }) {
     return (
         <div>
             <span className="grid h-11 w-11 place-items-center rounded-full bg-teal-50 text-teal-700">
                 <Clock className="h-5 w-5" aria-hidden />
             </span>
-            <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900">One payment and you are in</h1>
+            <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900">{heading}</h1>
             <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-                <span className="font-medium text-slate-900">{workshopName}</span> is registered on the {planName} plan. Pay the
-                amount below and we will switch it on — usually the same working day.
+                {intro ?? (
+                    <>
+                        <span className="font-medium text-slate-900">{workshopName}</span> is registered on the {planName} plan. Pay
+                        the amount below and we will switch it on — usually the same working day.
+                    </>
+                )}
             </p>
 
             <dl className="mt-6 overflow-hidden rounded-xl border border-slate-200">

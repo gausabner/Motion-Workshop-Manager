@@ -116,6 +116,11 @@ export const requireTenant = cache(async (slug: string): Promise<TenantContext> 
     // a workshop that has been switched off and the wrong one here.
     if (tenant.status === "PENDING_PAYMENT") redirect("/activate");
 
+    // Switched off by MOTION — usually a late payment. Not a 404: the people
+    // here are customers whose data is intact and who can have it back by
+    // paying, and a "not found" tells them neither of those things.
+    if (tenant.status === "SUSPENDED") redirect("/paused");
+
     if (!tenant.isActive) notFound();
     return { user, tenant, membership, db: forTenant(tenant.id) };
 });
@@ -138,7 +143,16 @@ export async function signedInLanding(userId: string): Promise<string> {
         where: { userId, status: "ACTIVE", tenant: { status: "PENDING_PAYMENT" } },
         select: { id: true },
     });
-    return pending ? "/activate" : "/register";
+    if (pending) return "/activate";
+
+    // A suspended workshop is still theirs. Sending its owner to /register —
+    // which is where this fell through to — invites them to start a second
+    // workshop and leave the one holding all their records behind.
+    const paused = await prisma.membership.findFirst({
+        where: { userId, status: "ACTIVE", tenant: { status: "SUSPENDED" } },
+        select: { id: true },
+    });
+    return paused ? "/paused" : "/register";
 }
 
 /** First active workshop for a user — where "/" sends them after login. */

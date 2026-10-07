@@ -23,6 +23,7 @@ export const RESERVED_SLUGS = new Set([
     "help",
     "join",
     "login",
+    "paused",
     "portal",
     "pricing",
     "privacy",

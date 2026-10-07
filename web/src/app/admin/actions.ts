@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import type { TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
-import { sendActivationLetter } from "@/lib/billing/registration";
+import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
 
 export type AdminActionState = { ok: boolean; message: string };
 
@@ -32,7 +32,7 @@ type Move = {
     done: string;
 };
 
-const MOVES: Record<string, Move> = {
+const MOVES = {
     activate: {
         action: "ACTIVATED",
         from: ["PENDING_PAYMENT"],
@@ -41,12 +41,12 @@ const MOVES: Record<string, Move> = {
         done: "switched on, and the owner has been emailed",
     },
     cancel: { action: "CANCELLED", from: ["PENDING_PAYMENT"], to: "CANCELLED", done: "registration cancelled" },
-    suspend: { action: "SUSPENDED", from: ["ACTIVE", "PAST_DUE"], to: "SUSPENDED", done: "suspended" },
-    reactivate: { action: "REACTIVATED", from: ["SUSPENDED"], to: "ACTIVE", done: "switched back on" },
-};
+    suspend: { action: "SUSPENDED", from: ["ACTIVE", "PAST_DUE"], to: "SUSPENDED", done: "suspended, and the owner has been emailed" },
+    reactivate: { action: "REACTIVATED", from: ["SUSPENDED"], to: "ACTIVE", done: "switched back on, and the owner has been emailed" },
+} satisfies Record<string, Move>;
 
 async function transition(kind: keyof typeof MOVES, formData: FormData): Promise<AdminActionState> {
-    const move = MOVES[kind];
+    const move: Move = MOVES[kind];
     const tenantId = String(formData.get("tenantId") ?? "");
     if (!tenantId) return { ok: false, message: "No workshop was named." };
 
@@ -114,24 +114,39 @@ async function transition(kind: keyof typeof MOVES, formData: FormData): Promise
 
     if (!result.ok) return { ok: false, message: result.message };
 
-    // The "you are in" letter, after the response. It is the only signal the
-    // customer gets that their deposit was found; the activation itself is
-    // already committed, so a failed send costs a letter, not an approval.
-    if (kind === "activate" && result.owner) {
-        const { owner, workshop } = result;
+    // The owner hears about every change to whether they can get in, after the
+    // response. The move itself is already committed, so a failed send costs a
+    // letter, not the approval or the suspension. Cancelling sends nothing: it
+    // only ever applies to a registration that never paid.
+    const { owner, workshop } = result;
+    const letter =
+        owner &&
+        {
+            activate: () => sendActivationLetter({ to: owner.email, firstName: owner.firstName, workshopName: workshop.name, slug: workshop.slug }),
+            suspend: () =>
+                sendSuspensionLetter({
+                    to: owner.email,
+                    firstName: owner.firstName,
+                    workshopName: workshop.name,
+                    reference: workshop.subscription?.reference ?? null,
+                    price: workshop.subscription ? Number(workshop.subscription.priceAmount) : null,
+                }),
+            reactivate: () => sendRestoredLetter({ to: owner.email, firstName: owner.firstName, workshopName: workshop.name, slug: workshop.slug }),
+            cancel: null,
+        }[kind];
+    if (letter) {
         after(() =>
-            sendActivationLetter({ to: owner.email, firstName: owner.firstName, workshopName: workshop.name, slug: workshop.slug }).catch(
-                (error: unknown) =>
-                    console.error("[admin] activation email could not be sent.", {
-                        workshop: workshop.slug,
-                        error: error instanceof Error ? error.message : String(error),
-                    }),
+            letter().catch((error: unknown) =>
+                console.error(`[admin] ${kind} email could not be sent.`, {
+                    workshop: workshop.slug,
+                    error: error instanceof Error ? error.message : String(error),
+                }),
             ),
         );
     }
 
     revalidatePath("/admin");
-    return { ok: true, message: `${result.workshop.name}: ${move.done}.` };
+    return { ok: true, message: `${workshop.name}: ${move.done}.` };
 }
 
 export async function activateAction(_prev: AdminActionState, formData: FormData) {
