@@ -444,6 +444,20 @@ the platform audit trail. Phase 1's manual step disappears.
 **Phase 3 — renewals.** `periodEndsAt`, the reminder email, `PAST_DUE` and the
 grace period.
 
+> **Shipped.** Each subscription carries `periodEndsAt` (paid up to) and a
+> `SubscriptionPayment` per confirmed payment, naming who confirmed it.
+> `ops/server/motion-renewals.timer` runs at 07:00: a reminder 7 days before the
+> date, and `PAST_DUE` 7 days after it (`BILLING_REMINDER_DAYS`,
+> `BILLING_GRACE_DAYS`). `PAST_DUE` is read-only exactly as the terms say —
+> new documents are refused, by `requireTenant` with an explanation and by a
+> database trigger behind it; everything else works. The clock never suspends:
+> that stays a person's decision. A renewal paid while still active continues
+> from the old date; one paid after read-only or suspension starts that day.
+> Workshops live before billing are put on a plan with **Set up billing**.
+> How the team uses it: [staff-guide.md](staff-guide.md). Still open: tax
+> invoices from MOTION, proof-of-payment upload, and what happens on the third
+> unpaid month (dunning is a business policy).
+
 **Later — cards.** `PaymentMethodKind` already has room for it. Nothing in
 phases 1–3 should assume a bank deposit is the only way money arrives.
 

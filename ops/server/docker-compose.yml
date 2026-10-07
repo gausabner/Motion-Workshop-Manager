@@ -110,6 +110,12 @@ services:
       # Who at MOTION is told a workshop has registered and is waiting on
       # payment. Falls back to MOTION_SUPPORT_EMAIL when unset.
       BILLING_NOTIFY_EMAIL: ${BILLING_NOTIFY_EMAIL:-}
+      # Renewals. The secret is what motion-renewals presents to run them;
+      # unset, the endpoint does not exist and nothing is reminded. The day
+      # counts default to 7 and 7.
+      BILLING_TICK_SECRET: ${BILLING_TICK_SECRET:-}
+      BILLING_REMINDER_DAYS: ${BILLING_REMINDER_DAYS:-}
+      BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-}
     volumes:
       # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
       # ops/backup archives this; see ops/backup/README.md.

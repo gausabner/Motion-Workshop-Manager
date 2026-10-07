@@ -1,0 +1,15 @@
+[Unit]
+Description=Run MOTION renewals each morning
+
+[Timer]
+# 07:00 on the server's clock (Windhoek). Before the doors open, so a
+# reminder is waiting when the owner first looks at their phone, and the
+# team's list is in the inbox before anyone sits down with the statement.
+OnCalendar=*-*-* 07:00:00
+RandomizedDelaySec=10m
+# A server that was off at 07:00 runs it when it comes back, rather than
+# skipping a day — the run is safe to repeat, so catching up costs nothing.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

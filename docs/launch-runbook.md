@@ -207,6 +207,19 @@ systemctl enable --now motion
 docker compose --env-file /etc/motion/motion.env ps
 ```
 
+Then the morning renewal run. It needs a secret in the environment the app
+and the timer share — generated on the server, never typed or copied:
+
+```bash
+grep -q '^BILLING_TICK_SECRET=' /etc/motion/motion.env || \
+  printf '\nBILLING_TICK_SECRET="%s"\n' "$(openssl rand -hex 32)" >> /etc/motion/motion.env
+systemctl restart motion
+install -m 644 /opt/motion/ops/server/motion-renewals.service /opt/motion/ops/server/motion-renewals.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now motion-renewals.timer
+/opt/motion/ops/server/motion-renewals   # prints 200 and what it did
+```
+
 What happens on that first start, in order: PostgreSQL initialises and runs
 `postgres-init/10-motion-role.sh`, which creates the `motion` role and hands it
 the database; the app container waits for the health check, applies every

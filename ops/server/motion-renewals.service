@@ -1,0 +1,9 @@
+[Unit]
+Description=MOTION daily renewal run (reminders and read-only)
+Documentation=file:///opt/motion/docs/staff-guide.md
+Requires=motion.service
+After=motion.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/motion/ops/server/motion-renewals

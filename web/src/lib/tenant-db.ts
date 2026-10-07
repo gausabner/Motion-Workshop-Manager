@@ -64,7 +64,7 @@ export const TENANT_MODELS = new Set([
     // dormant only because HANDOFF_SECRET is unset, which turns the endpoint
     // off. `tenant-models.test.ts` now asserts this set against the schema so
     // the next one is a build failure rather than a surprise in production.
-    "ExportRun", "Subscription",
+    "ExportRun", "Subscription", "SubscriptionPayment",
 ]);
 
 /**
@@ -120,13 +120,25 @@ function scopeCreateData(data: AnyArgs, tenantId: string, model: string, operati
  * what a `$transaction` callback receives, and `TenantTx` is derived from it
  * rather than from the outer client, which would be a different shape.
  */
-function scopedFor(tenantId: string) {
+/** What `requireTenant` knows about the workshop that changes what the client allows. */
+export type TenantDbOptions = {
+    /**
+     * Called instead of creating a document, for a workshop whose MOTION
+     * subscription is past due. It throws — a redirect to the page explaining
+     * why — so the create never reaches the database, where a trigger would
+     * refuse it with a message nobody should have to read.
+     */
+    refuseNewDocument?: () => never;
+};
+
+function scopedFor(tenantId: string, options: TenantDbOptions = {}) {
     return prisma.$extends({
         name: `tenant:${tenantId}`,
         query: {
             $allModels: {
                 async $allOperations({ model, operation, args, query }) {
                     if (!model || !TENANT_MODELS.has(model)) return query(args);
+                    if (model === "Document" && options.refuseNewDocument && operation.startsWith("create")) options.refuseNewDocument();
                     const a = (args ?? {}) as AnyArgs;
                     switch (operation) {
                         case "findUnique":
@@ -210,9 +222,9 @@ export type TenantDb = ReturnType<typeof scopedFor> & {
     ): Promise<R>;
 };
 
-export function forTenant(tenantId: string): TenantDb {
+export function forTenant(tenantId: string, options: TenantDbOptions = {}): TenantDb {
     if (!tenantId) throw new Error("forTenant: tenantId is required");
-    const scopedClient = scopedFor(tenantId);
+    const scopedClient = scopedFor(tenantId, options);
 
     /**
      * The same client, with the tenant announced at the start of every

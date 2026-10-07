@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
@@ -21,6 +22,7 @@ export async function approveBookingRequest(slug: string, requestId: string, mec
         const note = result.vehicle === "conflict" ? "The plate is on file for another customer, so it was not attached — check it on the booking." : null;
         return { ok: true, documentId: result.documentId, note };
     } catch (error) {
+        unstable_rethrow(error);
         return { ok: false, message: error instanceof Error ? error.message : "That did not work" };
     }
 }

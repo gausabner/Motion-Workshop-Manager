@@ -20,6 +20,7 @@ export function ConfirmAction({
     question,
     confirmLabel,
     tone = "neutral",
+    fields,
 }: {
     action: (prev: AdminActionState, formData: FormData) => Promise<AdminActionState>;
     tenantId: string;
@@ -27,6 +28,8 @@ export function ConfirmAction({
     question: string;
     confirmLabel: string;
     tone?: "primary" | "neutral" | "danger";
+    /** Extra hidden values the action checks against — the date the screen showed, so a stale click is refused. */
+    fields?: Record<string, string>;
 }) {
     const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
     const [asking, setAsking] = useState(false);
@@ -60,6 +63,7 @@ export function ConfirmAction({
     return (
         <form action={formAction} className="flex flex-col items-end gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
             <input type="hidden" name="tenantId" value={tenantId} />
+            {fields && Object.entries(fields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
             <p className="max-w-xs text-right text-[13px] leading-snug text-slate-900">{question}</p>
             <div className="flex gap-2">
                 <button

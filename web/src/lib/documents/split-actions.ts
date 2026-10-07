@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
@@ -99,6 +99,9 @@ export async function splitDocumentAction(slug: string, id: string, input: unkno
             return created.id;
         });
     } catch (error) {
+        // A redirect is how a read-only workshop is shown why; it must not be
+        // turned into an error message reading "NEXT_REDIRECT".
+        unstable_rethrow(error);
         return { ok: false, message: error instanceof Error ? error.message : "The split was not made" };
     }
 

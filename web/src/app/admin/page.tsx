@@ -6,7 +6,18 @@ import { money, dateShort } from "@/lib/format";
 import { withVat } from "@/lib/pricing/plans";
 import { bankDetails } from "@/lib/billing/config";
 import { ConfirmAction } from "@/app/admin/ConfirmAction";
-import { activateAction, cancelAction, reactivateAction, suspendAction } from "@/app/admin/actions";
+import { ChangePaidUntil, SetUpBilling } from "@/app/admin/BillingForms";
+import {
+    activateAction,
+    cancelAction,
+    reactivateAction,
+    renewAction,
+    setPaidUntilAction,
+    setUpBillingAction,
+    suspendAction,
+} from "@/app/admin/actions";
+import { billingDay, billingInputValue, readOnlyFrom, renewalRules, standing } from "@/lib/billing/periods";
+import { PLANS } from "@/lib/pricing/plans";
 
 /**
  * Registrations, and every workshop's standing with MOTION.
@@ -32,7 +43,7 @@ const WORKSHOP_SELECT = {
     name: true,
     status: true,
     createdAt: true,
-    subscription: { select: { planName: true, priceAmount: true, reference: true, status: true } },
+    subscription: { select: { planName: true, priceAmount: true, reference: true, status: true, period: true, periodEndsAt: true } },
     memberships: {
         where: { group: "OWNER" },
         orderBy: { createdAt: "asc" },
@@ -76,9 +87,20 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         }),
     }));
 
+    const now = new Date();
+    const rules = renewalRules();
+    const standingOf = (w: Workshop) => standing(w.subscription?.status === "ACTIVE" ? w.subscription.periodEndsAt : null, now, rules);
+    const byDue = (a: Workshop, b: Workshop) => (a.subscription?.periodEndsAt?.getTime() ?? 0) - (b.subscription?.periodEndsAt?.getTime() ?? 0);
+
     const awaiting = workshops.filter((w) => w.status === "PENDING_PAYMENT" && w.subscription);
     const noPlan = workshops.filter((w) => w.status === "PENDING_PAYMENT" && !w.subscription);
-    const live = workshops.filter((w) => w.status === "ACTIVE" || w.status === "PAST_DUE").reverse();
+    // What is waiting on a renewal, soonest first: the order the bank
+    // statement should be read in. Read-only workshops lead because they have
+    // waited longest and are the ones most likely to be ringing.
+    const due = workshops
+        .filter((w) => w.status === "PAST_DUE" || (w.status === "ACTIVE" && ["dueSoon", "grace", "overdue"].includes(standingOf(w))))
+        .sort(byDue);
+    const live = workshops.filter((w) => w.status === "ACTIVE" && !due.includes(w)).reverse();
     const off = workshops.filter((w) => w.status === "SUSPENDED" || w.status === "CANCELLED").reverse();
     const bank = bankDetails();
 
@@ -88,9 +110,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <div>
                     <h1 className="text-[24px] font-semibold tracking-tight text-slate-900">Workshops</h1>
                     <p className="mt-1 text-[14px] text-slate-600">
-                        {awaiting.length === 0
+                        {awaiting.length + due.length === 0
                             ? "Nothing is waiting on a payment."
-                            : `${awaiting.length} ${awaiting.length === 1 ? "registration is" : "registrations are"} waiting on a payment.`}
+                            : [
+                                  awaiting.length ? `${awaiting.length} new ${awaiting.length === 1 ? "registration" : "registrations"}` : "",
+                                  due.length ? `${due.length} ${due.length === 1 ? "renewal" : "renewals"}` : "",
+                              ]
+                                  .filter(Boolean)
+                                  .join(" and ") + " waiting on a payment."}
                     </p>
                 </div>
                 <form role="search" className="relative w-full max-w-sm">
@@ -123,6 +150,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 hint="Match the reference to the bank statement, then approve. The owner is emailed the moment you do."
                 empty={q ? "No waiting registration matches that search." : "Nothing waiting. New registrations appear here and are emailed to the team."}
                 workshops={awaiting}
+                now={now}
                 renderActions={(w) => (
                     <>
                         <ConfirmAction
@@ -146,10 +174,35 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             />
 
             <Section
+                title="Renewals due"
+                hint="Soonest first. Match the reference on the statement, then record it — the date moves on a period, read-only lifts, and the owner gets a receipt."
+                empty={q ? "No renewal matches that search." : "Nothing due. Workshops appear here a week before their date, and the team is emailed each morning one does."}
+                workshops={due}
+                now={now}
+                renderActions={(w) => (
+                    <>
+                        <RenewButton w={w} />
+                        <ChangePaidUntil action={setPaidUntilAction} tenantId={w.id} current={billingInputValue(w.subscription!.periodEndsAt!)} />
+                        {w.status === "PAST_DUE" && (
+                            <ConfirmAction
+                                action={reactivateAction}
+                                tenantId={w.id}
+                                label="Lift read-only"
+                                question={`Lift read-only for ${w.name} without a payment? It goes read-only again tomorrow morning unless its date is changed or a payment is recorded.`}
+                                confirmLabel="Lift read-only"
+                            />
+                        )}
+                        <SuspendButton w={w} />
+                    </>
+                )}
+            />
+
+            <Section
                 title="Registered, no plan chosen"
                 hint="Registered before plans were part of the sign-up form. There is no amount yet, so nothing to approve — they choose one at /activate."
                 empty="None."
                 workshops={noPlan}
+                now={now}
                 renderActions={(w) => (
                     <ConfirmAction
                         action={cancelAction}
@@ -164,35 +217,48 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
             <Section
                 title="Active"
-                hint="Paying workshops, newest first. Suspend one that has stopped paying: access stops, the data stays."
+                hint="Paid up, newest first. Record a payment that arrives early with Payment received; suspend a workshop that has stopped paying — access stops, the data stays."
                 empty={q ? "No active workshop matches that search." : "None yet."}
                 workshops={live}
+                now={now}
                 renderActions={(w) => (
-                    <ConfirmAction
-                        action={suspendAction}
-                        tenantId={w.id}
-                        tone="danger"
-                        label="Suspend"
-                        question={`Suspend ${w.name}? Nobody there can sign in until it is switched back on. Nothing is deleted, and the owner is emailed how to pay to restore access.`}
-                        confirmLabel="Suspend workshop"
-                    />
+                    <>
+                        {w.subscription?.status === "ACTIVE" && w.subscription.periodEndsAt ? (
+                            <>
+                                <RenewButton w={w} />
+                                <ChangePaidUntil action={setPaidUntilAction} tenantId={w.id} current={billingInputValue(w.subscription.periodEndsAt)} />
+                            </>
+                        ) : !w.subscription ? (
+                            <SetUpBilling
+                                action={setUpBillingAction}
+                                tenantId={w.id}
+                                plans={PLANS.map((p) => ({ id: p.id, name: p.name, price: p.price }))}
+                                defaultPaidUntil={billingInputValue(now)}
+                            />
+                        ) : null}
+                        <SuspendButton w={w} />
+                    </>
                 )}
             />
 
             <Section
                 title="Suspended and cancelled"
-                hint="Switched off. Nothing is deleted — switch one back on when their payment arrives and the owner is emailed."
+                hint="Switched off. Nothing is deleted. When a suspended workshop pays, record it with Payment received — that restores access and moves its date on. Switch back on restores access without a payment."
                 empty="None."
                 workshops={off}
+                now={now}
                 renderActions={(w) =>
                     w.status === "SUSPENDED" ? (
-                        <ConfirmAction
-                            action={reactivateAction}
-                            tenantId={w.id}
-                            label="Switch back on"
-                            question={`Switch ${w.name} back on? Everything is as they left it, and the owner is emailed that access is restored.`}
-                            confirmLabel="Switch on"
-                        />
+                        <>
+                            {w.subscription?.status === "ACTIVE" && w.subscription.periodEndsAt && <RenewButton w={w} />}
+                            <ConfirmAction
+                                action={reactivateAction}
+                                tenantId={w.id}
+                                label="Switch back on"
+                                question={`Switch ${w.name} back on without a payment? If its paid-up-to date has passed, it goes read-only again tomorrow morning.`}
+                                confirmLabel="Switch on"
+                            />
+                        </>
                     ) : null
                 }
             />
@@ -206,10 +272,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         {activity.map((a) => (
                             <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5 text-[13px]">
                                 <span className="text-slate-900">
-                                    <span className="font-medium">
-                                        {a.actor.firstName} {a.actor.lastName}
-                                    </span>{" "}
-                                    {ACTION_WORDS[a.action] ?? a.action.toLowerCase()} {a.tenant?.name ?? "a workshop since removed"}
+                                    <span className="font-medium">{a.actor ? `${a.actor.firstName} ${a.actor.lastName}` : "MOTION (automatic)"}</span>{" "}
+                                    {(ACTION_WORDS[a.action] ?? ((n: string) => `${a.action.toLowerCase()} ${n}`))(a.tenant?.name ?? "a workshop since removed")}
                                 </span>
                                 <span className="tabular-nums text-slate-500">{dateShort(a.createdAt)}</span>
                             </li>
@@ -221,24 +285,85 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
 }
 
-const ACTION_WORDS: Record<string, string> = {
-    ACTIVATED: "approved",
-    CANCELLED: "cancelled",
-    SUSPENDED: "suspended",
-    REACTIVATED: "switched back on",
+const ACTION_WORDS: Record<string, (name: string) => string> = {
+    ACTIVATED: (n) => `approved ${n}`,
+    CANCELLED: (n) => `cancelled ${n}`,
+    SUSPENDED: (n) => `suspended ${n}`,
+    REACTIVATED: (n) => `switched ${n} back on`,
+    RENEWED: (n) => `recorded a renewal from ${n}`,
+    PAST_DUE: (n) => `made ${n} read-only — grace period over`,
+    BILLING_SET: (n) => `set up billing for ${n}`,
+    PAID_UNTIL_CHANGED: (n) => `changed ${n}'s paid-up-to date`,
 };
+
+function RenewButton({ w }: { w: Workshop }) {
+    const sub = w.subscription!;
+    return (
+        <ConfirmAction
+            action={renewAction}
+            tenantId={w.id}
+            tone="primary"
+            label="Payment received"
+            question={`Has ${money(withVat(Number(sub.priceAmount)))} arrived under ${sub.reference}? ${w.name} will be paid up a further ${PERIOD_WORDS[sub.period]}${
+                w.status === "ACTIVE" ? "" : ", full access restored"
+            }, and the owner sent a receipt.`}
+            confirmLabel="Yes — record it"
+            fields={{ expectedEnd: sub.periodEndsAt?.toISOString() ?? "" }}
+        />
+    );
+}
+
+function SuspendButton({ w }: { w: Workshop }) {
+    return (
+        <ConfirmAction
+            action={suspendAction}
+            tenantId={w.id}
+            tone="danger"
+            label="Suspend"
+            question={`Suspend ${w.name}? Nobody there can sign in until it is switched back on. Nothing is deleted, and the owner is emailed how to pay to restore access.`}
+            confirmLabel="Suspend workshop"
+        />
+    );
+}
+
+const PERIOD_WORDS = { MONTHLY: "month", QUARTERLY: "quarter", ANNUAL: "year" } as const;
+
+/** One line saying where a workshop stands with MOTION, in the words staff would use on the phone. */
+function BillingLine({ w, now }: { w: Workshop; now: Date }) {
+    const sub = w.subscription;
+    if (!sub || sub.status !== "ACTIVE" || !sub.periodEndsAt || w.status === "PENDING_PAYMENT" || w.status === "CANCELLED") return null;
+    const end = sub.periodEndsAt;
+    const rules = renewalRules();
+    if (w.status === "PAST_DUE") {
+        return <p className="text-[13px] font-medium text-red-700">Read-only — due {billingDay(end)}, not yet paid</p>;
+    }
+    if (w.status === "SUSPENDED") return <p className="text-[13px] text-slate-600">Was paid up to {billingDay(end)}</p>;
+    const s = standing(end, now, rules);
+    if (s === "grace") {
+        return (
+            <p className="text-[13px] font-medium text-amber-700">
+                Due {billingDay(end)} — in grace, read-only from {billingDay(readOnlyFrom(end, rules))}
+            </p>
+        );
+    }
+    if (s === "overdue") return <p className="text-[13px] font-medium text-amber-700">Due {billingDay(end)} — goes read-only on the next morning run</p>;
+    if (s === "dueSoon") return <p className="text-[13px] font-medium text-slate-900">Due {billingDay(end)}</p>;
+    return <p className="text-[13px] text-slate-600">Paid up to {billingDay(end)}</p>;
+}
 
 function Section({
     title,
     hint,
     empty,
     workshops,
+    now,
     renderActions,
 }: {
     title: string;
     hint: string;
     empty: string;
     workshops: Workshop[];
+    now: Date;
     renderActions: (w: Workshop) => React.ReactNode;
 }) {
     return (
@@ -277,10 +402,13 @@ function Section({
                                                 <span className="tabular-nums">{money(withVat(Number(w.subscription.priceAmount)))}</span> incl VAT ·{" "}
                                                 <span className="select-all font-mono font-medium text-slate-900">{w.subscription.reference}</span>
                                             </>
-                                        ) : (
+                                        ) : w.status === "PENDING_PAYMENT" ? (
                                             "No plan chosen"
+                                        ) : (
+                                            "No billing set up — switched on before plans existed"
                                         )}
                                     </p>
+                                    <BillingLine w={w} now={now} />
                                     <p className="text-[12px] text-slate-500">Registered {dateShort(w.createdAt)}</p>
                                 </div>
                                 <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">{renderActions(w)}</div>
