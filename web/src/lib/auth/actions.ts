@@ -11,6 +11,8 @@ import { createTenantDefaults } from "@/lib/tenant/defaults";
 import { isReservedSlug } from "@/lib/auth/reserved-slugs";
 import { PLANS } from "@/lib/pricing/plans";
 import { newReference } from "@/lib/billing/reference";
+import { announceRegistration } from "@/lib/billing/registration";
+import { after } from "next/server";
 import { consumePasswordReset } from "@/lib/team/recovery";
 import { announceTenant } from "@/lib/tenant-db";
 import { type ActionState, fromZod, str } from "@/lib/forms";
@@ -136,8 +138,9 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 
     const passwordHash = await hashPassword(d.password);
     let userId: string;
+    let tenantId: string;
     try {
-        userId = await prisma.$transaction(async (tx) => {
+        ({ userId, tenantId } = await prisma.$transaction(async (tx) => {
             const existingTenant = await tx.tenant.findUnique({ where: { slug: d.slug } });
             if (existingTenant) throw new Error("SLUG_TAKEN");
             let user = await tx.user.findUnique({ where: { email: d.email } });
@@ -183,8 +186,8 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
                 },
             });
             await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Tenant", entityId: tenant.id, action: "REGISTERED" } });
-            return user.id;
-        });
+            return { userId: user.id, tenantId: tenant.id };
+        }));
     } catch (e) {
         const msg = e instanceof Error ? e.message : "";
         if (msg === "SLUG_TAKEN") return { ok: false, errors: { slug: ["That workshop address is already taken"] } };
@@ -192,6 +195,31 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, message: "That workshop address or email is already in use." };
         throw e;
     }
+
+    // Tell the customer where to pay and the MOTION team that somebody is
+    // waiting. After the response, not before it: two SMTP handshakes are
+    // several seconds, and the person registering should land on /activate
+    // rather than watch a spinner while we post letters. `after` keeps the
+    // work alive until it settles, and neither letter can fail the
+    // registration — that is already committed.
+    //
+    // This was missing when the plan moved into this form: the letter used to
+    // be sent from the activation page's chooser, and registering here skipped
+    // the chooser — so nobody was written to at all.
+    after(() =>
+        announceRegistration({
+            tenantId,
+            slug: d.slug,
+            workshopName: d.workshopName,
+            ownerEmail: d.email,
+            ownerFirstName: d.firstName,
+            ownerLastName: d.lastName,
+            ownerMobile: d.mobile,
+            planName: plan.name,
+            price: planPrice,
+            reference,
+        }),
+    );
 
     const ua = (await headers()).get("user-agent");
     await createSession(userId, null, ua);

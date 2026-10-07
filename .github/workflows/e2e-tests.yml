@@ -37,7 +37,7 @@ jobs:
       MOTION_EDITION: cloud
       MOTION_SUPPORT_WHATSAPP: "+264815765935"
       MOTION_SUPPORT_PHONE: "+264815765935"
-      MOTION_SUPPORT_EMAIL: "gausabner@gmail.com"
+      MOTION_SUPPORT_EMAIL: "info@motionworkshopmanager.com"
       MOTION_SUPPORT_HOURS: "Monday to Friday, 08:00-17:00 (Africa/Windhoek)"
     steps:
       - uses: actions/checkout@v4

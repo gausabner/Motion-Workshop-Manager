@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { TENANT_MODELS, UNSCOPED_TENANT_MODELS } from "@/lib/tenant-db";
+import { PLATFORM_MODELS, TENANT_MODELS, UNSCOPED_TENANT_MODELS } from "@/lib/tenant-db";
 
 /**
  * Every model that belongs to a workshop must be known to `forTenant`.
@@ -45,7 +45,7 @@ test("every model belonging to a workshop is either scoped or a named exemption"
     const carrying = modelsCarryingTenantId();
     assert.ok(carrying.length > 50, `expected to parse the schema, found only ${carrying.length} models with a tenantId`);
 
-    const unaccounted = carrying.filter((m) => !TENANT_MODELS.has(m) && !UNSCOPED_TENANT_MODELS.has(m));
+    const unaccounted = carrying.filter((m) => !TENANT_MODELS.has(m) && !UNSCOPED_TENANT_MODELS.has(m) && !PLATFORM_MODELS.has(m));
     assert.deepEqual(
         unaccounted,
         [],
@@ -61,11 +61,14 @@ test("nothing is listed as scoped that no longer belongs to a workshop", () => {
     // looks like coverage and is not, which is worse than an absence because it
     // reads as though somebody considered it.
     const carrying = new Set(modelsCarryingTenantId());
-    const stale = [...TENANT_MODELS, ...UNSCOPED_TENANT_MODELS].filter((m) => !carrying.has(m));
+    const stale = [...TENANT_MODELS, ...UNSCOPED_TENANT_MODELS, ...PLATFORM_MODELS].filter((m) => !carrying.has(m));
     assert.deepEqual(stale, [], `listed as tenant models but carry no tenantId in the schema: ${stale.join(", ")}`);
 });
 
-test("a model is not in both lists", () => {
-    const both = [...TENANT_MODELS].filter((m) => UNSCOPED_TENANT_MODELS.has(m));
-    assert.deepEqual(both, [], `claimed as both scoped and exempt: ${both.join(", ")}`);
+test("a model is in exactly one list", () => {
+    const sets = { TENANT_MODELS, UNSCOPED_TENANT_MODELS, PLATFORM_MODELS };
+    const seen = new Map<string, string[]>();
+    for (const [name, set] of Object.entries(sets)) for (const m of set) seen.set(m, [...(seen.get(m) ?? []), name]);
+    const doubled = [...seen].filter(([, lists]) => lists.length > 1).map(([m, lists]) => `${m} (${lists.join(", ")})`);
+    assert.deepEqual(doubled, [], `claimed by more than one list: ${doubled.join("; ")}`);
 });

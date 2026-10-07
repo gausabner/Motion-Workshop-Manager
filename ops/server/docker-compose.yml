@@ -107,6 +107,9 @@ services:
       BILLING_BANK_BRANCH_CODE: ${BILLING_BANK_BRANCH_CODE:-}
       BILLING_BANK_ACCOUNT_NUMBER: ${BILLING_BANK_ACCOUNT_NUMBER:-}
       BILLING_BANK_ACCOUNT_TYPE: ${BILLING_BANK_ACCOUNT_TYPE:-}
+      # Who at MOTION is told a workshop has registered and is waiting on
+      # payment. Falls back to MOTION_SUPPORT_EMAIL when unset.
+      BILLING_NOTIFY_EMAIL: ${BILLING_NOTIFY_EMAIL:-}
     volumes:
       # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
       # ops/backup archives this; see ops/backup/README.md.
