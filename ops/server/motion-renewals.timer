@@ -2,10 +2,14 @@
 Description=Run MOTION renewals each morning
 
 [Timer]
-# 07:00 on the server's clock (Windhoek). Before the doors open, so a
-# reminder is waiting when the owner first looks at their phone, and the
-# team's list is in the inbox before anyone sits down with the statement.
-OnCalendar=*-*-* 07:00:00
+# 07:00 in Windhoek. Before the doors open, so a reminder is waiting when the
+# owner first looks at their phone, and the team's list is in the inbox before
+# anyone sits down with the statement.
+#
+# The zone is written here rather than assumed: the production server's clock
+# is UTC, where a bare 07:00 is 09:00 in Windhoek — after the morning has
+# started. Needs systemd 245 or later; the server has 252.
+OnCalendar=*-*-* 07:00:00 Africa/Windhoek
 RandomizedDelaySec=10m
 # A server that was off at 07:00 runs it when it comes back, rather than
 # skipping a day — the run is safe to repeat, so catching up costs nothing.
