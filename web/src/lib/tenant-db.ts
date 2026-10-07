@@ -81,6 +81,18 @@ export const TENANT_MODELS = new Set([
  */
 export const UNSCOPED_TENANT_MODELS = new Set(["Session", "PasswordReset"]);
 
+/**
+ * Models that carry a `tenantId` but belong to MOTION rather than to the
+ * workshop it names.
+ *
+ * `PlatformAuditEvent` records what staff did *to* a workshop. Scoping it by
+ * `forTenant` would be wrong in both directions — a workshop must never read
+ * MOTION's record of its own approval, and staff need every workshop's rows at
+ * once. It is reached only through `lib/admin/platform.asStaff`, and its
+ * row-level security admits a declared staff session and nobody else.
+ */
+export const PLATFORM_MODELS = new Set(["PlatformAuditEvent"]);
+
 type AnyArgs = Record<string, unknown>;
 
 function scopeWhere(args: AnyArgs, tenantId: string) {

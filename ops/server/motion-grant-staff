@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+#
+# Who is MOTION staff — the people who can open /admin and approve workshops.
+#
+#   motion-grant-staff --list
+#   motion-grant-staff someone@motionworkshopmanager.com
+#   motion-grant-staff --revoke someone@motionworkshopmanager.com
+#
+# Deliberately not a screen. The account that can mint more admins should not
+# be reachable from a browser, so granting it takes a person on the server.
+# The person must already have a MOTION account — register one, or be invited
+# to a workshop — because this flags an existing user rather than creating one.
+#
+# Revoking takes effect on their next click: /admin reads the flag from the
+# database on every request rather than trusting the session.
+set -euo pipefail
+
+ENV_FILE=/etc/motion/motion.env
+cd /opt/motion/ops/server
+compose() { docker compose --env-file "$ENV_FILE" "$@"; }
+# User carries no row-level security, so the owning role can read and write it
+# directly. Not the superuser: nothing here needs to bypass anything.
+sql() { compose exec -T db psql -U motion -d motion_app -v ON_ERROR_STOP=1 "$@"; }
+
+usage() { echo "usage: motion-grant-staff --list | <email> | --revoke <email>" >&2; exit 64; }
+[ $# -ge 1 ] || usage
+
+if [ "$1" = "--list" ]; then
+    sql -c "SELECT email AS \"Staff\", \"firstName\" || ' ' || \"lastName\" AS \"Name\" FROM \"User\" WHERE \"isPlatformStaff\" ORDER BY email;"
+    exit 0
+fi
+
+grant=true
+if [ "$1" = "--revoke" ]; then
+    [ $# -eq 2 ] || usage
+    grant=false
+    shift
+fi
+
+# Lowercased, and stripped to the characters an address can contain, so
+# nothing from the argument reaches the query except an email.
+EMAIL=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9@._+-')
+[ -n "$EMAIL" ] || usage
+
+ROWS=$(sql -At -c "UPDATE \"User\" SET \"isPlatformStaff\" = $grant, \"updatedAt\" = now() WHERE email = '$EMAIL' RETURNING email;")
+if [ -z "$ROWS" ]; then
+    echo "No MOTION account uses $EMAIL. They need to register or be invited first." >&2
+    exit 1
+fi
+
+if [ "$grant" = true ]; then
+    echo "$EMAIL is now MOTION staff and can open /admin."
+else
+    echo "$EMAIL is no longer MOTION staff."
+fi

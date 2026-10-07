@@ -336,6 +336,14 @@ to that habit instead of inventing a competing scheme.
 
 ## 11a. Phase 2, ready to execute
 
+> **Shipped.** `/admin` (staff only, 404 for everyone else) lists registrations
+> waiting on a payment, takes a reference in any shape a bank statement prints
+> it, and approves, cancels, suspends and switches back on — each recorded in
+> `PlatformAuditEvent`. Staff are granted on the server with
+> `ops/server/motion-grant-staff <email>`. Every new registration emails the
+> team at `BILLING_NOTIFY_EMAIL` (falling back to `MOTION_SUPPORT_EMAIL`).
+> Proof-of-payment upload is not built: proof arrives by email to support.
+
 Written after walking the live flow and finding the gap: a workshop registered,
 reached `/activate`, and there was no screen anywhere for MOTION to act on it.
 `motion-activate-tenant` covers it from the server — proven against a real

@@ -8,6 +8,7 @@ import { newReference } from "@/lib/billing/reference";
 import { PLANS, VAT_RATE, withVat, CURRENCY } from "@/lib/pricing/plans";
 import { sendMail } from "@/lib/mail/send";
 import { money } from "@/lib/format";
+import { support } from "@/lib/edition";
 
 /**
  * Turning a registration into something MOTION can be paid for.
@@ -103,9 +104,11 @@ export async function choosePlan(userId: string, planId: string): Promise<Choose
         // the wrong sum, which is harder to undo than to prevent.
         return { ok: false, message: "That tier is quoted per site — talk to us and we will send you a figure." };
     }
-    if (!bankDetails()) {
-        return { ok: false, message: "We cannot take a registration right now. Please contact support." };
-    }
+    // No bank-details gate here. There used to be one, and it hid the whole
+    // chooser on a deployment whose bank details were not configured — so a
+    // workshop registered before plans moved into the form had no way to
+    // choose one at all. Choosing a plan needs no bank account; paying does,
+    // and the payment step says so on its own when they are missing.
 
     const pending = await pendingRegistrationFor(userId);
     if (!pending) return { ok: false, message: "There is no registration waiting on a plan." };
@@ -153,66 +156,186 @@ export async function choosePlan(userId: string, planId: string): Promise<Choose
         select: { reference: true },
     });
 
-    await sendRegistrationEmail({
-        to: pending.email,
-        firstName: pending.firstName,
+    await announceRegistration({
+        tenantId: pending.tenantId,
+        slug: pending.slug,
         workshopName: pending.workshopName,
+        ownerEmail: pending.email,
+        ownerFirstName: pending.firstName,
         planName: plan.name,
         price: plan.price,
         reference: stored.reference,
-    }).catch((error: unknown) => {
-        // The reference is on the screen as well as in the mail, so a failed
-        // send costs the customer nothing immediate and must not lose the
-        // registration that was just recorded.
-        console.error("[billing] registration email could not be sent.", {
-            to: pending.email,
-            reference: stored.reference,
-            error: error instanceof Error ? error.message : String(error),
-        });
     });
 
     return { ok: true, reference: stored.reference };
 }
 
-async function sendRegistrationEmail(m: {
-    to: string;
-    firstName: string;
+export type RegistrationNotice = {
+    tenantId: string;
+    slug: string;
     workshopName: string;
+    ownerEmail: string;
+    ownerFirstName: string;
+    ownerLastName?: string | null;
+    ownerMobile?: string | null;
     planName: string;
     price: number;
     reference: string;
-}): Promise<void> {
-    const bank = bankDetails();
-    if (!bank) return;
+};
 
-    const total = withVat(m.price);
+/**
+ * Tell both sides a registration exists: the customer where to pay, and the
+ * MOTION team that somebody is waiting on them.
+ *
+ * Two letters, sent independently, and neither allowed to fail the other or
+ * the registration. A dead mailbox must not lose a workshop that was just
+ * recorded — and it must not stop the team hearing about it either, which is
+ * the half that was missing: a workshop could register and sit unprocessed
+ * because nothing told anybody it had arrived.
+ *
+ * Called from both places a plan is fixed — the registration form, and the
+ * activation page for workshops registered before plans were part of it.
+ */
+export async function announceRegistration(n: RegistrationNotice): Promise<void> {
+    const results = await Promise.allSettled([sendCustomerLetter(n), sendTeamNotice(n)]);
+    results.forEach((r, i) => {
+        if (r.status === "rejected") {
+            console.error(`[billing] registration ${i === 0 ? "customer" : "team"} email could not be sent.`, {
+                workshop: n.slug,
+                reference: n.reference,
+                error: r.reason instanceof Error ? r.reason.message : String(r.reason),
+            });
+        }
+    });
+}
+
+/** Where a customer sends proof and questions — a mailbox somebody reads, never the no-reply sender. */
+function supportAddress(): string | null {
+    return support().email;
+}
+
+/**
+ * Who at MOTION hears about a new registration.
+ *
+ * Its own setting so the notices can go to a shared inbox the team watches
+ * without changing the address customers are shown, and falling back to the
+ * support address so a deployment that sets neither still tells somebody.
+ */
+function teamAddress(): string | null {
+    return process.env.BILLING_NOTIFY_EMAIL?.trim() || supportAddress();
+}
+
+function appUrl(): string {
+    return (process.env.APP_URL?.trim() || "").replace(/\/$/, "");
+}
+
+async function sendCustomerLetter(n: RegistrationNotice): Promise<void> {
+    const bank = bankDetails();
+    const reach = supportAddress();
+    const total = withVat(n.price);
+
     const lines = [
-        `Hi ${m.firstName},`,
+        `Hi ${n.ownerFirstName},`,
         "",
-        `${m.workshopName} is registered for MOTION on the ${m.planName} plan. One payment and you are in.`,
+        `${n.workshopName} is registered for MOTION on the ${n.planName} plan. One payment and you are in.`,
         "",
-        `Amount        ${money(total)} (${money(m.price)} plus ${VAT_RATE}% VAT)`,
-        `Reference     ${m.reference}`,
+        `Amount        ${money(total)} (${money(n.price)} plus ${VAT_RATE}% VAT)`,
+        `Reference     ${n.reference}`,
         "",
-        `Bank          ${bank.bankName}`,
-        `Account name  ${bank.accountName}`,
-        `Account no    ${bank.accountNumber}`,
-        `Branch code   ${bank.branchCode}`,
-        ...(bank.accountType ? [`Account type  ${bank.accountType}`] : []),
-        "",
+        ...(bank
+            ? [
+                  `Bank          ${bank.bankName}`,
+                  `Account name  ${bank.accountName}`,
+                  `Account no    ${bank.accountNumber}`,
+                  `Branch code   ${bank.branchCode}`,
+                  ...(bank.accountType ? [`Account type  ${bank.accountType}`] : []),
+                  "",
+              ]
+            : ["We will send you the bank details to pay into shortly.", ""]),
         // Said twice on purpose. This is the whole reason a deposit can be
         // matched to a workshop, and it is the one field people leave blank.
-        `Please use ${m.reference} as the payment reference. Without it we cannot tell which workshop paid, and your account will not be activated.`,
+        `Please use ${n.reference} as the payment reference. Without it we cannot tell which workshop paid, and your account will not be activated.`,
         "",
-        "Send the proof of payment to this address and we will switch your workshop on, usually the same working day.",
+        // A real address, not "reply to this email". This letter is sent from
+        // no-reply@, and telling somebody to reply to it — which it used to —
+        // sends their proof of payment into a bounce.
+        reach
+            ? `Send the proof of payment to ${reach} and we will switch your workshop on, usually the same working day.`
+            : "Once your payment has cleared we will switch your workshop on, usually the same working day.",
         "",
         "— MOTION",
     ];
 
     await sendMail({
-        to: m.to,
-        subject: `Your MOTION registration — reference ${m.reference}`,
+        to: n.ownerEmail,
+        subject: `Your MOTION registration — reference ${n.reference}`,
         text: lines.join("\n"),
+    });
+}
+
+async function sendTeamNotice(n: RegistrationNotice): Promise<void> {
+    const to = teamAddress();
+    if (!to) {
+        console.error("[billing] no BILLING_NOTIFY_EMAIL or MOTION_SUPPORT_EMAIL is set, so nobody was told about a new registration.", {
+            workshop: n.slug,
+            reference: n.reference,
+        });
+        return;
+    }
+    const owner = [n.ownerFirstName, n.ownerLastName].filter(Boolean).join(" ");
+    const base = appUrl();
+
+    await sendMail({
+        to,
+        // The reference leads, because it is what the team will search the
+        // bank statement for — and the subject is what they see first.
+        subject: `New registration ${n.reference} — ${n.workshopName}`,
+        text: [
+            `${n.workshopName} has registered and is waiting on payment.`,
+            "",
+            `Reference     ${n.reference}`,
+            `Plan          ${n.planName}`,
+            `Amount        ${money(withVat(n.price))} (${money(n.price)} plus ${VAT_RATE}% VAT)`,
+            "",
+            `Owner         ${owner}`,
+            `Email         ${n.ownerEmail}`,
+            ...(n.ownerMobile ? [`Mobile        ${n.ownerMobile}`] : []),
+            `Address       /${n.slug}`,
+            "",
+            "When the payment shows on the statement under that reference, approve it here:",
+            "",
+            base ? `${base}/admin` : "/admin",
+            "",
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
+/**
+ * The "you are in" letter, once MOTION has confirmed a payment.
+ *
+ * The only signal a customer gets that their deposit was found. Without it
+ * they are active and have no idea — and they keep checking a bank app
+ * instead of using the product they paid for.
+ */
+export async function sendActivationLetter(n: { to: string; firstName: string; workshopName: string; slug: string }): Promise<void> {
+    const base = appUrl();
+    await sendMail({
+        to: n.to,
+        subject: `${n.workshopName} is live on MOTION`,
+        text: [
+            `Hi ${n.firstName},`,
+            "",
+            `Your payment has been received and ${n.workshopName} is switched on. Sign in here:`,
+            "",
+            `${base}/${n.slug}/dashboard`,
+            "",
+            "Use the same email and password you registered with. If you have forgotten it, there is a link on the sign-in page.",
+            "",
+            "Welcome aboard.",
+            "",
+            "— MOTION",
+        ].join("\n"),
     });
 }
 

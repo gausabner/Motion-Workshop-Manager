@@ -408,6 +408,7 @@ model Tenant {
   loanVehicles               LoanVehicle[]
   loans                      Loan[]
   subscription               Subscription?
+  platformAuditEvents        PlatformAuditEvent[]
 }
 
 /// Where a workshop stands with MOTION — distinct from anything about its own
@@ -496,6 +497,46 @@ model User {
   sessions        Session[]
   invitationsSent Invitation[] @relation("InvitedBy")
   auditEvents     AuditEvent[]
+
+  /// MOTION's own people — the team that approves registrations.
+  ///
+  /// A flag on the person, not a membership: staff are not members of a
+  /// customer's workshop, and modelling them as one would give them a seat
+  /// inside somebody's business. It grants the billing screens at /admin and
+  /// nothing inside any workshop — the database refuses a staff session a
+  /// workshop's customers and documents exactly as it refuses everybody's.
+  ///
+  /// Granted by hand (ops/server/motion-grant-staff), never from a screen:
+  /// the account that can mint more admins should not be reachable from a
+  /// browser. Not `isSuperuser`, which predates this, grants nothing, and
+  /// would read as "can bypass the rules" — the opposite of what this is.
+  isPlatformStaff     Boolean              @default(false)
+  platformAuditEvents PlatformAuditEvent[]
+}
+
+/// What MOTION's staff did, and to which workshop.
+///
+/// Not `AuditEvent`, which is tenant-scoped and belongs to the workshop. The
+/// question this answers later is "which of our staff granted this access",
+/// and that is MOTION's record, not the customer's — so it is readable only
+/// by a session that has declared itself platform staff, enforced by the
+/// database rather than by the screen choosing not to show it.
+model PlatformAuditEvent {
+  id          String   @id @default(cuid())
+  actorUserId String
+  /// ACTIVATED, SUSPENDED, REACTIVATED.
+  action      String
+  /// The workshop it was done to. Kept as the record even if the workshop is
+  /// later removed, so the trail outlives what it describes.
+  tenantId    String?
+  detail      Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  actor  User    @relation(fields: [actorUserId], references: [id])
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
 }
 
 /// A person inside a workshop. Advisors, mechanics and document authors all

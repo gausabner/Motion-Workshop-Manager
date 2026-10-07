@@ -63,7 +63,14 @@ export default async function ActivatePage() {
                     <StepProgress steps={REGISTER_STEPS} current={chosen ? "pay" : "plan"} />
 
                     <div className="mt-7">
-                        {!bank ? (
+                        {/* Order matters, and was wrong. Bank details were
+                            checked first, so a deployment without them hid the
+                            chooser from a workshop that had no plan — the plan
+                            could never be chosen at all. A plan needs no bank
+                            account; only the payment step does. */}
+                        {!chosen ? (
+                            <PlanChooser plans={choosablePlans()} vatRate={VAT_RATE} />
+                        ) : !bank ? (
                             // Configuration is missing, so there is nowhere to
                             // send anybody. Said plainly rather than shown as a
                             // half-filled bank panel: a customer who goes
@@ -84,7 +91,7 @@ export default async function ActivatePage() {
                                     </a>
                                 )}
                             </div>
-                        ) : chosen ? (
+                        ) : (
                             <PaymentDetails
                                 workshopName={pending.workshopName}
                                 planName={chosen.planName}
@@ -93,8 +100,6 @@ export default async function ActivatePage() {
                                 bank={bank}
                                 supportEmail={support().email}
                             />
-                        ) : (
-                            <PlanChooser plans={choosablePlans()} vatRate={VAT_RATE} />
                         )}
                     </div>
                 </div>

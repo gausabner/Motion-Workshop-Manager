@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { appRoleUrl, prepareAppRole } from "@/lib/testing/app-role";
 
 /**
  * The registration gate, tested where it is actually enforced.
@@ -28,18 +29,11 @@ import { prisma } from "@/lib/db";
  */
 
 const ID = "zztest-gate";
-const TEST_PASSWORD = "gate-dbtest-local-only";
 
 let alpha = "";
 let bravo = "";
 let appDb: PrismaClient;
 
-function appUrl() {
-    const url = new URL(process.env.DATABASE_URL ?? "");
-    url.username = "motion_app";
-    url.password = TEST_PASSWORD;
-    return url.toString();
-}
 
 async function asTenant<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T>): Promise<T> {
     return appDb.$transaction(async (tx) => {
@@ -49,7 +43,7 @@ async function asTenant<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T
 }
 
 before(async () => {
-    await prisma.$executeRawUnsafe(`ALTER ROLE motion_app WITH PASSWORD '${TEST_PASSWORD}'`);
+    await prepareAppRole(prisma);
 
     const a = await prisma.tenant.create({
         data: { status: "ACTIVE", slug: `${ID}-a`, name: "ZZTEST Gate Alpha", country: "NA" },
@@ -69,7 +63,7 @@ before(async () => {
         data: { tenantId: bravo, planId: "full", planName: "Full workshop", priceAmount: 2400, reference: "MOT-ZZTSTB" },
     });
 
-    appDb = new PrismaClient({ datasourceUrl: appUrl() });
+    appDb = new PrismaClient({ datasourceUrl: appRoleUrl() });
 });
 
 after(async () => {

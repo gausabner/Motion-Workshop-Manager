@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { appRoleUrl, prepareAppRole } from "@/lib/testing/app-role";
 
 /**
  * The wall underneath the wall.
@@ -19,19 +20,11 @@ import { prisma } from "@/lib/db";
  */
 
 const ID = "zztest-rls";
-const TEST_PASSWORD = "rls-dbtest-local-only";
 
 let alpha = "";
 let bravo = "";
 let appDb: PrismaClient;
 
-/** The same database, reached as the unprivileged application role. */
-function appUrl() {
-    const url = new URL(process.env.DATABASE_URL ?? "");
-    url.username = "motion_app";
-    url.password = TEST_PASSWORD;
-    return url.toString();
-}
 
 /**
  * Run `fn` with the tenant set for the life of one transaction — how the
@@ -49,7 +42,7 @@ async function asTenant<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T
 before(async () => {
     // The migration deliberately ships no password — one in a committed file is
     // one in every clone. The test sets its own against its own database.
-    await prisma.$executeRawUnsafe(`ALTER ROLE motion_app WITH PASSWORD '${TEST_PASSWORD}'`);
+    await prepareAppRole(prisma);
 
     const a = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-a`, name: "ZZTEST RLS Alpha", country: "NA" }, select: { id: true } });
     const b = await prisma.tenant.create({ data: { status: "ACTIVE", slug: `${ID}-b`, name: "ZZTEST RLS Bravo", country: "NA" }, select: { id: true } });
@@ -59,7 +52,7 @@ before(async () => {
     await prisma.customer.create({ data: { tenantId: alpha, firstName: "ZZTEST", lastName: "AlphaOnly" } });
     await prisma.customer.create({ data: { tenantId: bravo, firstName: "ZZTEST", lastName: "BravoOnly" } });
 
-    appDb = new PrismaClient({ datasourceUrl: appUrl() });
+    appDb = new PrismaClient({ datasourceUrl: appRoleUrl() });
 });
 
 after(async () => {
@@ -136,6 +129,13 @@ test("every table carrying a tenant is covered, with no exceptions", async () =>
         WHERE n.nspname = 'public' AND c.relkind = 'r'
           AND a.attname = 'tenantId' AND NOT a.attisdropped
           AND c.relname NOT IN ('Membership', 'ApiKey', 'Invitation', 'ShareLink', 'Session', 'PasswordReset')
+          -- MOTION's own record of what its staff did *to* a workshop. Its
+          -- tenantId says which one, not whose it is: a workshop must never
+          -- read it, so it carries no tenant_isolation policy by design. It is
+          -- forced, and admits a declared staff session only — asserted in
+          -- admin/platform.dbtest.ts rather than by this rule, which is about
+          -- workshop data.
+          AND c.relname <> 'PlatformAuditEvent'
           AND (NOT c.relrowsecurity OR NOT c.relforcerowsecurity OR NOT EXISTS (
                 SELECT 1 FROM pg_policies p WHERE p.schemaname='public'
                   AND p.tablename = c.relname AND p.policyname='tenant_isolation'))
