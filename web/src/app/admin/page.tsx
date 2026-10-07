@@ -164,7 +164,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
             <Section
                 title="Active"
-                hint="Paying workshops, newest first."
+                hint="Paying workshops, newest first. Suspend one that has stopped paying: access stops, the data stays."
                 empty={q ? "No active workshop matches that search." : "None yet."}
                 workshops={live}
                 renderActions={(w) => (
@@ -173,7 +173,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         tenantId={w.id}
                         tone="danger"
                         label="Suspend"
-                        question={`Suspend ${w.name}? Nobody there will be able to sign in until it is switched back on. Their data is kept.`}
+                        question={`Suspend ${w.name}? Nobody there can sign in until it is switched back on. Nothing is deleted, and the owner is emailed how to pay to restore access.`}
                         confirmLabel="Suspend workshop"
                     />
                 )}
@@ -181,7 +181,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
             <Section
                 title="Suspended and cancelled"
-                hint="Switched off. Nothing is deleted."
+                hint="Switched off. Nothing is deleted — switch one back on when their payment arrives and the owner is emailed."
                 empty="None."
                 workshops={off}
                 renderActions={(w) =>
@@ -190,7 +190,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                             action={reactivateAction}
                             tenantId={w.id}
                             label="Switch back on"
-                            question={`Switch ${w.name} back on?`}
+                            question={`Switch ${w.name} back on? Everything is as they left it, and the owner is emailed that access is restored.`}
                             confirmLabel="Switch on"
                         />
                     ) : null

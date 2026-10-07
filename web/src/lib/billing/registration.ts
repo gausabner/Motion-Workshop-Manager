@@ -339,6 +339,106 @@ export async function sendActivationLetter(n: { to: string; firstName: string; w
     });
 }
 
+/**
+ * The workshop this signed-in person belongs to that MOTION has switched off.
+ *
+ * Suspension pauses access and nothing else, so what `/paused` needs is what
+ * `/activate` needs: the agreed amount and the reference a payment should
+ * carry, so paying late is as easy as paying on time was.
+ */
+export async function suspendedWorkshopFor(userId: string): Promise<{
+    workshopName: string;
+    subscription: { planName: string; priceAmount: number; reference: string } | null;
+} | null> {
+    const membership = await prisma.membership.findFirst({
+        where: { userId, status: "ACTIVE", tenant: { status: "SUSPENDED" } },
+        orderBy: { createdAt: "asc" },
+        select: { tenantId: true, tenant: { select: { name: true } } },
+    });
+    if (!membership) return null;
+
+    const subscription = await forTenant(membership.tenantId).subscription.findUnique({
+        where: { tenantId: membership.tenantId },
+        select: { planName: true, priceAmount: true, reference: true },
+    });
+    return {
+        workshopName: membership.tenant.name,
+        subscription: subscription ? { ...subscription, priceAmount: Number(subscription.priceAmount) } : null,
+    };
+}
+
+/**
+ * Access paused. Says, before anything else, that nothing is lost — that is the
+ * question an owner locked out of their own records asks first — and then
+ * exactly what to pay to have it back.
+ */
+export async function sendSuspensionLetter(n: {
+    to: string;
+    firstName: string;
+    workshopName: string;
+    reference: string | null;
+    price: number | null;
+}): Promise<void> {
+    const bank = bankDetails();
+    const reach = supportAddress();
+    const base = appUrl();
+
+    const lines = [
+        `Hi ${n.firstName},`,
+        "",
+        `Access to ${n.workshopName} on MOTION has been paused because we have not received your payment.`,
+        "",
+        "Nothing has been deleted. Your customers, vehicles, jobs, quotes and invoices are kept exactly as they were — only signing in is paused.",
+        "",
+        "To restore access, make the payment below. As soon as we confirm it, we will switch your workshop back on and let you know.",
+        "",
+        ...(n.price !== null ? [`Amount        ${money(withVat(n.price))} (${money(n.price)} plus ${VAT_RATE}% VAT)`] : []),
+        ...(n.reference ? [`Reference     ${n.reference}`] : []),
+        ...(n.price !== null || n.reference ? [""] : []),
+        ...(bank
+            ? [
+                  `Bank          ${bank.bankName}`,
+                  `Account name  ${bank.accountName}`,
+                  `Account no    ${bank.accountNumber}`,
+                  `Branch code   ${bank.branchCode}`,
+                  ...(bank.accountType ? [`Account type  ${bank.accountType}`] : []),
+                  "",
+              ]
+            : []),
+        ...(n.reference ? [`Please use ${n.reference} as the payment reference so we can match it to your workshop.`, ""] : []),
+        reach
+            ? `Send the proof of payment to ${reach}, or write to us there if you think this is a mistake.`
+            : "If you think this is a mistake, contact MOTION support.",
+        "",
+        ...(base ? ["The same details are on your sign-in page:", "", `${base}/login`, ""] : []),
+        "— MOTION",
+    ];
+
+    await sendMail({
+        to: n.to,
+        subject: `Access to ${n.workshopName} is paused — your data is safe`,
+        text: lines.join("\n"),
+    });
+}
+
+/** Access back. Short, because the only thing they want to know is that it worked. */
+export async function sendRestoredLetter(n: { to: string; firstName: string; workshopName: string; slug: string }): Promise<void> {
+    const base = appUrl();
+    await sendMail({
+        to: n.to,
+        subject: `${n.workshopName} is switched back on`,
+        text: [
+            `Hi ${n.firstName},`,
+            "",
+            `Thank you — ${n.workshopName} is switched back on, with everything exactly where you left it. Sign in here:`,
+            "",
+            `${base}/${n.slug}/dashboard`,
+            "",
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
 /** What the activation page needs to print, in one place so the mail and the page agree. */
 export function paymentSummary(price: number) {
     return {
