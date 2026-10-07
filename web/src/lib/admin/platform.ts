@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireUser, type SessionUser } from "@/lib/auth/session";
+import { platformTransaction } from "@/lib/admin/platform-tx";
 
 /**
  * MOTION's own staff, and the one database exemption they hold.
  *
- * Two functions, and the second cannot be reached without the first. That is
+ * Two functions for people, and the second cannot be reached without the first. That is
  * the design, not a convenience: `motion.platform_admin` lifts row-level
  * security on the billing tables, so the only way to set it is through
  * `asStaff`, which has already established — from this database, for the
@@ -46,8 +47,5 @@ export async function requirePlatformStaff(): Promise<SessionUser> {
  */
 export async function asStaff<T>(fn: (tx: Prisma.TransactionClient, staff: SessionUser) => Promise<T>): Promise<T> {
     const staff = await requirePlatformStaff();
-    return prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT set_config('motion.platform_admin', 'on', true)`;
-        return fn(tx, staff);
-    });
+    return platformTransaction((tx) => fn(tx, staff));
 }

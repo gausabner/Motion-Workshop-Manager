@@ -9,6 +9,7 @@ import { PLANS, VAT_RATE, withVat, CURRENCY } from "@/lib/pricing/plans";
 import { sendMail } from "@/lib/mail/send";
 import { money } from "@/lib/format";
 import { support } from "@/lib/edition";
+import { billingDay } from "@/lib/billing/periods";
 
 /**
  * Turning a registration into something MOTION can be paid for.
@@ -210,7 +211,7 @@ export async function announceRegistration(n: RegistrationNotice): Promise<void>
 }
 
 /** Where a customer sends proof and questions — a mailbox somebody reads, never the no-reply sender. */
-function supportAddress(): string | null {
+export function supportAddress(): string | null {
     return support().email;
 }
 
@@ -221,11 +222,11 @@ function supportAddress(): string | null {
  * without changing the address customers are shown, and falling back to the
  * support address so a deployment that sets neither still tells somebody.
  */
-function teamAddress(): string | null {
+export function teamAddress(): string | null {
     return process.env.BILLING_NOTIFY_EMAIL?.trim() || supportAddress();
 }
 
-function appUrl(): string {
+export function appUrl(): string {
     return (process.env.APP_URL?.trim() || "").replace(/\/$/, "");
 }
 
@@ -318,7 +319,7 @@ async function sendTeamNotice(n: RegistrationNotice): Promise<void> {
  * they are active and have no idea — and they keep checking a bank app
  * instead of using the product they paid for.
  */
-export async function sendActivationLetter(n: { to: string; firstName: string; workshopName: string; slug: string }): Promise<void> {
+export async function sendActivationLetter(n: { to: string; firstName: string; workshopName: string; slug: string; paidUntil: Date }): Promise<void> {
     const base = appUrl();
     await sendMail({
         to: n.to,
@@ -331,6 +332,9 @@ export async function sendActivationLetter(n: { to: string; firstName: string; w
             `${base}/${n.slug}/dashboard`,
             "",
             "Use the same email and password you registered with. If you have forgotten it, there is a link on the sign-in page.",
+            "",
+            // Said now, so the first reminder is not the first they hear of it.
+            `You are paid up to ${billingDay(n.paidUntil)}. We will email you a week before the next payment is due, with the same reference to use.`,
             "",
             "Welcome aboard.",
             "",

@@ -122,7 +122,16 @@ export const requireTenant = cache(async (slug: string): Promise<TenantContext> 
     if (tenant.status === "SUSPENDED") redirect("/paused");
 
     if (!tenant.isActive) notFound();
-    return { user, tenant, membership, db: forTenant(tenant.id) };
+
+    // Past due: everything still works except raising a new document, which
+    // is what the terms promise. Refused here, in the client every action is
+    // handed, so the person is shown why rather than an error — and the
+    // database trigger behind it catches any path that does not come this way.
+    const db =
+        tenant.status === "PAST_DUE"
+            ? forTenant(tenant.id, { refuseNewDocument: () => redirect(`/${slug}/dashboard/settings/billing?readonly=1`) })
+            : forTenant(tenant.id);
+    return { user, tenant, membership, db };
 });
 
 /**

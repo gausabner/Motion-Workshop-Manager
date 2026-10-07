@@ -2,162 +2,381 @@
 
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import type { TenantStatus } from "@prisma/client";
+import { Prisma, type BillingPeriod, type TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
+import { sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, renewalStart } from "@/lib/billing/periods";
+import { newReference } from "@/lib/billing/reference";
+import { PLANS, withVat } from "@/lib/pricing/plans";
 
 export type AdminActionState = { ok: boolean; message: string };
 
 /**
  * What MOTION's staff can do to a workshop's standing, and nothing more.
  *
- * Four moves, each from one status to another. They are written as guarded
- * transitions rather than plain updates: the `where` names the status the
- * workshop must currently be in, and the move only happens if exactly one row
- * matched. Two people approving the same deposit at once therefore produce one
- * activation, one audit entry and one welcome email — not two of each — and a
- * workshop that somebody else already suspended cannot be "approved" back on
- * by a stale screen.
+ * Every move is a guarded transition rather than a plain update: the `where`
+ * names the state the workshop must currently be in, and the move only happens
+ * if exactly one row matched. Two people approving the same deposit at once
+ * produce one activation, one audit entry and one email — not two of each —
+ * and a stale screen cannot undo what somebody else just did.
+ *
+ * Two of the moves record money: approving a registration and recording a
+ * renewal. Each writes a `SubscriptionPayment` naming who confirmed it and the
+ * period it bought, because "who said this was paid, and for when?" is the
+ * question somebody will eventually ask.
  *
  * None of these touch a workshop's own data, and could not if they tried: the
  * staff exemption in the database covers the billing tables only.
  */
 
-type Move = {
-    action: "ACTIVATED" | "CANCELLED" | "SUSPENDED" | "REACTIVATED";
-    from: TenantStatus[];
-    to: TenantStatus;
-    /** A paid registration must have an agreed amount; the others need none. */
-    needsPlan?: boolean;
-    done: string;
-};
+type Tx = Prisma.TransactionClient;
+type Staff = { id: string };
+type Letter = (() => Promise<void>) | null;
+type Outcome = { ok: false; message: string } | { ok: true; message: string; slug: string; letter: Letter };
 
-const MOVES = {
-    activate: {
-        action: "ACTIVATED",
-        from: ["PENDING_PAYMENT"],
-        to: "ACTIVE",
-        needsPlan: true,
-        done: "switched on, and the owner has been emailed",
+const WORKSHOP = {
+    id: true,
+    slug: true,
+    name: true,
+    status: true,
+    subscription: {
+        select: { id: true, reference: true, planName: true, priceAmount: true, period: true, status: true, startedAt: true, periodEndsAt: true },
     },
-    cancel: { action: "CANCELLED", from: ["PENDING_PAYMENT"], to: "CANCELLED", done: "registration cancelled" },
-    suspend: { action: "SUSPENDED", from: ["ACTIVE", "PAST_DUE"], to: "SUSPENDED", done: "suspended, and the owner has been emailed" },
-    reactivate: { action: "REACTIVATED", from: ["SUSPENDED"], to: "ACTIVE", done: "switched back on, and the owner has been emailed" },
-} satisfies Record<string, Move>;
+    memberships: {
+        where: { group: "OWNER" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { user: { select: { email: true, firstName: true } } },
+    },
+} satisfies Prisma.TenantSelect;
 
-async function transition(kind: keyof typeof MOVES, formData: FormData): Promise<AdminActionState> {
-    const move: Move = MOVES[kind];
+type Workshop = Prisma.TenantGetPayload<{ select: typeof WORKSHOP }>;
+
+const STALE = (name: string) => ({ ok: false as const, message: `${name} is no longer in a state where that applies — refresh to see where it stands.` });
+
+/** Thrown inside the transaction to roll back a move that half-happened, and answered as STALE. */
+class Stale extends Error {
+    constructor(readonly workshopName: string) {
+        super("stale");
+    }
+}
+
+async function run(formData: FormData, fn: (tx: Tx, staff: Staff, w: Workshop, now: Date) => Promise<Outcome>): Promise<AdminActionState> {
     const tenantId = String(formData.get("tenantId") ?? "");
     if (!tenantId) return { ok: false, message: "No workshop was named." };
 
-    const result = await asStaff(async (tx, staff) => {
-        const workshop = await tx.tenant.findUnique({
-            where: { id: tenantId },
-            select: {
-                id: true,
-                slug: true,
-                name: true,
-                status: true,
-                subscription: { select: { reference: true, planName: true, priceAmount: true } },
-                memberships: {
-                    where: { group: "OWNER" },
-                    orderBy: { createdAt: "asc" },
-                    take: 1,
-                    select: { user: { select: { email: true, firstName: true } } },
-                },
-            },
+    let outcome: Outcome;
+    try {
+        outcome = await asStaff(async (tx, staff) => {
+            const w = await tx.tenant.findUnique({ where: { id: tenantId }, select: WORKSHOP });
+            if (!w) return { ok: false as const, message: "That workshop no longer exists." };
+            return fn(tx, staff, w, new Date());
         });
-        if (!workshop) return { ok: false as const, message: "That workshop no longer exists." };
-
-        // Refused rather than guessed at. With no plan there is no amount and
-        // no reference, so there is nothing a payment could have been matched
-        // against — approving it would be switching on a workshop on trust.
-        if (move.needsPlan && !workshop.subscription) {
-            return {
-                ok: false as const,
-                message: `${workshop.name} has not chosen a plan, so there is no amount to have been paid. They can choose one at /activate.`,
-            };
-        }
-
-        const moved = await tx.tenant.updateMany({
-            where: { id: workshop.id, status: { in: move.from } },
-            data: { status: move.to },
-        });
-        if (moved.count !== 1) {
-            return { ok: false as const, message: `${workshop.name} is no longer in a state where that applies — refresh to see where it stands.` };
-        }
-
-        if (kind === "activate") {
-            await tx.subscription.update({ where: { tenantId: workshop.id }, data: { status: "ACTIVE" } });
-        }
-        if (kind === "cancel" && workshop.subscription) {
-            await tx.subscription.update({ where: { tenantId: workshop.id }, data: { status: "CANCELLED" } });
-        }
-
-        await tx.platformAuditEvent.create({
-            data: {
-                actorUserId: staff.id,
-                action: move.action,
-                tenantId: workshop.id,
-                detail: {
-                    from: workshop.status,
-                    to: move.to,
-                    reference: workshop.subscription?.reference ?? null,
-                    plan: workshop.subscription?.planName ?? null,
-                    amountExclVat: workshop.subscription ? Number(workshop.subscription.priceAmount) : null,
-                },
-            },
-        });
-
-        return { ok: true as const, workshop, owner: workshop.memberships[0]?.user ?? null };
-    });
-
-    if (!result.ok) return { ok: false, message: result.message };
+    } catch (error) {
+        if (error instanceof Stale) return STALE(error.workshopName);
+        throw error;
+    }
+    if (!outcome.ok) return outcome;
 
     // The owner hears about every change to whether they can get in, after the
-    // response. The move itself is already committed, so a failed send costs a
-    // letter, not the approval or the suspension. Cancelling sends nothing: it
-    // only ever applies to a registration that never paid.
-    const { owner, workshop } = result;
-    const letter =
-        owner &&
-        {
-            activate: () => sendActivationLetter({ to: owner.email, firstName: owner.firstName, workshopName: workshop.name, slug: workshop.slug }),
-            suspend: () =>
-                sendSuspensionLetter({
-                    to: owner.email,
-                    firstName: owner.firstName,
-                    workshopName: workshop.name,
-                    reference: workshop.subscription?.reference ?? null,
-                    price: workshop.subscription ? Number(workshop.subscription.priceAmount) : null,
-                }),
-            reactivate: () => sendRestoredLetter({ to: owner.email, firstName: owner.firstName, workshopName: workshop.name, slug: workshop.slug }),
-            cancel: null,
-        }[kind];
+    // response. The move is already committed, so a failed send costs a letter,
+    // not the approval.
+    const { letter, slug } = outcome;
     if (letter) {
         after(() =>
             letter().catch((error: unknown) =>
-                console.error(`[admin] ${kind} email could not be sent.`, {
-                    workshop: workshop.slug,
-                    error: error instanceof Error ? error.message : String(error),
-                }),
+                console.error("[admin] email could not be sent.", { workshop: slug, error: error instanceof Error ? error.message : String(error) }),
             ),
         );
     }
-
     revalidatePath("/admin");
-    return { ok: true, message: `${workshop.name}: ${move.done}.` };
+    return { ok: true, message: outcome.message };
 }
 
-export async function activateAction(_prev: AdminActionState, formData: FormData) {
-    return transition("activate", formData);
+async function audit(tx: Tx, staff: Staff, w: Workshop, action: string, detail: Record<string, unknown>) {
+    await tx.platformAuditEvent.create({
+        data: {
+            actorUserId: staff.id,
+            action,
+            tenantId: w.id,
+            detail: {
+                from: w.status,
+                reference: w.subscription?.reference ?? null,
+                plan: w.subscription?.planName ?? null,
+                amountExclVat: w.subscription ? Number(w.subscription.priceAmount) : null,
+                ...detail,
+            } as Prisma.InputJsonObject,
+        },
+    });
 }
-export async function cancelAction(_prev: AdminActionState, formData: FormData) {
-    return transition("cancel", formData);
+
+const owner = (w: Workshop) => w.memberships[0]?.user ?? null;
+
+/**
+ * Money arrived: move the period on and keep the receipt.
+ *
+ * `expectedEnd` is the paid-up-to date the screen showed when the button was
+ * pressed. The update only happens if it is still that date, so a double click
+ * — or two people with the statement open — records one month, not two.
+ */
+async function recordPayment(tx: Tx, staff: Staff, w: Workshop, now: Date, opts: { first: boolean; expectedEnd: Date | null }) {
+    const sub = w.subscription!;
+    const start = opts.first ? now : renewalStart(w.status, sub.periodEndsAt, now);
+    const continuing = !opts.first && sub.periodEndsAt !== null && start.getTime() === sub.periodEndsAt.getTime();
+    const anchor = continuing && sub.startedAt ? anchorDayOf(sub.startedAt) : anchorDayOf(start);
+    const end = addPeriod(start, sub.period, anchor);
+
+    const claimed = await tx.subscription.updateMany({
+        where: { id: sub.id, periodEndsAt: opts.expectedEnd },
+        data: { status: "ACTIVE", periodEndsAt: end, ...(continuing ? {} : { startedAt: start }) },
+    });
+    if (claimed.count !== 1) return null;
+
+    const price = Number(sub.priceAmount);
+    await tx.subscriptionPayment.create({
+        data: {
+            tenantId: w.id,
+            subscriptionId: sub.id,
+            amountExclVat: price,
+            amountInclVat: withVat(price),
+            periodFrom: start,
+            periodTo: end,
+            confirmedById: staff.id,
+        },
+    });
+    return { start, end, amountInclVat: withVat(price) };
 }
-export async function suspendAction(_prev: AdminActionState, formData: FormData) {
-    return transition("suspend", formData);
+
+function expectedEndFrom(formData: FormData): Date | null | "invalid" {
+    const raw = String(formData.get("expectedEnd") ?? "");
+    if (!raw) return null;
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? "invalid" : d;
 }
-export async function reactivateAction(_prev: AdminActionState, formData: FormData) {
-    return transition("reactivate", formData);
+
+// ── a new registration, paid ─────────────────────────────────────────────────
+
+export async function activateAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    return run(formData, async (tx, staff, w, now) => {
+        // Refused rather than guessed at. With no plan there is no amount and
+        // no reference, so there is nothing a payment could have been matched
+        // against.
+        if (!w.subscription) {
+            return { ok: false, message: `${w.name} has not chosen a plan, so there is no amount to have been paid. They can choose one at /activate.` };
+        }
+        const moved = await tx.tenant.updateMany({ where: { id: w.id, status: "PENDING_PAYMENT" }, data: { status: "ACTIVE" } });
+        if (moved.count !== 1) return STALE(w.name);
+
+        const paid = await recordPayment(tx, staff, w, now, { first: true, expectedEnd: w.subscription.periodEndsAt });
+        if (!paid) throw new Stale(w.name);
+        await audit(tx, staff, w, "ACTIVATED", { to: "ACTIVE", paidUntil: paid.end.toISOString() });
+
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: switched on and paid up to ${billingDay(paid.end)}. The owner has been emailed.`,
+            letter: o ? () => sendActivationLetter({ to: o.email, firstName: o.firstName, workshopName: w.name, slug: w.slug, paidUntil: paid.end }) : null,
+        };
+    });
 }
+
+// ── a renewal, paid ──────────────────────────────────────────────────────────
+
+export async function renewAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const expectedEnd = expectedEndFrom(formData);
+    if (expectedEnd === "invalid") return { ok: false, message: "The page was out of date. Refresh and try again." };
+
+    return run(formData, async (tx, staff, w, now) => {
+        const sub = w.subscription;
+        if (!sub || sub.status !== "ACTIVE" || !sub.periodEndsAt) {
+            return { ok: false, message: `${w.name} has no dated subscription to renew. Set up its billing first.` };
+        }
+        const allowed: TenantStatus[] = ["ACTIVE", "PAST_DUE", "SUSPENDED"];
+        if (!allowed.includes(w.status)) return STALE(w.name);
+
+        const restored = w.status !== "ACTIVE";
+        if (restored) {
+            const moved = await tx.tenant.updateMany({ where: { id: w.id, status: w.status }, data: { status: "ACTIVE" } });
+            if (moved.count !== 1) return STALE(w.name);
+        }
+
+        const paid = await recordPayment(tx, staff, w, now, { first: false, expectedEnd });
+        // Rolls back the status move above with it.
+        if (!paid) throw new Stale(w.name);
+        await audit(tx, staff, w, "RENEWED", { to: "ACTIVE", periodFrom: paid.start.toISOString(), paidUntil: paid.end.toISOString() });
+
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: paid up to ${billingDay(paid.end)}${restored ? ", and full access is back" : ""}. The owner has been emailed.`,
+            letter: o
+                ? () =>
+                      sendRenewalReceipt({
+                          to: o.email,
+                          firstName: o.firstName,
+                          workshopName: w.name,
+                          slug: w.slug,
+                          paidUntil: paid.end,
+                          amountInclVat: paid.amountInclVat,
+                          restored,
+                      })
+                : null,
+        };
+    });
+}
+
+// ── status only ──────────────────────────────────────────────────────────────
+
+export async function cancelAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    return run(formData, async (tx, staff, w) => {
+        const moved = await tx.tenant.updateMany({ where: { id: w.id, status: "PENDING_PAYMENT" }, data: { status: "CANCELLED" } });
+        if (moved.count !== 1) return STALE(w.name);
+        if (w.subscription) await tx.subscription.update({ where: { id: w.subscription.id }, data: { status: "CANCELLED" } });
+        await audit(tx, staff, w, "CANCELLED", { to: "CANCELLED" });
+        // Nothing sent: this only ever applies to a registration that never paid.
+        return { ok: true, slug: w.slug, message: `${w.name}: registration cancelled.`, letter: null };
+    });
+}
+
+export async function suspendAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    return run(formData, async (tx, staff, w) => {
+        const moved = await tx.tenant.updateMany({ where: { id: w.id, status: { in: ["ACTIVE", "PAST_DUE"] } }, data: { status: "SUSPENDED" } });
+        if (moved.count !== 1) return STALE(w.name);
+        await audit(tx, staff, w, "SUSPENDED", { to: "SUSPENDED" });
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: suspended. The owner has been emailed.`,
+            letter: o
+                ? () =>
+                      sendSuspensionLetter({
+                          to: o.email,
+                          firstName: o.firstName,
+                          workshopName: w.name,
+                          reference: w.subscription?.reference ?? null,
+                          price: w.subscription ? Number(w.subscription.priceAmount) : null,
+                      })
+                : null,
+        };
+    });
+}
+
+/**
+ * Back on without a payment — a suspension made in error, or a promise to pay
+ * somebody has agreed to. A workshop whose period has long ended will be
+ * marked read-only again by the next morning's run, which is right: nothing
+ * has been paid. Recording the payment is the way to restore it for good.
+ */
+export async function reactivateAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    return run(formData, async (tx, staff, w) => {
+        const moved = await tx.tenant.updateMany({ where: { id: w.id, status: { in: ["SUSPENDED", "PAST_DUE"] } }, data: { status: "ACTIVE" } });
+        if (moved.count !== 1) return STALE(w.name);
+        // Forget that the read-only notice was sent for this period, or the
+        // morning run would see it as already handled and leave a workshop
+        // that has still not paid fully on, indefinitely.
+        if (w.subscription) await tx.subscription.update({ where: { id: w.subscription.id }, data: { overdueNoticeFor: null } });
+        await audit(tx, staff, w, "REACTIVATED", { to: "ACTIVE" });
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: switched back on. The owner has been emailed.`,
+            letter: o ? () => sendRestoredLetter({ to: o.email, firstName: o.firstName, workshopName: w.name, slug: w.slug }) : null,
+        };
+    });
+}
+
+// ── billing for a workshop that predates it, and corrections ─────────────────
+
+/**
+ * Put a workshop that was switched on before plans existed onto a plan.
+ *
+ * No payment is recorded: whatever it last paid was arranged outside MOTION.
+ * Staff give the date it is paid up to, and renewals run from there.
+ */
+export async function setUpBillingAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const planId = String(formData.get("planId") ?? "");
+    const plan = PLANS.find((p) => p.id === planId);
+    const amount = Number(String(formData.get("amount") ?? "").replace(/[^\d.]/g, ""));
+    const paidUntil = billingDateFromInput(String(formData.get("paidUntil") ?? ""));
+    const period = String(formData.get("period") ?? "MONTHLY") as BillingPeriod;
+
+    if (!plan) return { ok: false, message: "Choose a plan." };
+    if (!Number.isFinite(amount) || amount <= 0) return { ok: false, message: "Enter the monthly amount, excluding VAT." };
+    if (!paidUntil) return { ok: false, message: "Enter the date it is paid up to." };
+    if (!["MONTHLY", "QUARTERLY", "ANNUAL"].includes(period)) return { ok: false, message: "Choose how often it renews." };
+
+    return run(formData, async (tx, staff, w) => {
+        if (w.subscription) return { ok: false, message: `${w.name} already has billing set up — change its paid-up-to date instead.` };
+        if (w.status !== "ACTIVE" && w.status !== "PAST_DUE") return STALE(w.name);
+
+        // The reference has a unique index across every workshop; a collision
+        // is one in hundreds of millions, and is simply drawn again.
+        for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+                await tx.subscription.create({
+                    data: {
+                        tenantId: w.id,
+                        planId: plan.id,
+                        planName: plan.name,
+                        priceAmount: amount,
+                        period,
+                        status: "ACTIVE",
+                        reference: newReference(),
+                        startedAt: paidUntil,
+                        periodEndsAt: paidUntil,
+                    },
+                });
+                break;
+            } catch (error) {
+                if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" && attempt < 4) continue;
+                throw error;
+            }
+        }
+        await audit(tx, staff, w, "BILLING_SET", { plan: plan.name, amountExclVat: amount, period, paidUntil: paidUntil.toISOString() });
+        return { ok: true, slug: w.slug, message: `${w.name}: on ${plan.name}, paid up to ${billingDay(paidUntil)}.`, letter: null };
+    });
+}
+
+/**
+ * Correct the date a workshop is paid up to — a payment arranged by phone, a
+ * month given free, a date set wrongly.
+ *
+ * Moving it later lifts read-only if the new date puts the workshop back in
+ * good standing. Moving it earlier changes nothing today; the next morning's
+ * run applies the rules to the new date.
+ */
+export async function setPaidUntilAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const paidUntil = billingDateFromInput(String(formData.get("paidUntil") ?? ""));
+    if (!paidUntil) return { ok: false, message: "Enter the date it is paid up to." };
+
+    return run(formData, async (tx, staff, w, now) => {
+        const sub = w.subscription;
+        if (!sub || sub.status !== "ACTIVE") return { ok: false, message: `${w.name} has no active subscription to date.` };
+
+        await tx.subscription.update({
+            where: { id: sub.id },
+            data: { periodEndsAt: paidUntil, startedAt: paidUntil, remindedFor: null, overdueNoticeFor: null },
+        });
+        const lifted = w.status === "PAST_DUE" && paidUntil.getTime() > now.getTime();
+        if (lifted) await tx.tenant.updateMany({ where: { id: w.id, status: "PAST_DUE" }, data: { status: "ACTIVE" } });
+
+        await audit(tx, staff, w, "PAID_UNTIL_CHANGED", {
+            previous: sub.periodEndsAt?.toISOString() ?? null,
+            paidUntil: paidUntil.toISOString(),
+            ...(lifted ? { to: "ACTIVE" } : {}),
+        });
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: paid up to ${billingDay(paidUntil)}${lifted ? ", and read-only is lifted" : ""}.`,
+            letter: lifted && o ? () => sendRestoredLetter({ to: o.email, firstName: o.firstName, workshopName: w.name, slug: w.slug }) : null,
+        };
+    });
+}
+
