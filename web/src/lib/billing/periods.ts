@@ -176,3 +176,38 @@ export function billingDateFromInput(value: string): Date | null {
 export function billingInputValue(d: Date): string {
     return d.toLocaleDateString("en-CA", { timeZone: BILLING_TIME_ZONE });
 }
+
+/** How long after one payment another for the same workshop is treated as a repeat click. */
+export const REPEAT_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * Why a renewal should not be recorded right now — or null if it may be.
+ *
+ * Two mistakes this catches, both of which happened: pressing "Payment
+ * received" again because nothing seemed to change, and recording a renewal
+ * for a workshop that is paid up for weeks yet, when what was meant was a
+ * payment already counted. A real early payment is still possible — from the
+ * workshop's own page, which says exactly which period it buys (`early`).
+ */
+export function renewalRefusal(input: {
+    workshopName: string;
+    tenantStatus: TenantStatus;
+    periodEndsAt: Date;
+    early: boolean;
+    lastPayment: { confirmedAt: Date; invoiceNumber: string | null } | null;
+    now: Date;
+    rules: RenewalRules;
+}): string | null {
+    const { workshopName: name, lastPayment, now } = input;
+    if (lastPayment) {
+        const ago = now.getTime() - lastPayment.confirmedAt.getTime();
+        if (ago >= 0 && ago < REPEAT_WINDOW_MS) {
+            const when = ago < 60_000 ? "moments" : `${Math.round(ago / 60_000)} minutes`;
+            return `A payment was recorded for ${name} ${when} ago${lastPayment.invoiceNumber ? ` (${lastPayment.invoiceNumber})` : ""}, so this was not recorded again. If a second payment really did arrive, record it again in a few minutes.`;
+        }
+    }
+    if (!input.early && input.tenantStatus === "ACTIVE" && standing(input.periodEndsAt, now, input.rules) === "current") {
+        return `${name} is paid up to ${billingDay(input.periodEndsAt)}, so nothing is due and nothing was recorded. A payment made early is recorded from the workshop's page.`;
+    }
+    return null;
+}

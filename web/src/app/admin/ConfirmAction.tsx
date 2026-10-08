@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Check } from "lucide-react";
 import type { AdminActionState } from "@/app/admin/actions";
 
 /**
@@ -34,15 +35,25 @@ export function ConfirmAction({
     const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
     const [asking, setAsking] = useState(false);
 
-    // Close the question once the action has worked. Left open, the row
-    // redraws with fresh values in the hidden fields — a renewal's new date —
-    // so a second press on the same open question would record a second month
-    // rather than be refused as stale. Done while rendering, which is React's
-    // way of adjusting state to a new result without a flash of the old one.
+    // Once the action has worked, the button is replaced by what happened —
+    // and stays replaced until the page is loaded again.
+    //
+    // Both halves matter. Left open, the question redraws with fresh hidden
+    // values (a renewal's new date), so a second press records a second month
+    // instead of being refused as stale. And closed back to the button with
+    // nothing said, a row that does not move — a paid-up workshop stays under
+    // Active — looks exactly as it did before the click. That is how three
+    // months were recorded for one workshop in under a minute: each press
+    // looked like it had not worked. Done while rendering, React's way of
+    // adjusting state to a new result without a flash of the old one.
     const [answered, setAnswered] = useState(state);
+    const [done, setDone] = useState<string | null>(null);
     if (state !== answered) {
         setAnswered(state);
-        if (state.ok) setAsking(false);
+        if (state.ok) {
+            setAsking(false);
+            setDone(state.message || "Done.");
+        }
     }
 
     const trigger = {
@@ -52,9 +63,16 @@ export function ConfirmAction({
     }[tone];
     const confirm = tone === "danger" ? "border-red-600 bg-red-600 text-white hover:bg-red-700" : "border-teal-600 bg-teal-600 text-white hover:bg-teal-700";
 
-    // A failure stays visible; a success needs no message, because the row
-    // moving to its new section is the confirmation.
     const failure = state.message && !state.ok ? state.message : null;
+
+    if (done) {
+        return (
+            <p role="status" className="flex max-w-xs items-start justify-end gap-1.5 text-right text-[13px] font-medium leading-snug text-teal-800">
+                <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>{done}</span>
+            </p>
+        );
+    }
 
     if (!asking) {
         return (
