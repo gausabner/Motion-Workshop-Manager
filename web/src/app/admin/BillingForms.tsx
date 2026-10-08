@@ -73,12 +73,10 @@ export function SetUpBilling({
     action,
     tenantId,
     plans,
-    defaultPaidUntil,
 }: {
     action: Action;
     tenantId: string;
     plans: { id: string; name: string; price: number | null }[];
-    defaultPaidUntil: string;
 }) {
     const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
     const [open, setOpen] = useState(false);
@@ -91,7 +89,8 @@ export function SetUpBilling({
         <form action={formAction} className="flex w-full max-w-sm flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
             <input type="hidden" name="tenantId" value={tenantId} />
             <p className="text-[13px] leading-snug text-slate-900">
-                Put this workshop on a plan. No payment is recorded — give the date it is already paid up to, and renewals run from there.
+                Put this workshop on a plan. No payment is recorded — give the date it is already paid up to, and renewals run from there. The
+                reminder goes out a week before that date, or the next morning if it is less than a week away.
             </p>
             <div className="grid grid-cols-2 gap-2">
                 <label className={label}>
@@ -126,8 +125,11 @@ export function SetUpBilling({
                     </select>
                 </label>
                 <label className={label}>
-                    Paid up to
-                    <input name="paidUntil" type="date" required defaultValue={defaultPaidUntil} className={input} />
+                    Paid up to — its next payment is due on this day
+                    {/* Deliberately empty. It used to start at today, which
+                        quietly made a workshop due today: the reminder went out
+                        within the hour and read-only followed a week later. */}
+                    <input name="paidUntil" type="date" required className={input} />
                 </label>
             </div>
             <Footer pending={pending} submit="Set up billing" onCancel={() => setOpen(false)} state={state} />

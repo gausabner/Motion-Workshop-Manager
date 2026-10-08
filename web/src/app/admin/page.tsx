@@ -238,7 +238,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                                 action={setUpBillingAction}
                                 tenantId={w.id}
                                 plans={PLANS.map((p) => ({ id: p.id, name: p.name, price: p.price }))}
-                                defaultPaidUntil={billingInputValue(now)}
                             />
                         ) : null}
                         <SuspendButton w={w} />
