@@ -116,6 +116,9 @@ services:
       BILLING_TICK_SECRET: ${BILLING_TICK_SECRET:-}
       BILLING_REMINDER_DAYS: ${BILLING_REMINDER_DAYS:-}
       BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-}
+      # The prefix on MOTION's tax invoice numbers. Settle it before the first
+      # invoice: changing it later starts a visibly different series.
+      BILLING_INVOICE_PREFIX: ${BILLING_INVOICE_PREFIX:-}
     volumes:
       # Job-card photos and proofs of payment, while STORAGE_DRIVER=local.
       # ops/backup archives this; see ops/backup/README.md.

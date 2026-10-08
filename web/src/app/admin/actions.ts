@@ -2,11 +2,13 @@
 
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { Prisma, type BillingPeriod, type TenantStatus } from "@prisma/client";
+import { Prisma, type BillingPeriod, type SubscriptionInvoice, type TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
-import { sendRenewalReceipt } from "@/lib/billing/renewal-letters";
-import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, renewalStart } from "@/lib/billing/periods";
+import { sendInvoiceLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalStart } from "@/lib/billing/periods";
+import { issueInvoice } from "@/lib/billing/invoices";
+import { renderSubscriptionInvoicePdf } from "@/lib/pdf/subscription-invoice";
 import { newReference } from "@/lib/billing/reference";
 import { PLANS, withVat } from "@/lib/pricing/plans";
 
@@ -24,7 +26,8 @@ export type AdminActionState = { ok: boolean; message: string };
  * Two of the moves record money: approving a registration and recording a
  * renewal. Each writes a `SubscriptionPayment` naming who confirmed it and the
  * period it bought, because "who said this was paid, and for when?" is the
- * question somebody will eventually ask.
+ * question somebody will eventually ask — and issues its tax invoice in the
+ * same transaction, so there is never one without the other.
  *
  * None of these touch a workshop's own data, and could not if they tried: the
  * staff exemption in the database covers the billing tables only.
@@ -90,7 +93,8 @@ async function run(formData: FormData, fn: (tx: Tx, staff: Staff, w: Workshop, n
             ),
         );
     }
-    revalidatePath("/admin");
+    // The layout, so a workshop's own page under /admin redraws too.
+    revalidatePath("/admin", "layout");
     return { ok: true, message: outcome.message };
 }
 
@@ -134,7 +138,7 @@ async function recordPayment(tx: Tx, staff: Staff, w: Workshop, now: Date, opts:
     if (claimed.count !== 1) return null;
 
     const price = Number(sub.priceAmount);
-    await tx.subscriptionPayment.create({
+    const payment = await tx.subscriptionPayment.create({
         data: {
             tenantId: w.id,
             subscriptionId: sub.id,
@@ -144,8 +148,24 @@ async function recordPayment(tx: Tx, staff: Staff, w: Workshop, now: Date, opts:
             periodTo: end,
             confirmedById: staff.id,
         },
+        select: { id: true },
     });
-    return { start, end, amountInclVat: withVat(price) };
+    const invoice = await issueInvoice(tx, payment.id, now);
+    return { start, end, amountInclVat: withVat(price), invoice };
+}
+
+/** The invoice as a mail attachment. Rendered after the commit, from the issued row only. */
+async function invoiceAttachment(invoice: SubscriptionInvoice) {
+    return { number: invoice.number, attachment: { filename: `${invoice.number}.pdf`, content: await renderSubscriptionInvoicePdf(invoice), contentType: "application/pdf" } };
+}
+
+/**
+ * Notes that the invoice reached the mail server. Runs after the response, so
+ * it opens its own staff transaction; if the send failed this never runs, and
+ * the workshop's page offers to send it again.
+ */
+async function markEmailed(invoiceId: string) {
+    await asStaff((tx) => tx.subscriptionInvoice.update({ where: { id: invoiceId }, data: { emailedAt: new Date() } }));
 }
 
 function expectedEndFrom(formData: FormData): Date | null | "invalid" {
@@ -170,14 +190,26 @@ export async function activateAction(_prev: AdminActionState, formData: FormData
 
         const paid = await recordPayment(tx, staff, w, now, { first: true, expectedEnd: w.subscription.periodEndsAt });
         if (!paid) throw new Stale(w.name);
-        await audit(tx, staff, w, "ACTIVATED", { to: "ACTIVE", paidUntil: paid.end.toISOString() });
+        await audit(tx, staff, w, "ACTIVATED", { to: "ACTIVE", paidUntil: paid.end.toISOString(), invoice: paid.invoice.number });
 
         const o = owner(w);
         return {
             ok: true,
             slug: w.slug,
-            message: `${w.name}: switched on and paid up to ${billingDay(paid.end)}. The owner has been emailed.`,
-            letter: o ? () => sendActivationLetter({ to: o.email, firstName: o.firstName, workshopName: w.name, slug: w.slug, paidUntil: paid.end }) : null,
+            message: `${w.name}: switched on and paid up to ${billingDay(paid.end)}. Tax invoice ${paid.invoice.number} is on its way to the owner.`,
+            letter: o
+                ? async () => {
+                      await sendActivationLetter({
+                          to: o.email,
+                          firstName: o.firstName,
+                          workshopName: w.name,
+                          slug: w.slug,
+                          paidUntil: paid.end,
+                          invoice: await invoiceAttachment(paid.invoice),
+                      });
+                      await markEmailed(paid.invoice.id);
+                  }
+                : null,
         };
     });
 }
@@ -205,16 +237,21 @@ export async function renewAction(_prev: AdminActionState, formData: FormData): 
         const paid = await recordPayment(tx, staff, w, now, { first: false, expectedEnd });
         // Rolls back the status move above with it.
         if (!paid) throw new Stale(w.name);
-        await audit(tx, staff, w, "RENEWED", { to: "ACTIVE", periodFrom: paid.start.toISOString(), paidUntil: paid.end.toISOString() });
+        await audit(tx, staff, w, "RENEWED", {
+            to: "ACTIVE",
+            periodFrom: paid.start.toISOString(),
+            paidUntil: paid.end.toISOString(),
+            invoice: paid.invoice.number,
+        });
 
         const o = owner(w);
         return {
             ok: true,
             slug: w.slug,
-            message: `${w.name}: paid up to ${billingDay(paid.end)}${restored ? ", and full access is back" : ""}. The owner has been emailed.`,
+            message: `${w.name}: paid up to ${billingDay(paid.end)}${restored ? ", and full access is back" : ""}. Tax invoice ${paid.invoice.number} is on its way to the owner.`,
             letter: o
-                ? () =>
-                      sendRenewalReceipt({
+                ? async () => {
+                      await sendRenewalReceipt({
                           to: o.email,
                           firstName: o.firstName,
                           workshopName: w.name,
@@ -222,7 +259,10 @@ export async function renewAction(_prev: AdminActionState, formData: FormData): 
                           paidUntil: paid.end,
                           amountInclVat: paid.amountInclVat,
                           restored,
-                      })
+                          invoice: await invoiceAttachment(paid.invoice),
+                      });
+                      await markEmailed(paid.invoice.id);
+                  }
                 : null,
         };
     });
@@ -380,3 +420,103 @@ export async function setPaidUntilAction(_prev: AdminActionState, formData: Form
     });
 }
 
+
+// ── tax invoices ─────────────────────────────────────────────────────────────
+
+function sendInvoice(w: Workshop, invoice: SubscriptionInvoice): Letter {
+    const o = owner(w);
+    if (!o) return null;
+    return async () => {
+        const { attachment } = await invoiceAttachment(invoice);
+        await sendInvoiceLetter({
+            to: o.email,
+            firstName: o.firstName,
+            workshopName: w.name,
+            invoiceNumber: invoice.number,
+            amountInclVat: Number(invoice.amountInclVat),
+            attachment,
+        });
+        await markEmailed(invoice.id);
+    };
+}
+
+/** Send an issued invoice to the owner again — it bounced, it was lost, or they asked. */
+export async function resendInvoiceAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const invoiceId = String(formData.get("invoiceId") ?? "");
+    return run(formData, async (tx, staff, w) => {
+        const invoice = await tx.subscriptionInvoice.findFirst({ where: { id: invoiceId, tenantId: w.id } });
+        if (!invoice) return { ok: false, message: "That invoice is not this workshop's." };
+        if (!owner(w)) return { ok: false, message: `${w.name} has no owner to send it to.` };
+        await audit(tx, staff, w, "INVOICE_SENT", { invoice: invoice.number });
+        return { ok: true, slug: w.slug, message: `Tax invoice ${invoice.number} is on its way to the owner.`, letter: sendInvoice(w, invoice) };
+    });
+}
+
+/**
+ * Issue the invoice for a payment recorded before invoices existed.
+ *
+ * Every payment recorded from now on gets its invoice in the same moment; this
+ * is for the few confirmed before that, so their workshops are not left
+ * without one.
+ */
+export async function issueInvoiceAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const paymentId = String(formData.get("paymentId") ?? "");
+    return run(formData, async (tx, staff, w, now) => {
+        const payment = await tx.subscriptionPayment.findFirst({ where: { id: paymentId, tenantId: w.id }, select: { id: true, invoice: { select: { id: true } } } });
+        if (!payment) return { ok: false, message: "That payment is not this workshop's." };
+        if (payment.invoice) return { ok: false, message: "That payment already has its invoice — refresh to see it." };
+        const invoice = await issueInvoice(tx, payment.id, now);
+        await audit(tx, staff, w, "INVOICE_ISSUED", { invoice: invoice.number });
+        return { ok: true, slug: w.slug, message: `Tax invoice ${invoice.number} issued and on its way to the owner.`, letter: sendInvoice(w, invoice) };
+    });
+}
+
+/**
+ * Record a payment that was made before MOTION recorded payments — the period
+ * a workshop is paid up to right now — and issue its tax invoice.
+ *
+ * Only for a workshop with no payment recorded at all, which after this ships
+ * means one that was switched on or set up by hand. It does not move the date:
+ * the period it records is the one the workshop is already in.
+ *
+ * Staff decide whether the money really arrived. Nothing here can tell a real
+ * payment from a test, and an issued tax invoice is a declaration of output
+ * tax that stays on the record.
+ */
+export async function recordEarlierPaymentAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    return run(formData, async (tx, staff, w, now) => {
+        const sub = w.subscription;
+        if (!sub || sub.status !== "ACTIVE" || !sub.periodEndsAt) return { ok: false, message: `${w.name} has no dated subscription.` };
+
+        // Lock the subscription so two clicks cannot both find "no payments yet".
+        await tx.$executeRaw`SELECT 1 FROM "Subscription" WHERE "id" = ${sub.id} FOR UPDATE`;
+        if ((await tx.subscriptionPayment.count({ where: { tenantId: w.id } })) > 0) {
+            return { ok: false, message: `${w.name} already has a payment recorded — refresh to see it.` };
+        }
+
+        const end = sub.periodEndsAt;
+        const start = periodStartFor(end, sub.period, sub.startedAt ? anchorDayOf(sub.startedAt) : anchorDayOf(end));
+        const price = Number(sub.priceAmount);
+        const payment = await tx.subscriptionPayment.create({
+            data: {
+                tenantId: w.id,
+                subscriptionId: sub.id,
+                amountExclVat: price,
+                amountInclVat: withVat(price),
+                periodFrom: start,
+                periodTo: end,
+                confirmedById: staff.id,
+                note: "Recorded after the fact: paid before MOTION recorded payments.",
+            },
+            select: { id: true },
+        });
+        const invoice = await issueInvoice(tx, payment.id, now);
+        await audit(tx, staff, w, "PAYMENT_RECORDED", { periodFrom: start.toISOString(), paidUntil: end.toISOString(), invoice: invoice.number });
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name}: payment for ${billingDay(start)} to ${billingDay(end)} recorded. Tax invoice ${invoice.number} is on its way to the owner.`,
+            letter: sendInvoice(w, invoice),
+        };
+    });
+}

@@ -32,6 +32,8 @@ export type Mail = {
     /** Always required. Some clients show it, and a text-only mail still works. */
     text: string;
     html?: string;
+    /** A tax invoice, mostly. Kept small: this is a mailbox, not a file service. */
+    attachments?: { filename: string; content: Buffer; contentType: string }[];
 };
 
 /**
@@ -109,6 +111,7 @@ export async function sendMail(mail: Mail): Promise<void> {
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
+        attachments: mail.attachments,
     });
 }
 

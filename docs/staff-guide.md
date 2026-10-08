@@ -51,14 +51,16 @@ finds `MOT-Y4LGP9` — or a workshop name, its web address, or the owner's email
 3. **Payment received** → **Yes — switch it on**.
 
 The workshop goes live, is paid up for one month from today, and the owner is
-emailed. The payment is recorded with your name on it.
+emailed with its tax invoice attached. The payment is recorded with your name
+on it.
 
 ### A renewal has been paid
 
 1. Search the reference.
 2. **Payment received** → **Yes — record it**.
 
-The date moves on one period and the owner gets a receipt. How far it moves:
+The date moves on one period and the owner gets a receipt with its tax invoice
+attached. How far it moves:
 
 - **Paid early, on time, or within the grace week** — the month continues from
   where it was paid up to. Paying a few days late does not shift their date.
@@ -111,6 +113,37 @@ instead, so it appears in their payment history.
 next morning's run (07:00), when they go read-only again and are emailed again.
 For longer, **Change date** to the date they have agreed to pay by.
 
+## Tax invoices
+
+Every payment you record issues a **tax invoice** from Omzizi Investment CC,
+trading as Motion Dynamic Systems, at the same moment: numbered `MWM-00001`,
+`MWM-00002` and so on with no gaps, showing the VAT separately, marked paid.
+It is attached to the owner's email automatically.
+
+- **Find one:** click the workshop's name on `/admin`. Its page lists every
+  payment with its invoice — click the number for the PDF — and whether it
+  was emailed.
+- **"Not emailed yet":** the email did not go (a mail problem, or no owner on
+  file). Use **Send** once it is fixed. **Send again** is for "I never got it".
+- **The workshop's own copy:** owners and admins see every invoice under
+  Settings → Billing in MOTION.
+- **Their details are wrong on it:** an invoice is addressed from the
+  workshop's company profile *as it was when issued*. If the workshop page
+  warns that the address or VAT number is missing, ask the owner to fill in
+  Settings → Company profile — it applies from their next invoice.
+- **A payment recorded by mistake:** an issued tax invoice cannot be edited or
+  deleted — the database refuses, because it is a tax record on both sides.
+  It is corrected with a credit note, which MOTION does not issue yet: tell
+  whoever looks after the books, and do not record the payment again.
+
+### A workshop that paid before MOTION recorded payments
+
+A workshop switched on before payments were recorded — approved before
+8 October 2026 — has no payment and so no invoice. Its page offers **Record a
+payment already received** for the period it is in now. Use it **only if the
+money really arrived** — it issues a real tax invoice, which is a declaration
+of VAT. If the workshop was a test, leave it.
+
 ## What you cannot see
 
 Each workshop's plan, amount, reference, dates and owner's contact details —
@@ -135,3 +168,6 @@ In `/etc/motion/motion.env`, then `systemctl restart motion`:
 - `BILLING_REMINDER_DAYS` and `BILLING_GRACE_DAYS` — both 7 unless set.
 - `BILLING_TICK_SECRET` — what the morning run uses to reach the app. Unset,
   nobody is reminded and nobody goes read-only.
+- `BILLING_INVOICE_PREFIX` — the letters in front of invoice numbers, `MWM-`
+  unless set. Decide before the first real invoice; changing it later starts a
+  visibly different series.

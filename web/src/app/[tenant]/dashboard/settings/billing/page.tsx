@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { bankDetails } from "@/lib/billing/config";
+import { recipientGaps } from "@/lib/billing/invoices";
 import { billingDay, readOnlyFrom, renewalRules, standing } from "@/lib/billing/periods";
 import { VAT_RATE, withVat } from "@/lib/pricing/plans";
 import { support } from "@/lib/edition";
@@ -40,10 +42,11 @@ export default async function BillingPage({
               where: { tenantId: tenant.id },
               orderBy: { confirmedAt: "desc" },
               take: 24,
-              select: { id: true, confirmedAt: true, periodFrom: true, periodTo: true, amountInclVat: true },
+              select: { id: true, confirmedAt: true, periodFrom: true, periodTo: true, amountInclVat: true, invoice: { select: { id: true, number: true } } },
           })
         : [];
 
+    const gaps = manager ? recipientGaps(tenant) : [];
     const rules = renewalRules();
     const end = sub?.status === "ACTIVE" ? sub.periodEndsAt : null;
     const s = standing(end, new Date(), rules);
@@ -151,6 +154,16 @@ export default async function BillingPage({
                     {manager && (
                         <section className="space-y-3">
                             <h4 className="text-sm font-semibold text-slate-900">Payments received</h4>
+                            {gaps.length > 0 && (
+                                <p className="text-sm text-slate-600">
+                                    Your tax invoices are addressed from your{" "}
+                                    <Link href={`/${slug}/dashboard/settings/company`} className="font-medium text-teal-700 hover:underline">
+                                        company profile
+                                    </Link>
+                                    , which has no {gaps.join(" or ")} yet. Add {gaps.length > 1 ? "them" : "it"} before your next payment if you claim
+                                    VAT back — an invoice keeps the details it was issued with.
+                                </p>
+                            )}
                             {payments.length === 0 ? (
                                 <p className="text-sm text-slate-500">None recorded in MOTION yet.</p>
                             ) : (
@@ -161,6 +174,7 @@ export default async function BillingPage({
                                                 <th className="px-3 py-2 font-medium">Confirmed</th>
                                                 <th className="px-3 py-2 font-medium">Covers</th>
                                                 <th className="px-3 py-2 text-right font-medium">Amount</th>
+                                                <th className="px-3 py-2 font-medium">Tax invoice</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
@@ -171,6 +185,20 @@ export default async function BillingPage({
                                                         {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
                                                     </td>
                                                     <td className="px-3 py-2 text-right tabular-nums text-slate-900">{money(Number(p.amountInclVat))}</td>
+                                                    <td className="px-3 py-2">
+                                                        {p.invoice ? (
+                                                            <a
+                                                                href={`/${slug}/dashboard/settings/billing/invoices/${p.invoice.id}/pdf`}
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                className="font-medium text-teal-700 hover:underline"
+                                                            >
+                                                                {p.invoice.number}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-slate-400">—</span>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>

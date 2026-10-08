@@ -18,6 +18,11 @@ export type Letterhead = {
     email?: string | null;
     web?: string | null;
     logo?: Buffer | null;
+    /**
+     * A mark drawn as vectors rather than placed as an image — MOTION's own
+     * lockup on its invoices. Draws at (x, y) and returns the height it took.
+     */
+    mark?: ((doc: Doc, x: number, y: number) => number) | null;
     taxName: string;
 };
 
@@ -31,7 +36,10 @@ export function drawLetterhead(doc: Doc, workshop: Letterhead, title: string, su
     const right = PAGE.width - MARGIN.right;
     let leftY: number = MARGIN.top;
 
-    if (workshop.logo) {
+    if (workshop.mark) {
+        const height = workshop.mark(doc, MARGIN.left, leftY);
+        if (height > 0) leftY += height + 8;
+    } else if (workshop.logo) {
         try {
             doc.image(workshop.logo, MARGIN.left, leftY, { fit: [LOGO.width, LOGO.height] });
             leftY += LOGO.height + 6;
@@ -40,7 +48,7 @@ export function drawLetterhead(doc: Doc, workshop: Letterhead, title: string, su
         }
     }
 
-    doc.font("Helvetica-Bold").fontSize(workshop.logo ? 10 : 15).fillColor(INK.text).text(workshop.name, MARGIN.left, leftY, { width: CONTENT_WIDTH * 0.55 });
+    doc.font("Helvetica-Bold").fontSize(workshop.logo || workshop.mark ? 10 : 15).fillColor(INK.text).text(workshop.name, MARGIN.left, leftY, { width: CONTENT_WIDTH * 0.55 });
     leftY = doc.y + 2;
 
     const details = [

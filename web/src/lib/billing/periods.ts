@@ -38,8 +38,20 @@ export function anchorDayOf(d: Date): number {
  * began.
  */
 export function addPeriod(from: Date, period: BillingPeriod, anchorDay = anchorDayOf(from)): Date {
+    return shiftMonths(from, MONTHS[period], anchorDay);
+}
+
+/**
+ * Where the period that ends at `to` began — one period back, on the same
+ * anchor. For dating a payment that was made before MOTION recorded payments.
+ */
+export function periodStartFor(to: Date, period: BillingPeriod, anchorDay = anchorDayOf(to)): Date {
+    return shiftMonths(to, -MONTHS[period], anchorDay);
+}
+
+function shiftMonths(from: Date, months: number, anchorDay: number): Date {
     const local = new Date(from.getTime() + BILLING_OFFSET);
-    const m = local.getUTCMonth() + MONTHS[period];
+    const m = local.getUTCMonth() + months;
     const year = local.getUTCFullYear() + Math.floor(m / 12);
     const month = ((m % 12) + 12) % 12;
     const day = Math.min(anchorDay, daysInMonth(year, month));
