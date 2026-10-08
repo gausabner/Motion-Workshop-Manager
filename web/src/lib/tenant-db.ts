@@ -64,7 +64,7 @@ export const TENANT_MODELS = new Set([
     // dormant only because HANDOFF_SECRET is unset, which turns the endpoint
     // off. `tenant-models.test.ts` now asserts this set against the schema so
     // the next one is a build failure rather than a surprise in production.
-    "ExportRun", "Subscription", "SubscriptionPayment", "SubscriptionInvoice",
+    "ExportRun", "Subscription", "SubscriptionPayment", "SubscriptionInvoice", "SubscriptionCreditNote",
 ]);
 
 /**

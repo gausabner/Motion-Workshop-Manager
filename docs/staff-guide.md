@@ -56,8 +56,17 @@ on it.
 
 ### A renewal has been paid
 
-1. Search the reference.
+1. Search the reference. It is under **Renewals due**.
 2. **Payment received** → **Yes — record it**.
+3. The button is replaced by what happened: "paid up to …, tax invoice … is on
+   its way to the owner". That is the confirmation — there is nothing more to
+   press.
+
+A workshop that pays **early** — while it is still paid up for weeks — is not
+in Renewals due and has no Payment received on the list. Click its name and
+use **Record an early payment**, which names the exact period it buys. A
+second payment for the same workshop within ten minutes is refused as a
+probable repeat click.
 
 The date moves on one period and the owner gets a receipt with its tax invoice
 attached. How far it moves:
@@ -131,10 +140,13 @@ It is attached to the owner's email automatically.
   workshop's company profile *as it was when issued*. If the workshop page
   warns that the address or VAT number is missing, ask the owner to fill in
   Settings → Company profile — it applies from their next invoice.
-- **A payment recorded by mistake:** an issued tax invoice cannot be edited or
-  deleted — the database refuses, because it is a tax record on both sides.
-  It is corrected with a credit note, which MOTION does not issue yet: tell
-  whoever looks after the books, and do not record the payment again.
+- **A payment recorded by mistake:** open the workshop's page and use
+  **Reverse** on the newest payment, with a reason — it is printed on the
+  credit note. A **tax credit note** (`MWM-CN-00001` and on) cancels that
+  invoice in full and is emailed to the owner, and the paid-up-to date goes
+  back to where that payment started. Payments are reversed newest first; the
+  next one along then offers **Reverse** too. The invoice and the payment stay
+  on the record, marked cancelled and reversed — nothing is deleted.
 
 ### A workshop that paid before MOTION recorded payments
 

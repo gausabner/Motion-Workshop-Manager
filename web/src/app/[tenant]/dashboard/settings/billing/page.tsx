@@ -42,7 +42,15 @@ export default async function BillingPage({
               where: { tenantId: tenant.id },
               orderBy: { confirmedAt: "desc" },
               take: 24,
-              select: { id: true, confirmedAt: true, periodFrom: true, periodTo: true, amountInclVat: true, invoice: { select: { id: true, number: true } } },
+              select: {
+                  id: true,
+                  confirmedAt: true,
+                  periodFrom: true,
+                  periodTo: true,
+                  amountInclVat: true,
+                  reversedAt: true,
+                  invoice: { select: { id: true, number: true, creditNote: { select: { id: true, number: true } } } },
+              },
           })
         : [];
 
@@ -182,7 +190,10 @@ export default async function BillingPage({
                                                 <tr key={p.id}>
                                                     <td className="px-3 py-2 text-slate-700">{billingDay(p.confirmedAt)}</td>
                                                     <td className="px-3 py-2 text-slate-700">
-                                                        {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
+                                                        <span className={p.reversedAt ? "text-slate-400 line-through" : undefined}>
+                                                            {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
+                                                        </span>
+                                                        {p.reversedAt && <span className="block text-xs text-slate-500">Recorded in error and reversed</span>}
                                                     </td>
                                                     <td className="px-3 py-2 text-right tabular-nums text-slate-900">{money(Number(p.amountInclVat))}</td>
                                                     <td className="px-3 py-2">
@@ -197,6 +208,19 @@ export default async function BillingPage({
                                                             </a>
                                                         ) : (
                                                             <span className="text-slate-400">—</span>
+                                                        )}
+                                                        {p.invoice?.creditNote && (
+                                                            <span className="block text-xs text-slate-500">
+                                                                Cancelled by{" "}
+                                                                <a
+                                                                    href={`/${slug}/dashboard/settings/billing/credit-notes/${p.invoice.creditNote.id}/pdf`}
+                                                                    target="_blank"
+                                                                    rel="noopener"
+                                                                    className="font-medium text-teal-700 hover:underline"
+                                                                >
+                                                                    {p.invoice.creditNote.number}
+                                                                </a>
+                                                            </span>
                                                         )}
                                                     </td>
                                                 </tr>

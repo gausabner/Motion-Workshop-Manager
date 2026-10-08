@@ -7,7 +7,15 @@ import { recipientGaps } from "@/lib/billing/invoices";
 import { withVat } from "@/lib/pricing/plans";
 import { money, dateShort } from "@/lib/format";
 import { ConfirmAction } from "@/app/admin/ConfirmAction";
-import { issueInvoiceAction, recordEarlierPaymentAction, renewAction, resendInvoiceAction } from "@/app/admin/actions";
+import {
+    issueInvoiceAction,
+    recordEarlierPaymentAction,
+    renewAction,
+    resendCreditNoteAction,
+    resendInvoiceAction,
+    reversePaymentAction,
+} from "@/app/admin/actions";
+import { ReversePayment } from "@/app/admin/BillingForms";
 import { actorName, describeAction } from "@/app/admin/activity";
 
 /**
@@ -60,8 +68,11 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                         periodTo: true,
                         amountInclVat: true,
                         note: true,
+                        reversedAt: true,
                         confirmedBy: { select: { firstName: true, lastName: true } },
-                        invoice: { select: { id: true, number: true, emailedAt: true } },
+                        invoice: {
+                            select: { id: true, number: true, emailedAt: true, creditNote: { select: { id: true, number: true, emailedAt: true } } },
+                        },
                     },
                 },
                 platformAuditEvents: {
@@ -84,6 +95,11 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
     // What a payment recorded now would buy: the next period, from the date it is paid up to.
     const nextTo = sub && dated && anchor ? addPeriod(dated, sub.period, anchor) : null;
     const current = dated ? standing(dated, new Date(), renewalRules()) === "current" : false;
+    // Payments that still stand. A reversed one stays listed, but buys nothing.
+    const standingPayments = payments.filter((p) => !p.reversedAt);
+    // Only the newest standing payment can be reversed, and only while the date is still the one it set.
+    const newest = [...standingPayments].sort((a, b) => b.periodTo.getTime() - a.periodTo.getTime())[0];
+    const reversibleId = newest && dated && newest.periodTo.getTime() === dated.getTime() ? newest.id : null;
 
     return (
         <div className="space-y-6">
@@ -122,7 +138,7 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
 
             {/* Early payments are recorded here, not from the list, because this
                 says exactly which period the money buys before anybody presses. */}
-            {sub && dated && nextTo && w.status === "ACTIVE" && current && payments.length > 0 && (
+            {sub && dated && nextTo && w.status === "ACTIVE" && current && standingPayments.length > 0 && (
                 <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-700 sm:flex-row sm:items-start sm:justify-between">
                     <p className="max-w-xl">
                         Paid up to {billingDay(dated)}. If another {money(withVat(Number(sub.priceAmount)))} has arrived early, recording it pays{" "}
@@ -151,13 +167,14 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                 <div className="border-b border-slate-200 px-4 py-3">
                     <h2 className="text-[14px] font-semibold text-slate-900">Payments and tax invoices</h2>
                     <p className="mt-0.5 text-[12.5px] text-slate-500">
-                        Every payment confirmed on this page has its tax invoice, emailed to the owner. An issued invoice cannot be changed or deleted.
+                        Every payment confirmed here has its tax invoice, emailed to the owner. An issued invoice cannot be changed or deleted; a payment
+                        recorded by mistake is reversed — newest first — with a credit note that cancels its invoice.
                     </p>
                 </div>
 
-                {payments.length === 0 ? (
-                    <div className="space-y-3 px-4 py-4 text-[13px] text-slate-600">
-                        <p>No payment recorded in MOTION for this workshop.</p>
+                {standingPayments.length === 0 && (
+                    <div className="space-y-3 border-b border-slate-100 px-4 py-4 text-[13px] text-slate-600">
+                        <p>{payments.length === 0 ? "No payment recorded in MOTION for this workshop." : "Every payment recorded for this workshop has been reversed."}</p>
                         {sub && dated && earlierFrom && (
                             <div className="flex flex-col gap-3 rounded-md border border-slate-200 p-3 sm:flex-row sm:items-start sm:justify-between">
                                 <p className="max-w-xl">
@@ -176,7 +193,8 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                             </div>
                         )}
                     </div>
-                ) : (
+                )}
+                {payments.length > 0 && (
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[720px] text-[13px]">
                             <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
@@ -191,10 +209,13 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {payments.map((p) => (
-                                    <tr key={p.id} className="align-top">
+                                    <tr key={p.id} className={`align-top ${p.reversedAt ? "bg-slate-50/60" : ""}`}>
                                         <td className="whitespace-nowrap px-4 py-3 text-slate-700">{billingDay(p.confirmedAt)}</td>
                                         <td className="px-4 py-3 text-slate-700">
-                                            {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
+                                            <span className={p.reversedAt ? "text-slate-500 line-through" : undefined}>
+                                                {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
+                                            </span>
+                                            {p.reversedAt && <span className="mt-0.5 block text-[12px] font-medium text-red-700">Reversed {billingDay(p.reversedAt)}</span>}
                                             {p.note && <span className="mt-0.5 block text-[12px] text-slate-500">{p.note}</span>}
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-900">{money(Number(p.amountInclVat))}</td>
@@ -214,13 +235,39 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                                                     <span className={`mt-0.5 block text-[12px] ${p.invoice.emailedAt ? "text-slate-500" : "font-medium text-amber-700"}`}>
                                                         {p.invoice.emailedAt ? `Emailed ${billingDay(p.invoice.emailedAt)}` : "Not emailed yet"}
                                                     </span>
+                                                    {p.invoice.creditNote && (
+                                                        <span className="mt-1.5 block">
+                                                            <span className="text-[12px] text-slate-500">Cancelled by </span>
+                                                            <a
+                                                                href={`/admin/credit-notes/${p.invoice.creditNote.id}/pdf`}
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                className="text-[13px] font-medium text-teal-700 hover:underline"
+                                                            >
+                                                                {p.invoice.creditNote.number}
+                                                            </a>
+                                                            <span className={`block text-[12px] ${p.invoice.creditNote.emailedAt ? "text-slate-500" : "font-medium text-amber-700"}`}>
+                                                                {p.invoice.creditNote.emailedAt ? `Emailed ${billingDay(p.invoice.creditNote.emailedAt)}` : "Not emailed yet"}
+                                                            </span>
+                                                        </span>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <span className="text-slate-500">None — confirmed before invoices existed</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {p.invoice ? (
+                                        <td className="space-y-2 px-4 py-3 text-right">
+                                            {p.invoice?.creditNote ? (
+                                                <ConfirmAction
+                                                    key={`send-cn-${p.invoice.creditNote.id}`}
+                                                    action={resendCreditNoteAction}
+                                                    tenantId={w.id}
+                                                    label={p.invoice.creditNote.emailedAt ? "Send credit note again" : "Send credit note"}
+                                                    question={`Email credit note ${p.invoice.creditNote.number} to ${owner?.email ?? "the owner"}?`}
+                                                    confirmLabel="Send it"
+                                                    fields={{ creditNoteId: p.invoice.creditNote.id }}
+                                                />
+                                            ) : p.reversedAt ? null : p.invoice ? (
                                                 <ConfirmAction
                                                     key={`send-${p.invoice.id}`}
                                                     action={resendInvoiceAction}
@@ -240,6 +287,16 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                                                     question={`Issue a tax invoice for this ${money(Number(p.amountInclVat))} payment and email it to the owner? It cannot be withdrawn.`}
                                                     confirmLabel="Issue and send"
                                                     fields={{ paymentId: p.id }}
+                                                />
+                                            )}
+                                            {p.id === reversibleId && (
+                                                <ReversePayment
+                                                    key={`reverse-${p.id}`}
+                                                    action={reversePaymentAction}
+                                                    tenantId={w.id}
+                                                    paymentId={p.id}
+                                                    invoiceNumber={p.invoice?.number ?? null}
+                                                    restoresTo={billingDay(p.periodFrom)}
                                                 />
                                             )}
                                         </td>

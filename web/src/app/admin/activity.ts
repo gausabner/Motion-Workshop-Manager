@@ -16,6 +16,8 @@ const ACTION_WORDS: Record<string, (name: string) => string> = {
     INVOICE_SENT: (n) => `sent ${n} its tax invoice again`,
     INVOICE_ISSUED: (n) => `issued a tax invoice to ${n}`,
     PAYMENT_RECORDED: (n) => `recorded an earlier payment from ${n}`,
+    PAYMENT_REVERSED: (n) => `reversed a payment from ${n} and issued a credit note`,
+    CREDIT_NOTE_SENT: (n) => `sent ${n} its credit note again`,
 };
 
 export function actorName(actor: { firstName: string; lastName: string } | null): string {
