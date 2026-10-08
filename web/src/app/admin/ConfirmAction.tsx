@@ -34,6 +34,17 @@ export function ConfirmAction({
     const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
     const [asking, setAsking] = useState(false);
 
+    // Close the question once the action has worked. Left open, the row
+    // redraws with fresh values in the hidden fields — a renewal's new date —
+    // so a second press on the same open question would record a second month
+    // rather than be refused as stale. Done while rendering, which is React's
+    // way of adjusting state to a new result without a flash of the old one.
+    const [answered, setAnswered] = useState(state);
+    if (state !== answered) {
+        setAnswered(state);
+        if (state.ok) setAsking(false);
+    }
+
     const trigger = {
         primary: "border-teal-600 bg-teal-600 text-white hover:bg-teal-700",
         neutral: "border-slate-300 bg-white text-slate-900 hover:border-slate-400",

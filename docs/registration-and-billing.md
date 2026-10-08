@@ -454,9 +454,19 @@ grace period.
 > that stays a person's decision. A renewal paid while still active continues
 > from the old date; one paid after read-only or suspension starts that day.
 > Workshops live before billing are put on a plan with **Set up billing**.
-> How the team uses it: [staff-guide.md](staff-guide.md). Still open: tax
-> invoices from MOTION, proof-of-payment upload, and what happens on the third
-> unpaid month (dunning is a business policy).
+> How the team uses it: [staff-guide.md](staff-guide.md). Still open:
+> proof-of-payment upload, and what happens on the third unpaid month (dunning
+> is a business policy).
+
+> **Tax invoices: shipped.** Every confirmed payment issues a
+> `SubscriptionInvoice` in the same transaction — a gap-free serial across all
+> workshops (`MWM-00001`, prefix from `BILLING_INVOICE_PREFIX`), with the
+> supplier, the workshop, the period and the money copied onto the row. A
+> trigger makes it final: nothing but `emailedAt` can change, and it cannot be
+> deleted. It is attached to the activation and renewal emails, listed on each
+> workshop's staff page (`/admin/workshops/[id]`) and on the workshop's own
+> Billing page. Not built: credit notes, which is how a wrong invoice would be
+> corrected.
 
 **Later — cards.** `PaymentMethodKind` already has room for it. Nothing in
 phases 1–3 should assume a bank deposit is the only way money arrives.
@@ -465,10 +475,8 @@ phases 1–3 should assume a bank deposit is the only way money arrives.
 
 ## What this does not cover
 
-- **Invoices from MOTION to its clients.** A client paying N$1,200 a month will
-  want a tax invoice, and councils will insist. The product can already render
-  PDFs; this would be MOTION's own books rather than a workshop's, which is a
-  different ledger and arguably a different system.
+- **Credit notes from MOTION to its clients.** Tax invoices are issued (see
+  Phase 3 above); correcting one needs a credit note, which is not built.
 - **Dunning.** What actually happens on the third unpaid month is a business
   policy, not a schema.
 - **Proration and plan changes.** A workshop moving from Workshop to Full

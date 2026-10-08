@@ -1,6 +1,6 @@
 import "server-only";
 import type { DocumentType } from "@prisma/client";
-import { CONTENT_WIDTH, INK, MARGIN, PAGE, caption, createDocument, rule, stampPageNumbers, table, toBuffer, totals, type Column } from "@/lib/pdf/kit";
+import { CONTENT_WIDTH, INK, MARGIN, PAGE, caption, createDocument, rule, stampPageNumbers, table, toBuffer, totals, type Column, MINUS } from "@/lib/pdf/kit";
 import { money as formatMoney } from "@/lib/format";
 import { documentTitle } from "@/lib/templates/values";
 import { drawLetterhead, drawNotes, drawParties, NOTES_WIDTH, type Letterhead } from "@/lib/pdf/letterhead";
@@ -148,7 +148,7 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Buffer
     const totalLines: { label: string; value: string; strong?: boolean }[] = [
         { label: "Subtotal", value: money(input.subtotal) },
     ];
-    if (input.discountApplied) totalLines.push({ label: "Discount", value: `− ${money(input.discountApplied)}` });
+    if (input.discountApplied) totalLines.push({ label: "Discount", value: `${MINUS}${money(input.discountApplied)}` });
     if (input.freight) totalLines.push({ label: "Freight", value: money(input.freight) });
     totalLines.push({ label: `${input.taxName} (${input.taxRate}%)`, value: money(input.vatTotal) });
     totalLines.push({ label: "Total", value: money(input.total), strong: true });

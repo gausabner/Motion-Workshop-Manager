@@ -25,6 +25,15 @@ export const INK = {
 
 export type Doc = PDFKit.PDFDocument;
 
+/**
+ * The minus in front of a deduction. An en dash, not U+2212: the built-in PDF
+ * fonts are WinAnsi-encoded, which has no minus sign, and PDFKit prints
+ * whatever glyph happens to sit at that code instead — so every discount on an
+ * invoice and every credit note on a receipt came out with a stray symbol
+ * where the minus should have been.
+ */
+export const MINUS = "\u2013 ";
+
 export function createDocument(title: string): Doc {
     return new PDFDocument({
         size: [PAGE.width, PAGE.height],

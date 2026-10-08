@@ -4,7 +4,9 @@ import { bankDetails } from "@/lib/billing/config";
 import { appUrl, supportAddress, teamAddress } from "@/lib/billing/registration";
 import { billingDay } from "@/lib/billing/periods";
 import { VAT_RATE, withVat } from "@/lib/pricing/plans";
-import { sendMail } from "@/lib/mail/send";
+import { sendMail, type Mail } from "@/lib/mail/send";
+
+type MailAttachment = NonNullable<Mail["attachments"]>[number];
 import { money } from "@/lib/format";
 
 /**
@@ -88,18 +90,45 @@ export async function sendReadOnlyNotice(n: Due): Promise<void> {
     });
 }
 
-export async function sendRenewalReceipt(n: Owner & { slug: string; paidUntil: Date; amountInclVat: number; restored: boolean }): Promise<void> {
+export async function sendRenewalReceipt(
+    n: Owner & { slug: string; paidUntil: Date; amountInclVat: number; restored: boolean; invoice?: { number: string; attachment: MailAttachment } },
+): Promise<void> {
     const base = appUrl();
     await sendMail({
         to: n.to,
+        attachments: n.invoice ? [n.invoice.attachment] : undefined,
         subject: `Payment received — ${n.workshopName} is paid up to ${billingDay(n.paidUntil)}`,
         text: [
             `Hi ${n.firstName},`,
             "",
             `Thank you. We have received your payment of ${money(n.amountInclVat)} and ${n.workshopName} is paid up to ${billingDay(n.paidUntil)}.`,
             ...(n.restored ? ["", "Full access is back: you can raise quotes, job cards and invoices again, with everything exactly where you left it."] : []),
+            ...(n.invoice ? ["", `Your tax invoice, ${n.invoice.number}, is attached.`] : []),
             "",
             ...(base ? [`${base}/${n.slug}/dashboard`, ""] : []),
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
+/**
+ * A tax invoice on its own — sent again on request, or for a payment recorded
+ * after the fact. Short: the attachment is the point.
+ */
+export async function sendInvoiceLetter(n: Owner & { invoiceNumber: string; amountInclVat: number; attachment: MailAttachment }): Promise<void> {
+    const reach = supportAddress();
+    await sendMail({
+        to: n.to,
+        subject: `Tax invoice ${n.invoiceNumber} — ${n.workshopName}`,
+        attachments: [n.attachment],
+        text: [
+            `Hi ${n.firstName},`,
+            "",
+            `Attached is tax invoice ${n.invoiceNumber} for your MOTION subscription for ${n.workshopName}: ${money(n.amountInclVat)}, already paid. Nothing is due.`,
+            "",
+            "Keep it with your VAT records. Your invoices are also under Settings → Billing in MOTION.",
+            ...(reach ? ["", `Questions to ${reach}, quoting ${n.invoiceNumber}.`] : []),
+            "",
             "— MOTION",
         ].join("\n"),
     });

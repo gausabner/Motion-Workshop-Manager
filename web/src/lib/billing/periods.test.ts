@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, billingInputValue, decideTick, readOnlyFrom, renewalStart, standing, type RenewalRules } from "@/lib/billing/periods";
+import { addPeriod, anchorDayOf, periodStartFor, billingDateFromInput, billingDay, billingInputValue, decideTick, readOnlyFrom, renewalStart, standing, type RenewalRules } from "@/lib/billing/periods";
 
 const RULES: RenewalRules = { reminderDays: 7, graceDays: 7 };
 const d = (iso: string) => new Date(iso);
@@ -108,4 +108,12 @@ test("a typed date is the start of that day in Windhoek, and an impossible one i
     assert.equal(billingInputValue(billingDateFromInput("2026-11-07")!), "2026-11-07");
     assert.equal(billingDateFromInput("2026-02-31"), null);
     assert.equal(billingDateFromInput("7/11/2026"), null);
+});
+
+test("a period's start is one period back from its end, on the same anchor", () => {
+    assert.equal(periodStartFor(d("2026-11-07T15:32:19.284Z"), "MONTHLY").toISOString(), "2026-10-07T15:32:19.284Z");
+    assert.equal(periodStartFor(d("2027-01-15T00:00:00Z"), "MONTHLY").toISOString(), "2026-12-15T00:00:00.000Z");
+    // Ending on 28 February in a run anchored on the 31st began on 31 January.
+    assert.equal(billingDay(periodStartFor(billingDateFromInput("2027-02-28")!, "MONTHLY", 31)), "31 January 2027");
+    assert.equal(periodStartFor(d("2027-02-15T00:00:00Z"), "QUARTERLY").toISOString(), "2026-11-15T00:00:00.000Z");
 });

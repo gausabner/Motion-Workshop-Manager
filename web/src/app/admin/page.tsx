@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { Search } from "lucide-react";
 import { asStaff } from "@/lib/admin/platform";
@@ -18,6 +19,7 @@ import {
 } from "@/app/admin/actions";
 import { billingDay, billingInputValue, readOnlyFrom, renewalRules, standing } from "@/lib/billing/periods";
 import { PLANS } from "@/lib/pricing/plans";
+import { actorName, describeAction } from "@/app/admin/activity";
 
 /**
  * Registrations, and every workshop's standing with MOTION.
@@ -158,7 +160,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                             tenantId={w.id}
                             tone="primary"
                             label="Payment received"
-                            question={`Has ${w.subscription ? money(withVat(Number(w.subscription.priceAmount))) : "the payment"} arrived under ${w.subscription?.reference}? ${w.name} will be switched on and emailed.`}
+                            question={`Has ${w.subscription ? money(withVat(Number(w.subscription.priceAmount))) : "the payment"} arrived under ${w.subscription?.reference}? ${w.name} will be switched on, and the owner emailed with a tax invoice.`}
                             confirmLabel="Yes — switch it on"
                         />
                         <ConfirmAction
@@ -272,8 +274,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         {activity.map((a) => (
                             <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5 text-[13px]">
                                 <span className="text-slate-900">
-                                    <span className="font-medium">{a.actor ? `${a.actor.firstName} ${a.actor.lastName}` : "MOTION (automatic)"}</span>{" "}
-                                    {(ACTION_WORDS[a.action] ?? ((n: string) => `${a.action.toLowerCase()} ${n}`))(a.tenant?.name ?? "a workshop since removed")}
+                                    <span className="font-medium">{actorName(a.actor)}</span> {describeAction(a.action, a.tenant?.name)}
                                 </span>
                                 <span className="tabular-nums text-slate-500">{dateShort(a.createdAt)}</span>
                             </li>
@@ -285,17 +286,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
 }
 
-const ACTION_WORDS: Record<string, (name: string) => string> = {
-    ACTIVATED: (n) => `approved ${n}`,
-    CANCELLED: (n) => `cancelled ${n}`,
-    SUSPENDED: (n) => `suspended ${n}`,
-    REACTIVATED: (n) => `switched ${n} back on`,
-    RENEWED: (n) => `recorded a renewal from ${n}`,
-    PAST_DUE: (n) => `made ${n} read-only — grace period over`,
-    BILLING_SET: (n) => `set up billing for ${n}`,
-    PAID_UNTIL_CHANGED: (n) => `changed ${n}'s paid-up-to date`,
-};
-
 function RenewButton({ w }: { w: Workshop }) {
     const sub = w.subscription!;
     return (
@@ -306,7 +296,7 @@ function RenewButton({ w }: { w: Workshop }) {
             label="Payment received"
             question={`Has ${money(withVat(Number(sub.priceAmount)))} arrived under ${sub.reference}? ${w.name} will be paid up a further ${PERIOD_WORDS[sub.period]}${
                 w.status === "ACTIVE" ? "" : ", full access restored"
-            }, and the owner sent a receipt.`}
+            }, and the owner emailed a receipt with its tax invoice.`}
             confirmLabel="Yes — record it"
             fields={{ expectedEnd: sub.periodEndsAt?.toISOString() ?? "" }}
         />
@@ -384,7 +374,10 @@ function Section({
                             <li key={w.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0 space-y-1">
                                     <p className="text-[15px] font-medium text-slate-900">
-                                        {w.name} <span className="font-normal text-slate-500">/{w.slug}</span>
+                                        <Link href={`/admin/workshops/${w.id}`} className="hover:text-teal-700 hover:underline">
+                                            {w.name}
+                                        </Link>{" "}
+                                        <span className="font-normal text-slate-500">/{w.slug}</span>
                                     </p>
                                     {owner && (
                                         <p className="text-[13px] text-slate-600">

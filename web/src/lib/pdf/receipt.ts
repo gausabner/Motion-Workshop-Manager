@@ -1,5 +1,5 @@
 import "server-only";
-import { CONTENT_WIDTH, INK, createDocument, stampPageNumbers, table, toBuffer, totals, type Column } from "@/lib/pdf/kit";
+import { CONTENT_WIDTH, INK, createDocument, stampPageNumbers, table, toBuffer, totals, type Column, MINUS } from "@/lib/pdf/kit";
 import { money as formatMoney } from "@/lib/format";
 import { drawLetterhead, drawNotes, drawParties, NOTES_WIDTH, type Letterhead } from "@/lib/pdf/letterhead";
 
@@ -80,7 +80,7 @@ export async function renderReceiptPdf(input: ReceiptPdfInput): Promise<Buffer> 
                 label: allocation.label,
                 number: allocation.number ?? "",
                 date: allocation.date,
-                amount: `${allocation.amount < 0 ? "− " : ""}${money(allocation.amount)}`,
+                amount: `${allocation.amount < 0 ? MINUS : ""}${money(allocation.amount)}`,
             })),
         });
     }

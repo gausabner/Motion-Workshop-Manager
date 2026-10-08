@@ -6,7 +6,9 @@ import { forTenant } from "@/lib/tenant-db";
 import { bankDetails } from "@/lib/billing/config";
 import { newReference } from "@/lib/billing/reference";
 import { PLANS, VAT_RATE, withVat, CURRENCY } from "@/lib/pricing/plans";
-import { sendMail } from "@/lib/mail/send";
+import { sendMail, type Mail } from "@/lib/mail/send";
+
+type MailAttachment = NonNullable<Mail["attachments"]>[number];
 import { money } from "@/lib/format";
 import { support } from "@/lib/edition";
 import { billingDay } from "@/lib/billing/periods";
@@ -319,10 +321,19 @@ async function sendTeamNotice(n: RegistrationNotice): Promise<void> {
  * they are active and have no idea — and they keep checking a bank app
  * instead of using the product they paid for.
  */
-export async function sendActivationLetter(n: { to: string; firstName: string; workshopName: string; slug: string; paidUntil: Date }): Promise<void> {
+export async function sendActivationLetter(n: {
+    to: string;
+    firstName: string;
+    workshopName: string;
+    slug: string;
+    paidUntil: Date;
+    /** The tax invoice for the payment that switched it on. */
+    invoice?: { number: string; attachment: MailAttachment };
+}): Promise<void> {
     const base = appUrl();
     await sendMail({
         to: n.to,
+        attachments: n.invoice ? [n.invoice.attachment] : undefined,
         subject: `${n.workshopName} is live on MOTION`,
         text: [
             `Hi ${n.firstName},`,
@@ -336,6 +347,7 @@ export async function sendActivationLetter(n: { to: string; firstName: string; w
             // Said now, so the first reminder is not the first they hear of it.
             `You are paid up to ${billingDay(n.paidUntil)}. We will email you a week before the next payment is due, with the same reference to use.`,
             "",
+            ...(n.invoice ? [`Your tax invoice, ${n.invoice.number}, is attached. You will find it under Settings → Billing too.`, ""] : []),
             "Welcome aboard.",
             "",
             "— MOTION",
