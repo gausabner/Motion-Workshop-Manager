@@ -25,6 +25,27 @@ export const settingsTopics: Topic[] = [
         related: ["first-hour"],
     },
     {
+        slug: "document-numbers",
+        group: "settings",
+        title: "Your invoice and document numbers",
+        question: "Can I change how my invoices are numbered?",
+        answer: "Yes — Settings → Document numbers. Each kind of document has its own prefix and next number, and MOTION never issues a number twice.",
+        screens: ["/dashboard/settings/numbering"],
+        blocks: [
+            { kind: "p", text: "Every kind of document — invoices, credit notes, quotes, job cards, receipts, refunds, inspections, purchase orders and supplier payments — has its own series: a prefix you choose and the number it continues from. A new workshop starts at INV-1001, Q-1001 and so on. The screen shows exactly what the next one will be called before you save." },
+            { kind: "h", text: "Coming from another system" },
+            { kind: "p", text: "Carry on where your old invoices stopped, so your books run on without a break. If the last invoice in your old system was 4812, keep the prefix you used there and set the next number to 4813." },
+            { kind: "h", text: "What MOTION will not let you do" },
+            { kind: "list", items: [
+                "Issue a number twice. A series can only continue above the highest number already issued with its prefix.",
+                "Give two kinds of document the same prefix. A number has to say what it is.",
+                "Renumber a document that already has a number. A change applies from the next document on.",
+            ] },
+            { kind: "note", text: "A new prefix can start from any number, because nothing has been issued with it yet. Going back to a prefix you used before means continuing after the last number it issued." },
+        ],
+        related: ["who-can-do-what"],
+    },
+    {
         slug: "sending-documents",
         group: "settings",
         title: "Sending a document to a customer",
