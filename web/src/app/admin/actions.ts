@@ -6,7 +6,7 @@ import { Prisma, type BillingPeriod, type SubscriptionInvoice, type TenantStatus
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
 import { sendInvoiceLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
-import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalStart } from "@/lib/billing/periods";
+import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalRefusal, renewalRules, renewalStart } from "@/lib/billing/periods";
 import { issueInvoice } from "@/lib/billing/invoices";
 import { renderSubscriptionInvoicePdf } from "@/lib/pdf/subscription-invoice";
 import { newReference } from "@/lib/billing/reference";
@@ -219,6 +219,8 @@ export async function activateAction(_prev: AdminActionState, formData: FormData
 export async function renewAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
     const expectedEnd = expectedEndFrom(formData);
     if (expectedEnd === "invalid") return { ok: false, message: "The page was out of date. Refresh and try again." };
+    // Sent only by the workshop's own page, which names the period an early payment buys.
+    const early = formData.get("early") === "1";
 
     return run(formData, async (tx, staff, w, now) => {
         const sub = w.subscription;
@@ -227,6 +229,25 @@ export async function renewAction(_prev: AdminActionState, formData: FormData): 
         }
         const allowed: TenantStatus[] = ["ACTIVE", "PAST_DUE", "SUSPENDED"];
         if (!allowed.includes(w.status)) return STALE(w.name);
+
+        // Lock the subscription first, so two presses arriving together are
+        // checked one after the other rather than both finding no payment.
+        await tx.$executeRaw`SELECT 1 FROM "Subscription" WHERE "id" = ${sub.id} FOR UPDATE`;
+        const last = await tx.subscriptionPayment.findFirst({
+            where: { tenantId: w.id },
+            orderBy: { confirmedAt: "desc" },
+            select: { confirmedAt: true, invoice: { select: { number: true } } },
+        });
+        const refusal = renewalRefusal({
+            workshopName: w.name,
+            tenantStatus: w.status,
+            periodEndsAt: sub.periodEndsAt,
+            early,
+            lastPayment: last ? { confirmedAt: last.confirmedAt, invoiceNumber: last.invoice?.number ?? null } : null,
+            now,
+            rules: renewalRules(),
+        });
+        if (refusal) return { ok: false, message: refusal };
 
         const restored = w.status !== "ACTIVE";
         if (restored) {

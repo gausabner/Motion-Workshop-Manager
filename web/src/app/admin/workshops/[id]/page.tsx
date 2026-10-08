@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
 import { asStaff } from "@/lib/admin/platform";
-import { billingDay, anchorDayOf, periodStartFor } from "@/lib/billing/periods";
+import { addPeriod, billingDay, anchorDayOf, periodStartFor, renewalRules, standing } from "@/lib/billing/periods";
 import { recipientGaps } from "@/lib/billing/invoices";
 import { withVat } from "@/lib/pricing/plans";
 import { money, dateShort } from "@/lib/format";
 import { ConfirmAction } from "@/app/admin/ConfirmAction";
-import { issueInvoiceAction, recordEarlierPaymentAction, resendInvoiceAction } from "@/app/admin/actions";
+import { issueInvoiceAction, recordEarlierPaymentAction, renewAction, resendInvoiceAction } from "@/app/admin/actions";
 import { actorName, describeAction } from "@/app/admin/activity";
 
 /**
@@ -79,7 +79,11 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
     const payments = w.subscriptionPayments;
     const gaps = recipientGaps(w);
     const dated = sub?.status === "ACTIVE" && sub.periodEndsAt ? sub.periodEndsAt : null;
-    const earlierFrom = sub && dated ? periodStartFor(dated, sub.period, sub.startedAt ? anchorDayOf(sub.startedAt) : anchorDayOf(dated)) : null;
+    const anchor = sub && dated ? (sub.startedAt ? anchorDayOf(sub.startedAt) : anchorDayOf(dated)) : null;
+    const earlierFrom = sub && dated && anchor ? periodStartFor(dated, sub.period, anchor) : null;
+    // What a payment recorded now would buy: the next period, from the date it is paid up to.
+    const nextTo = sub && dated && anchor ? addPeriod(dated, sub.period, anchor) : null;
+    const current = dated ? standing(dated, new Date(), renewalRules()) === "current" : false;
 
     return (
         <div className="space-y-6">
@@ -115,6 +119,25 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                     <p className="text-slate-600">No billing set up.</p>
                 )}
             </section>
+
+            {/* Early payments are recorded here, not from the list, because this
+                says exactly which period the money buys before anybody presses. */}
+            {sub && dated && nextTo && w.status === "ACTIVE" && current && payments.length > 0 && (
+                <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-700 sm:flex-row sm:items-start sm:justify-between">
+                    <p className="max-w-xl">
+                        Paid up to {billingDay(dated)}. If another {money(withVat(Number(sub.priceAmount)))} has arrived early, recording it pays{" "}
+                        {w.name} up to {billingDay(nextTo)} and emails the owner a receipt with its tax invoice.
+                    </p>
+                    <ConfirmAction
+                        action={renewAction}
+                        tenantId={w.id}
+                        label="Record an early payment"
+                        question={`Has a further ${money(withVat(Number(sub.priceAmount)))} arrived under ${sub.reference}, for ${billingDay(dated)} to ${billingDay(nextTo)}? A tax invoice is issued for it and emailed to the owner.`}
+                        confirmLabel="Yes — record it"
+                        fields={{ expectedEnd: dated.toISOString(), early: "1" }}
+                    />
+                </section>
+            )}
 
             {gaps.length > 0 && (
                 <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">

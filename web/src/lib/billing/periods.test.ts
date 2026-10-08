@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addPeriod, anchorDayOf, periodStartFor, billingDateFromInput, billingDay, billingInputValue, decideTick, readOnlyFrom, renewalStart, standing, type RenewalRules } from "@/lib/billing/periods";
+import { addPeriod, anchorDayOf, periodStartFor, renewalRefusal, billingDateFromInput, billingDay, billingInputValue, decideTick, readOnlyFrom, renewalStart, standing, type RenewalRules } from "@/lib/billing/periods";
 
 const RULES: RenewalRules = { reminderDays: 7, graceDays: 7 };
 const d = (iso: string) => new Date(iso);
@@ -116,4 +116,37 @@ test("a period's start is one period back from its end, on the same anchor", () 
     // Ending on 28 February in a run anchored on the 31st began on 31 January.
     assert.equal(billingDay(periodStartFor(billingDateFromInput("2027-02-28")!, "MONTHLY", 31)), "31 January 2027");
     assert.equal(periodStartFor(d("2027-02-15T00:00:00Z"), "QUARTERLY").toISOString(), "2026-11-15T00:00:00.000Z");
+});
+
+// ── when a renewal is refused ───────────────────────────────────────────────
+
+const guard = (over: Partial<Parameters<typeof renewalRefusal>[0]> = {}) =>
+    renewalRefusal({
+        workshopName: "TransTek",
+        tenantStatus: "ACTIVE",
+        periodEndsAt: d("2026-11-07T15:32:19Z"),
+        early: false,
+        lastPayment: null,
+        now: d("2026-11-03T08:00:00Z"),
+        rules: RULES,
+        ...over,
+    });
+
+test("a renewal that is due is recorded", () => {
+    assert.equal(guard(), null);
+    assert.equal(guard({ tenantStatus: "PAST_DUE", now: d("2026-11-20T08:00:00Z") }), null);
+});
+
+test("a second payment for the same workshop moments later is refused — the repeated click", () => {
+    const lastPayment = { confirmedAt: d("2026-11-03T07:59:50Z"), invoiceNumber: "MWM-00001" };
+    assert.match(guard({ lastPayment }) ?? "", /moments ago \(MWM-00001\)/);
+    assert.match(guard({ lastPayment, early: true }) ?? "", /moments ago/, "the workshop's own page is not a way round it");
+    assert.equal(guard({ lastPayment: { confirmedAt: d("2026-11-03T07:45:00Z"), invoiceNumber: null } }), null, "a quarter of an hour later is a real second payment");
+});
+
+test("a workshop paid up for weeks yet is refused from the list, and allowed from its own page", () => {
+    const now = d("2026-10-08T12:50:00Z");
+    assert.match(guard({ now }) ?? "", /paid up to 7 November 2026, so nothing is due/);
+    assert.equal(guard({ now, early: true }), null);
+    assert.equal(guard({ now, tenantStatus: "SUSPENDED" }), null, "a suspended workshop paying is restoring access, not paying early");
 });

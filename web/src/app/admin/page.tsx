@@ -219,17 +219,20 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
             <Section
                 title="Active"
-                hint="Paid up, newest first. Record a payment that arrives early with Payment received; suspend a workshop that has stopped paying — access stops, the data stays."
+                hint="Paid up, newest first. A workshop moves to Renewals due a week before its date. One that pays early is recorded from its own page — click its name."
                 empty={q ? "No active workshop matches that search." : "None yet."}
                 workshops={live}
                 now={now}
                 renderActions={(w) => (
                     <>
+                        {/* No "Payment received" here. These workshops are paid up
+                            for weeks yet, and a payment button on a row that
+                            does not move after the press is how one workshop
+                            was renewed three times in a minute. An early payment
+                            is recorded from the workshop's page, which says
+                            exactly which period it buys. */}
                         {w.subscription?.status === "ACTIVE" && w.subscription.periodEndsAt ? (
-                            <>
-                                <RenewButton w={w} />
-                                <ChangePaidUntil action={setPaidUntilAction} tenantId={w.id} current={billingInputValue(w.subscription.periodEndsAt)} />
-                            </>
+                            <ChangePaidUntil action={setPaidUntilAction} tenantId={w.id} current={billingInputValue(w.subscription.periodEndsAt)} />
                         ) : !w.subscription ? (
                             <SetUpBilling
                                 action={setUpBillingAction}
