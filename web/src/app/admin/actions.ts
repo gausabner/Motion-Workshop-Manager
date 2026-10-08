@@ -2,13 +2,14 @@
 
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { Prisma, type BillingPeriod, type SubscriptionInvoice, type TenantStatus } from "@prisma/client";
+import { Prisma, type BillingPeriod, type SubscriptionCreditNote, type SubscriptionInvoice, type TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
-import { sendInvoiceLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { sendCreditNoteLetter, sendInvoiceLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
 import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalRefusal, renewalRules, renewalStart } from "@/lib/billing/periods";
 import { issueInvoice } from "@/lib/billing/invoices";
-import { renderSubscriptionInvoicePdf } from "@/lib/pdf/subscription-invoice";
+import { reversePayment } from "@/lib/billing/reversals";
+import { renderSubscriptionCreditNotePdf, renderSubscriptionInvoicePdf } from "@/lib/pdf/subscription-invoice";
 import { newReference } from "@/lib/billing/reference";
 import { PLANS, withVat } from "@/lib/pricing/plans";
 
@@ -234,7 +235,7 @@ export async function renewAction(_prev: AdminActionState, formData: FormData): 
         // checked one after the other rather than both finding no payment.
         await tx.$executeRaw`SELECT 1 FROM "Subscription" WHERE "id" = ${sub.id} FOR UPDATE`;
         const last = await tx.subscriptionPayment.findFirst({
-            where: { tenantId: w.id },
+            where: { tenantId: w.id, reversedAt: null },
             orderBy: { confirmedAt: "desc" },
             select: { confirmedAt: true, invoice: { select: { number: true } } },
         });
@@ -496,8 +497,9 @@ export async function issueInvoiceAction(_prev: AdminActionState, formData: Form
  * Record a payment that was made before MOTION recorded payments — the period
  * a workshop is paid up to right now — and issue its tax invoice.
  *
- * Only for a workshop with no payment recorded at all, which after this ships
- * means one that was switched on or set up by hand. It does not move the date:
+ * Only for a workshop with no payment standing — none recorded, or every one
+ * reversed — which means one switched on or set up by hand, or one whose
+ * payments were recorded in error and undone. It does not move the date:
  * the period it records is the one the workshop is already in.
  *
  * Staff decide whether the money really arrived. Nothing here can tell a real
@@ -511,7 +513,7 @@ export async function recordEarlierPaymentAction(_prev: AdminActionState, formDa
 
         // Lock the subscription so two clicks cannot both find "no payments yet".
         await tx.$executeRaw`SELECT 1 FROM "Subscription" WHERE "id" = ${sub.id} FOR UPDATE`;
-        if ((await tx.subscriptionPayment.count({ where: { tenantId: w.id } })) > 0) {
+        if ((await tx.subscriptionPayment.count({ where: { tenantId: w.id, reversedAt: null } })) > 0) {
             return { ok: false, message: `${w.name} already has a payment recorded — refresh to see it.` };
         }
 
@@ -539,5 +541,77 @@ export async function recordEarlierPaymentAction(_prev: AdminActionState, formDa
             message: `${w.name}: payment for ${billingDay(start)} to ${billingDay(end)} recorded. Tax invoice ${invoice.number} is on its way to the owner.`,
             letter: sendInvoice(w, invoice),
         };
+    });
+}
+
+// ── undoing a payment recorded in error ──────────────────────────────────────
+
+async function markCreditNoteEmailed(id: string) {
+    await asStaff((tx) => tx.subscriptionCreditNote.update({ where: { id }, data: { emailedAt: new Date() } }));
+}
+
+function sendCreditNote(w: Workshop, note: SubscriptionCreditNote, invoice: Pick<SubscriptionInvoice, "number" | "issuedAt">, paidUntil: Date): Letter {
+    const o = owner(w);
+    if (!o) return null;
+    return async () => {
+        const content = await renderSubscriptionCreditNotePdf(note, invoice);
+        await sendCreditNoteLetter({
+            to: o.email,
+            firstName: o.firstName,
+            workshopName: w.name,
+            creditNoteNumber: note.number,
+            invoiceNumber: invoice.number,
+            reason: note.reason,
+            paidUntil,
+            attachment: { filename: `${note.number}.pdf`, content, contentType: "application/pdf" },
+        });
+        await markCreditNoteEmailed(note.id);
+    };
+}
+
+/**
+ * Reverse the most recent payment: its invoice is cancelled by a credit note
+ * emailed to the owner, and the paid-up-to date goes back to where it began.
+ * The rules are in `lib/billing/reversals.ts`.
+ */
+export async function reversePaymentAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const paymentId = String(formData.get("paymentId") ?? "");
+    const reason = String(formData.get("reason") ?? "");
+    return run(formData, async (tx, staff, w, now) => {
+        const result = await reversePayment(tx, { tenantId: w.id, paymentId, staffId: staff.id, reason, now });
+        if (!result.ok) return result;
+
+        const invoice = result.creditNote
+            ? await tx.subscriptionInvoice.findUniqueOrThrow({ where: { id: result.creditNote.invoiceId }, select: { number: true, issuedAt: true } })
+            : null;
+        await audit(tx, staff, w, "PAYMENT_REVERSED", {
+            invoice: result.invoiceNumber,
+            creditNote: result.creditNote?.number ?? null,
+            paidUntil: result.paidUntil.toISOString(),
+            reason: reason.trim(),
+        });
+        return {
+            ok: true,
+            slug: w.slug,
+            message: result.creditNote
+                ? `Reversed. Credit note ${result.creditNote.number} cancels ${result.invoiceNumber} and is on its way to the owner; ${w.name} is paid up to ${billingDay(result.paidUntil)}.`
+                : `Reversed. ${w.name} is paid up to ${billingDay(result.paidUntil)}.`,
+            letter: result.creditNote && invoice ? sendCreditNote(w, result.creditNote, invoice, result.paidUntil) : null,
+        };
+    });
+}
+
+export async function resendCreditNoteAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const creditNoteId = String(formData.get("creditNoteId") ?? "");
+    return run(formData, async (tx, staff, w) => {
+        const note = await tx.subscriptionCreditNote.findFirst({
+            where: { id: creditNoteId, tenantId: w.id },
+            include: { invoice: { select: { number: true, issuedAt: true } } },
+        });
+        if (!note) return { ok: false, message: "That credit note is not this workshop's." };
+        if (!owner(w)) return { ok: false, message: `${w.name} has no owner to send it to.` };
+        await audit(tx, staff, w, "CREDIT_NOTE_SENT", { creditNote: note.number });
+        const paidUntil = w.subscription?.periodEndsAt ?? note.issuedAt;
+        return { ok: true, slug: w.slug, message: `Credit note ${note.number} is on its way to the owner.`, letter: sendCreditNote(w, note, note.invoice, paidUntil) };
     });
 }

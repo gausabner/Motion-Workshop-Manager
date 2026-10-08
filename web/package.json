@@ -13,7 +13,7 @@
     "mail:check": "tsx --env-file-if-exists=.env --conditions=react-server scripts/mail-check.ts",
     "postinstall": "prisma generate",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "test:db": "DATABASE_URL=\"$DATABASE_URL_ADMIN\" tsx --conditions=react-server --test \"src/**/*.dbtest.ts\""
+    "test:db": "DATABASE_URL=\"$DATABASE_URL_ADMIN\" tsx --conditions=react-server --test --test-concurrency=1 \"src/**/*.dbtest.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

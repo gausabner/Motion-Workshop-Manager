@@ -155,3 +155,92 @@ export function ChangePaidUntil({ action, tenantId, current }: { action: Action;
         </form>
     );
 }
+
+/**
+ * Reversing a payment recorded in error. Folded, red, and asking for a reason
+ * in words — the reason is printed on the credit note the owner receives, so
+ * "mistake" is not enough and "Recorded three times by mistake" is.
+ */
+export function ReversePayment({
+    action,
+    tenantId,
+    paymentId,
+    invoiceNumber,
+    restoresTo,
+}: {
+    action: Action;
+    tenantId: string;
+    paymentId: string;
+    invoiceNumber: string | null;
+    restoresTo: string;
+}) {
+    const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
+    const [open, setOpen] = useState(false);
+    const [seen, setSeen] = useState(state);
+    const [done, setDone] = useState<string | null>(null);
+    if (state !== seen) {
+        setSeen(state);
+        if (state.ok) {
+            setOpen(false);
+            setDone(state.message);
+        }
+    }
+
+    if (done) return <p role="status" className="max-w-xs text-right text-[13px] font-medium leading-snug text-teal-800">{done}</p>;
+    if (!open) {
+        return (
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="inline-flex min-h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-[13px] font-medium text-red-700 hover:border-red-300"
+            >
+                Reverse
+            </button>
+        );
+    }
+    return (
+        <form action={formAction} className="flex w-full max-w-sm flex-col gap-3 rounded-md border border-red-200 bg-white p-3 text-left">
+            <input type="hidden" name="tenantId" value={tenantId} />
+            <input type="hidden" name="paymentId" value={paymentId} />
+            <p className="text-[13px] leading-snug text-slate-900">
+                For a payment recorded by mistake.{" "}
+                {invoiceNumber ? `Tax invoice ${invoiceNumber} is cancelled by a credit note emailed to the owner, and the` : "The"}{" "}
+                paid-up-to date goes back to {restoresTo}. The payment stays on the record, marked reversed.
+            </p>
+            <label className={label}>
+                Reason, printed on the credit note
+                <textarea
+                    name="reason"
+                    required
+                    minLength={5}
+                    maxLength={300}
+                    rows={2}
+                    placeholder="Recorded twice by mistake — only one payment was received."
+                    className="rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                />
+            </label>
+            <div className="flex justify-end gap-2">
+                <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    disabled={pending}
+                    className="inline-flex min-h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-[13px] text-slate-700"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    disabled={pending}
+                    className="inline-flex min-h-9 items-center rounded-md border border-red-600 bg-red-600 px-3 text-[13px] font-medium text-white hover:bg-red-700 disabled:opacity-70"
+                >
+                    {pending ? "Working…" : invoiceNumber ? "Reverse and send credit note" : "Reverse"}
+                </button>
+            </div>
+            {state.message && !state.ok && (
+                <p role="alert" className="text-right text-[12px] text-red-600">
+                    {state.message}
+                </p>
+            )}
+        </form>
+    );
+}

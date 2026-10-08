@@ -1,9 +1,10 @@
 import "server-only";
 
-import type { BillingPeriod, Prisma, SubscriptionInvoice } from "@prisma/client";
+import type { BillingPeriod, Prisma, SubscriptionCreditNote, SubscriptionInvoice } from "@prisma/client";
 import { LEGAL_ENTITY } from "@/lib/legal/documents";
 import { support } from "@/lib/edition";
 import { VAT_RATE } from "@/lib/pricing/plans";
+import { billingDay } from "@/lib/billing/periods";
 
 /**
  * Tax invoices for MOTION's own billing: one per confirmed payment.
@@ -184,6 +185,55 @@ export async function issueInvoice(tx: Prisma.TransactionClient, paymentId: stri
             currency: sub.currency,
             paymentReference: sub.reference,
             paidAt: payment.confirmedAt,
+        },
+    });
+}
+
+/** Credit notes are their own series: the invoice prefix, then CN-. MWM-CN-00001. */
+export function formatCreditNoteNumber(serial: number, prefix = invoicePrefix()): string {
+    return `${prefix}CN-${String(serial).padStart(5, "0")}`;
+}
+
+/**
+ * Issue the credit note that cancels an invoice in full, or return the one
+ * already issued. Same rules as an invoice: inside a staff transaction, one
+ * at a time under its own lock, no gaps. It names the same supplier and the
+ * same workshop the invoice named — copied from the invoice, not looked up
+ * again — because it is that document it cancels.
+ */
+export async function issueCreditNote(
+    tx: Prisma.TransactionClient,
+    invoiceId: string,
+    opts: { reason: string; issuedById: string | null; issuedAt?: Date },
+): Promise<SubscriptionCreditNote> {
+    const existing = await tx.subscriptionCreditNote.findUnique({ where: { invoiceId } });
+    if (existing) return existing;
+
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"motion.subscription_credit_note"}))`;
+    const raced = await tx.subscriptionCreditNote.findUnique({ where: { invoiceId } });
+    if (raced) return raced;
+
+    const invoice = await tx.subscriptionInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
+    const { _max } = await tx.subscriptionCreditNote.aggregate({ _max: { serial: true } });
+    const serial = (_max.serial ?? 0) + 1;
+
+    return tx.subscriptionCreditNote.create({
+        data: {
+            tenantId: invoice.tenantId,
+            invoiceId,
+            serial,
+            number: formatCreditNoteNumber(serial),
+            issuedAt: opts.issuedAt ?? new Date(),
+            reason: opts.reason.trim(),
+            supplier: invoice.supplier as Prisma.InputJsonValue,
+            recipient: invoice.recipient as Prisma.InputJsonValue,
+            description: `Cancels tax invoice ${invoice.number}: ${invoice.description}, ${billingDay(invoice.periodFrom)} to ${billingDay(invoice.periodTo)}`,
+            amountExclVat: invoice.amountExclVat,
+            vatRate: invoice.vatRate,
+            vatAmount: invoice.vatAmount,
+            amountInclVat: invoice.amountInclVat,
+            currency: invoice.currency,
+            issuedById: opts.issuedById,
         },
     });
 }

@@ -134,6 +134,36 @@ export async function sendInvoiceLetter(n: Owner & { invoiceNumber: string; amou
     });
 }
 
+/**
+ * A credit note cancelling an invoice that should not have been issued. Says
+ * plainly that it was MOTION's mistake to correct, that nothing is owed
+ * because of it, and where the subscription now stands.
+ */
+export async function sendCreditNoteLetter(
+    n: Owner & { creditNoteNumber: string; invoiceNumber: string; reason: string; paidUntil: Date; attachment: MailAttachment },
+): Promise<void> {
+    const reach = supportAddress();
+    await sendMail({
+        to: n.to,
+        subject: `Credit note ${n.creditNoteNumber} — cancels invoice ${n.invoiceNumber}`,
+        attachments: [n.attachment],
+        text: [
+            `Hi ${n.firstName},`,
+            "",
+            `Tax invoice ${n.invoiceNumber} for your MOTION subscription for ${n.workshopName} should not have been issued, so we have cancelled it in full with the attached credit note, ${n.creditNoteNumber}.`,
+            "",
+            `Reason: ${n.reason}`,
+            "",
+            `${n.workshopName} is paid up to ${billingDay(n.paidUntil)}. Nothing is owed because of this, and there is nothing for you to do except keep the credit note with the invoice in your VAT records — together they cancel out.`,
+            "",
+            "Sorry for the confusion.",
+            ...(reach ? ["", `Questions to ${reach}, quoting ${n.creditNoteNumber}.`] : []),
+            "",
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
 export type DigestLine = { workshopName: string; slug: string; reference: string; periodEndsAt: Date; price: number };
 
 /**
