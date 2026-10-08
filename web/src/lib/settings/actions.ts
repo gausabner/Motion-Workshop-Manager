@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature, requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { storeUpload, removeAttachment } from "@/lib/attachments/service";
@@ -140,7 +140,7 @@ export async function savePortalSettings(slug: string, _prev: ActionState, formD
  * without having done the second.
  */
 export async function saveHandoffSettings(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "handoff");
     assertCan(ctx.membership, "settings:manage");
 
     const handoff = handoffSettingsSchema.safeParse({

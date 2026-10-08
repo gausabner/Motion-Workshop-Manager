@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Receipt, TrendingUp, Truck } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
+import { includes } from "@/lib/plans/features";
 import { can } from "@/lib/auth/permissions";
 import { SetupChecklist } from "@/components/setup/SetupChecklist";
 import { setupSteps } from "@/lib/setup/checklist";
@@ -26,7 +27,7 @@ import { dateShort, money } from "@/lib/format";
  */
 export default async function DashboardPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { tenant, db, membership } = await requireTenant(slug);
+    const { tenant, db, membership, plan } = await requireTenant(slug);
     const showMoney = can(membership, "documents:see_cost");
     const [summary, facts] = await Promise.all([
         dashboardSummary(db, tenant),
@@ -42,7 +43,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
             { label: "Sold today", value: money_(summary.today.sales), sub: summary.today.profit !== 0 ? `${money_(summary.today.profit)} profit` : "Nothing yet today", href: `${base}/reports/margin` },
             { label: `This month, from ${dateShort(summary.month.from)}`, value: money_(summary.month.sales), sub: `${money_(summary.month.profit)} profit${summary.month.percent === null ? "" : ` · ${summary.month.percent}%`}`, href: `${base}/reports/margin` },
             { label: "Owed to us", value: money_(summary.owedToUs), sub: summary.overdue > 0 ? `${money_(summary.overdue)} over 30 days` : "Nothing overdue", href: `${base}/reports/receivables`, warn: summary.overdue > 0 },
-            { label: "We owe suppliers", value: money_(summary.owedBySupplier), sub: summary.owedBySupplier > 0 ? "See what we owe" : "Nothing outstanding", href: `${base}/reports/payables` },
+            ...(includes(plan, "purchasing")
+                ? [{ label: "We owe suppliers", value: money_(summary.owedBySupplier), sub: summary.owedBySupplier > 0 ? "See what we owe" : "Nothing outstanding", href: `${base}/reports/payables` }]
+                : []),
         ]
         : [];
 
@@ -72,7 +75,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
             href: `${base}/reports/receivables`,
             tone: "overdue",
         });
-    if (summary.remindersDue > 0)
+    if (summary.remindersDue > 0 && includes(plan, "reminders"))
         queue.push({
             key: "reminders",
             lead: String(summary.remindersDue),
@@ -165,7 +168,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
                 <div className="flex flex-wrap gap-3 text-sm">
                     <Link href={`${base}/reports/margin`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><TrendingUp className="h-4 w-4 text-slate-400" />Profit</Link>
                     <Link href={`${base}/reports/receivables`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Receipt className="h-4 w-4 text-slate-400" />Who owes us</Link>
-                    <Link href={`${base}/purchasing`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Truck className="h-4 w-4 text-slate-400" />Buying</Link>
+                    {includes(plan, "purchasing") && (
+                        <Link href={`${base}/purchasing`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Truck className="h-4 w-4 text-slate-400" />Buying</Link>
+                    )}
                     <Link href={`${base}/reports`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50">All reports</Link>
                 </div>
             )}

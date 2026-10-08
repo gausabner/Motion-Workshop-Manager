@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, ClipboardList, LayoutDashboard, Menu, X } from "lucide-react";
 import { MotionLogo } from "@/components/brand/MotionLogo";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import type { Feature } from "@/lib/plans/features";
 
 /**
  * Navigation for a phone: a bar at the bottom, and everything else in a drawer.
@@ -39,12 +40,14 @@ export function MobileNav({
     reports,
     cost,
     manages,
+    features,
 }: {
     base: string;
     workshopName: string;
     reports: boolean;
     cost: boolean;
     manages: boolean;
+    features: Feature[];
 }) {
     const pathname = usePathname();
     const [open, setOpen] = useState(false);
@@ -146,7 +149,7 @@ export function MobileNav({
                             onClick={() => setOpen(false)}
                             className="flex-1 overflow-y-auto overscroll-contain py-1 pb-[env(safe-area-inset-bottom,0px)]"
                         >
-                            <SidebarNav base={base} reports={reports} cost={cost} manages={manages} />
+                            <SidebarNav base={base} reports={reports} cost={cost} manages={manages} features={features} />
                         </div>
                     </div>
                 </div>

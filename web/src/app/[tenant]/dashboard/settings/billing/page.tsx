@@ -5,7 +5,8 @@ import { can } from "@/lib/auth/permissions";
 import { bankDetails } from "@/lib/billing/config";
 import { recipientGaps } from "@/lib/billing/invoices";
 import { billingDay, readOnlyFrom, renewalRules, standing } from "@/lib/billing/periods";
-import { VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { FEATURES, PLAN_NAMES, includes, isFeature, type PlanId } from "@/lib/plans/features";
 import { support } from "@/lib/edition";
 import { money } from "@/lib/format";
 
@@ -26,11 +27,13 @@ export default async function BillingPage({
     searchParams,
 }: {
     params: Promise<{ tenant: string }>;
-    searchParams: Promise<{ readonly?: string }>;
+    searchParams: Promise<{ readonly?: string; feature?: string }>;
 }) {
     const { tenant: slug } = await params;
-    const { readonly } = await searchParams;
-    const { tenant, membership, db } = await requireTenant(slug);
+    const { readonly, feature } = await searchParams;
+    const { tenant, membership, db, plan } = await requireTenant(slug);
+    // Sent here from a screen the plan does not include.
+    const locked = isFeature(feature) && !includes(plan, feature) ? feature : null;
     const manager = can(membership, "settings:manage");
 
     const sub = await db.subscription.findUnique({
@@ -69,6 +72,25 @@ export default async function BillingPage({
                 <p className="text-sm text-slate-500">Your MOTION subscription: what it costs, when it is due, and how to pay.</p>
             </div>
             <div className="border-t border-slate-200" />
+
+            {locked && (
+                <div role="alert" className="rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm text-slate-800">
+                    <p className="font-semibold text-slate-900">
+                        {FEATURES[locked].name} {FEATURES[locked].name.endsWith("s") ? "are" : "is"} part of the {PLAN_NAMES[FEATURES[locked].plan]} plan
+                    </p>
+                    <p className="mt-1">
+                        {FEATURES[locked].what} {plan ? `Your workshop is on ${PLAN_NAMES[plan]}.` : ""} To move up, write to{" "}
+                        {support().email ? (
+                            <a href={`mailto:${support().email}?subject=${encodeURIComponent(`Moving ${tenant.name} to ${PLAN_NAMES[FEATURES[locked].plan]}`)}`} className="font-medium text-teal-700 hover:underline">
+                                {support().email}
+                            </a>
+                        ) : (
+                            "MOTION"
+                        )}
+                        . The features come on the day we change it; the new price starts at your next renewal.
+                    </p>
+                </div>
+            )}
 
             {(pastDue || readonly) && (
                 <div role="alert" className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
@@ -119,6 +141,8 @@ export default async function BillingPage({
                             </>
                         )}
                     </dl>
+
+                    <PlanSummary plan={plan} />
 
                     {!pastDue && end && (s === "dueSoon" || s === "grace") && (
                         <p className="text-sm text-slate-700">
@@ -257,5 +281,37 @@ function Row({ label, value, mono = false, strong = false }: { label: string; va
             <dt className="text-slate-600">{label}</dt>
             <dd className={`text-right text-slate-900 ${mono ? "select-all font-mono tabular-nums" : ""} ${strong ? "font-semibold" : ""}`}>{value}</dd>
         </div>
+    );
+}
+
+/** What the plan includes, and what the next one up adds — so moving up is a decision rather than a mystery. */
+function PlanSummary({ plan }: { plan: PlanId | null }) {
+    if (!plan) return null;
+    const current = PLANS.find((p) => p.id === plan);
+    const next = PLANS[PLANS.findIndex((p) => p.id === plan) + 1];
+    if (!current) return null;
+    return (
+        <section className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-slate-900">On {current.name}</h4>
+                <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                    {current.includes.map((line) => (
+                        <li key={line}>{line}</li>
+                    ))}
+                </ul>
+            </div>
+            {next && (
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                        {next.name} adds{next.price ? ` — ${money(withVat(next.price))} a month incl. VAT` : ""}
+                    </h4>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                        {next.includes.filter((line) => !line.startsWith("Everything in")).map((line) => (
+                            <li key={line}>{line}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </section>
     );
 }

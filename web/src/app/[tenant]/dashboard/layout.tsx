@@ -3,6 +3,7 @@ import { requireTenant } from "@/lib/auth/session";
 import { fullName } from "@/lib/format";
 import { sitesForUser } from "@/lib/sites/queries";
 import { BillingBanner } from "@/components/billing/BillingBanner";
+import { featuresOf } from "@/lib/plans/features";
 
 /**
  * `sheet` is a parallel route: a detail screen opened from a list renders into
@@ -11,10 +12,10 @@ import { BillingBanner } from "@/components/billing/BillingBanner";
  */
 export default async function TenantDashboardLayout({ children, sheet, params }: { children: React.ReactNode; sheet: React.ReactNode; params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { user, tenant, membership, db } = await requireTenant(slug);
+    const { user, tenant, membership, db, plan } = await requireTenant(slug);
     const sites = await sitesForUser(user.id);
     return (
-        <DashboardLayout tenant={tenant.slug} workshopName={tenant.name} userName={fullName(user)} group={membership.group} sites={sites}>
+        <DashboardLayout tenant={tenant.slug} workshopName={tenant.name} userName={fullName(user)} group={membership.group} sites={sites} features={featuresOf(plan)}>
             <BillingBanner tenant={tenant} membership={membership} db={db} />
             {children}
             {sheet}

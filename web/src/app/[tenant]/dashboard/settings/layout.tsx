@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { requireTenant } from "@/lib/auth/session";
+import { includes, type Feature } from "@/lib/plans/features";
 import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash } from "lucide-react";
 
-const sidebarNavItems = [
+const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; feature?: Feature }[] = [
     {
         title: "Company Settings",
         href: "company",
@@ -30,11 +32,13 @@ const sidebarNavItems = [
     {
         title: "Pricing",
         href: "pricing",
+        feature: "stock" as Feature,
         icon: <Tags className="w-4 h-4 mr-2" />,
     },
     {
         title: "Inspections",
         href: "inspections",
+        feature: "inspections" as Feature,
         icon: <ClipboardCheck className="w-4 h-4 mr-2" />,
     },
     {
@@ -45,6 +49,7 @@ const sidebarNavItems = [
     {
         title: "Accounting hand-off",
         href: "handoff",
+        feature: "handoff" as Feature,
         icon: <Share2 className="w-4 h-4 mr-2" />,
     },
     {
@@ -55,6 +60,7 @@ const sidebarNavItems = [
     {
         title: "API keys",
         href: "api",
+        feature: "api" as Feature,
         icon: <KeyRound className="w-4 h-4 mr-2" />,
     },
     {
@@ -78,6 +84,9 @@ export default async function SettingsLayout({
 }) {
     const resolvedParams = await params;
     const basePath = `/${resolvedParams.tenant}/dashboard/settings`;
+    // Settings for a feature the plan does not include are not offered.
+    const { plan } = await requireTenant(resolvedParams.tenant);
+    const items = sidebarNavItems.filter((item) => !item.feature || includes(plan, item.feature));
 
     return (
         <div className="flex flex-col space-y-6">
@@ -90,7 +99,7 @@ export default async function SettingsLayout({
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
                 <aside className="lg:w-1/5">
                     <nav className="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
-                        {sidebarNavItems.map((item) => (
+                        {items.map((item) => (
                             <div key={item.href} className="flex flex-col">
                                 <Link
                                     href={`${basePath}/${item.href}`}

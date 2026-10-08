@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { adjustSchema, bundleItemsSchema, productSchema } from "@/lib/products/schema";
@@ -47,7 +47,7 @@ function read(formData: FormData) {
 }
 
 export async function saveProduct(slug: string, id: string | null, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, user, membership } = await requireTenant(slug);
+    const { db, tenant, user, membership } = await requireFeature(slug, "stock");
     assertCan(membership, "products:write");
     const parsed = productSchema.safeParse(read(formData));
     if (!parsed.success) return fromZod(parsed.error);
@@ -80,7 +80,7 @@ export async function saveProduct(slug: string, id: string | null, _prev: Action
 }
 
 export async function archiveProduct(slug: string, id: string, archived: boolean): Promise<void> {
-    const { db, membership } = await requireTenant(slug);
+    const { db, membership } = await requireFeature(slug, "stock");
     assertCan(membership, "products:write");
     await db.product.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
     revalidatePath(path(slug, id));
@@ -89,7 +89,7 @@ export async function archiveProduct(slug: string, id: string, archived: boolean
 
 /** Book stock in or out by hand — a delivery, a write-off, a shelf count. */
 export async function adjustStockAction(slug: string, productId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, tenant, membership } = await requireFeature(slug, "stock");
     assertCan(membership, "products:write");
     const parsed = adjustSchema.safeParse({ quantity: str(formData, "quantity"), kind: str(formData, "kind") ?? "ADJUSTMENT", note: str(formData, "note") });
     if (!parsed.success) return fromZod(parsed.error);
@@ -101,7 +101,7 @@ export async function adjustStockAction(slug: string, productId: string, _prev: 
 
 /** Rebuild the running total from the movements, for when someone suspects it. */
 export async function recountAction(slug: string, productId: string): Promise<{ ok: boolean; message: string }> {
-    const { db, membership } = await requireTenant(slug);
+    const { db, membership } = await requireFeature(slug, "stock");
     assertCan(membership, "products:write");
     const { was, now } = await db.$transaction((tx) => recount(tx, productId));
     revalidatePath(path(slug, productId));
@@ -110,7 +110,7 @@ export async function recountAction(slug: string, productId: string): Promise<{ 
 
 /** What is inside a bundle. Saved whole, so removing a component is just leaving it out. */
 export async function saveBundleItems(slug: string, bundleId: string, items: unknown): Promise<{ ok: boolean; message: string }> {
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, tenant, membership } = await requireFeature(slug, "stock");
     assertCan(membership, "products:write");
     const parsed = bundleItemsSchema.safeParse(items);
     if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the components" };

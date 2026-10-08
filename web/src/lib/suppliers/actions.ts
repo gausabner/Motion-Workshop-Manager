@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { fromZod, str, type ActionState } from "@/lib/forms";
 
@@ -28,7 +28,7 @@ const supplierSchema = z.object({
 const path = (slug: string, id?: string) => `/${slug}/dashboard/suppliers${id ? `/${id}` : ""}`;
 
 export async function saveSupplier(slug: string, id: string | null, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, membership, user } = await requireTenant(slug);
+    const { db, tenant, membership, user } = await requireFeature(slug, "purchasing");
     assertCan(membership, "products:write");
     const parsed = supplierSchema.safeParse(Object.fromEntries(
         ["companyName", "accountNumber", "vatNumber", "address1", "suburb", "city", "postcode", "phone", "mobile", "email", "web", "paymentTermsDays", "note"].map((k) => [k, str(formData, k) ?? ""]),
@@ -48,7 +48,7 @@ export async function saveSupplier(slug: string, id: string | null, _prev: Actio
 }
 
 export async function archiveSupplier(slug: string, id: string, archived: boolean): Promise<void> {
-    const { db, membership } = await requireTenant(slug);
+    const { db, membership } = await requireFeature(slug, "purchasing");
     assertCan(membership, "products:write");
     await db.supplier.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
     revalidatePath(path(slug, id));

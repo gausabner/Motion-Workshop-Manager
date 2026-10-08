@@ -164,6 +164,37 @@ export async function sendCreditNoteLetter(
     });
 }
 
+/**
+ * A workshop moved to another plan. What changes now (what they can reach),
+ * and what changes later (the price, from the next renewal) — said apart,
+ * because those are the two questions an owner has.
+ */
+export async function sendPlanChangedLetter(
+    n: Owner & { slug: string; planName: string; price: number; nextRenewal: Date | null; gained: string[]; lost: string[] },
+): Promise<void> {
+    const base = appUrl();
+    const reach = supportAddress();
+    await sendMail({
+        to: n.to,
+        subject: `${n.workshopName} is now on the ${n.planName} plan`,
+        text: [
+            `Hi ${n.firstName},`,
+            "",
+            `${n.workshopName} is now on MOTION's ${n.planName} plan.`,
+            ...(n.gained.length ? ["", "Available from today:", ...n.gained.map((g) => `  • ${g}`)] : []),
+            ...(n.lost.length ? ["", "No longer included (your records are kept):", ...n.lost.map((g) => `  • ${g}`)] : []),
+            "",
+            n.nextRenewal
+                ? `From your next renewal on ${billingDay(n.nextRenewal)}, the subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT). Nothing changes on what you have already paid.`
+                : `The subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT).`,
+            ...(base ? ["", `${base}/${n.slug}/dashboard`] : []),
+            ...(reach ? ["", `Questions to ${reach}.`] : []),
+            "",
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
 export type DigestLine = { workshopName: string; slug: string; reference: string; periodEndsAt: Date; price: number };
 
 /**

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Feature } from "@/lib/plans/features";
 
 /**
  * What can be imported, and what each column means.
@@ -26,6 +27,9 @@ export type EntitySpec = {
 };
 
 export type ImportEntity = "customers" | "vehicles" | "products" | "suppliers" | "history" | "bundles" | "serials" | "balances";
+
+/** The plan feature an import belongs to, where it is not part of every plan. */
+export const IMPORT_FEATURE: Partial<Record<ImportEntity, Feature>> = { products: "stock", bundles: "stock", serials: "stock", suppliers: "purchasing" };
 
 const text = (max: number) => z.string().trim().max(max);
 

@@ -244,3 +244,69 @@ export function ReversePayment({
         </form>
     );
 }
+
+/** Moving a workshop to another plan: what it can use changes now, the price from its next renewal. */
+export function ChangePlan({
+    action,
+    tenantId,
+    plans,
+    currentPlanId,
+    currentAmount,
+}: {
+    action: Action;
+    tenantId: string;
+    plans: { id: string; name: string; price: number | null }[];
+    currentPlanId: string;
+    currentAmount: number;
+}) {
+    const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
+    const [open, setOpen] = useState(false);
+    const [planId, setPlanId] = useState(currentPlanId);
+    const [amount, setAmount] = useState(String(currentAmount));
+    const [seen, setSeen] = useState(state);
+    const [done, setDone] = useState<string | null>(null);
+    if (state !== seen) {
+        setSeen(state);
+        if (state.ok) {
+            setOpen(false);
+            setDone(state.message);
+        }
+    }
+
+    if (done) return <p role="status" className="max-w-sm text-[13px] font-medium leading-snug text-teal-800">{done}</p>;
+    if (!open) return <Folded open={open} label="Change plan" onOpen={() => setOpen(true)} />;
+    return (
+        <form action={formAction} className="flex w-full max-w-sm flex-col gap-3 rounded-md border border-slate-200 bg-white p-3">
+            <input type="hidden" name="tenantId" value={tenantId} />
+            <p className="text-[13px] leading-snug text-slate-900">
+                What the workshop can use changes as soon as you save. The new amount is what its next renewal is invoiced at; nothing already paid is re-priced.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+                <label className={label}>
+                    Plan
+                    <select
+                        name="planId"
+                        value={planId}
+                        onChange={(e) => {
+                            setPlanId(e.target.value);
+                            const price = plans.find((p) => p.id === e.target.value)?.price;
+                            if (price) setAmount(String(price));
+                        }}
+                        className={input}
+                    >
+                        {plans.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className={label}>
+                    Amount excl. VAT (N$)
+                    <input name="amount" inputMode="decimal" required value={amount} onChange={(e) => setAmount(e.target.value)} className={input} />
+                </label>
+            </div>
+            <Footer pending={pending} submit="Change plan" onCancel={() => setOpen(false)} state={state} />
+        </form>
+    );
+}

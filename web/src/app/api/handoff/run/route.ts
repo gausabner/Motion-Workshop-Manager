@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { forTenant } from "@/lib/tenant-db";
+import { includes } from "@/lib/plans/features";
+import { planFor } from "@/lib/plans/tenant";
 import { handoffSettings } from "@/lib/settings/schema";
 import { runJournalHandoff } from "@/lib/handoff/run";
 import { collectReceipts } from "@/lib/handoff/receipts";
@@ -67,6 +69,14 @@ export async function POST(request: Request): Promise<Response> {
         const db = forTenant(row.id);
         const tenant = await db.tenant.findUnique({ where: { id: row.id } });
         if (!tenant) continue;
+
+        // The nightly journal is a Council feature. A workshop that switched it
+        // on under a plan it has since left is skipped, not sent — and said so
+        // in the results rather than counted as a failure.
+        if (!includes(await planFor(db, row.id), "handoff")) {
+            results.push({ tenant: row.slug, state: "SKIPPED", error: "Its plan does not include the accounting hand-off." });
+            continue;
+        }
 
         // Yesterday in the workshop's own zone, not the server's. A Windhoek
         // workshop's Monday does not end when a server in Frankfurt says so.

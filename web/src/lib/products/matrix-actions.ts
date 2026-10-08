@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { STARTER_BANDS } from "@/lib/products/matrix";
 import { deleteMatrix, previewReprice, repriceMatrix, saveMatrix, type MatrixInput } from "@/lib/products/matrix-service";
@@ -24,7 +24,7 @@ const matrixSchema = z.object({
 });
 
 async function pricer(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "stock");
     assertCan(ctx.membership, "products:write");
     return ctx;
 }

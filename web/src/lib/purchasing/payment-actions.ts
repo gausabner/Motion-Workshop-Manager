@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { businessToday } from "@/lib/tenant/today";
 import { getPayment, postPayment, reversePayment, savePayment, type PaymentInput } from "@/lib/purchasing/payments";
@@ -22,7 +22,7 @@ const schema = z.object({
 
 /** Paying suppliers is money out: the same people who may take money may pay it. */
 async function payer(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "purchasing");
     assertCan(ctx.membership, "payments:take");
     return ctx;
 }

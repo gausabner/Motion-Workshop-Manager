@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { FileSpreadsheet, LineChart, Receipt, Share2, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
+import { Archive, FileSpreadsheet, LineChart, Receipt, Share2, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
+import { includes } from "@/lib/plans/features";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 import { dashboardSummary } from "@/lib/dashboard/queries";
@@ -10,7 +11,7 @@ export const metadata = { title: "Reports | MOTION Workshop Manager" };
 
 export default async function ReportsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, tenant, membership, plan } = await requireTenant(slug);
     if (!can(membership, "reports:view"))
         return <AccessDenied tenant={slug} group={membership.group} needs="see reports" />;
     const showMoney = can(membership, "documents:see_cost");
@@ -34,19 +35,19 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             href: `${base}/payables`, icon: Wallet, title: "What we owe",
             blurb: "Supplier invoices still to pay, aged by supplier.",
             figure: summary ? `${money(summary.owedBySupplier, tenant.currency)} owed` : null,
-            show: showMoney && can(membership, "products:write"),
+            show: showMoney && can(membership, "products:write") && includes(plan, "purchasing"),
         },
         {
             href: `${base}/audit`, icon: ShieldCheck, title: "For the auditor",
             blurb: "The six a council asks for: the number sequence and its gaps, the sales register, tax, the cash book, debtors, and who did what.",
             figure: null,
-            show: showMoney,
+            show: showMoney && includes(plan, "auditPack"),
         },
         {
             href: `${base}/business`, icon: LineChart, title: "For the owner",
             blurb: "What made money, what is standing still, and everyone on file — as files to sort: profit by job, item sales, work in progress, quotes, stock, creditors, renewals.",
             figure: null,
-            show: true,
+            show: includes(plan, "ownerReports"),
         },
         {
             href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",
@@ -58,7 +59,15 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             href: `${base}/handoff`, icon: Share2, title: "Hand-off",
             blurb: "The nightly journal to the accounting system: whether last night went out, whether anything took it, and everything as one archive.",
             figure: null,
-            show: can(membership, "settings:manage"),
+            show: can(membership, "settings:manage") && includes(plan, "handoff"),
+        },
+        {
+            // Every plan's promise: your data is yours, every table, any time.
+            // Its own card, so it does not depend on the hand-off it lives beside.
+            href: `${base}/handoff/bundle`, icon: Archive, title: "Everything, as one file",
+            blurb: "Every table as a CSV in one archive, with a README saying how they join. Yours to take, whenever you like.",
+            figure: null,
+            show: can(membership, "settings:manage") && !includes(plan, "handoff"),
         },
         {
             href: `${base}/labour`, icon: Timer, title: "Mechanic time",

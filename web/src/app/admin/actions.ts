@@ -5,13 +5,15 @@ import { revalidatePath } from "next/cache";
 import { Prisma, type BillingPeriod, type SubscriptionCreditNote, type SubscriptionInvoice, type TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
-import { sendCreditNoteLetter, sendInvoiceLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { sendCreditNoteLetter, sendInvoiceLetter, sendPlanChangedLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
 import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalRefusal, renewalRules, renewalStart } from "@/lib/billing/periods";
 import { issueInvoice } from "@/lib/billing/invoices";
 import { reversePayment } from "@/lib/billing/reversals";
 import { renderSubscriptionCreditNotePdf, renderSubscriptionInvoicePdf } from "@/lib/pdf/subscription-invoice";
 import { newReference } from "@/lib/billing/reference";
 import { PLANS, withVat } from "@/lib/pricing/plans";
+import { money } from "@/lib/format";
+import { ALL_FEATURES, FEATURES, asPlanId, includes } from "@/lib/plans/features";
 
 export type AdminActionState = { ok: boolean; message: string };
 
@@ -613,5 +615,55 @@ export async function resendCreditNoteAction(_prev: AdminActionState, formData: 
         await audit(tx, staff, w, "CREDIT_NOTE_SENT", { creditNote: note.number });
         const paidUntil = w.subscription?.periodEndsAt ?? note.issuedAt;
         return { ok: true, slug: w.slug, message: `Credit note ${note.number} is on its way to the owner.`, letter: sendCreditNote(w, note, note.invoice, paidUntil) };
+    });
+}
+
+// ── moving a workshop between plans ──────────────────────────────────────────
+
+/**
+ * Move a workshop to another plan. What it can reach changes at once — the
+ * dashboard reads the plan on every request — and the new price is what its
+ * next renewal is invoiced at; nothing already paid is re-priced. Staff may
+ * set the amount, for a negotiated price.
+ */
+export async function changePlanAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const planId = asPlanId(String(formData.get("planId") ?? ""));
+    const plan = PLANS.find((p) => p.id === planId);
+    const amount = Number(String(formData.get("amount") ?? "").replace(/[^\d.]/g, ""));
+    if (!plan || !planId) return { ok: false, message: "Choose a plan." };
+    if (!Number.isFinite(amount) || amount <= 0) return { ok: false, message: "Enter the monthly amount, excluding VAT." };
+
+    return run(formData, async (tx, staff, w) => {
+        const sub = w.subscription;
+        if (!sub || sub.status === "CANCELLED") return { ok: false, message: `${w.name} has no subscription to change. Set up its billing first.` };
+        const from = asPlanId((await tx.subscription.findUniqueOrThrow({ where: { id: sub.id }, select: { planId: true } })).planId);
+        const price = Number(sub.priceAmount);
+        if (from === planId && price === amount) return { ok: false, message: `${w.name} is already on ${plan.name} at that price.` };
+
+        await tx.subscription.update({ where: { id: sub.id }, data: { planId, planName: plan.name, priceAmount: amount } });
+        await audit(tx, staff, w, "PLAN_CHANGED", { fromPlan: from, toPlan: planId, fromAmount: price, toAmount: amount });
+
+        const gained = ALL_FEATURES.filter((f) => includes(planId, f) && !includes(from, f)).map((f) => FEATURES[f].name);
+        const lost = ALL_FEATURES.filter((f) => !includes(planId, f) && includes(from, f)).map((f) => FEATURES[f].name);
+        const o = owner(w);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `${w.name} is on ${plan.name} now, at ${money(withVat(amount))} a month from its next renewal. The owner has been emailed.`,
+            letter: o
+                ? () =>
+                      sendPlanChangedLetter({
+                          to: o.email,
+                          firstName: o.firstName,
+                          workshopName: w.name,
+                          slug: w.slug,
+                          planName: plan.name,
+                          price: amount,
+                          nextRenewal: sub.periodEndsAt,
+                          gained,
+                          lost,
+                      })
+                : null,
+        };
     });
 }
