@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireTenant, requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { removeAttachment, storeUpload } from "@/lib/attachments/service";
 import { ensureDefaultInspectionTemplate } from "@/lib/inspections/defaults";
@@ -13,7 +13,7 @@ type Result = { ok: true; message?: string } | { ok: false; message: string };
 const path = (slug: string, id: string) => `/${slug}/dashboard/inspections/${id}`;
 
 async function run(slug: string, id: string, work: (ctx: Awaited<ReturnType<typeof requireTenant>>) => Promise<string | void>): Promise<Result> {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "documents:write");
     try {
         const message = await work(ctx);
@@ -34,7 +34,7 @@ export async function startInspectionWith(slug: string, documentId: string, form
 }
 
 export async function startInspection(slug: string, documentId: string, templateId?: string): Promise<void> {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "documents:write");
     await ensureDefaultInspectionTemplate(ctx.db, ctx.tenant.id);
     const template = templateId
@@ -79,7 +79,7 @@ export async function finaliseInspection(slug: string, id: string): Promise<Resu
 
 /** A photo of the finding, from the phone's camera, through the same storage as every other file. */
 export async function uploadFindingPhoto(slug: string, inspectionId: string, itemId: string, formData: FormData): Promise<{ ok: true; id: string; fileName: string } | { ok: false; message: string }> {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "documents:write");
     const item = await ctx.db.inspectionItem.findFirst({ where: { id: itemId, inspectionId }, select: { id: true } });
     if (!item) return { ok: false, message: "That finding is not on this inspection" };
@@ -93,7 +93,7 @@ export async function uploadFindingPhoto(slug: string, inspectionId: string, ite
 }
 
 export async function removeFindingPhoto(slug: string, inspectionId: string, attachmentId: string): Promise<void> {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "documents:write");
     const photo = await ctx.db.attachment.findUnique({ where: { id: attachmentId }, select: { ownerType: true, ownerId: true } });
     if (photo?.ownerType !== "InspectionItem") return;

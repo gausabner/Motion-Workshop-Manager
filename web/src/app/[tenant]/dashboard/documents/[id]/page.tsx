@@ -5,6 +5,7 @@ import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DocumentToolbar } from "@/components/documents/DocumentToolbar";
 import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
 import { requireTenant } from "@/lib/auth/session";
+import { includes } from "@/lib/plans/features";
 import { can } from "@/lib/auth/permissions";
 import { getDocument, getEditorOptions } from "@/lib/documents/queries";
 import { deliverySummary, listMessages } from "@/lib/messaging/queries";
@@ -23,7 +24,7 @@ import { dateShort, money } from "@/lib/format";
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string; short?: string; serials?: string }> }) {
     const [{ tenant: slug, id }, { processed, short, serials }] = await Promise.all([params, searchParams]);
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, tenant, membership, plan } = await requireTenant(slug);
     const [doc, options, messages, time, mechanics, inspections, templates] = await Promise.all([
         getDocument(db, id), getEditorOptions(db), listMessages(db, { documentId: id }), jobTime(db, id), diaryMechanics(db), inspectionsForDocument(db, id),
         db.inspectionTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
@@ -168,7 +169,17 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             />
 
             {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (
-                <InspectionsPanel tenant={slug} documentId={doc.id} rows={inspections} canStart={can(membership, "documents:write") && doc.state !== "VOID"} templates={templates} />
+                // Inspections are a Full workshop feature: on a plan without them the
+                // panel only appears to show ones done before, and cannot start one.
+                (includes(plan, "inspections") || inspections.length > 0) && (
+                    <InspectionsPanel
+                        tenant={slug}
+                        documentId={doc.id}
+                        rows={inspections}
+                        canStart={includes(plan, "inspections") && can(membership, "documents:write") && doc.state !== "VOID"}
+                        templates={templates}
+                    />
+                )
             )}
 
             {(doc.type === "BOOKING" || doc.type === "JOB_CARD") && (

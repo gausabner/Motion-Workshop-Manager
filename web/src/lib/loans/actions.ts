@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { parseLocalDateTime } from "@/lib/diary/time";
 import { bookLoan, cancelLoan, handOver, takeBack } from "@/lib/loans/service";
@@ -32,7 +32,7 @@ const bookSchema = z.object({
 });
 
 async function keeper(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "loanCars");
     // Lending a car is counter work, like booking a job.
     assertCan(ctx.membership, "documents:write");
     return ctx;

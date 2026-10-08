@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { templateDraftSchema } from "@/lib/inspections/template-rules";
 import { deleteTemplate, duplicateTemplate, saveTemplate, setTemplateActive } from "@/lib/inspections/templates";
@@ -12,7 +12,7 @@ type Result = { ok: true; id: string } | { ok: false; message: string; path?: (s
 const listPath = (slug: string) => `/${slug}/dashboard/settings/inspections`;
 
 async function manage(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "settings:manage");
     return ctx;
 }

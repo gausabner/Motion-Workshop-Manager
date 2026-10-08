@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { requestOrigin } from "@/lib/http/origin";
 import { campaignSchema, filtersSchema, reachFor, type AudienceFilters, type CampaignInput } from "@/lib/campaigns/audience";
@@ -12,7 +12,7 @@ import { createCampaign, deleteCampaign, finishCampaign, sendToRecipient, skipRe
 const base = (slug: string) => `/${slug}/dashboard/messages`;
 
 async function sender(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "reminders");
     assertCan(ctx.membership, "messages:send");
     return ctx;
 }

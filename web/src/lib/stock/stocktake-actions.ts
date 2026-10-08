@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { applyStockTake, cancelStockTake, saveCounts, startStockTake, type Scope } from "@/lib/stock/stocktake-service";
 
@@ -24,7 +24,7 @@ const countsSchema = z.array(z.object({
 })).max(2000);
 
 async function counter(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "stock");
     assertCan(ctx.membership, "products:write");
     return ctx;
 }

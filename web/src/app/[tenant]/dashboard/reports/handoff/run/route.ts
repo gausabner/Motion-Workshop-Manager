@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { runJournalHandoff } from "@/lib/handoff/run";
 import { collectReceipts } from "@/lib/handoff/receipts";
@@ -20,7 +20,7 @@ import { collectReceipts } from "@/lib/handoff/receipts";
  */
 export async function POST(request: Request, { params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { db, tenant, membership, user } = await requireTenant(slug);
+    const { db, tenant, membership, user } = await requireFeature(slug, "handoff");
     if (!can(membership, "settings:manage")) return new NextResponse("Not found", { status: 404 });
 
     const form = await request.formData();

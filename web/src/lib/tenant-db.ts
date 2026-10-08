@@ -129,7 +129,16 @@ export type TenantDbOptions = {
      * refuse it with a message nobody should have to read.
      */
     refuseNewDocument?: () => never;
+    /**
+     * Tables this workshop's plan does not include (`lib/plans/features.ts`).
+     * A write to one calls `refuseBlocked` — a redirect to the page saying
+     * which plan includes it — before it reaches the database.
+     */
+    blocked?: ReadonlyMap<string, unknown>;
+    refuseBlocked?: (model: string) => never;
 };
+
+const WRITES = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"]);
 
 function scopedFor(tenantId: string, options: TenantDbOptions = {}) {
     return prisma.$extends({
@@ -139,6 +148,10 @@ function scopedFor(tenantId: string, options: TenantDbOptions = {}) {
                 async $allOperations({ model, operation, args, query }) {
                     if (!model || !TENANT_MODELS.has(model)) return query(args);
                     if (model === "Document" && options.refuseNewDocument && operation.startsWith("create")) options.refuseNewDocument();
+                    if (options.blocked?.has(model) && WRITES.has(operation)) {
+                        if (options.refuseBlocked) options.refuseBlocked(model);
+                        throw new Error(`${model}.${operation}: not part of this workshop's plan.`);
+                    }
                     const a = (args ?? {}) as AnyArgs;
                     switch (operation) {
                         case "findUnique":

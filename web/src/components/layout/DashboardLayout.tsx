@@ -10,6 +10,7 @@ import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
 import { HelpButton } from "@/components/help/HelpButton";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { MobileNav } from "@/components/layout/MobileNav";
+import type { Feature } from "@/lib/plans/features";
 
 export type ShellProps = {
     tenant: string;
@@ -18,9 +19,11 @@ export type ShellProps = {
     group: UserGroup;
     /** Every site this person may open. One entry is the ordinary case. */
     sites: { slug: string; name: string }[];
+    /** What the workshop's plan includes — the navigation offers nothing else. */
+    features: Feature[];
 };
 
-export function Sidebar({ tenant, workshopName, group, sites }: ShellProps) {
+export function Sidebar({ tenant, workshopName, group, sites, features }: ShellProps) {
     const base = `/${tenant}`;
     return (
         <div className="hidden h-dvh w-[180px] shrink-0 flex-col border-r bg-slate-50 md:flex">
@@ -36,6 +39,7 @@ export function Sidebar({ tenant, workshopName, group, sites }: ShellProps) {
                     reports={can({ group }, "reports:view")}
                     cost={can({ group }, "documents:see_cost")}
                     manages={can({ group }, "users:manage")}
+                    features={features}
                 />
             </div>
         </div>
@@ -111,6 +115,7 @@ export function DashboardLayout({ children, ...shell }: ShellProps & { children:
                 reports={can({ group: shell.group }, "reports:view")}
                 cost={can({ group: shell.group }, "documents:see_cost")}
                 manages={can({ group: shell.group }, "users:manage")}
+                features={shell.features}
             />
         </div>
     );

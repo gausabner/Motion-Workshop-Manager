@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { businessToday } from "@/lib/tenant/today";
 import { letterheadFor } from "@/lib/pdf/data";
@@ -53,7 +53,7 @@ const NEEDS: Record<BusinessReport, ("documents:see_cost" | "products:write")[]>
 
 export async function GET(request: Request, { params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { db, tenant, membership, user } = await requireTenant(slug);
+    const { db, tenant, membership, user } = await requireFeature(slug, "ownerReports");
     if (!can(membership, "reports:view")) return new NextResponse("Not found", { status: 404 });
 
     const search = new URL(request.url).searchParams;

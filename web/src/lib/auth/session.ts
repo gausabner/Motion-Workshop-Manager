@@ -6,6 +6,8 @@ import { requestOrigin } from "@/lib/http/origin";
 import { createHash, randomBytes } from "node:crypto";
 import type { Membership, Tenant, User } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { blockedModels, includes, type Feature, type PlanId } from "@/lib/plans/features";
+import { planFor } from "@/lib/plans/tenant";
 import { forTenant, type TenantDb } from "@/lib/tenant-db";
 
 export const SESSION_COOKIE = "motion_session";
@@ -84,6 +86,8 @@ export type TenantContext = {
     membership: Membership;
     /** Prisma client that can only see this tenant's rows. */
     db: TenantDb;
+    /** The plan the workshop pays for. Null: not on a plan yet, so everything (see `lib/plans/features.ts`). */
+    plan: PlanId | null;
 };
 
 /**
@@ -127,12 +131,31 @@ export const requireTenant = cache(async (slug: string): Promise<TenantContext> 
     // is what the terms promise. Refused here, in the client every action is
     // handed, so the person is shown why rather than an error — and the
     // database trigger behind it catches any path that does not come this way.
-    const db =
-        tenant.status === "PAST_DUE"
-            ? forTenant(tenant.id, { refuseNewDocument: () => redirect(`/${slug}/dashboard/settings/billing?readonly=1`) })
-            : forTenant(tenant.id);
-    return { user, tenant, membership, db };
+    // What the workshop pays for decides what it can reach. Read once per
+    // request, here, so every page and action asks the same question of the
+    // same answer.
+    const plan = await planFor(forTenant(tenant.id), tenant.id);
+    const blocked = blockedModels(plan);
+
+    const db = forTenant(tenant.id, {
+        ...(tenant.status === "PAST_DUE" ? { refuseNewDocument: () => redirect(`/${slug}/dashboard/settings/billing?readonly=1`) } : {}),
+        blocked,
+        refuseBlocked: (model) => redirect(`/${slug}/dashboard/settings/billing?feature=${blocked.get(model)}`),
+    });
+    return { user, tenant, membership, db, plan };
 });
+
+/**
+ * The workshop, for a page or action that belongs to a plan feature — or, if
+ * the workshop's plan does not include it, the Billing page saying which plan
+ * does. A redirect rather than an error, so somebody who reaches a locked
+ * screen by an old link or a bookmark is told why rather than shown a fault.
+ */
+export async function requireFeature(slug: string, feature: Feature): Promise<TenantContext> {
+    const ctx = await requireTenant(slug);
+    if (!includes(ctx.plan, feature)) redirect(`/${slug}/dashboard/settings/billing?feature=${feature}`);
+    return ctx;
+}
 
 /**
  * Where a signed-in person belongs, in one place.

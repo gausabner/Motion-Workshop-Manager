@@ -14,7 +14,7 @@ const field = "h-8 rounded-md border border-slate-300 bg-white px-2 text-sm";
  * been read back to them — which columns were understood, which were ignored,
  * and exactly which rows cannot be used and why.
  */
-export function ImportWizard({ tenant }: { tenant: string }) {
+export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: ImportEntity[] }) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [entity, setEntity] = useState<ImportEntity>("customers");
     const [text, setText] = useState("");
@@ -56,7 +56,7 @@ export function ImportWizard({ tenant }: { tenant: string }) {
                     <label className="space-y-1 text-sm">
                         <span className="block text-slate-600">It holds</span>
                         <select value={entity} onChange={(e) => { setEntity(e.target.value as ImportEntity); setPreview(null); setResult(null); }} className={`${field} h-9 min-w-56`}>
-                            {ENTITY_LIST.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
+                            {ENTITY_LIST.filter((e) => allowed.includes(e.key)).map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
                         </select>
                     </label>
                     <p className="flex-1 text-xs text-slate-500">{spec.blurb}</p>

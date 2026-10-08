@@ -4,18 +4,19 @@ import { ArrowLeft, FileText } from "lucide-react";
 import { asStaff } from "@/lib/admin/platform";
 import { addPeriod, billingDay, anchorDayOf, periodStartFor, renewalRules, standing } from "@/lib/billing/periods";
 import { recipientGaps } from "@/lib/billing/invoices";
-import { withVat } from "@/lib/pricing/plans";
 import { money, dateShort } from "@/lib/format";
 import { ConfirmAction } from "@/app/admin/ConfirmAction";
 import {
     issueInvoiceAction,
     recordEarlierPaymentAction,
     renewAction,
+    changePlanAction,
     resendCreditNoteAction,
     resendInvoiceAction,
     reversePaymentAction,
 } from "@/app/admin/actions";
-import { ReversePayment } from "@/app/admin/BillingForms";
+import { ChangePlan, ReversePayment } from "@/app/admin/BillingForms";
+import { PLANS, withVat } from "@/lib/pricing/plans";
 import { actorName, describeAction } from "@/app/admin/activity";
 
 /**
@@ -51,7 +52,7 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                 address1: true,
                 city: true,
                 subscription: {
-                    select: { planName: true, priceAmount: true, period: true, reference: true, status: true, startedAt: true, periodEndsAt: true },
+                    select: { planId: true, planName: true, priceAmount: true, period: true, reference: true, status: true, startedAt: true, periodEndsAt: true },
                 },
                 memberships: {
                     where: { group: "OWNER" },
@@ -133,6 +134,17 @@ export default async function WorkshopAccountPage({ params }: { params: Promise<
                     </dl>
                 ) : (
                     <p className="text-slate-600">No billing set up.</p>
+                )}
+                {sub && sub.status !== "CANCELLED" && (
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                        <ChangePlan
+                            action={changePlanAction}
+                            tenantId={w.id}
+                            plans={PLANS.map((p) => ({ id: p.id, name: p.name, price: p.price }))}
+                            currentPlanId={sub.planId}
+                            currentAmount={Number(sub.priceAmount)}
+                        />
+                    </div>
                 )}
             </section>
 

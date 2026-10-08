@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { createKey, revokeKey } from "./key-service";
 
@@ -18,7 +18,7 @@ const createSchema = z.object({
  * workshop, so making one is not something a counter hand does in passing.
  */
 async function owner(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "api");
     assertCan(ctx.membership, "settings:manage");
     return ctx;
 }

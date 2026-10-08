@@ -8,6 +8,7 @@ import {
     Users, Wallet, Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { Feature } from "@/lib/plans/features";
 
 /**
  * The sidebar, in five groups rather than twenty flat links.
@@ -33,13 +34,17 @@ export function SidebarNav({
     reports,
     cost,
     manages,
+    features,
 }: {
     base: string;
     reports: boolean;
     cost: boolean;
     manages: boolean;
+    /** What the workshop's plan includes. A screen outside it is not offered at all. */
+    features: Feature[];
 }) {
     const pathname = usePathname();
+    const has = (f: Feature) => features.includes(f);
 
     const groups: Group[] = [
         {
@@ -47,7 +52,7 @@ export function SidebarNav({
             items: [
                 { href: `${base}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
                 { href: `${base}/dashboard/schedule`, label: "Booking diary", icon: CalendarDays },
-                { href: `${base}/dashboard/reminders`, label: "Reminders", icon: Bell },
+                { href: `${base}/dashboard/reminders`, label: "Reminders", icon: Bell, show: has("reminders") },
                 { href: `${base}/dashboard/messages`, label: "Messages", icon: Megaphone },
             ],
         },
@@ -58,7 +63,7 @@ export function SidebarNav({
                 { href: `${base}/dashboard/transactions`, label: "Transactions", icon: ListChecks },
                 { href: `${base}/dashboard/customers`, label: "Customers", icon: Users },
                 { href: `${base}/dashboard/vehicles`, label: "Vehicles", icon: Car },
-                { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront },
+                { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront, show: has("loanCars") },
             ],
         },
         {
@@ -74,9 +79,9 @@ export function SidebarNav({
         {
             label: "Parts & buying",
             items: [
-                { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost },
-                { href: `${base}/dashboard/purchasing`, label: "Buying", icon: Truck, show: cost },
-                { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost },
+                { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost && has("stock") },
+                { href: `${base}/dashboard/purchasing`, label: "Buying", icon: Truck, show: cost && has("purchasing") },
+                { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost && has("purchasing") },
             ],
         },
         {

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { readSheet, guessMapping } from "@/lib/import/csv";
-import { ENTITIES, type ImportEntity } from "@/lib/import/entities";
+import { ENTITIES, IMPORT_FEATURE, type ImportEntity } from "@/lib/import/entities";
+import { FEATURES, PLAN_NAMES, includes } from "@/lib/plans/features";
 import { analyse, duplicatesWithin, type RowProblem } from "@/lib/import/analyse";
 import { runImport, type ImportResult } from "@/lib/import/service";
 
@@ -31,11 +32,20 @@ async function importer(slug: string) {
     return ctx;
 }
 
+/** Products, suppliers, bundles and serials belong to the plans that include them; customers and history to every plan. */
+function notOnPlan(plan: Awaited<ReturnType<typeof importer>>["plan"], kind: ImportEntity): string | null {
+    const needs = IMPORT_FEATURE[kind];
+    if (!needs || includes(plan, needs)) return null;
+    return `${FEATURES[needs].name} is part of the ${PLAN_NAMES[FEATURES[needs].plan]} plan, so ${ENTITIES[kind].label.toLowerCase()} cannot be imported on yours.`;
+}
+
 /** Read the file and say what would happen — the benchmark's analyse-then-import, with the reasons shown. */
 export async function analyseFileAction(slug: string, entity: string, text: string, mapping?: Record<string, string>): Promise<{ ok: false; message: string } | { ok: true; preview: Preview }> {
-    await importer(slug);
+    const { plan } = await importer(slug);
     const kind = entitySchema.safeParse(entity);
     if (!kind.success) return { ok: false, message: "Choose what the file holds." };
+    const locked = notOnPlan(plan, kind.data);
+    if (locked) return { ok: false, message: locked };
     if (text.length > MAX) return { ok: false, message: "That file is larger than 2 MB. Split it and import in parts." };
     const sheet = readSheet(text);
     if (sheet.headers.length === 0) return { ok: false, message: "That file has no column names on its first line." };
@@ -62,9 +72,11 @@ export async function analyseFileAction(slug: string, entity: string, text: stri
 }
 
 export async function importFileAction(slug: string, entity: string, text: string, mapping: Record<string, string>): Promise<{ ok: false; message: string } | { ok: true; result: ImportResult }> {
-    const { db, tenant, user } = await importer(slug);
+    const { db, tenant, user, plan } = await importer(slug);
     const kind = entitySchema.safeParse(entity);
     if (!kind.success) return { ok: false, message: "Choose what the file holds." };
+    const locked = notOnPlan(plan, kind.data);
+    if (locked) return { ok: false, message: locked };
     const sheet = readSheet(text);
     const result = analyse(kind.data, sheet.headers, sheet.rows, mapping);
     if (result.missingRequired.length > 0) return { ok: false, message: `The file still needs a column for: ${result.missingRequired.join(", ")}.` };

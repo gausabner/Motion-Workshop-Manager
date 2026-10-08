@@ -156,6 +156,33 @@ payment already received** for the period it is in now. Use it **only if the
 money really arrived** — it issues a real tax invoice, which is a declaration
 of VAT. If the workshop was a test, leave it.
 
+## Plans and what each one opens
+
+A workshop can use only what its plan includes — the same three tiers as the
+pricing page. The rules live in one place (`web/src/lib/plans/features.ts`).
+
+| Plan | Adds |
+| --- | --- |
+| **Workshop** | The diary, job cards, quotes to invoices, receipts, sending, customers and vehicles, what customers owe, profit, the mechanic clock, the portal, online booking, import, and every table as CSV |
+| **Full workshop** | Parts and stock, purchasing and suppliers, inspections, reminders and campaigns, courtesy cars, the owner reports |
+| **Council and multi-site** | The audit pack, the accounting hand-off, the public API |
+
+- A screen outside the plan is not in the workshop's menus. Reached by an old
+  link, it sends them to Settings → Billing, which says which plan includes it
+  and how to move up.
+- A workshop with **no plan** — one switched on before plans existed — keeps
+  everything until **Set up billing** gives it one.
+- Nothing is deleted when a workshop moves down. Their stock, suppliers and
+  inspections stay on file, out of reach, and come back if they move up.
+
+### Move a workshop to another plan
+
+Open its page and use **Change plan**: choose the plan, check the monthly
+amount (excluding VAT — change it for a negotiated price). What it can use
+changes at once; the new price is what its next renewal is invoiced at, and
+nothing already paid is re-priced. The owner is emailed what they gained or
+lost and the new price.
+
 ## What you cannot see
 
 Each workshop's plan, amount, reference, dates and owner's contact details —

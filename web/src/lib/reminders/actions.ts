@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { type ActionState, bool, str } from "@/lib/forms";
 import { parseSettings, reminderSettingsSchema } from "@/lib/settings/schema";
@@ -17,7 +17,7 @@ function refresh(slug: string) {
 
 /** Not this one — the customer already booked, sold the car, or asked not to be chased. */
 export async function skipReminderAction(slug: string, input: z.input<typeof keySchema>): Promise<void> {
-    const { db, tenant, membership } = await requireTenant(slug);
+    const { db, tenant, membership } = await requireFeature(slug, "reminders");
     assertCan(membership, "messages:send");
     const key = keySchema.parse(input);
     const dueOn = new Date(`${key.dueOn}T00:00:00Z`);
@@ -40,14 +40,14 @@ export async function skipReminderAction(slug: string, input: z.input<typeof key
 
 /** Put a skipped reminder back on the list. A sent one stays sent: the message went. */
 export async function unskipReminderAction(slug: string, reminderId: string): Promise<void> {
-    const { db, membership } = await requireTenant(slug);
+    const { db, membership } = await requireFeature(slug, "reminders");
     assertCan(membership, "messages:send");
     await db.reminder.deleteMany({ where: { id: reminderId, outcome: "SKIPPED" } });
     refresh(slug);
 }
 
 export async function saveReminderSettings(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, user, membership } = await requireTenant(slug);
+    const { db, tenant, user, membership } = await requireFeature(slug, "reminders");
     assertCan(membership, "settings:manage");
     const rule = (name: string) => ({ enabled: bool(formData, `${name}.enabled`), days: Number(str(formData, `${name}.days`) ?? 0) });
     const parsed = reminderSettingsSchema.safeParse({

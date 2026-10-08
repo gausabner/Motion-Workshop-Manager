@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/session";
+import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { businessToday } from "@/lib/tenant/today";
 import { processInvoice, receiptFromOrder, saveInvoice, saveOrder, setOrderState, voidInvoice, type InvoiceInput, type OrderInput } from "@/lib/purchasing/service";
@@ -60,7 +60,7 @@ const invoiceSchema = z.object({
 type Result = { ok: true; id: string; message?: string } | { ok: false; message: string };
 
 async function buyer(slug: string) {
-    const ctx = await requireTenant(slug);
+    const ctx = await requireFeature(slug, "purchasing");
     // Buying is stock work: the same people who may change products may order them.
     assertCan(ctx.membership, "products:write");
     return ctx;

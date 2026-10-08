@@ -2,12 +2,16 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 import { ImportWizard } from "@/components/settings/ImportWizard";
+import { ENTITY_LIST, IMPORT_FEATURE } from "@/lib/import/entities";
+import { includes } from "@/lib/plans/features";
 
 export const metadata = { title: "Import | MOTION Workshop Manager" };
 
 export default async function ImportPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { membership } = await requireTenant(slug);
+    const { membership, plan } = await requireTenant(slug);
+    // Products, suppliers, bundles and serials only on the plans that include them.
+    const allowed = ENTITY_LIST.filter((e) => { const needs = IMPORT_FEATURE[e.key]; return !needs || includes(plan, needs); }).map((e) => e.key);
     if (!can(membership, "settings:manage"))
         return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
     return (
@@ -20,7 +24,7 @@ export default async function ImportPage({ params }: { params: Promise<{ tenant:
                 </p>
             </div>
             <div className="border-t border-slate-200" />
-            <ImportWizard tenant={slug} />
+            <ImportWizard tenant={slug} allowed={allowed} />
         </div>
     );
 }
