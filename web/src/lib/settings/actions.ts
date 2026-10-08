@@ -5,6 +5,8 @@ import { requireTenant } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { bool, fromZod, str, type ActionState } from "@/lib/forms";
 import { storeUpload, removeAttachment } from "@/lib/attachments/service";
+import { NUMBERED } from "@/lib/documents/numbering-rules";
+import { saveNumbering, type NumberingInput } from "@/lib/settings/numbering";
 import { accountingSettingsSchema, companySettingsSchema, handoffSettingsSchema, parseSettings, portalSettingsSchema, taxSettingsSchema } from "@/lib/settings/schema";
 
 /**
@@ -181,4 +183,29 @@ export async function saveHandoffSettings(slug: string, _prev: ActionState, form
     revalidatePath(`/${slug}/dashboard/settings/handoff`);
     revalidatePath(`/${slug}/dashboard/reports/handoff`);
     return { ok: true, message: "Saved" };
+}
+
+/**
+ * The workshop's own document numbers: a prefix and a next number per series.
+ * The rules — and the guarantee that no number is issued twice — are in
+ * `lib/settings/numbering.ts`.
+ */
+export async function saveNumberingSettings(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const ctx = await requireTenant(slug);
+    assertCan(ctx.membership, "settings:manage");
+
+    const input: NumberingInput = new Map();
+    for (const { key } of NUMBERED) {
+        const prefix = formData.get(`prefix_${key}`);
+        const next = formData.get(`next_${key}`);
+        if (typeof prefix !== "string" || typeof next !== "string") continue;
+        input.set(key, { prefix: prefix.trim(), next: next.trim() === "" ? Number.NaN : Number(next.trim()) });
+    }
+
+    const result = await saveNumbering(ctx.db, ctx.tenant.id, ctx.user.id, input);
+    if (!result.ok) return { ok: false, message: "Nothing was saved. Fix the highlighted rows.", errors: result.errors };
+
+    revalidatePath(`/${slug}/dashboard/settings/numbering`);
+    if (result.changed.length === 0) return { ok: true, message: "Nothing to change." };
+    return { ok: true, message: "Saved. Documents already numbered keep their numbers; the next ones use these." };
 }

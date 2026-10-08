@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard } from "lucide-react";
+import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash } from "lucide-react";
 
 const sidebarNavItems = [
     {
@@ -11,6 +11,11 @@ const sidebarNavItems = [
         title: "Tax & Financials",
         href: "tax",
         icon: <FileText className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Document numbers",
+        href: "numbering",
+        icon: <Hash className="w-4 h-4 mr-2" />,
     },
     {
         title: "Bookings",
