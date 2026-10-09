@@ -6,11 +6,12 @@ import type { SetupFacts } from "@/lib/setup/checklist";
 
 export async function setupFacts(db: TenantDb, tenant: Tenant): Promise<SetupFacts> {
     const settings = parseSettings(tenant.settings);
-    const [taxSaves, mechanics, customers, jobs] = await Promise.all([
+    const [taxSaves, mechanics, customers, jobs, imports] = await Promise.all([
         db.auditEvent.count({ where: { entityType: "Tenant", entityId: tenant.id, action: "UPDATED", diff: { path: ["section"], equals: "tax" } } }),
         db.membership.count({ where: { status: "ACTIVE", isMechanic: true } }),
         db.customer.count({ where: { archivedAt: null } }),
         db.document.count({ where: { type: "JOB_CARD" } }),
+        db.auditEvent.count({ where: { entityType: "Import", action: "IMPORTED" } }),
     ]);
     return {
         hasAddress: Boolean(tenant.address1 && tenant.city),
@@ -22,6 +23,7 @@ export async function setupFacts(db: TenantDb, tenant: Tenant): Promise<SetupFac
         hoursSet: settings.diary !== undefined,
         mechanics,
         customers,
+        imported: imports > 0,
         jobs,
         onlineBooking: settings.diary?.onlineBooking === true,
     };

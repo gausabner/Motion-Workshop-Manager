@@ -19,6 +19,8 @@ export type SetupFacts = {
     hoursSet: boolean;
     mechanics: number;
     customers: number;
+    /** Something has been brought across from a spreadsheet or another system. */
+    imported: boolean;
     jobs: number;
     onlineBooking: boolean;
 };
@@ -43,6 +45,13 @@ export function setupSteps(f: SetupFacts, base: string): SetupStep[] {
         {
             key: "hours", title: "Set your opening hours", href: `${settings}/booking`, done: f.hoursSet,
             why: "The diary and the mechanics' clock both work to them.",
+        },
+        {
+            // Before the team, as the help library has always said: staff who
+            // sign in to an empty system go back to the paper book. Optional,
+            // because a workshop with no previous system has nothing to bring.
+            key: "import", title: "Import your customers and vehicles", href: `${settings}/import`, done: f.imported, optional: true,
+            why: "From a spreadsheet or your previous system. Do this before inviting staff, so they start with your records in place.",
         },
         {
             key: "team", title: "Invite your mechanics", href: `${settings}/users`, done: f.mechanics > 0,

@@ -8,7 +8,8 @@ import { COUNTRY_DEFAULTS } from "@/lib/tenant/country";
 import { initialActionState } from "@/lib/forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PLANS, CURRENCY, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { money } from "@/lib/format";
 import { Label } from "@/components/ui/label";
 
 function Field({ label, name, error, children }: { label: string; name: string; error?: string[]; children: React.ReactNode }) {
@@ -21,7 +22,7 @@ function Field({ label, name, error, children }: { label: string; name: string; 
     );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ host, initialPlan }: { host: string; initialPlan?: string }) {
     const [state, action, pending] = useActionState(registerAction, initialActionState);
     const [slug, setSlug] = useState("");
     const [slugTouched, setSlugTouched] = useState(false);
@@ -43,17 +44,16 @@ export function RegisterForm() {
                             key={plan.id}
                             className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-3 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50/40"
                         >
-                            <input type="radio" name="planId" value={plan.id} required className="mt-1 accent-teal-600" />
+                            <input type="radio" name="planId" value={plan.id} required defaultChecked={plan.id === initialPlan} className="mt-1 accent-teal-600" />
                             <span className="min-w-0">
                                 <span className="block text-sm font-medium text-slate-900">{plan.name}</span>
                                 <span className="block text-[13px] tabular-nums text-slate-900">
-                                    {CURRENCY}{plan.price.toLocaleString("en-GB")}{" "}
-                                    <span className="text-slate-500">per month, excluding VAT</span>
+                                    {money(plan.price)} <span className="text-slate-500">per month, excluding VAT</span>
                                 </span>
                                 {/* The figure that leaves the bank, derived
                                     rather than typed beside it. */}
                                 <span className="block text-[12px] text-slate-500">
-                                    {CURRENCY}{withVat(plan.price).toLocaleString("en-GB", { maximumFractionDigits: 2 })} including VAT at {VAT_RATE}%
+                                    {money(withVat(plan.price))} including VAT at {VAT_RATE}%
                                 </span>
                                 <span className="mt-1 block text-[12px] text-slate-500">{plan.who}</span>
                             </span>
@@ -62,19 +62,25 @@ export function RegisterForm() {
                 </div>
                 {state.errors?.planId && <p className="text-xs text-red-600">{state.errors.planId[0]}</p>}
                 <p className="text-[12px] text-slate-500">
-                    More than one workshop, or buying for a municipality? That is quoted per site —{""}
-                    <Link href="/support" className="font-medium text-teal-700 hover:underline">talk to us</Link>.
+                    More than one workshop, or buying for a municipality? Those are quoted per site —{" "}
+                    <Link href="/support" className="font-medium text-teal-700 hover:underline">request a quote</Link>.
                 </p>
             </fieldset>
 
             <Field label="Workshop name" name="workshopName" error={state.errors?.workshopName}>
                 <Input id="workshopName" name="workshopName" required autoFocus onChange={(e) => { if (!slugTouched) setSlug(slugify(e.target.value)); }} />
             </Field>
-            <Field label="Workshop address" name="slug" error={state.errors?.slug}>
-                <div className="flex items-center gap-1 text-sm">
-                    <span className="text-slate-400 whitespace-nowrap">motion.app/</span>
-                    <Input id="slug" name="slug" value={slug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }} required />
-                </div>
+            {/* "Address" read as a street address, and the domain shown was not
+                MOTION's. This is the web address the team signs in at. */}
+            {/* The full address as a live line under the field rather than a
+                prefix inside it: "motionworkshopmanager.com/" beside an input
+                on a phone leaves the input a sliver. */}
+            <Field label="Web address" name="slug" error={state.errors?.slug}>
+                <Input id="slug" name="slug" value={slug} aria-describedby="slug-hint" onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }} required autoCapitalize="none" spellCheck={false} />
+                <p id="slug-hint" className="text-xs text-slate-500">
+                    Your team will sign in at <span className="font-medium text-slate-700 [overflow-wrap:anywhere]">{host}/{slug || "your-workshop"}</span>. Lower-case
+                    letters, numbers and dashes only.
+                </p>
             </Field>
             <Field label="Country" name="country" error={state.errors?.country}>
                 <select id="country" name="country" value={country} onChange={(e) => setCountry(e.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
@@ -89,12 +95,30 @@ export function RegisterForm() {
             <Field label="Email" name="email" error={state.errors?.email}><Input id="email" name="email" type="email" required autoComplete="email" /></Field>
             <Field label="Mobile (WhatsApp)" name="mobile" error={state.errors?.mobile}><Input id="mobile" name="mobile" type="tel" placeholder={`${local.dialPrefix} …`} autoComplete="tel" /></Field>
             <Field label="Password" name="password" error={state.errors?.password}><Input id="password" name="password" type="password" required autoComplete="new-password" minLength={8} /></Field>
+            {/* Said before the button, not after it: the workshop is used only
+                once a bank payment has been confirmed by a person, and finding
+                that out on the next screen felt like a trick. */}
+            <div className="rounded-md border border-slate-200 px-4 py-3">
+                <p className="text-sm font-medium text-slate-900">What happens next</p>
+                <ol className="mt-2 space-y-1.5 text-[13px] text-slate-600">
+                    {[
+                        "We email you a payment reference.",
+                        "You pay by EFT or bank deposit, using that reference.",
+                        "We activate your workshop once the payment is confirmed, usually on the same working day.",
+                    ].map((step, i) => (
+                        <li key={step} className="grid grid-cols-[1rem_1fr] gap-2">
+                            <span className="text-right font-medium tabular-nums text-teal-700">{i + 1}</span>
+                            <span>{step}</span>
+                        </li>
+                    ))}
+                </ol>
+            </div>
             {state.message && !state.ok && <p className="text-sm text-red-600" role="alert">{state.message}</p>}
             <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={pending}>
-                {pending ? "Creating workshop…" : "Create workshop"}
+                {pending ? "Registering…" : "Register workshop"}
             </Button>
             <p className="text-center text-sm text-slate-500">
-                Already have an account? <Link href="/login" className="text-teal-700 font-medium hover:underline">Sign in</Link>
+                Already registered? <Link href="/login" className="text-teal-700 font-medium hover:underline">Sign in</Link>
             </p>
         </form>
     );

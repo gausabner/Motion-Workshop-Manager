@@ -4,7 +4,7 @@ import { setupProgress, setupSteps, type SetupFacts } from "./checklist";
 
 const fresh: SetupFacts = {
     hasAddress: false, hasContact: true, taxReviewed: false, hasVatNumber: false, hasLogo: false,
-    hasBankDetails: false, hoursSet: false, mechanics: 0, customers: 0, jobs: 0, onlineBooking: false,
+    hasBankDetails: false, hoursSet: false, mechanics: 0, customers: 0, imported: false, jobs: 0, onlineBooking: false,
 };
 
 test("a new workshop has none of the required steps done", () => {
@@ -24,4 +24,10 @@ test("a VAT number counts as having checked tax", () => {
 
 test("every step links inside the workshop", () => {
     for (const s of setupSteps(fresh, "/tiptop")) assert.ok(s.href.startsWith("/tiptop/dashboard/"), s.key);
+});
+
+test("importing comes before inviting the team, and never holds a new workshop back", () => {
+    const keys = setupSteps(fresh, "/w").map((s) => s.key);
+    assert.ok(keys.indexOf("import") < keys.indexOf("team"), "import must come before inviting staff");
+    assert.equal(setupSteps(fresh, "/w").find((s) => s.key === "import")!.optional, true);
 });

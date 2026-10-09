@@ -4,12 +4,13 @@ import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { PricingScene, MigrationScene } from "@/components/public/iso/scenes";
 import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
-import { ALWAYS, CARE, CURRENCY, PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { ALWAYS, CARE, PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { money } from "@/lib/format";
 
 export const metadata = {
     title: "Pricing | MOTION Workshop Manager",
     description:
-        "What MOTION costs: from N$1,200 a month for a two-bay workshop, with councils and multi-site quoted per site.",
+        "What MOTION costs: from N$ 1,200.00 a month, excluding VAT, for a two-bay workshop, with councils and multi-site quoted per site.",
 };
 
 /**
@@ -35,7 +36,17 @@ export default function PricingPage() {
                 pill={<Pill>Pricing</Pill>}
                 title="What it costs"
                 sub="Priced for this market rather than converted from somewhere else. Every tier includes every member of staff, and your data leaves with you whenever you ask for it."
-                cta={<PublicButton href="/support">Book a demo</PublicButton>}
+                cta={
+                    // The paid path beside the assisted one. Registering works end
+                    // to end — plan, reference, payment, activation — and for a
+                    // long time no page led to it.
+                    <>
+                        <PublicButton href="/register">Register your workshop</PublicButton>
+                        <PublicButton href="/support" tone="outline">
+                            Book a demonstration
+                        </PublicButton>
+                    </>
+                }
                 figure={
                     <IsoMotion scope="header" tilt={11} drift={20}>
                         <IsoStage height={440} className="max-lg:h-[380px] max-md:h-[290px]" eager>
@@ -75,7 +86,8 @@ export default function PricingPage() {
                                         <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                                     </span>
                                     <p className="max-w-[30ch] text-[0.975rem] text-slate-500">
-                                        <strong className="mb-1 block text-[1.0625rem] font-semibold text-slate-900">{head}.</strong>
+                                        {/* Stripped first, so a line with no break in it cannot end ".." again. */}
+                                        <strong className="mb-1 block text-[1.0625rem] font-semibold text-slate-900">{head.replace(/\.$/, "")}.</strong>
                                         {rest.join(". ")}
                                     </p>
                                 </li>
@@ -114,7 +126,16 @@ export default function PricingPage() {
                 </SpineSection>
             </main>
 
-            <PublicFoot cta={<PublicButton href="/support" tone="onDark">Book a demo</PublicButton>} />
+            <PublicFoot
+                cta={
+                    <div className="flex flex-wrap gap-3">
+                        <PublicButton href="/register">Register your workshop</PublicButton>
+                        <PublicButton href="/support" tone="onDark">
+                            Book a demonstration
+                        </PublicButton>
+                    </div>
+                }
+            />
         </PublicPage>
     );
 }
@@ -163,7 +184,7 @@ function Tiers() {
 
                             <p className="flex flex-col gap-1.5">
                                 <span className="text-[clamp(2.25rem,3.4vw,2.75rem)] font-medium leading-none tracking-[-0.03em] tabular-nums">
-                                    {plan.price === null ? "By quote" : `${CURRENCY}${plan.price.toLocaleString("en-GB")}`}
+                                    {plan.price === null ? "By quote" : money(plan.price)}
                                 </span>
                                 <span className={`text-[0.9rem] ${dark ? "text-white/[0.78]" : "text-slate-500"}`}>{plan.priceNote}</span>
                                 {/* What actually leaves the bank account. Derived
@@ -171,8 +192,7 @@ function Tiers() {
                                     beside it, so the two cannot drift apart. */}
                                 {plan.price !== null && (
                                     <span className="text-[0.9rem] text-slate-500">
-                                        {CURRENCY}
-                                        {withVat(plan.price).toLocaleString("en-GB", { maximumFractionDigits: 2 })} including VAT at {VAT_RATE}%
+                                        {money(withVat(plan.price))} including VAT at {VAT_RATE}%
                                     </span>
                                 )}
                             </p>

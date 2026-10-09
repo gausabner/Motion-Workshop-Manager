@@ -124,9 +124,9 @@ export function LoginForm({ next }: { next?: string }) {
             </button>
 
             <p className="text-[15px] text-slate-500">
-                New workshop?{" "}
+                New to MOTION?{" "}
                 <Link href="/register" className="font-semibold text-slate-900 underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
-                    Create your account
+                    Register your workshop
                 </Link>
             </p>
         </form>

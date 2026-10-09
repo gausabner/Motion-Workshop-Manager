@@ -8,7 +8,9 @@ import { IsoScene } from "@/components/public/iso/primitives";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { HeroScene } from "@/components/public/iso/scenes";
 import { Reveal } from "@/components/public/Reveal";
-import { CURRENCY, PLANS } from "@/lib/pricing/plans";
+import { PLANS } from "@/lib/pricing/plans";
+import { money } from "@/lib/format";
+import { displayPhone } from "@/lib/messaging/phone";
 import { support } from "@/lib/edition";
 
 /**
@@ -88,7 +90,7 @@ export function CloudLanding() {
         },
         {
             title: "The books can be proved",
-            text: "Every number issued is accounted for, every deletion keeps what it said, and every export records who took it. Most workshop software cannot answer those at all.",
+            text: "Every number issued is accounted for, every deletion keeps what it said, and every export records who took it.",
         },
         {
             title: "It speaks the way you do",
@@ -158,18 +160,30 @@ export function CloudLanding() {
                         </div>
 
                         <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "240ms" }}>
+                            {/* Registering beside the demonstration: the paid path
+                                works end to end, and for a long time no page led to
+                                it. The price moved under the two, as a line rather
+                                than a third button competing with them. */}
                             <div className="flex flex-wrap items-center gap-3">
-                                <PillLink href="/support">
-                                    Book a demo
+                                <PillLink href="/register">
+                                    Register your workshop
                                     <ArrowRight
                                         className="h-4 w-4 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5"
                                         strokeWidth={2}
                                     />
                                 </PillLink>
-                                <PillLink href="/pricing" variant="ghost">
-                                    From {CURRENCY}{entry.price?.toLocaleString("en-GB")} a month
+                                <PillLink href="/support" variant="ghost">
+                                    Book a demonstration
                                 </PillLink>
                             </div>
+                            {entry.price !== null && (
+                                <p className="mt-4 text-[14px] text-slate-500">
+                                    From <span className="tabular-nums">{money(entry.price)}</span> a month, excluding VAT.{" "}
+                                    <Link href="/pricing" className="font-medium text-teal-700 underline-offset-4 hover:underline">
+                                        See pricing
+                                    </Link>
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -255,18 +269,29 @@ export function CloudLanding() {
                             </p>
                             <div className="relative z-10 mt-7 flex flex-wrap items-center justify-center gap-3">
                                 <PillLink href="/support">
-                                    Book a demo
+                                    Book a demonstration
                                     <ArrowRight className="h-4 w-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" strokeWidth={2} />
                                 </PillLink>
-                                {reach.whatsapp && (
+                                <Link
+                                    href="/register"
+                                    className="rounded-full border border-white/20 px-6 py-3 text-[15px] font-medium text-white motion-safe:transition-colors motion-safe:duration-150 hover:border-white/40 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400"
+                                >
+                                    Register your workshop
+                                </Link>
+                            </div>
+                            {/* No full stop after the number: a lone "." text node
+                                after the link made this page fail to hydrate. */}
+                            {reach.whatsapp && (
+                                <p className="relative z-10 mt-5 text-[14px] text-teal-100/70">
+                                    Or WhatsApp us on{" "}
                                     <a
                                         href={`https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`}
-                                        className="rounded-full border border-white/20 px-6 py-3 text-[15px] font-medium text-white motion-safe:transition-colors motion-safe:duration-150 hover:border-white/40 hover:bg-white/5"
+                                        className="font-medium text-white underline-offset-4 hover:underline"
                                     >
-                                        WhatsApp us
+                                        {displayPhone(reach.whatsapp)}
                                     </a>
-                                )}
-                            </div>
+                                </p>
+                            )}
                         </div>
                     </Reveal>
                 </section>
