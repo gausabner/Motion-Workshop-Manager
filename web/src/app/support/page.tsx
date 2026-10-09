@@ -5,6 +5,7 @@ import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { SupportScene } from "@/components/public/iso/scenes";
 import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
 import { installation, isOnPrem, support } from "@/lib/edition";
+import { displayPhone } from "@/lib/messaging/phone";
 
 export const metadata = {
     title: "Support | MOTION Workshop Manager",
@@ -34,14 +35,14 @@ export default function SupportPage() {
         reach.phone && {
             icon: Phone,
             label: "Ring",
-            value: reach.phone,
+            value: displayPhone(reach.phone) ?? reach.phone,
             href: `tel:${reach.phone.replace(/\s/g, "")}`,
             note: "For a workshop that is stopped.",
         },
         reach.whatsapp && {
             icon: MessageCircle,
             label: "WhatsApp",
-            value: reach.whatsapp,
+            value: displayPhone(reach.whatsapp) ?? reach.whatsapp,
             href: `https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`,
             note: "Send the screenshot with it. Most things are solved in one exchange.",
         },
@@ -50,7 +51,7 @@ export default function SupportPage() {
             label: "Email",
             value: reach.email,
             href: `mailto:${reach.email}`,
-            note: "Answered in hours rather than minutes.",
+            note: "We reply within one working day.",
         },
     ].filter((c): c is NonNullable<Exclude<typeof c, false | "">> => Boolean(c));
 
@@ -189,7 +190,7 @@ export default function SupportPage() {
                                 <p className="mt-auto inline-flex items-center gap-2 text-base text-slate-900">
                                     <Phone className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
                                     <a href={`tel:${reach.phone.replace(/\s/g, "")}`} className="tabular-nums underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
-                                        {reach.phone}
+                                        {displayPhone(reach.phone) ?? reach.phone}
                                     </a>
                                 </p>
                             )}
@@ -200,8 +201,8 @@ export default function SupportPage() {
                                 Everything else
                             </h3>
                             <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
-                                A figure that looks wrong, a report you want, a question about how something works. Answered in hours
-                                rather than minutes — and honestly, most of it is already in the help library.
+                                A figure that looks wrong, a report you need, or a question about how something works. We reply within
+                                one working day, and many answers are already in the help library.
                             </p>
                             <div className="mt-auto">
                                 <PublicButton href="/help" tone="outline">
@@ -210,6 +211,39 @@ export default function SupportPage() {
                                 </PublicButton>
                             </div>
                         </article>
+                    </div>
+                </SpineSection>
+
+                {/* Workshops trade on Saturdays and the office does not, so the
+                    page says what that means instead of leaving a weekend
+                    caller to find out. Only things a person can actually do
+                    without us are listed — nothing here promises cover that
+                    does not exist. */}
+                <SpineSection id="after-hours" bend={onPrem ? "left" : "right"} tint={onPrem} labelledBy="h-after-hours">
+                    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+                        <div>
+                            <h2 id="h-after-hours" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
+                                Outside office hours
+                            </h2>
+                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
+                                Workshops open on Saturdays; our office does not. Anything sent in the evening, at the weekend or on a public
+                                holiday is answered first thing on the next working day — so send it now, with the screenshot, and it will be
+                                first in the queue.
+                            </p>
+                        </div>
+                        <ul className="flex flex-col gap-4">
+                            {[
+                                "If the workshop is stopped, mark your WhatsApp message URGENT. It is the first we deal with when the office opens.",
+                                "A forgotten password is reset from the sign-in page, without waiting for us.",
+                                "A member of staff who cannot sign in can be given a new password link by the workshop's owner, from Settings → Team.",
+                                "Mechanics' clock-ons are recorded in the floor app even without a connection, and sent when the signal returns.",
+                            ].map((line) => (
+                                <li key={line} className="flex items-start gap-3 text-[1.0625rem] text-slate-900">
+                                    <Check className="mt-1 h-5 w-5 shrink-0 text-teal-600" strokeWidth={1.75} aria-hidden />
+                                    <span>{line}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </SpineSection>
             </main>

@@ -80,7 +80,7 @@ export const PLANS: Plan[] = [
             "The help library and email support",
         ],
         excludes: ["Parts and stock", "Purchase orders and suppliers", "Inspections sent to the customer"],
-        cta: { label: "Book a demo", href: "/support" },
+        cta: { label: "Register on Workshop", href: "/register?plan=workshop" },
     },
     {
         id: "full",
@@ -101,7 +101,7 @@ export const PLANS: Plan[] = [
             "The eleven owner reports — profit by job, item sales, work in progress, quote outcomes",
         ],
         excludes: ["The council audit pack", "Accounting hand-off", "Installed on your own server"],
-        cta: { label: "Book a demo", href: "/support" },
+        cta: { label: "Register on Full workshop", href: "/register?plan=full" },
         featured: true,
     },
     {
@@ -121,7 +121,7 @@ export const PLANS: Plan[] = [
             "Installed on your own server, or hosted by us",
             "A named person, and an agreed response time",
         ],
-        cta: { label: "Talk to us", href: "/support" },
+        cta: { label: "Request a quote", href: "/support" },
     },
 ];
 
@@ -129,7 +129,7 @@ export const PLANS: Plan[] = [
 export const ALWAYS = [
     "Your data is yours. Take every table out as CSV, any time, without asking.",
     "No charge per user. A workshop should not ration logins.",
-    "Namibian from the ground up: 15 % VAT, N$, licence disc, roadworthy, WhatsApp.",
+    "Namibian from the ground up. 15% VAT, N$, the licence disc, the roadworthy and WhatsApp.",
     "Month to month. No setup fee to start.",
 ];
 

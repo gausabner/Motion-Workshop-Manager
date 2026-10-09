@@ -43,3 +43,20 @@ export function toInternational(raw: string | null | undefined, country = "NA"):
 export function displayInternational(digits: string): string {
     return `+${digits}`;
 }
+
+/**
+ * A number laid out the way people write it: "+264 81 576 5935",
+ * "+27 82 123 4567". Namibian and South African numbers are grouped 2-3-4
+ * after the country code; anything else is shown as given. A run of twelve
+ * digits is a number nobody can read back over the phone.
+ */
+export function displayPhone(raw: string | null | undefined, country = "NA"): string | null {
+    if (!raw) return null;
+    const digits = toInternational(raw, country);
+    if (!digits) return raw.trim();
+    for (const code of ["264", "27"]) {
+        const rest = digits.slice(code.length);
+        if (digits.startsWith(code) && rest.length === 9) return `+${code} ${rest.slice(0, 2)} ${rest.slice(2, 5)} ${rest.slice(5)}`;
+    }
+    return `+${digits}`;
+}
