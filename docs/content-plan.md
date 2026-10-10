@@ -232,6 +232,12 @@ the plan and read-only notices follow the voice; about 150 error and
 validation messages are complete sentences, a record that has gone always
 reads "This … no longer exists. Refresh the page.", and required fields name
 themselves ("Enter the make.") instead of showing Zod's default English.
+Phase 5 shipped on 10 October: every letter to a workshop owner
+(registration, activation, renewal reminder, read-only, receipt, tax invoice,
+credit note, plan change, suspension, restored, password reset, staff
+invitation) in the formal voice with one sign-off; the default customer
+messages and printed footers neutral, with quotes called "quotation" where
+the customer reads them. Workshops that edited a template keep their words.
 
 Repeated terms move into one small module (`lib/copy/terms.ts`) so a rename
 happens once. A translation framework is not proposed; MOTION is English-only.

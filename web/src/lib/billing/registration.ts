@@ -6,7 +6,7 @@ import { forTenant } from "@/lib/tenant-db";
 import { bankDetails } from "@/lib/billing/config";
 import { newReference } from "@/lib/billing/reference";
 import { PLANS, VAT_RATE, withVat, CURRENCY } from "@/lib/pricing/plans";
-import { sendMail, type Mail } from "@/lib/mail/send";
+import { SIGN_OFF, sendMail, type Mail } from "@/lib/mail/send";
 
 type MailAttachment = NonNullable<Mail["attachments"]>[number];
 import { money } from "@/lib/format";
@@ -238,9 +238,9 @@ async function sendCustomerLetter(n: RegistrationNotice): Promise<void> {
     const total = withVat(n.price);
 
     const lines = [
-        `Hi ${n.ownerFirstName},`,
+        `Hello ${n.ownerFirstName},`,
         "",
-        `${n.workshopName} is registered for MOTION on the ${n.planName} plan. One payment and you are in.`,
+        `${n.workshopName} is registered for MOTION on the ${n.planName} plan. Your workshop will be activated once your payment is received.`,
         "",
         `Amount        ${money(total)} (${money(n.price)} plus ${VAT_RATE}% VAT)`,
         `Reference     ${n.reference}`,
@@ -254,19 +254,19 @@ async function sendCustomerLetter(n: RegistrationNotice): Promise<void> {
                   ...(bank.accountType ? [`Account type  ${bank.accountType}`] : []),
                   "",
               ]
-            : ["We will send you the bank details to pay into shortly.", ""]),
+            : ["We will send you the bank details shortly.", ""]),
         // Said twice on purpose. This is the whole reason a deposit can be
         // matched to a workshop, and it is the one field people leave blank.
-        `Please use ${n.reference} as the payment reference. Without it we cannot tell which workshop paid, and your account will not be activated.`,
+        `Use ${n.reference} as the payment reference. Without it we cannot match your payment, and your workshop cannot be activated.`,
         "",
         // A real address, not "reply to this email". This letter is sent from
         // no-reply@, and telling somebody to reply to it — which it used to —
         // sends their proof of payment into a bounce.
         reach
-            ? `Send the proof of payment to ${reach} and we will switch your workshop on, usually the same working day.`
-            : "Once your payment has cleared we will switch your workshop on, usually the same working day.",
+            ? `Send the proof of payment to ${reach}. We activate your workshop once the payment is confirmed, usually on the same working day.`
+            : "We activate your workshop once the payment is confirmed, usually on the same working day.",
         "",
-        "— MOTION",
+        ...SIGN_OFF,
     ];
 
     await sendMail({
@@ -334,23 +334,23 @@ export async function sendActivationLetter(n: {
     await sendMail({
         to: n.to,
         attachments: n.invoice ? [n.invoice.attachment] : undefined,
-        subject: `${n.workshopName} is live on MOTION`,
+        subject: `${n.workshopName} is now active on MOTION`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
-            `Your payment has been received and ${n.workshopName} is switched on. Sign in here:`,
+            `Your payment has been received and ${n.workshopName} is now active. Sign in here:`,
             "",
             `${base}/${n.slug}/dashboard`,
             "",
-            "Use the same email and password you registered with. If you have forgotten it, there is a link on the sign-in page.",
+            "Sign in with the email address and password you registered with. If you have forgotten your password, you can reset it from the sign-in page.",
             "",
             // Said now, so the first reminder is not the first they hear of it.
-            `You are paid up to ${billingDay(n.paidUntil)}. We will email you a week before the next payment is due, with the same reference to use.`,
+            `Your subscription is paid up to ${billingDay(n.paidUntil)}. We will email you a week before the next payment is due, with the reference to use.`,
             "",
-            ...(n.invoice ? [`Your tax invoice, ${n.invoice.number}, is attached. You will find it under Settings → Billing too.`, ""] : []),
-            "Welcome aboard.",
+            ...(n.invoice ? [`Your tax invoice, ${n.invoice.number}, is attached. It is also available under Settings → Billing.`, ""] : []),
+            "Welcome to MOTION.",
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -400,13 +400,13 @@ export async function sendSuspensionLetter(n: {
     const base = appUrl();
 
     const lines = [
-        `Hi ${n.firstName},`,
+        `Hello ${n.firstName},`,
         "",
         `Access to ${n.workshopName} on MOTION has been paused because we have not received your payment.`,
         "",
-        "Nothing has been deleted. Your customers, vehicles, jobs, quotes and invoices are kept exactly as they were — only signing in is paused.",
+        "Nothing has been deleted. Your customers, vehicles, jobs, quotes and invoices are kept as they were; only access is paused.",
         "",
-        "To restore access, make the payment below. As soon as we confirm it, we will switch your workshop back on and let you know.",
+        "To restore access, make the payment below. Once we confirm it, we will restore access and let you know.",
         "",
         ...(n.price !== null ? [`Amount        ${money(withVat(n.price))} (${money(n.price)} plus ${VAT_RATE}% VAT)`] : []),
         ...(n.reference ? [`Reference     ${n.reference}`] : []),
@@ -421,18 +421,18 @@ export async function sendSuspensionLetter(n: {
                   "",
               ]
             : []),
-        ...(n.reference ? [`Please use ${n.reference} as the payment reference so we can match it to your workshop.`, ""] : []),
+        ...(n.reference ? [`Use ${n.reference} as the payment reference, so that we can match the payment to your workshop.`, ""] : []),
         reach
-            ? `Send the proof of payment to ${reach}, or write to us there if you think this is a mistake.`
-            : "If you think this is a mistake, contact MOTION support.",
+            ? `Send the proof of payment to ${reach}. If you believe this is an error, contact us at the same address.`
+            : "If you believe this is an error, contact MOTION support.",
         "",
-        ...(base ? ["The same details are on your sign-in page:", "", `${base}/login`, ""] : []),
-        "— MOTION",
+        ...(base ? ["These details are also shown when you sign in:", "", `${base}/login`, ""] : []),
+        ...SIGN_OFF,
     ];
 
     await sendMail({
         to: n.to,
-        subject: `Access to ${n.workshopName} is paused — your data is safe`,
+        subject: `Access to ${n.workshopName} on MOTION is paused`,
         text: lines.join("\n"),
     });
 }
@@ -442,15 +442,15 @@ export async function sendRestoredLetter(n: { to: string; firstName: string; wor
     const base = appUrl();
     await sendMail({
         to: n.to,
-        subject: `${n.workshopName} is switched back on`,
+        subject: `Access to ${n.workshopName} has been restored`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
-            `Thank you — ${n.workshopName} is switched back on, with everything exactly where you left it. Sign in here:`,
+            `Thank you. Access to ${n.workshopName} has been restored, and your records are as you left them. Sign in here:`,
             "",
             `${base}/${n.slug}/dashboard`,
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }

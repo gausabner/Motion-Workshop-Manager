@@ -33,7 +33,7 @@ export async function inviteMemberAction(slug: string, input: { email: string; g
     try {
         const { token } = await db.$transaction((tx) => createInvitation(tx, tenant.id, membership, parsed.data));
         const link = `${(await requestOrigin()).replace(/\/$/, "")}/join/${token}`;
-        const body = `${user.firstName} has added you to ${tenant.name} on MOTION as ${GROUP_LABELS[parsed.data.group]}. Set up your sign-in here (the link works for 7 days): ${link}`;
+        const body = `${user.firstName} has invited you to join ${tenant.name} on MOTION as ${GROUP_LABELS[parsed.data.group]}. Set up your sign-in with this link, which is valid for 7 days: ${link}`;
         const phone = toInternational(parsed.data.mobile, tenant.country);
         const [wa, mail] = await Promise.all([
             phone ? new WhatsAppLinkDriver().send({ channel: "WHATSAPP", recipient: phone, body }) : null,

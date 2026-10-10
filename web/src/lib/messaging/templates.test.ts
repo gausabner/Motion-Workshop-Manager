@@ -22,7 +22,7 @@ test("a settled invoice's message drops the amount-due line rather than saying N
     });
     assert.equal(
         message,
-        "Hi Courtney, your invoice INV-1003 from TipTop AutoCare is ready: N$ 2,450.00.\nhttps://motion.example/share/abc\nBanking details are on the invoice. Thank you!",
+        "Hi Courtney, your invoice INV-1003 from TipTop AutoCare is ready: N$ 2,450.00.\nhttps://motion.example/share/abc\nOur banking details are on the invoice. Thank you for your business.",
     );
 });
 

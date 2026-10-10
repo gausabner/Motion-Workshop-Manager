@@ -4,7 +4,7 @@ import { bankDetails } from "@/lib/billing/config";
 import { appUrl, supportAddress, teamAddress } from "@/lib/billing/registration";
 import { billingDay } from "@/lib/billing/periods";
 import { VAT_RATE, withVat } from "@/lib/pricing/plans";
-import { sendMail, type Mail } from "@/lib/mail/send";
+import { SIGN_OFF, sendMail, type Mail } from "@/lib/mail/send";
 
 type MailAttachment = NonNullable<Mail["attachments"]>[number];
 import { money } from "@/lib/format";
@@ -37,13 +37,13 @@ function payBlock(price: number, reference: string): string[] {
                   "",
               ]
             : []),
-        `Please use ${reference} as the payment reference so we can match it to your workshop.`,
+        `Use ${reference} as the payment reference, so that we can match the payment to your workshop.`,
     ];
 }
 
 function proofLine(): string[] {
     const reach = supportAddress();
-    return reach ? ["", `Send the proof of payment to ${reach}. Questions go there too.`] : [];
+    return reach ? ["", `Send the proof of payment to ${reach}. Questions can be sent to the same address.`] : [];
 }
 
 export async function sendRenewalReminder(n: Due & { readOnlyFrom: Date }): Promise<void> {
@@ -52,17 +52,17 @@ export async function sendRenewalReminder(n: Due & { readOnlyFrom: Date }): Prom
         to: n.to,
         subject: `${n.workshopName}: your MOTION subscription is due on ${due}`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
-            `Your MOTION subscription for ${n.workshopName} is paid up to ${due}. To keep everything running, please pay the next month by then.`,
+            `Your MOTION subscription for ${n.workshopName} is paid up to ${due}. Please make the next payment by that date.`,
             "",
             ...payBlock(n.price, n.reference),
             ...proofLine(),
             "",
             // Said up front, so the read-only day is never a surprise.
-            `If it has not arrived by ${billingDay(n.readOnlyFrom)}, MOTION becomes read-only until it does: you can still see, print and export everything, but new quotes, job cards and invoices are paused.`,
+            `If the payment has not been received by ${billingDay(n.readOnlyFrom)}, MOTION becomes read-only until it is. You will still be able to view, print and export everything, but not create quotes, job cards or invoices.`,
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -72,20 +72,20 @@ export async function sendReadOnlyNotice(n: Due): Promise<void> {
         to: n.to,
         subject: `${n.workshopName} is read-only on MOTION until your subscription is paid`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
             `Your MOTION subscription for ${n.workshopName} was due on ${billingDay(n.periodEndsAt)} and we have not received the payment, so MOTION is now read-only.`,
             "",
-            "Nothing is lost. You and your team can still sign in, see every customer, vehicle and job, print, and export your books. What is paused is raising new quotes, job cards and invoices.",
+            "Nothing has been lost. You and your team can still sign in, view every customer, vehicle and job, print, and export your records. Creating quotes, job cards and invoices is paused.",
             "",
-            "Pay the amount below and everything is switched back on as soon as we confirm it:",
+            "Pay the amount below, and full access is restored as soon as we confirm the payment:",
             "",
             ...payBlock(n.price, n.reference),
             ...proofLine(),
             "",
-            "If you are struggling with cash flow this month, tell us. It is almost always fine.",
+            "If cash flow is difficult this month, contact us. We can usually make an arrangement.",
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -99,14 +99,14 @@ export async function sendRenewalReceipt(
         attachments: n.invoice ? [n.invoice.attachment] : undefined,
         subject: `Payment received — ${n.workshopName} is paid up to ${billingDay(n.paidUntil)}`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
             `Thank you. We have received your payment of ${money(n.amountInclVat)} and ${n.workshopName} is paid up to ${billingDay(n.paidUntil)}.`,
-            ...(n.restored ? ["", "Full access is back: you can raise quotes, job cards and invoices again, with everything exactly where you left it."] : []),
+            ...(n.restored ? ["", "Full access has been restored. You can create quotes, job cards and invoices again, and your records are as you left them."] : []),
             ...(n.invoice ? ["", `Your tax invoice, ${n.invoice.number}, is attached.`] : []),
             "",
             ...(base ? [`${base}/${n.slug}/dashboard`, ""] : []),
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -122,14 +122,14 @@ export async function sendInvoiceLetter(n: Owner & { invoiceNumber: string; amou
         subject: `Tax invoice ${n.invoiceNumber} — ${n.workshopName}`,
         attachments: [n.attachment],
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
-            `Attached is tax invoice ${n.invoiceNumber} for your MOTION subscription for ${n.workshopName}: ${money(n.amountInclVat)}, already paid. Nothing is due.`,
+            `Tax invoice ${n.invoiceNumber} for your MOTION subscription for ${n.workshopName} is attached: ${money(n.amountInclVat)}, already paid. Nothing is due.`,
             "",
-            "Keep it with your VAT records. Your invoices are also under Settings → Billing in MOTION.",
-            ...(reach ? ["", `Questions to ${reach}, quoting ${n.invoiceNumber}.`] : []),
+            "Keep it with your VAT records. All your invoices are also available under Settings → Billing in MOTION.",
+            ...(reach ? ["", `If you have any questions, contact ${reach} and quote ${n.invoiceNumber}.`] : []),
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -148,18 +148,18 @@ export async function sendCreditNoteLetter(
         subject: `Credit note ${n.creditNoteNumber} — cancels invoice ${n.invoiceNumber}`,
         attachments: [n.attachment],
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
             `Tax invoice ${n.invoiceNumber} for your MOTION subscription for ${n.workshopName} should not have been issued, so we have cancelled it in full with the attached credit note, ${n.creditNoteNumber}.`,
             "",
             `Reason: ${n.reason}`,
             "",
-            `${n.workshopName} is paid up to ${billingDay(n.paidUntil)}. Nothing is owed because of this, and there is nothing for you to do except keep the credit note with the invoice in your VAT records — together they cancel out.`,
+            `${n.workshopName} is paid up to ${billingDay(n.paidUntil)}. Nothing is owed as a result. Keep the credit note with the invoice in your VAT records; together they cancel each other out.`,
             "",
-            "Sorry for the confusion.",
-            ...(reach ? ["", `Questions to ${reach}, quoting ${n.creditNoteNumber}.`] : []),
+            "We apologise for the error.",
+            ...(reach ? ["", `If you have any questions, contact ${reach} and quote ${n.creditNoteNumber}.`] : []),
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }
@@ -178,19 +178,19 @@ export async function sendPlanChangedLetter(
         to: n.to,
         subject: `${n.workshopName} is now on the ${n.planName} plan`,
         text: [
-            `Hi ${n.firstName},`,
+            `Hello ${n.firstName},`,
             "",
             `${n.workshopName} is now on MOTION's ${n.planName} plan.`,
             ...(n.gained.length ? ["", "Available from today:", ...n.gained.map((g) => `  • ${g}`)] : []),
             ...(n.lost.length ? ["", "No longer included (your records are kept):", ...n.lost.map((g) => `  • ${g}`)] : []),
             "",
             n.nextRenewal
-                ? `From your next renewal on ${billingDay(n.nextRenewal)}, the subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT). Nothing changes on what you have already paid.`
+                ? `From your next renewal on ${billingDay(n.nextRenewal)}, the subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT). Amounts already paid are not affected.`
                 : `The subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT).`,
             ...(base ? ["", `${base}/${n.slug}/dashboard`] : []),
-            ...(reach ? ["", `Questions to ${reach}.`] : []),
+            ...(reach ? ["", `If you have any questions, contact ${reach}.`] : []),
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
     });
 }

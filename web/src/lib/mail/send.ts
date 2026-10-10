@@ -26,6 +26,13 @@ import nodemailer, { type Transporter } from "nodemailer";
  * ends up unable to send resets either.
  */
 
+/**
+ * How every letter to a workshop owner ends. Formal, and the same on each, so a
+ * letter about money reads like the one before it. The team's own notices keep
+ * a bare "— MOTION": they are read by us, not by customers.
+ */
+export const SIGN_OFF = ["Kind regards,", "MOTION Workshop Manager"] as const;
+
 export type Mail = {
     to: string;
     subject: string;

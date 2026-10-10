@@ -18,10 +18,10 @@ export type EditableTemplate = {
 };
 
 export const DEFAULT_FOOTERS = {
-    INVOICE_FOOTER: "Thank you for your business. Payment is due on receipt unless terms are agreed.\nBanking details: {{bank_details}}\nVAT No. {{vat_number}}",
-    QUOTE_FOOTER: "This quote is valid for 14 days. Prices include VAT unless stated. Parts subject to availability.",
-    JOB_CARD_FOOTER: "Vehicle left at owner's risk. Additional work will only be carried out with the customer's approval.",
-    STATEMENT_FOOTER: "Please quote your account name as the EFT reference. Queries: {{workshop_phone}}.",
+    INVOICE_FOOTER: "Thank you for your business. Payment is due on receipt unless other terms have been agreed.\nBanking details: {{bank_details}}\nVAT No. {{vat_number}}",
+    QUOTE_FOOTER: "This quotation is valid for 14 days. Prices include VAT unless stated otherwise. Parts are subject to availability.",
+    JOB_CARD_FOOTER: "Vehicles are left at the owner's risk. Additional work is carried out only with the customer's approval.",
+    STATEMENT_FOOTER: "Please use your account name as the payment reference. For queries, call {{workshop_phone}}.",
 } as const satisfies Partial<Record<TemplateKind, string>>;
 
 const REMINDER_DESCRIPTIONS: Record<(typeof REMINDER_PURPOSES)[number], string> = {
@@ -35,7 +35,7 @@ const REMINDER_DESCRIPTIONS: Record<(typeof REMINDER_PURPOSES)[number], string> 
 const MESSAGE_DESCRIPTIONS: Record<(typeof MESSAGE_PURPOSES)[number], string> = {
     QUOTE: "Goes out with a quote.",
     JOB_CARD: "Goes out with a booking or job card — usually as the booking confirmation.",
-    INSPECTION: "Goes out when an inspection needs the customer's go-ahead. Lines with an empty total drop out.",
+    INSPECTION: "Sent when an inspection needs the customer's approval. Lines with no total are left out.",
     INVOICE: "Goes out with an invoice or cash sale. The amount-due line disappears once it is paid.",
     CREDIT: "Goes out with a credit note.",
     RECEIPT: "Goes out with a receipt after payment is taken.",
