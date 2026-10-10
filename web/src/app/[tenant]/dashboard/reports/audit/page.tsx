@@ -8,8 +8,9 @@ import { countAudit } from "@/lib/audit/period";
 import { sequenceAudit, unexplained } from "@/lib/documents/gaps";
 import { REPORT_TITLES } from "@/lib/exports/registers";
 import { dateShort } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "For the auditor | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.auditReports) };
 
 /**
  * The page a workshop opens the week an auditor is coming.
@@ -63,8 +64,8 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <Link href={`/${slug}/dashboard/reports`} className="text-xs font-medium text-teal-700 hover:underline">← Reports</Link>
-                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><ShieldCheck className="h-6 w-6 text-slate-400" />For the auditor</h1>
-                    <p className="text-sm text-slate-500">A period at a time. The PDF is the one that gets filed; the CSV is the one that gets re-added.</p>
+                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><ShieldCheck className="h-6 w-6 text-slate-400" />{TERM.auditReports}</h1>
+                    <p className="text-sm text-slate-500">Choose a period. File the PDF; the CSV lets the auditor re-add the figures.</p>
                 </div>
                 <form action={base} method="get" className="flex items-end gap-2 text-sm">
                     <label className="space-y-1"><span className="block text-xs text-slate-500">From</span><input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-slate-300 px-2" /></label>

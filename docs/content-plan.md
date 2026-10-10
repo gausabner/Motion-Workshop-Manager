@@ -86,10 +86,11 @@ articles and emails alike.
 | Sales figures | Sales | Takings, Sold today | |
 | Document sent to the customer | Sent | Told | Transactions column |
 | Returned job | Rework | Came back | Document action |
-| Fully paid invoice | Paid | Closed | Decision D4 |
-| Accounting integration | Accounting export | Hand-off | |
-| Report groups | Management reports, Audit reports, Accounting export | For the owner, For the auditor, For the bookkeeper | |
-| The estimate document | Quote | — | Decision D1: or "Quotation" everywhere |
+| Fully paid invoice | Paid (a settled credit note: Settled) | Closed | Decision D4 |
+| Monthly CSVs for the bookkeeper | Accounting export | For the bookkeeper | Every plan |
+| Nightly journal to the accounting system | Accounting integration | Hand-off, Accounting hand-off | Council plan |
+| Report groups | Management reports, Audit reports | For the owner, For the auditor | |
+| The estimate document | Quote; printed title Quotation | — | Decision D1 |
 | Open work | Open job cards | Jobs on the floor | |
 
 ## 4. Findings, by priority
@@ -220,7 +221,11 @@ that find elements by their wording (six spec files today).
 **Progress.** Phase 1 shipped on 9 October 2026 (PR #27). Phase 2 shipped on
 10 October: landing, pricing with a questions section, support reordered to
 lead with the ways to reach a person, sign-in, activation and paused, and
-eyebrow labels removed from the public pages.
+eyebrow labels removed from the public pages. Phase 3 shipped on 10 October:
+the glossary applied to navigation, page and tab titles, the dashboard,
+reports, purchasing, document statuses and actions, settings, plan feature
+names and the printed quote title, with the shared names in
+`lib/copy/terms.ts`.
 
 Repeated terms move into one small module (`lib/copy/terms.ts`) so a rename
 happens once. A translation framework is not proposed; MOTION is English-only.

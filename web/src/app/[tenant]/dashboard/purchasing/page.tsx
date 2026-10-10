@@ -11,8 +11,9 @@ import { listPayments, payablesReport } from "@/lib/purchasing/payments";
 import { businessToday } from "@/lib/tenant/today";
 import { RECEIPT_LABELS } from "@/lib/purchasing/rules";
 import { dateShort, money } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Buying | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.purchasing) };
 
 const ORDER_STATE: Record<string, string> = { SUGGESTED: "Suggested", ORDERED: "On order", RECEIVED: "All received", CANCELLED: "Cancelled" };
 const INVOICE_STATE: Record<string, string> = { DRAFT: "Draft", PROCESSED: "Received", CLOSED: "Paid", VOID: "Voided" };
@@ -30,7 +31,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
         <div className="max-w-5xl space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Truck className="h-6 w-6 text-slate-400" />Buying</h1>
+                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Truck className="h-6 w-6 text-slate-400" />{TERM.purchasing}</h1>
                     <p className="text-sm text-slate-500">Orders are a commitment; stock arrives when you enter the supplier&rsquo;s invoice against them.</p>
                 </div>
                 <div className="flex gap-2">

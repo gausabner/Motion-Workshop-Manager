@@ -130,7 +130,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     <SelectField label="Service advisor" name="serviceAdvisorId" defaultValue={doc.serviceAdvisorId} errors={errors} allowEmpty="—" options={options.advisors.map((a) => ({ value: a.id, label: a.name }))} />
                     <SelectField label="Mechanic" name="mechanicId" defaultValue={doc.mechanicId} errors={errors} allowEmpty="— unassigned —" options={options.mechanics.map((m) => ({ value: m.id, label: m.name }))} />
                     <TextField label="Post date" name="postDate" type="date" defaultValue={dateInput(doc.postDate)} errors={errors} />
-                    {isFinancial && <TextField label="Due date" name="dueDate" type="date" defaultValue={dateInput(doc.dueDate)} errors={errors} hint="Blank = from payment terms" />}
+                    {isFinancial && <TextField label="Due date" name="dueDate" type="date" defaultValue={dateInput(doc.dueDate)} errors={errors} hint="Leave blank to use the payment terms" />}
                     {doc.type === "QUOTE" && <TextField label="Follow up on" name="followUpDate" type="date" defaultValue={dateInput(doc.followUpDate)} errors={errors} />}
                     {isJob && <TextField label="Scheduled for" name="scheduledAt" type="datetime-local" defaultValue={formatLocalDateTime(doc.scheduledAt ? new Date(doc.scheduledAt) : null, timeZone)} errors={errors} />}
                     {isJob && !readOnly && options.services.length > 0 && (
@@ -175,7 +175,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
             <section className="border border-slate-200 rounded-sm bg-white">
                 <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vehicle readings</h3>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
-                    <TextField label="Odometer (km)" name="odometer" type="number" min="0" defaultValue={doc.odometer} errors={errors} hint="Written to the vehicle on process" />
+                    <TextField label="Odometer (km)" name="odometer" type="number" min="0" defaultValue={doc.odometer} errors={errors} hint="Saved to the vehicle record when processed" />
                     <TextField label="Next service at (km)" name="nextServiceKm" type="number" min="0" defaultValue={doc.nextServiceKm} errors={errors} />
                     <TextField label="Next service date" name="nextServiceDate" type="date" defaultValue={dateInput(doc.nextServiceDate)} errors={errors} />
                     <SelectField label="Payment terms" name="paymentTermsDays" defaultValue={doc.paymentTermsDays != null ? String(doc.paymentTermsDays) : ""} errors={errors} allowEmpty="Workshop default"

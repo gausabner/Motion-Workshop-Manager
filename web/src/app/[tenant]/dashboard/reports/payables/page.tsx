@@ -8,8 +8,9 @@ import { businessToday } from "@/lib/tenant/today";
 import { AGEING_LABELS } from "@/lib/payments/allocation";
 import { dateShort, money } from "@/lib/format";
 import { DownloadPair } from "@/components/exports/DownloadPair";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "What we owe | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.creditors) };
 
 export default async function PayablesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -24,8 +25,8 @@ export default async function PayablesPage({ params }: { params: Promise<{ tenan
         <div className="mx-auto w-full max-w-5xl space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Receipt className="h-6 w-6 text-slate-400" />What we owe</h1>
-                    <p className="text-sm text-slate-500">Supplier invoices with money still on them, at {dateShort(asAt)}. Worked out from what has been paid, never stored.</p>
+                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Receipt className="h-6 w-6 text-slate-400" />{TERM.creditors}</h1>
+                    <p className="text-sm text-slate-500">Supplier invoices with an amount outstanding, at {dateShort(asAt)}. Calculated from the payments recorded, never stored.</p>
                 </div>
                 <DownloadPair tenant={slug} report="creditors" />
             </div>

@@ -12,7 +12,7 @@ import { dateShortIn } from "@/lib/format";
 
 export const metadata = { title: "Messages | MOTION Workshop Manager" };
 
-const STATE = { DRAFT: "Not started", SENDING: "In progress", DONE: "Closed" } as const;
+const STATE = { DRAFT: "Not started", SENDING: "In progress", DONE: "Complete" } as const;
 
 export default async function MessagesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;

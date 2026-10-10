@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText, Car, User } from "lucide-react";
@@ -21,6 +22,20 @@ import { jobTime } from "@/lib/time/queries";
 import { diaryMechanics } from "@/lib/diary/queries";
 import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
+import { tabTitle } from "@/lib/copy/terms";
+
+/** The tab names the document and whose it is, so a row of open documents can be told apart. */
+export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
+    const { tenant: slug, id } = await params;
+    const { db } = await requireTenant(slug);
+    const doc = await db.document.findUnique({
+        where: { id },
+        select: { type: true, number: true, jobNumber: true, customer: { select: { firstName: true, lastName: true } } },
+    });
+    if (!doc) return { title: tabTitle("Document") };
+    const name = doc.number ?? (doc.jobNumber ? `Job ${doc.jobNumber}` : `Draft ${DOCUMENT_TYPE_LABELS[doc.type].toLowerCase()}`);
+    return { title: tabTitle(name, doc.customer ? `${doc.customer.firstName} ${doc.customer.lastName}`.trim() : null) };
+}
 
 export default async function DocumentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ processed?: string; short?: string; serials?: string }> }) {
     const [{ tenant: slug, id }, { processed, short, serials }] = await Promise.all([params, searchParams]);
@@ -47,7 +62,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                     <div>
                         <h1 className="text-xl font-bold text-slate-800 leading-tight flex items-center gap-3 flex-wrap">
                             {DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}
-                            <StatePill state={doc.state} />
+                            <StatePill state={doc.state} type={doc.type} />
                             {doc.jobStatus && <JobStatusPill status={doc.jobStatus} />}
                         </h1>
                         <p className="text-xs text-slate-500 flex items-center gap-3 flex-wrap mt-0.5">
@@ -124,13 +139,13 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         ))}
                         {doc.reworkOf && (
                             <li className="px-4 py-2">
-                                Redoing <Link href={`/${slug}/dashboard/documents/${doc.reworkOf.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.reworkOf.jobNumber ?? doc.reworkOf.number}</Link>
+                                Rework of <Link href={`/${slug}/dashboard/documents/${doc.reworkOf.id}`} className="font-medium text-slate-800 hover:text-teal-700">{doc.reworkOf.jobNumber ?? doc.reworkOf.number}</Link>
                                 <span className="text-slate-500"> from {dateShort(doc.reworkOf.postDate)}{doc.reworkReason ? ` — ${doc.reworkReason}` : ""}</span>
                             </li>
                         )}
                         {doc.reworks.map((rework) => (
                             <li key={rework.id} className="px-4 py-2">
-                                Came back on <Link href={`/${slug}/dashboard/documents/${rework.id}`} className="font-medium text-slate-800 hover:text-teal-700">{rework.jobNumber ?? rework.number}</Link>
+                                Reworked on <Link href={`/${slug}/dashboard/documents/${rework.id}`} className="font-medium text-slate-800 hover:text-teal-700">{rework.jobNumber ?? rework.number}</Link>
                                 <span className="text-slate-500">{rework.reworkReason ? ` — ${rework.reworkReason}` : ""}</span>
                             </li>
                         ))}

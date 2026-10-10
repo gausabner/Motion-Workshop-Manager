@@ -6,7 +6,7 @@ export const reportTopics: Topic[] = [
         group: "reports",
         title: "The six an auditor asks for",
         question: "An auditor is coming — what do I give them?",
-        answer: "Reports → For the auditor produces all six as a PDF to file and a CSV to re-add, over whatever period they ask for.",
+        answer: "Reports → Audit reports produces all six as a PDF to file and a CSV to re-add, over whatever period they ask for.",
         screens: ["/dashboard/reports/audit", "/dashboard/reports"],
         blocks: [
             { kind: "p", text: "Pick the period first. Every file then says on it which workshop, which period, when it was produced, by whom, and how many rows it should hold — which is the only thing that catches a file truncated on the way out." },
@@ -48,7 +48,7 @@ export const reportTopics: Topic[] = [
         group: "reports",
         title: "The reports you decide with",
         question: "What made money, and what is standing still?",
-        answer: "Reports → For the owner ranks every job by what it made, cuts item sales four ways, and shows what is open, owed and on the shelves.",
+        answer: "Reports → Management reports ranks every job by what it made, cuts item sales four ways, and shows what is open, owed and on the shelves.",
         screens: ["/dashboard/reports/business", "/dashboard/reports/margin", "/dashboard/reports"],
         blocks: [
             { kind: "p", text: "These are built to be sorted rather than filed, so take the CSV. The PDF is there for anyone who wants it on paper." },
@@ -86,7 +86,7 @@ export const reportTopics: Topic[] = [
         answer: "MOTION writes the day's journal into a folder and the accounting system picks it up — nothing listens, and nothing is exposed.",
         screens: ["/dashboard/reports/handoff", "/dashboard/settings/handoff"],
         blocks: [
-            { kind: "p", text: "This is the arrangement a council's network people will agree to: traffic goes out, never in. It is also why the Hand-off screen exists, because a folder full of files looks identical whether the accounting system is importing them nightly or stopped in March." },
+            { kind: "p", text: "This is the arrangement a council's network people will agree to: traffic goes out, never in. It is also why the Accounting integration screen exists, because a folder full of files looks identical whether the accounting system is importing them nightly or stopped in March." },
             { kind: "h", text: "What the screen tells you" },
             { kind: "list", items: [
                 "Days in the last fortnight that were never sent.",

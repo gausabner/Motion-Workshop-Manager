@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Feature } from "@/lib/plans/features";
+import { TERM } from "@/lib/copy/terms";
 
 /**
  * The sidebar, in five groups rather than twenty flat links.
@@ -59,8 +60,8 @@ export function SidebarNav({
         {
             label: "Work",
             items: [
-                { href: `${base}/dashboard/jobs`, label: "Jobs", icon: ClipboardList },
-                { href: `${base}/dashboard/transactions`, label: "Transactions", icon: ListChecks },
+                { href: `${base}/dashboard/jobs`, label: "Job cards", icon: ClipboardList },
+                { href: `${base}/dashboard/transactions`, label: TERM.transactions, icon: ListChecks },
                 { href: `${base}/dashboard/customers`, label: "Customers", icon: Users },
                 { href: `${base}/dashboard/vehicles`, label: "Vehicles", icon: Car },
                 { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront, show: has("loanCars") },
@@ -70,17 +71,17 @@ export function SidebarNav({
             label: "Money",
             items: [
                 { href: `${base}/dashboard/payments`, label: "Receipts", icon: Wallet },
-                { href: `${base}/dashboard/reports/receivables`, label: "Who owes us", icon: Receipt, show: reports },
+                { href: `${base}/dashboard/reports/receivables`, label: TERM.debtors, icon: Receipt, show: reports },
                 { href: `${base}/dashboard/reports/margin`, label: "Profit", icon: TrendingUp, show: reports },
                 { href: `${base}/dashboard/reports/labour`, label: "Mechanic time", icon: Timer, show: reports },
                 { href: `${base}/dashboard/reports`, label: "All reports", icon: FileBarChart, show: reports },
             ],
         },
         {
-            label: "Parts & buying",
+            label: "Parts and purchasing",
             items: [
                 { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost && has("stock") },
-                { href: `${base}/dashboard/purchasing`, label: "Buying", icon: Truck, show: cost && has("purchasing") },
+                { href: `${base}/dashboard/purchasing`, label: TERM.purchasing, icon: Truck, show: cost && has("purchasing") },
                 { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost && has("purchasing") },
             ],
         },

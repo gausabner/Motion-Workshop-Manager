@@ -123,7 +123,7 @@ async function loadReminderContext(db: TenantDb, tenant: Tenant, target: Extract
     if (doc.type !== "QUOTE" || !doc.contactedAt || toZoned(doc.contactedAt, tenant.timezone).day !== target.dueOn) return null;
     const converted = await db.document.count({ where: { sourceDocumentId: doc.id, state: { not: "VOID" } } });
     if (converted > 0) return null;
-    return { ...base, ...shared, values: { ...values, document_title: "Quote" } };
+    return { ...base, ...shared, values: { ...values, document_title: "Quotation" } };
 }
 
 const RECIPIENT = { id: true, firstName: true, lastName: true, mobile: true, email: true, preferredContact: true } as const;
@@ -352,7 +352,7 @@ export async function sendMessage(
             },
             select: { id: true },
         });
-        // A document that went out means the customer has been told — the "Told" column. Not for a reminder:
+        // A document that went out means the customer has been told — the "Sent" column. Not for a reminder:
         // a quote's sent date is what its follow-up is keyed on, and moving it would start the follow-up over.
         if (context.documentId && status !== "FAILED" && !context.reminder) await tx.document.update({ where: { id: context.documentId }, data: { contactedAt: new Date() } });
         if (context.reminder && status !== "FAILED") {

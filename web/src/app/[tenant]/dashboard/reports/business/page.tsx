@@ -5,8 +5,9 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { startOfMonth, toZoned, addDays } from "@/lib/diary/time";
 import { BUSINESS_TITLES, type BusinessReport } from "@/lib/exports/business";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "For the owner | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.managementReports) };
 
 /**
  * The reports an owner opens to decide something, as against the ones they
@@ -78,8 +79,8 @@ export default async function BusinessReportsPage({ params, searchParams }: { pa
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <Link href={`/${slug}/dashboard/reports`} className="text-xs font-medium text-teal-700 hover:underline">← Reports</Link>
-                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><LineChart className="h-6 w-6 text-slate-400" />For the owner</h1>
-                    <p className="text-sm text-slate-500">The CSV is the one to take: these are for sorting, not for filing. The PDF is there when somebody wants it on paper.</p>
+                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><LineChart className="h-6 w-6 text-slate-400" />{TERM.managementReports}</h1>
+                    <p className="text-sm text-slate-500">Download the CSV to sort and filter in a spreadsheet, or the PDF to print.</p>
                 </div>
                 <form action={base} method="get" className="flex items-end gap-2 text-sm">
                     <label className="space-y-1"><span className="block text-xs text-slate-500">From</span><input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-slate-300 px-2" /></label>

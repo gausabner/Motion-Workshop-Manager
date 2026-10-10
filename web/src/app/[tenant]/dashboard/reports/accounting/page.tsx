@@ -7,8 +7,9 @@ import { exportCounts } from "@/lib/accounting/queries";
 import { accountingSettings } from "@/lib/settings/schema";
 import { startOfMonth, toZoned, addDays } from "@/lib/diary/time";
 import { dateShort, money } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "For the bookkeeper | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.accountingExport) };
 
 const valid = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 const day = (s: string) => new Date(`${s}T00:00:00Z`);
@@ -45,8 +46,8 @@ export default async function AccountingPage({ params, searchParams }: { params:
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <Link href={`/${slug}/dashboard/reports`} className="text-xs font-medium text-teal-700 hover:underline">← Reports</Link>
-                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><FileSpreadsheet className="h-6 w-6 text-slate-400" />For the bookkeeper</h1>
-                    <p className="text-sm text-slate-500">A month at a time, as CSV. Nothing is sent anywhere — the file downloads to this machine for you to pass on.</p>
+                    <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><FileSpreadsheet className="h-6 w-6 text-slate-400" />{TERM.accountingExport}</h1>
+                    <p className="text-sm text-slate-500">One month at a time, as CSV. Nothing is sent anywhere: the file downloads to this computer for you to pass to your bookkeeper.</p>
                 </div>
                 <form action={base} method="get" className="flex items-end gap-2 text-sm">
                     <label className="space-y-1"><span className="block text-xs text-slate-500">From</span><input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-slate-300 px-2" /></label>

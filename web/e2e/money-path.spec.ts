@@ -15,7 +15,7 @@ test("an invoice is raised, processed and settled", async ({ page, workshop }) =
 
     // ── raise and process it ──────────────────────────────────────────────
     await page.goto(`/${workshop.slug}/dashboard/transactions`);
-    await page.getByRole("button", { name: "Invoice" }).click();
+    await page.getByRole("button", { name: "New invoice" }).click();
     await page.waitForURL("**/documents/**");
 
     await page.getByPlaceholder("Name, mobile, email or plate…").fill("Anna");
