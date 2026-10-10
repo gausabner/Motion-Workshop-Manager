@@ -1,12 +1,14 @@
 import { LegalPage } from "@/components/public/LegalPage";
 import { TERMS, TERMS_UPDATED } from "@/lib/legal/documents";
+import { atRequestTime } from "@/lib/edition";
 
 export const metadata = {
     title: "Terms | MOTION Workshop Manager",
     description: "What you are agreeing to when you use MOTION, in ordinary sentences.",
 };
 
-export default function TermsPage() {
+export default async function TermsPage() {
+    await atRequestTime();
     return (
         <LegalPage
             title="Terms"

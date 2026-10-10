@@ -6,6 +6,7 @@ import { PricingScene, MigrationScene } from "@/components/public/iso/scenes";
 import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, PublicButton } from "@/components/public/frame";
 import { ALWAYS, CARE, PLANS, QUESTIONS, VAT_RATE, withVat } from "@/lib/pricing/plans";
 import { money } from "@/lib/format";
+import { atRequestTime } from "@/lib/edition";
 
 export const metadata = {
     title: "Pricing | MOTION Workshop Manager",
@@ -28,7 +29,8 @@ export const metadata = {
  * leaves the bank is underneath it, computed rather than typed, because a
  * customer meeting the 15 % for the first time at the bank is a complaint.
  */
-export default function PricingPage() {
+export default async function PricingPage() {
+    await atRequestTime();
     return (
         <PublicPage>
             <PublicHero
