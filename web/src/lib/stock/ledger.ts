@@ -96,9 +96,9 @@ export async function adjustStock(
     tenantId: string,
     input: { productId: string; quantity: number; kind: Extract<StockMovementKind, "ADJUSTMENT" | "STOCKTAKE" | "OPENING">; unitCost?: number; note: string; membershipId: string | null },
 ): Promise<number> {
-    if (!Number.isFinite(input.quantity) || input.quantity === 0) throw new Error("Give a quantity to add or take away.");
+    if (!Number.isFinite(input.quantity) || input.quantity === 0) throw new Error("Enter a quantity to add or remove.");
     const product = await tx.product.findUnique({ where: { id: input.productId }, select: { id: true, costExTax: true } });
-    if (!product) throw new Error("That product is no longer there.");
+    if (!product) throw new Error("This product no longer exists. Refresh the page.");
     await tx.stockMovement.create({
         data: {
             tenantId, productId: product.id, kind: input.kind, quantity: input.quantity,
@@ -115,7 +115,7 @@ export async function recount(tx: TenantTx, productId: string): Promise<{ was: n
         tx.product.findUnique({ where: { id: productId }, select: { qtyOnHand: true } }),
         tx.stockMovement.aggregate({ where: { productId }, _sum: { quantity: true } }),
     ]);
-    if (!product) throw new Error("That product is no longer there.");
+    if (!product) throw new Error("This product no longer exists. Refresh the page.");
     const now = sum._sum.quantity ?? new Prisma.Decimal(0);
     await tx.product.update({ where: { id: productId }, data: { qtyOnHand: now } });
     return { was: product.qtyOnHand.toNumber(), now: now.toNumber() };

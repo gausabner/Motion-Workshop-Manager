@@ -79,7 +79,7 @@ export default async function BillingPage({
                         {FEATURES[locked].name} {FEATURES[locked].name.endsWith("s") ? "are" : "is"} part of the {PLAN_NAMES[FEATURES[locked].plan]} plan
                     </p>
                     <p className="mt-1">
-                        {FEATURES[locked].what} {plan ? `Your workshop is on ${PLAN_NAMES[plan]}.` : ""} To move up, write to{" "}
+                        {FEATURES[locked].what} {plan ? `Your workshop is on the ${PLAN_NAMES[plan]} plan.` : ""} To change plan, email{" "}
                         {support().email ? (
                             <a href={`mailto:${support().email}?subject=${encodeURIComponent(`Moving ${tenant.name} to ${PLAN_NAMES[FEATURES[locked].plan]}`)}`} className="font-medium text-teal-700 hover:underline">
                                 {support().email}
@@ -87,7 +87,7 @@ export default async function BillingPage({
                         ) : (
                             "MOTION"
                         )}
-                        . The features come on the day we change it; the new price starts at your next renewal.
+                        . The features are added on the day we change your plan, and the new price applies from your next renewal.
                     </p>
                 </div>
             )}
@@ -98,9 +98,9 @@ export default async function BillingPage({
                     <div className="space-y-1 text-sm text-slate-800">
                         <p className="font-semibold text-slate-900">MOTION is read-only until the subscription is paid</p>
                         <p>
-                            {end ? `The payment due on ${billingDay(end)} has not arrived. ` : ""}
-                            Everyone can still sign in, see every customer, vehicle and job, print and export. New quotes, job cards and
-                            invoices are paused, and come back as soon as MOTION confirms the payment.
+                            {end ? `The payment due on ${billingDay(end)} has not been received. ` : ""}
+                            Everyone can still sign in, view every customer, vehicle and job, print and export. Creating quotes, job cards
+                            and invoices is paused until MOTION confirms the payment.
                         </p>
                         {!manager && <p>Your workshop owner can see how to pay on this page.</p>}
                     </div>

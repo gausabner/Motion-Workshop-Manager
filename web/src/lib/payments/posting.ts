@@ -84,7 +84,7 @@ export async function postPayment(tx: TenantTx, tenantId: string, membershipId: 
  */
 export async function reversePayment(tx: TenantTx, paymentId: string, reason: string): Promise<void> {
     const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, select: { state: true, allocations: { select: { documentId: true } } } });
-    if (payment.state === "VOID") throw new Error("Already voided");
+    if (payment.state === "VOID") throw new Error("This has already been voided.");
 
     await tx.payment.update({ where: { id: paymentId }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason } });
 

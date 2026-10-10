@@ -35,7 +35,7 @@ export default async function StockTakePage({ params }: { params: Promise<{ tena
             <section className="rounded-sm border border-slate-200 bg-white">
                 <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Counts</h2>
                 {takes.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">No counts yet.</p>
+                    <p className="px-4 py-4 text-sm text-slate-500">No stock takes yet. Start one to count what is on the shelves.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {takes.map((t) => (

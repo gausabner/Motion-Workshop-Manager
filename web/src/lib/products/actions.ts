@@ -118,7 +118,7 @@ export async function saveBundleItems(slug: string, bundleId: string, items: unk
 
     const ids = parsed.data.map((i) => i.componentId);
     const components = ids.length ? await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, isBundle: true, description: true } }) : [];
-    if (components.length !== new Set(ids).size) return { ok: false, message: "One of those products is no longer there." };
+    if (components.length !== new Set(ids).size) return { ok: false, message: "One of those products no longer exists. Refresh the page." };
     // One level only: a bundle inside a bundle makes stock and margin very hard to follow.
     const nested = components.find((c) => c.isBundle);
     if (nested) return { ok: false, message: `${nested.description} is itself a bundle, and a bundle cannot go inside another.` };

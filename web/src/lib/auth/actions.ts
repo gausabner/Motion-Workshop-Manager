@@ -56,7 +56,7 @@ async function usableNext(userId: string, next: string | null): Promise<string |
 
 const loginSchema = z.object({
     email: z.email("Enter a valid email address").transform((s) => s.toLowerCase()),
-    password: z.string().min(1, "Enter your password"),
+    password: z.string({ error: "Enter your password." }).min(1, "Enter your password."),
     next: z.string().optional(),
 });
 
@@ -77,16 +77,16 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 }
 
 const registerSchema = z.object({
-    workshopName: z.string().min(2, "Enter your workshop name").max(120),
+    workshopName: z.string().min(2, "Enter your workshop name.").max(120),
     slug: z
         .string()
-        .min(3, "At least 3 characters")
+        .min(3, "Use at least 3 characters.")
         .max(40)
         .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "Lower-case letters, numbers and dashes only"),
-    firstName: z.string().min(1, "Required").max(100),
-    lastName: z.string().min(1, "Required").max(100),
+    firstName: z.string({ error: "Enter a first name." }).min(1, "Enter a first name.").max(100),
+    lastName: z.string({ error: "Enter a last name." }).min(1, "Enter a last name.").max(100),
     email: z.email("Enter a valid email address").transform((s) => s.toLowerCase()),
-    password: z.string().min(8, "At least 8 characters").max(200),
+    password: z.string().min(8, "Use at least 8 characters.").max(200),
     mobile: z.string().max(40).optional(),
     country: z.enum(COUNTRIES as [string, ...string[]]).default("NA"),
     /**
@@ -238,11 +238,11 @@ export async function logoutAction(): Promise<void> {
 
 const changePasswordSchema = z
     .object({
-        current: z.string().min(1, "Enter your current password"),
-        password: z.string().min(8, "Use at least 8 characters"),
+        current: z.string({ error: "Enter your current password." }).min(1, "Enter your current password."),
+        password: z.string().min(8, "Use at least 8 characters."),
         confirm: z.string(),
     })
-    .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match" });
+    .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match." });
 
 /**
  * Change your own password, and clear the flag that forces it.
@@ -300,10 +300,10 @@ export async function setPasswordFromResetAction(
 ): Promise<ActionState> {
     const parsed = z
         .object({
-            password: z.string().min(8, "Use at least 8 characters"),
+            password: z.string().min(8, "Use at least 8 characters."),
             confirm: z.string(),
         })
-        .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match" })
+        .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The two passwords do not match." })
         .safeParse({ password: str(formData, "password"), confirm: str(formData, "confirm") });
     if (!parsed.success) return fromZod(parsed.error);
 

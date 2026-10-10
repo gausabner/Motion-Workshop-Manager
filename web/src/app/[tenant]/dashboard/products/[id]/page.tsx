@@ -97,7 +97,7 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                                 <Link href={`${base}/products/serials`} className="text-xs font-medium text-teal-700 hover:underline">Find one</Link>
                             </div>
                             {serials.length === 0 ? (
-                                <p className="px-4 py-3 text-sm text-slate-500">None booked in yet. Type them on the supplier invoice as the units arrive.</p>
+                                <p className="px-4 py-3 text-sm text-slate-500">No serial numbers recorded yet. Enter them on the supplier invoice when the units arrive.</p>
                             ) : (
                                 <ul className="max-h-72 divide-y divide-slate-100 overflow-auto text-sm">
                                     {serials.map((unit) => (
@@ -120,7 +120,7 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                     <section className="rounded-sm border border-slate-200 bg-white">
                         <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Movements</h2>
                         {movements.length === 0 ? (
-                            <p className="px-4 py-3 text-sm text-slate-500">Nothing has moved yet.</p>
+                            <p className="px-4 py-3 text-sm text-slate-500">No stock movements yet.</p>
                         ) : (
                             <ul className="divide-y divide-slate-100 text-sm">
                                 {movements.map((m) => {

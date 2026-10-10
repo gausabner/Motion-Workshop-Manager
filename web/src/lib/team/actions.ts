@@ -18,7 +18,7 @@ export type InviteResult =
     | { ok: false; message: string };
 
 const inviteSchema = z.object({
-    email: z.email("That email does not look right").transform((s) => s.toLowerCase()),
+    email: z.email("Enter a valid email address.").transform((s) => s.toLowerCase()),
     group: z.enum(ALL_GROUPS),
     mobile: z.string().trim().max(40).optional(),
 });
@@ -29,7 +29,7 @@ export async function inviteMemberAction(slug: string, input: { email: string; g
     const { db, tenant, membership, user } = await requireTenant(slug);
     assertCan(membership, "users:manage");
     const parsed = inviteSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the details" };
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the highlighted fields." };
     try {
         const { token } = await db.$transaction((tx) => createInvitation(tx, tenant.id, membership, parsed.data));
         const link = `${(await requestOrigin()).replace(/\/$/, "")}/join/${token}`;
@@ -72,7 +72,7 @@ export async function updateMemberAction(slug: string, membershipId: string, inp
     const { db, tenant, membership } = await requireTenant(slug);
     assertCan(membership, "users:manage");
     const parsed = memberSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, message: "Check the details" };
+    if (!parsed.success) return { ok: false, message: "Check the highlighted fields." };
     try {
         await db.$transaction((tx) => updateMember(tx, tenant.id, membership, membershipId, parsed.data));
         revalidatePath(teamPath(slug));
@@ -149,16 +149,16 @@ export async function createMemberAction(
 
     const parsed = z.object({
         email: z.email("Enter a valid email address"),
-        firstName: z.string().min(1, "Enter a first name"),
-        lastName: z.string().min(1, "Enter a last name"),
+        firstName: z.string({ error: "Enter a first name." }).min(1, "Enter a first name."),
+        lastName: z.string({ error: "Enter a last name." }).min(1, "Enter a last name."),
         mobile: z.string().optional(),
         group: z.enum(ALL_GROUPS),
         mode: z.enum(["password", "link"]),
-        password: z.string().min(8, "A first password needs at least 8 characters").optional(),
+        password: z.string().min(8, "A first password must have at least 8 characters.").optional(),
     }).refine((v) => v.mode !== "password" || !!v.password, {
-        path: ["password"], message: "Type a first password, or choose a link instead",
+        path: ["password"], message: "Enter a first password, or choose to send a link instead.",
     }).safeParse(input);
-    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the details" };
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the highlighted fields." };
 
     if (!invitableGroups(membership.group).includes(parsed.data.group)) {
         return { ok: false, message: "Only an owner can add another owner." };

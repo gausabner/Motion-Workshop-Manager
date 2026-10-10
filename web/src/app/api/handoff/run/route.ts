@@ -74,7 +74,7 @@ export async function POST(request: Request): Promise<Response> {
         // on under a plan it has since left is skipped, not sent — and said so
         // in the results rather than counted as a failure.
         if (!includes(await planFor(db, row.id), "handoff")) {
-            results.push({ tenant: row.slug, state: "SKIPPED", error: "Its plan does not include the accounting hand-off." });
+            results.push({ tenant: row.slug, state: "SKIPPED", error: "Its plan does not include the accounting integration." });
             continue;
         }
 

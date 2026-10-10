@@ -46,7 +46,7 @@ export async function saveMatrix(tx: TenantTx, tenantId: string, id: string | nu
     let matrixId = id;
     if (matrixId) {
         const existing = await tx.priceMatrix.findUnique({ where: { id: matrixId }, select: { id: true } });
-        if (!existing) throw new Error("That matrix is no longer there.");
+        if (!existing) throw new Error("This price matrix no longer exists. Refresh the page.");
         await tx.priceMatrix.update({ where: { id: matrixId }, data: { name: input.name, basis: input.basis, rounding: input.rounding, active: input.active, note: input.note ?? null } });
     } else {
         const created = await tx.priceMatrix.create({

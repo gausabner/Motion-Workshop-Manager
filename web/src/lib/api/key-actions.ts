@@ -9,7 +9,7 @@ import { createKey, revokeKey } from "./key-service";
 const path = (slug: string) => `/${slug}/dashboard/settings/api`;
 
 const createSchema = z.object({
-    name: z.string().trim().min(1, "Give the key a name, so you know what to revoke later").max(60),
+    name: z.string({ error: "Enter a name for the key, so that you can identify it later." }).trim().min(1, "Enter a name for the key, so that you can identify it later.").max(60),
     write: z.boolean().default(false),
 });
 

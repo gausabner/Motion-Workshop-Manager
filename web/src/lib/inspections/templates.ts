@@ -63,7 +63,7 @@ export async function saveTemplate(tx: TenantTx, tenantId: string, id: string | 
     try {
         if (templateId) {
             const existing = await tx.inspectionTemplate.findUnique({ where: { id: templateId }, select: { id: true } });
-            if (!existing) throw new Error("That template is no longer there");
+            if (!existing) throw new Error("This template no longer exists. Refresh the page.");
             await tx.inspectionTemplate.update({ where: { id: templateId }, data: { name: draft.name } });
         } else {
             const last = await tx.inspectionTemplate.aggregate({ _max: { sortOrder: true } });
@@ -91,7 +91,7 @@ export async function saveTemplate(tx: TenantTx, tenantId: string, id: string | 
 
 export async function duplicateTemplate(tx: TenantTx, tenantId: string, id: string): Promise<string> {
     const source = await getTemplateDraft(tx, id);
-    if (!source) throw new Error("That template is no longer there");
+    if (!source) throw new Error("This template no longer exists. Refresh the page.");
     const names = (await tx.inspectionTemplate.findMany({ select: { name: true } })).map((t) => t.name);
     const copy: TemplateDraft = {
         name: freeName(`Copy of ${source.draft.name}`.slice(0, 80), names),

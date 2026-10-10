@@ -10,16 +10,16 @@ const opt = z.string().trim().max(120).optional();
 
 export const vehicleSchema = z.object({
     customerId: opt,
-    plate: z.string().trim().min(1, "Required").max(20).transform((s) => s.toUpperCase()),
+    plate: z.string({ error: "Enter the registration." }).trim().min(1, "Enter the registration.").max(20).transform((s) => s.toUpperCase()),
     vin: z
         .string()
         .trim()
         .toUpperCase()
-        .regex(/^[A-HJ-NPR-Z0-9]{17}$/, "A VIN is 17 characters (no I, O or Q)")
+        .regex(/^[A-HJ-NPR-Z0-9]{17}$/, "A VIN has 17 characters and contains no I, O or Q.")
         .optional()
         .or(z.literal("").transform(() => undefined)),
-    make: z.string().trim().min(1, "Required").max(100),
-    model: z.string().trim().min(1, "Required").max(100),
+    make: z.string({ error: "Enter the make." }).trim().min(1, "Enter the make.").max(100),
+    model: z.string({ error: "Enter the model." }).trim().min(1, "Enter the model.").max(100),
     modelSeries: opt,
     year: optionalInt.refine((y) => y === undefined || (y >= 1950 && y <= new Date().getFullYear() + 1), "Enter a valid year"),
     engineNumber: opt,

@@ -30,7 +30,7 @@ function Head() {
 function Rows({ rows, currency, href }: { rows: MarginRow[]; currency: string; href?: (row: MarginRow) => string }) {
     return (
         <tbody className="divide-y divide-slate-100">
-            {rows.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-sm text-slate-500">Nothing in this period.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="px-4 py-4 text-center text-sm text-slate-500">No sales in this period.</td></tr>}
             {rows.map((r) => (
                 <tr key={r.key} className="hover:bg-slate-50">
                     <td className="px-4 py-1.5">

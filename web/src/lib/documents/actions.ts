@@ -87,7 +87,7 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
     const { db, tenant, membership, user } = ctx;
 
     const existing = await loadEditable(ctx, id);
-    if (!existing) return { ok: false, message: "Document not found." };
+    if (!existing) return { ok: false, message: "This document no longer exists. Refresh the page." };
     if (existing.state !== "DRAFT") return { ok: false, message: "This document has been processed and can no longer be edited." };
 
     let linesRaw: unknown = [];
@@ -244,7 +244,7 @@ export async function processDocument(slug: string, id: string, _prev: ActionSta
             vehicle: { select: { odometer: true } },
         },
     });
-    if (!doc) return { ok: false, message: "Document not found." };
+    if (!doc) return { ok: false, message: "This document no longer exists. Refresh the page." };
     if (doc.state !== "DRAFT") return { ok: false, message: "Only a draft can be processed." };
     if (doc._count.lines === 0) return { ok: false, message: "Add at least one line before processing." };
     if (!doc.customerId && !doc.isCashSale) return { ok: false, message: "Choose a customer, or mark this as a cash sale." };
@@ -281,7 +281,7 @@ export async function processDocument(slug: string, id: string, _prev: ActionSta
     const postDate = doc.postDate.toISOString().slice(0, 10);
     const problems = promptErrors(answers, { kind, lastOdometer: doc.vehicle?.odometer ?? null, postDate });
     if (Object.keys(problems).length) {
-        return { ok: false, message: "Please check the highlighted answers.", errors: Object.fromEntries(Object.entries(problems).map(([k, v]) => [k, [v]])) };
+        return { ok: false, message: "Correct the highlighted fields.", errors: Object.fromEntries(Object.entries(problems).map(([k, v]) => [k, [v]])) };
     }
     const posted = await db.$transaction((tx) => postDocument(tx, tenant, { membershipId: membership.id, userId: user.id }, doc, kind, answers));
 
@@ -300,14 +300,14 @@ export async function voidDocument(slug: string, id: string, formData: FormData)
     assertCan(ctx.membership, "documents:void");
     const { db, tenant, user } = ctx;
     const reason = (formData.get("voidReason") as string | null)?.trim();
-    if (!reason) throw new Error("A reason is required to void a document");
+    if (!reason) throw new Error("Enter a reason for voiding this document.");
 
     const doc = await db.document.findUnique({ where: { id }, select: { state: true } });
-    if (!doc) throw new Error("Document not found");
-    if (doc.state === "VOID") throw new Error("Already voided");
+    if (!doc) throw new Error("This document no longer exists. Refresh the page.");
+    if (doc.state === "VOID") throw new Error("This has already been voided.");
     // Derived, not stored: any posted payment allocated here blocks the void.
     const allocated = await db.paymentAllocation.aggregate({ where: { documentId: id, payment: { state: "PROCESSED" } }, _sum: { amount: true } });
-    if ((allocated._sum.amount?.toNumber() ?? 0) !== 0) throw new Error("Payments are allocated to this document — refund or reallocate them first");
+    if ((allocated._sum.amount?.toNumber() ?? 0) !== 0) throw new Error("Payments are allocated to this document. Refund or reallocate them first.");
 
     await db.$transaction(async (tx) => {
         await tx.document.update({ where: { id }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason, jobStatus: null } });
@@ -326,7 +326,7 @@ export async function voidDocument(slug: string, id: string, formData: FormData)
 async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentType, opts: { link: boolean; negate?: boolean }): Promise<string> {
     const { db, tenant, membership, user } = ctx;
     const source = await db.document.findUnique({ where: { id: sourceId }, include: { lines: { orderBy: { sortOrder: "asc" } } } });
-    if (!source) throw new Error("Document not found");
+    if (!source) throw new Error("This document no longer exists. Refresh the page.");
 
     const created = await db.$transaction(async (tx) => {
         // A conversion links back to its source; a copy deliberately does not,
@@ -419,7 +419,7 @@ export async function copyDocument(slug: string, id: string): Promise<void> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     const source = await ctx.db.document.findUnique({ where: { id }, select: { type: true } });
-    if (!source) throw new Error("Document not found");
+    if (!source) throw new Error("This document no longer exists. Refresh the page.");
     const newId = await cloneInto(ctx, id, source.type, { link: false });
     redirect(editorPath(slug, newId));
 }
@@ -429,9 +429,9 @@ export async function createCreditNote(slug: string, id: string): Promise<void> 
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     const source = await ctx.db.document.findUnique({ where: { id }, select: { state: true, type: true } });
-    if (!source) throw new Error("Document not found");
+    if (!source) throw new Error("This document no longer exists. Refresh the page.");
     if (source.state !== "PROCESSED" || !["INVOICE", "CASH_SALE"].includes(source.type)) {
-        throw new Error("Only a processed invoice can be credited");
+        throw new Error("Only a processed invoice can be credited.");
     }
     const newId = await cloneInto(ctx, id, "CREDIT", { link: true, negate: true });
     redirect(editorPath(slug, newId));
@@ -444,8 +444,8 @@ export async function setJobStatus(slug: string, id: string, status: JobStatus, 
     const { db, tenant, membership, user } = ctx;
 
     const doc = await db.document.findUnique({ where: { id }, select: { jobStatus: true, state: true } });
-    if (!doc) throw new Error("Document not found");
-    if (doc.state !== "DRAFT") throw new Error("This document is no longer open");
+    if (!doc) throw new Error("This document no longer exists. Refresh the page.");
+    if (doc.state !== "DRAFT") throw new Error("This document is no longer open.");
     if (doc.jobStatus === status) return;
 
     await db.$transaction(async (tx) => {

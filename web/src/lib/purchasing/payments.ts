@@ -70,7 +70,7 @@ export async function savePayment(tx: TenantTx, tenant: Tenant, membershipId: st
     let paymentId = id;
     if (paymentId) {
         const existing = await tx.supplierPayment.findUnique({ where: { id: paymentId }, select: { state: true } });
-        if (!existing) throw new Error("That payment is no longer there.");
+        if (!existing) throw new Error("This payment no longer exists. Refresh the page.");
         if (existing.state !== "DRAFT") throw new Error("A posted payment cannot be changed. Reverse it instead.");
         await tx.supplierPayment.update({ where: { id: paymentId }, data: header });
     } else {
@@ -82,7 +82,7 @@ export async function savePayment(tx: TenantTx, tenant: Tenant, membershipId: st
     for (const allocation of input.allocations) {
         if (round2(allocation.amount) === 0) continue;
         const invoice = await tx.supplierInvoice.findUnique({ where: { id: allocation.supplierInvoiceId }, select: { id: true } });
-        if (!invoice) throw new Error("One of those invoices is no longer there.");
+        if (!invoice) throw new Error("One of those invoices no longer exists. Refresh the page.");
         await tx.supplierPaymentAllocation.create({
             data: { tenantId: tenant.id, paymentId, supplierInvoiceId: allocation.supplierInvoiceId, amount: allocation.amount },
         });
@@ -128,7 +128,7 @@ export async function postPayment(tx: TenantTx, tenantId: string, paymentId: str
 /** Reverse a posted payment: the allocations stay for the trail but stop counting, so the invoices re-open. */
 export async function reversePayment(tx: TenantTx, paymentId: string, reason: string): Promise<void> {
     const payment = await tx.supplierPayment.findUniqueOrThrow({ where: { id: paymentId }, select: { state: true, allocations: { select: { supplierInvoiceId: true } } } });
-    if (payment.state === "VOID") throw new Error("Already reversed.");
+    if (payment.state === "VOID") throw new Error("This has already been reversed.");
     if (payment.state === "DRAFT") throw new Error("This payment was never posted.");
     await tx.supplierPayment.update({ where: { id: paymentId }, data: { state: "VOID", voidedAt: new Date(), voidReason: reason.trim().slice(0, 200) } });
     for (const { supplierInvoiceId } of payment.allocations) {

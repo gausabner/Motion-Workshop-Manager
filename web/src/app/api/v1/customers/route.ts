@@ -40,10 +40,10 @@ export const GET = withKey("READ", async (caller, req) => {
 });
 
 const createSchema = z.object({
-    firstName: z.string({ error: "A first name is needed." }).trim().min(1, "A first name is needed."),
+    firstName: z.string({ error: "Enter a first name." }).trim().min(1, "Enter a first name."),
     lastName: z.string().trim().default(""),
     isBusiness: z.boolean().optional(),
-    email: z.string().trim().email("That email does not look right.").optional().or(z.literal("")),
+    email: z.string().trim().email("Enter a valid email address.").optional().or(z.literal("")),
     mobile: z.string().trim().optional(),
     phone: z.string().trim().optional(),
     vatNumber: z.string().trim().optional(),

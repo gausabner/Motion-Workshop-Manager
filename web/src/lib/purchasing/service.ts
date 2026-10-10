@@ -47,7 +47,7 @@ export async function saveOrder(tx: TenantTx, tenant: Tenant, membershipId: stri
     let orderId = id;
     if (orderId) {
         const existing = await tx.purchaseOrder.findUnique({ where: { id: orderId }, select: { state: true } });
-        if (!existing) throw new Error("That order is no longer there.");
+        if (!existing) throw new Error("This purchase order no longer exists. Refresh the page.");
         if (existing.state === "CANCELLED" || existing.state === "RECEIVED") throw new Error("This order is closed, so its lines cannot change.");
         await tx.purchaseOrder.update({
             where: { id: orderId },
@@ -93,7 +93,7 @@ export async function saveOrder(tx: TenantTx, tenant: Tenant, membershipId: stri
 async function productSnapshot(tx: TenantTx, lines: { productId: string | null }[]) {
     const ids = [...new Set(lines.map((l) => l.productId).filter((x): x is string => !!x))];
     const rows = ids.length ? await tx.product.findMany({ where: { id: { in: ids } }, select: { id: true, itemCode: true, description: true } }) : [];
-    if (rows.length !== ids.length) throw new Error("One of those products is no longer there.");
+    if (rows.length !== ids.length) throw new Error("One of those products no longer exists. Refresh the page.");
     return new Map(rows.map((r) => [r.id, r]));
 }
 
@@ -113,7 +113,7 @@ export async function receivedByOrderLine(tx: TenantTx | TenantDb, orderId: stri
 
 export async function setOrderState(tx: TenantTx, id: string, state: "ORDERED" | "CANCELLED" | "SUGGESTED"): Promise<void> {
     const order = await tx.purchaseOrder.findUnique({ where: { id }, select: { state: true, _count: { select: { lines: true } } } });
-    if (!order) throw new Error("That order is no longer there.");
+    if (!order) throw new Error("This purchase order no longer exists. Refresh the page.");
     if (order.state === "RECEIVED") throw new Error("Everything on this order has arrived.");
     if (state === "ORDERED" && order._count.lines === 0) throw new Error("Add a line before sending the order.");
     await tx.purchaseOrder.update({
@@ -128,7 +128,7 @@ export async function receiptFromOrder(tx: TenantTx, tenant: Tenant, membershipI
         where: { id: orderId },
         select: { id: true, supplierId: true, number: true, state: true, lines: { orderBy: { sortOrder: "asc" }, select: { id: true, productId: true, itemCode: true, description: true, quantity: true, unitCost: true, documentId: true } } },
     });
-    if (!order) throw new Error("That order is no longer there.");
+    if (!order) throw new Error("This purchase order no longer exists. Refresh the page.");
     if (order.state === "CANCELLED") throw new Error("That order was cancelled.");
     const received = await receivedByOrderLine(tx, orderId);
 
@@ -198,7 +198,7 @@ export async function saveInvoice(tx: TenantTx, tenant: Tenant, membershipId: st
     try {
         if (invoiceId) {
             const existing = await tx.supplierInvoice.findUnique({ where: { id: invoiceId }, select: { state: true } });
-            if (!existing) throw new Error("That supplier invoice is no longer there.");
+            if (!existing) throw new Error("This supplier invoice no longer exists. Refresh the page.");
             if (existing.state !== "DRAFT") throw new Error("A processed supplier invoice cannot be changed. Void it and enter it again.");
             await tx.supplierInvoice.update({ where: { id: invoiceId }, data: header });
         } else {
@@ -240,7 +240,7 @@ export async function recalculateInvoice(tx: TenantTx, invoiceId: string): Promi
         where: { id: invoiceId },
         select: { taxRate: true, pricesIncludeTax: true, freight: true, lines: { select: { quantity: true, unitCost: true, taxExempt: true } } },
     });
-    if (!invoice) throw new Error("That supplier invoice is no longer there.");
+    if (!invoice) throw new Error("This supplier invoice no longer exists. Refresh the page.");
     const totals = costTotals(
         invoice.lines.map((l) => ({ quantity: num(l.quantity), unitCost: num(l.unitCost), taxExempt: l.taxExempt })),
         { taxRate: num(invoice.taxRate), pricesIncludeTax: invoice.pricesIncludeTax, freight: num(invoice.freight) },
@@ -270,7 +270,7 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
             },
         },
     });
-    if (!invoice) throw new Error("That supplier invoice is no longer there.");
+    if (!invoice) throw new Error("This supplier invoice no longer exists. Refresh the page.");
     const problem = processInvoiceError(invoice.state, invoice.lines.length, invoice.supplierNumber);
     if (problem) throw new Error(problem);
 
@@ -337,8 +337,8 @@ export async function processInvoice(tx: TenantTx, tenant: Tenant, who: { member
 /** Voiding takes the goods back off the shelf; the invoice stays as a record. */
 export async function voidInvoice(tx: TenantTx, tenant: Tenant, who: { membershipId: string; userId: string }, invoiceId: string, reason: string): Promise<void> {
     const invoice = await tx.supplierInvoice.findUnique({ where: { id: invoiceId }, select: { state: true, lines: { select: { id: true } } } });
-    if (!invoice) throw new Error("That supplier invoice is no longer there.");
-    if (invoice.state === "VOID") throw new Error("Already voided.");
+    if (!invoice) throw new Error("This supplier invoice no longer exists. Refresh the page.");
+    if (invoice.state === "VOID") throw new Error("This has already been voided.");
     if (invoice.state === "CLOSED") throw new Error("This invoice has been paid. Reverse the payment first.");
 
     const movements = await tx.stockMovement.findMany({

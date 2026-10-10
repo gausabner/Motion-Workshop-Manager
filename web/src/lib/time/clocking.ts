@@ -39,12 +39,12 @@ export async function clockOn(tx: TenantTx, tenantId: string, membershipId: stri
     await lockMechanic(tx, membershipId);
 
     const mechanic = await tx.membership.findUnique({ where: { id: membershipId }, select: { status: true, isMechanic: true, showOnDiary: true } });
-    if (!mechanic || mechanic.status !== "ACTIVE" || !(mechanic.isMechanic || mechanic.showOnDiary)) throw new Error("Only mechanics clock on to jobs");
+    if (!mechanic || mechanic.status !== "ACTIVE" || !(mechanic.isMechanic || mechanic.showOnDiary)) throw new Error("Only mechanics can clock on to jobs.");
 
     const doc = await tx.document.findUnique({ where: { id: documentId }, select: { id: true, type: true, state: true, jobStatus: true, mechanicId: true } });
-    if (!doc) throw new Error("That job is no longer there");
-    if (doc.type !== "BOOKING" && doc.type !== "JOB_CARD") throw new Error("Time goes on a booking or job card");
-    if (doc.state !== "DRAFT") throw new Error("That job has been closed off");
+    if (!doc) throw new Error("This job no longer exists. Refresh the page.");
+    if (doc.type !== "BOOKING" && doc.type !== "JOB_CARD") throw new Error("Time can only be recorded on a booking or job card.");
+    if (doc.state !== "DRAFT") throw new Error("This job card has been processed, so time can no longer be recorded on it.");
 
     // Tapping Start on the job already running changes nothing — one session stays one entry.
     const running = await tx.timeEntry.findFirst({ where: { mechanicId: membershipId, endedAt: null }, select: { id: true, documentId: true } });

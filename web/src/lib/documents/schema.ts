@@ -15,11 +15,11 @@ export const documentLineSchema = z.object({
     id: z.string().optional(),
     productId: z.string().optional().nullable(),
     lineType: z.enum(LINE_TYPES).default("STOCK"),
-    description: z.string().trim().min(1, "Description is required").max(255),
+    description: z.string({ error: "Enter a description." }).trim().min(1, "Enter a description.").max(255),
     // Negative quantities are how a credit note returns goods, so no lower bound here.
     quantity: z.coerce.number().finite(),
-    hours: z.preprocess((v) => (v === "" || v === undefined || v === null ? null : Number(v)), z.number().finite().min(0, "Cannot be negative").nullable()),
-    unitPrice: z.coerce.number().finite().min(0, "Cannot be negative"),
+    hours: z.preprocess((v) => (v === "" || v === undefined || v === null ? null : Number(v)), z.number().finite().min(0, "This cannot be negative.").nullable()),
+    unitPrice: z.coerce.number().finite().min(0, "This cannot be negative."),
     unitCost: z.coerce.number().finite().min(0).default(0),
     vatRate: z.coerce.number().finite().min(0).max(100).default(15),
     discountPercent: z.coerce.number().finite().min(0).max(100).default(0),
@@ -45,7 +45,7 @@ export const documentHeaderSchema = z.object({
     // workshop's timezone, and `new Date()` here would read it in the server's.
     scheduledAt: z.preprocess(
         (v) => (v === "" || v == null ? undefined : v),
-        z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "Use a date and time").optional(),
+        z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "Enter a date and time.").optional(),
     ),
     estimatedHours: optionalNumber,
     odometer: optionalInt,
@@ -66,7 +66,7 @@ export const documentHeaderSchema = z.object({
 });
 
 export const saveDocumentSchema = documentHeaderSchema.extend({
-    lines: z.array(documentLineSchema).max(200, "A document can hold at most 200 lines"),
+    lines: z.array(documentLineSchema).max(200, "A document can have at most 200 lines."),
 });
 
 export type DocumentLineInput = z.infer<typeof documentLineSchema>;

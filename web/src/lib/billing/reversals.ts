@@ -28,7 +28,7 @@ export async function reversePayment(
     input: { tenantId: string; paymentId: string; staffId: string; reason: string; now: Date },
 ): Promise<ReversalResult> {
     const reason = input.reason.trim();
-    if (reason.length < 5) return { ok: false, message: "Say why it is being reversed — it is printed on the credit note." };
+    if (reason.length < 5) return { ok: false, message: "Enter the reason for the reversal. It is printed on the credit note." };
     if (reason.length > 300) return { ok: false, message: "Keep the reason to 300 characters — it is printed on the credit note." };
 
     const sub = await tx.subscription.findUnique({ where: { tenantId: input.tenantId }, select: { id: true } });

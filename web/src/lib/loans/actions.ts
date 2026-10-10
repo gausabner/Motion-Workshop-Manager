@@ -12,7 +12,7 @@ const optionalId = z.union([z.literal(""), z.string().max(40)]).nullish().transf
 const optionalInt = z.union([z.literal(""), z.coerce.number().int().min(0).max(9_999_999)]).nullish().transform((v) => (v === "" || v === null || v === undefined ? null : Number(v)));
 
 const vehicleSchema = z.object({
-    plate: z.string().trim().min(1, "A courtesy car needs a registration").max(20),
+    plate: z.string({ error: "Enter the courtesy car's registration." }).trim().min(1, "Enter the courtesy car's registration.").max(20),
     make: z.string().trim().max(60).default(""),
     model: z.string().trim().max(60).default(""),
     year: optionalInt,
@@ -23,11 +23,11 @@ const vehicleSchema = z.object({
 });
 
 const bookSchema = z.object({
-    loanVehicleId: z.string().min(1, "Choose a car"),
+    loanVehicleId: z.string({ error: "Choose a courtesy car." }).min(1, "Choose a courtesy car."),
     customerId: optionalId,
     documentId: optionalId,
-    outAt: z.string().min(1, "When does it go out?"),
-    dueBackAt: z.string().min(1, "When is it due back?"),
+    outAt: z.string({ error: "Enter the date it goes out." }).min(1, "Enter the date it goes out."),
+    dueBackAt: z.string({ error: "Enter the date it is due back." }).min(1, "Enter the date it is due back."),
     note: z.string().trim().max(300).nullish(),
 });
 
@@ -41,7 +41,7 @@ async function keeper(slug: string) {
 export async function saveLoanVehicleAction(slug: string, id: string | null, input: unknown): Promise<{ ok: boolean; message?: string }> {
     const { db, tenant } = await keeper(slug);
     const parsed = vehicleSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the details" };
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the highlighted fields." };
     const data = { ...parsed.data, plate: parsed.data.plate.toUpperCase(), colour: parsed.data.colour ?? null, note: parsed.data.note ?? null };
     try {
         if (id) await db.loanVehicle.update({ where: { id }, data });
@@ -59,7 +59,7 @@ export async function bookLoanAction(slug: string, input: unknown): Promise<{ ok
     if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the booking" };
     const outAt = parseLocalDateTime(parsed.data.outAt, tenant.timezone);
     const dueBackAt = parseLocalDateTime(parsed.data.dueBackAt, tenant.timezone);
-    if (!outAt || !dueBackAt) return { ok: false, message: "Those dates were not understood." };
+    if (!outAt || !dueBackAt) return { ok: false, message: "The dates could not be read. Enter them again." };
     try {
         await db.$transaction((tx) => bookLoan(tx, tenant.id, membership.id, { ...parsed.data, outAt, dueBackAt }));
     } catch (error) {

@@ -61,7 +61,7 @@ export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: 
                     )}
                 </div>
                 {pending.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">Everyone has been dealt with.</p>
+                    <p className="px-4 py-4 text-sm text-slate-500">No recipients are left to send to.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {pending.map((row) => (

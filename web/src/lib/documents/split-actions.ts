@@ -19,7 +19,7 @@ import { excessError, reworkError, splitByExcess, splitError } from "@/lib/docum
 const editorPath = (slug: string, id: string) => `/${slug}/dashboard/documents/${id}`;
 
 const splitSchema = z.object({
-    customerId: z.string().min(1, "Choose who the other half is billed to"),
+    customerId: z.string({ error: "Choose who the other part is billed to." }).min(1, "Choose who the other part is billed to."),
     lineIds: z.array(z.string().min(1)).default([]),
     excess: z.union([z.literal(""), z.coerce.number()]).optional().transform((v) => (v === "" || v === undefined ? null : Number(v))),
     mode: z.enum(["lines", "excess"]),
@@ -41,12 +41,12 @@ export async function splitDocumentAction(slug: string, id: string, input: unkno
         where: { id },
         include: { lines: { orderBy: { sortOrder: "asc" } } },
     });
-    if (!doc) return { ok: false, message: "That document is no longer there." };
+    if (!doc) return { ok: false, message: "This document no longer exists. Refresh the page." };
     const problem = splitError(doc.state, doc.type, doc.lines.length);
     if (problem) return { ok: false, message: problem };
 
     const payer = await db.customer.findUnique({ where: { id: customerId }, select: { id: true } });
-    if (!payer) return { ok: false, message: "That customer is no longer there." };
+    if (!payer) return { ok: false, message: "This customer no longer exists. Refresh the page." };
     if (mode === "excess" && excess !== null) {
         const wrong = excessError(doc.total.toNumber(), excess);
         if (wrong) return { ok: false, message: wrong };
@@ -117,13 +117,13 @@ export async function splitDocumentAction(slug: string, id: string, input: unkno
  */
 export async function reworkDocumentAction(slug: string, id: string, reason: string): Promise<{ ok: false; message: string }> {
     const { db, tenant, membership, user } = await splitter(slug);
-    if (!reason.trim()) return { ok: false, message: "Say what came back, so the pattern can be seen later." };
+    if (!reason.trim()) return { ok: false, message: "Enter the reason for the rework, so that patterns can be seen later." };
 
     const doc = await db.document.findUnique({
         where: { id },
         select: { id: true, type: true, state: true, customerId: true, vehicleId: true, number: true, jobNumber: true, odometer: true, serviceAdvisorId: true, mechanicId: true, taxName: true, taxRate: true, pricesIncludeTax: true },
     });
-    if (!doc) return { ok: false, message: "That document is no longer there." };
+    if (!doc) return { ok: false, message: "This document no longer exists. Refresh the page." };
     const problem = reworkError(doc.state, doc.type);
     if (problem) return { ok: false, message: problem };
 

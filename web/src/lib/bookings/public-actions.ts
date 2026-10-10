@@ -54,8 +54,8 @@ export async function requestBooking(slug: string, _prev: ActionState, formData:
     if (!firstName) errors.firstName = ["Your first name, please"];
     if (!lastName) errors.lastName = ["Your surname, please"];
     if (!mobile) errors.mobile = ["A mobile number we can reach you on"];
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ["That email does not look right"];
-    if (Object.keys(errors).length) return { ok: false, message: "Please check the highlighted details.", errors };
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = ["Enter a valid email address."];
+    if (Object.keys(errors).length) return { ok: false, message: "Please correct the highlighted fields.", errors };
 
     const type = await db.appointmentType.findUnique({ where: { id: typeId }, select: { id: true, description: true, estimatedHours: true, active: true } });
     if (!type?.active || !/^\d{4}-\d{2}-\d{2}$/.test(day) || minute === null) return { ok: false, message: "Something about that booking did not come through. Please start again." };

@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-const money = z.coerce.number().min(0, "Cannot be negative").max(99_999_999);
+const money = z.coerce.number().min(0, "This cannot be negative.").max(99_999_999);
 const optionalId = z.union([z.literal(""), z.string().max(40)]).optional().transform((v) => (v ? v : null));
 
 /** A product as the form sends it. Prices are kept apart from stock: one is a decision, the other a fact. */
 export const productSchema = z.object({
-    itemCode: z.string().trim().min(1, "Every product needs a code").max(40),
-    description: z.string().trim().min(1, "Give it a description").max(200),
+    itemCode: z.string({ error: "Enter a product code." }).trim().min(1, "Enter a product code.").max(40),
+    description: z.string({ error: "Enter a description." }).trim().min(1, "Enter a description.").max(200),
     description2: z.string().trim().max(200).optional(),
     type: z.enum(["STOCK", "LABOUR", "SUBLET", "CONSUMABLE", "ACCESSORY", "TYRE"]),
     isService: z.coerce.boolean(),
@@ -38,12 +38,12 @@ export const productSchema = z.object({
 export type ProductInput = z.infer<typeof productSchema>;
 
 export const adjustSchema = z.object({
-    quantity: z.coerce.number().refine((n) => n !== 0, "Give a quantity to add or take away").refine(Number.isFinite, "Not a number"),
+    quantity: z.coerce.number().refine((n) => n !== 0, "Enter a quantity to add or remove.").refine(Number.isFinite, "Enter a number."),
     kind: z.enum(["ADJUSTMENT", "STOCKTAKE", "OPENING"]),
-    note: z.string().trim().min(3, "Say why, so the movement explains itself later").max(200),
+    note: z.string().trim().min(3, "Enter a reason, so the movement can be understood later.").max(200),
 });
 
 export const bundleItemsSchema = z.array(z.object({
     componentId: z.string().min(1).max(40),
-    quantity: z.coerce.number().min(0.01, "A component needs a quantity").max(9_999),
-})).max(50, "Keep a bundle under 50 components");
+    quantity: z.coerce.number().min(0.01, "Enter a quantity for each component.").max(9_999),
+})).max(50, "A bundle can have at most 50 components.");

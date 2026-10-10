@@ -32,7 +32,7 @@ export default async function PricingSettingsPage({ params }: { params: Promise<
             </div>
             <div className="border-t border-slate-200" />
             <ul className="divide-y divide-slate-100 rounded-sm border border-slate-200 bg-white">
-                {matrices.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No matrices yet. One is usually enough to start: more margin on the cheap things, less on the expensive.</li>}
+                {matrices.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No price matrices yet. Most workshops start with one: a higher markup on low-cost parts and a lower markup on expensive ones.</li>}
                 {matrices.map((m) => (
                     <li key={m.id} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${m.active ? "" : "bg-slate-50"}`}>
                         <Link href={`/${slug}/dashboard/settings/pricing/${m.id}`} className={`font-medium hover:underline ${m.active ? "text-slate-800" : "text-slate-400"}`}>{m.name}</Link>

@@ -46,17 +46,17 @@ export function AccessDenied({
 
             <p className="mt-2 text-sm text-slate-600">
                 You are signed in as <strong className="font-semibold text-slate-800">{GROUP_LABELS[group]}</strong>,
-                which cannot {needs}. Nothing is wrong — this part of MOTION is simply not part of your role.
+                which cannot {needs}. This is a permission setting, not a fault.
             </p>
 
             <p className="mt-2 text-sm text-slate-500">
-                The workshop owner can change this under Team. If you are at a shared computer, check whether
-                somebody else is still signed in.
+                The workshop owner can change your role under Settings → Team. If this is a shared computer, check
+                that the previous user has signed out.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
                 <Button asChild className="h-11 bg-teal-600 px-5 hover:bg-teal-700">
-                    <Link href={`/${tenant}/dashboard`}>Back to the dashboard</Link>
+                    <Link href={`/${tenant}/dashboard`}>Go to the dashboard</Link>
                 </Button>
             </div>
         </div>

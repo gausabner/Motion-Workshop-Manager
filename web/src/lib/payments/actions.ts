@@ -100,7 +100,7 @@ export async function savePayment(slug: string, id: string, _prev: ActionState, 
     const { db, tenant, user } = ctx;
 
     const existing = await db.payment.findUnique({ where: { id }, select: { state: true, direction: true } });
-    if (!existing) return { ok: false, message: "Receipt not found." };
+    if (!existing) return { ok: false, message: "This receipt no longer exists. Refresh the page." };
     if (existing.state !== "DRAFT") return { ok: false, message: `This ${existing.direction === "REFUND" ? "refund" : "receipt"} has been posted and can no longer be edited.` };
 
     let tendersRaw: unknown = [];
@@ -217,7 +217,7 @@ export async function voidPayment(slug: string, id: string, formData: FormData):
     assertCan(ctx.membership, "payments:take");
     const { db, tenant, user } = ctx;
     const reason = (formData.get("voidReason") as string | null)?.trim();
-    if (!reason) throw new Error("A reason is required to void a receipt");
+    if (!reason) throw new Error("Enter a reason for voiding this receipt.");
 
     await db.$transaction(async (tx) => {
         await reversePayment(tx, id, reason);
@@ -235,8 +235,8 @@ export async function deleteDraftPayment(slug: string, id: string): Promise<void
     const { db, tenant, user } = ctx;
 
     const payment = await db.payment.findUnique({ where: { id }, select: { state: true } });
-    if (!payment) throw new Error("Receipt not found");
-    if (payment.state !== "DRAFT") throw new Error("A posted receipt cannot be deleted — void it instead");
+    if (!payment) throw new Error("This receipt no longer exists. Refresh the page.");
+    if (payment.state !== "DRAFT") throw new Error("A posted receipt cannot be deleted. Void it instead.");
 
     await db.$transaction(async (tx) => {
         await tx.payment.delete({ where: { id } });

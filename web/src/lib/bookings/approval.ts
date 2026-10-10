@@ -63,12 +63,12 @@ export async function approveRequest(
     options: { mechanicId: string | null },
 ): Promise<{ documentId: string; createdCustomer: boolean; vehicle: "attached" | "adopted" | "created" | "conflict" | "none" }> {
     const request = await tx.bookingRequest.findUnique({ where: { id: requestId } });
-    if (!request) throw new Error("That request is no longer there");
+    if (!request) throw new Error("This booking request no longer exists. Refresh the page.");
     if (request.status !== "PENDING") throw new Error(`That request was already ${request.status.toLowerCase()}`);
 
     if (options.mechanicId) {
         const mechanic = await tx.membership.findUnique({ where: { id: options.mechanicId }, select: { status: true, isMechanic: true, showOnDiary: true } });
-        if (!mechanic || mechanic.status !== "ACTIVE" || !(mechanic.isMechanic || mechanic.showOnDiary)) throw new Error("That person is not on the diary");
+        if (!mechanic || mechanic.status !== "ACTIVE" || !(mechanic.isMechanic || mechanic.showOnDiary)) throw new Error("That person is not on the diary.");
     }
 
     const matches = await findMatches(tx, tenant, request);
@@ -155,7 +155,7 @@ export async function approveRequest(
 
 export async function declineRequest(tx: TenantTx, membershipId: string, requestId: string, reason: string): Promise<void> {
     const request = await tx.bookingRequest.findUnique({ where: { id: requestId }, select: { status: true } });
-    if (!request) throw new Error("That request is no longer there");
+    if (!request) throw new Error("This booking request no longer exists. Refresh the page.");
     if (request.status !== "PENDING") throw new Error(`That request was already ${request.status.toLowerCase()}`);
     await tx.bookingRequest.update({ where: { id: requestId }, data: { status: "DECLINED", decidedById: membershipId, decidedAt: new Date(), declineReason: reason } });
 }

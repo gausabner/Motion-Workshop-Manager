@@ -7,14 +7,14 @@ export const PRICE_TYPES = ["RETAIL", "PRICE2", "PRICE3", "PRICE4"] as const;
 const opt = z.string().trim().max(255).optional();
 
 export const customerSchema = z.object({
-    firstName: z.string().trim().min(1, "Required").max(100),
-    lastName: z.string().trim().min(1, "Required").max(100),
+    firstName: z.string({ error: "Enter a first name." }).trim().min(1, "Enter a first name.").max(100),
+    lastName: z.string({ error: "Enter a last name." }).trim().min(1, "Enter a last name.").max(100),
     isBusiness: z.boolean().default(false),
     businessNumber: opt,
     vatNumber: opt,
     mobile: opt,
     phone: opt,
-    email: z.email("Enter a valid email").optional().or(z.literal("").transform(() => undefined)),
+    email: z.email("Enter a valid email address.").optional().or(z.literal("").transform(() => undefined)),
     fax: opt,
     web: opt,
     preferredContact: z.enum(CONTACT_METHODS).default("WHATSAPP"),

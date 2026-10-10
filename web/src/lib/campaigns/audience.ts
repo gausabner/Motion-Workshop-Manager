@@ -11,7 +11,7 @@ import { toInternational } from "@/lib/messaging/phone";
  * (postcode, vehicle, source, last in) is here too.
  */
 
-const optionalDay = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-09-20")]).optional();
+const optionalDay = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date such as 2026-09-20.")]).optional();
 
 export const filtersSchema = z.object({
     /** Customer sources to include; empty means every source. */
@@ -81,11 +81,11 @@ export function reachFor(customer: Contactable, channel: MessageChannel, usePref
 
 /** What a campaign may say, before anyone presses send. */
 export const campaignSchema = z.object({
-    name: z.string().trim().min(2, "Give the campaign a name so you can find it later").max(80),
+    name: z.string().trim().min(2, "Enter a name for the campaign.").max(80),
     channel: z.enum(["WHATSAPP", "EMAIL"]),
     usePreferred: z.boolean().default(false),
     subject: z.string().trim().max(120).optional(),
-    body: z.string().trim().min(5, "Write the message").max(1500, "Keep it under 1500 characters"),
+    body: z.string().trim().min(5, "Enter the message.").max(1500, "Keep the message under 1,500 characters."),
 });
 
 export type CampaignInput = z.infer<typeof campaignSchema>;

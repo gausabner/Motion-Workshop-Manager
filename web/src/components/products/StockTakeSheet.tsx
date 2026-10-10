@@ -79,7 +79,7 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                     <span className="col-span-2 text-right">{take.blind && editable ? "" : "Expected"}</span><span className="col-span-2 text-right">Counted</span>
                 </div>
                 <ul className="divide-y divide-slate-100">
-                    {shown.length === 0 && <li className="px-4 py-4 text-center text-sm text-slate-500">Nothing here.</li>}
+                    {shown.length === 0 && <li className="px-4 py-4 text-center text-sm text-slate-500">{filter === "todo" ? "Every line has been counted." : filter === "differs" ? "No counts differ from the expected quantity." : "No lines in this stock take."}</li>}
                     {shown.map((line) => {
                         const diff = line.counted === null ? null : Math.round((line.counted - line.expected) * 100) / 100;
                         return (

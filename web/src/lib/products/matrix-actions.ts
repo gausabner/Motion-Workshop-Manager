@@ -11,7 +11,7 @@ import { deleteMatrix, previewReprice, repriceMatrix, saveMatrix, type MatrixInp
 const base = (slug: string) => `/${slug}/dashboard/settings/pricing`;
 
 const matrixSchema = z.object({
-    name: z.string().trim().min(2, "Give the matrix a name").max(60),
+    name: z.string().trim().min(2, "Enter a name for the price matrix.").max(60),
     basis: z.enum(["MARKUP", "MARGIN"]),
     rounding: z.enum(["NONE", "WHOLE", "NEAREST_5", "NEAREST_10", "ENDS_99"]),
     active: z.boolean(),
@@ -20,7 +20,7 @@ const matrixSchema = z.object({
         costFrom: z.coerce.number().min(0).max(9_999_999),
         costTo: z.union([z.null(), z.coerce.number().min(0).max(9_999_999)]),
         percent: z.coerce.number().min(-100).max(1000),
-    })).min(1, "A matrix needs at least one band").max(20, "Keep a matrix under 20 bands"),
+    })).min(1, "Add at least one band to the price matrix.").max(20, "A price matrix can have at most 20 bands."),
 });
 
 async function pricer(slug: string) {

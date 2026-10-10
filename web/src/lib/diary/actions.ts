@@ -78,9 +78,9 @@ export async function saveDiarySettings(slug: string, _prev: ActionState, formDa
 export async function saveWorkingDay(slug: string, input: { membershipId: string; weekday: number; mode: "shop" | "off" | "custom"; start?: string; end?: string }): Promise<{ ok: boolean; message?: string }> {
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "settings:manage");
-    if (!Number.isInteger(input.weekday) || input.weekday < 1 || input.weekday > 7) return { ok: false, message: "That is not a weekday" };
+    if (!Number.isInteger(input.weekday) || input.weekday < 1 || input.weekday > 7) return { ok: false, message: "Choose a weekday." };
     const member = await ctx.db.membership.findUnique({ where: { id: input.membershipId }, select: { id: true } });
-    if (!member) return { ok: false, message: "That person is not in this workshop" };
+    if (!member) return { ok: false, message: "That person is not a member of this workshop." };
 
     const key = { membershipId_weekday: { membershipId: input.membershipId, weekday: input.weekday } };
     if (input.mode === "shop") {
@@ -88,8 +88,8 @@ export async function saveWorkingDay(slug: string, input: { membershipId: string
     } else {
         const start = input.mode === "off" ? 0 : parseMinute(input.start ?? "");
         const end = input.mode === "off" ? 0 : parseMinute(input.end ?? "");
-        if (start === null || end === null) return { ok: false, message: "Use times like 07:30" };
-        if (input.mode === "custom" && end <= start) return { ok: false, message: "Finishing has to be after starting" };
+        if (start === null || end === null) return { ok: false, message: "Enter times in the form 07:30." };
+        if (input.mode === "custom" && end <= start) return { ok: false, message: "The finish time must be after the start time." };
         await ctx.db.workingHours.upsert({
             where: key,
             create: { tenantId: ctx.tenant.id, membershipId: input.membershipId, weekday: input.weekday, startMinute: start, endMinute: end },
@@ -115,7 +115,7 @@ export async function addTimeOff(slug: string, _prev: ActionState, formData: For
     if (!endsAt) return { ok: false, errors: { endsAt: ["When does it end?"] } };
     if (endsAt <= startsAt) return { ok: false, errors: { endsAt: ["It has to end after it starts"] } };
     const member = await ctx.db.membership.findUnique({ where: { id: membershipId }, select: { id: true } });
-    if (!member) return { ok: false, errors: { membershipId: ["That person is not in this workshop"] } };
+    if (!member) return { ok: false, errors: { membershipId: ["That person is not a member of this workshop."] } };
 
     await ctx.db.timeOff.create({ data: { tenantId: ctx.tenant.id, membershipId, startsAt, endsAt, reason, createdById: ctx.membership.id } });
     revalidatePath(`/${slug}/dashboard/schedule/hours`);

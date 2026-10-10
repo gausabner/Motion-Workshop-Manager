@@ -75,13 +75,13 @@ export const GET = withKey("READ", async (caller, req) => {
 const clockFace = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
 const createSchema = z.object({
-    appointmentTypeId: z.string({ error: "Which service is it for?" }).trim().min(1, "Which service is it for?"),
+    appointmentTypeId: z.string({ error: "Choose a service." }).trim().min(1, "Choose a service."),
     day: z.string({ error: "`day` must look like 2026-09-21." }).regex(/^\d{4}-\d{2}-\d{2}$/, "`day` must look like 2026-09-21."),
     time: z.string({ error: "`time` must look like 08:30." }).regex(/^\d{1,2}:\d{2}$/, "`time` must look like 08:30."),
-    firstName: z.string({ error: "A first name is needed." }).trim().min(1, "A first name is needed.").max(60),
-    lastName: z.string({ error: "A surname is needed." }).trim().min(1, "A surname is needed.").max(60),
-    mobile: z.string({ error: "A mobile number is needed." }).trim().min(1, "A mobile number is needed."),
-    email: z.string().trim().email("That email does not look right.").max(120).optional().or(z.literal("")),
+    firstName: z.string({ error: "Enter a first name." }).trim().min(1, "Enter a first name.").max(60),
+    lastName: z.string({ error: "Enter a surname." }).trim().min(1, "Enter a surname.").max(60),
+    mobile: z.string({ error: "Enter a mobile number." }).trim().min(1, "Enter a mobile number."),
+    email: z.string().trim().email("Enter a valid email address.").max(120).optional().or(z.literal("")),
     plate: z.string().trim().max(20).optional(),
     vehicle: z.string().trim().max(80).optional(),
     notes: z.string().trim().max(500).optional(),

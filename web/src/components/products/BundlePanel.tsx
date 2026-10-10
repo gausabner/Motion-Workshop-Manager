@@ -49,7 +49,7 @@ export function BundlePanel({ tenant, product, products, currency }: { tenant: s
                 <span className="text-xs text-slate-500">{product.bundlePricing === "FIXED" ? "Sold at the bundle price" : "Sold at the sum of what is in it"}</span>
             </div>
             <ul className="divide-y divide-slate-100">
-                {rows.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">Nothing in it yet. Add the parts and labour a &ldquo;minor service&rdquo; is made of.</li>}
+                {rows.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">No items in this bundle yet. Add the parts and labour it is made of.</li>}
                 {rows.map((row, i) => (
                     <li key={row.key} className="flex flex-wrap items-center gap-2 px-4 py-2">
                         <select value={row.componentId} onChange={(e) => setRows((rs) => rs.map((r, n) => (n === i ? { ...r, componentId: e.target.value } : r)))} className={`${cell} min-w-64 flex-1`} aria-label="Component">

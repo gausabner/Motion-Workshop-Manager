@@ -50,7 +50,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ tenan
                     <section className="rounded-sm border border-slate-200 bg-white">
                         <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Recent orders</h2>
                         <ul className="divide-y divide-slate-100 text-sm">
-                            {theirs.length === 0 && <li className="px-4 py-2 text-slate-500">None yet.</li>}
+                            {theirs.length === 0 && <li className="px-4 py-2 text-slate-500">No purchase orders yet.</li>}
                             {theirs.map((o) => (
                                 <li key={o.id} className="flex items-center justify-between px-4 py-2">
                                     <Link href={`/${slug}/dashboard/purchasing/orders/${o.id}`} className="text-slate-700 hover:text-teal-700">{o.number}</Link>
@@ -62,7 +62,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ tenan
                     <section className="rounded-sm border border-slate-200 bg-white">
                         <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Recent invoices</h2>
                         <ul className="divide-y divide-slate-100 text-sm">
-                            {theirInvoices.length === 0 && <li className="px-4 py-2 text-slate-500">None yet.</li>}
+                            {theirInvoices.length === 0 && <li className="px-4 py-2 text-slate-500">No supplier invoices yet.</li>}
                             {theirInvoices.map((i) => (
                                 <li key={i.id} className="flex items-center justify-between px-4 py-2">
                                     <Link href={`/${slug}/dashboard/purchasing/invoices/${i.id}`} className="text-slate-700 hover:text-teal-700">{i.supplierNumber || "Draft"}</Link>

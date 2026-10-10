@@ -47,7 +47,7 @@ export async function startStockTake(tx: TenantTx, tenant: Tenant, membershipId:
 /** Counts as they are typed. Null clears a count, which is not the same as counting zero. */
 export async function saveCounts(tx: TenantTx, takeId: string, counts: { lineId: string; counted: number | null; note?: string | null }[]): Promise<void> {
     const take = await tx.stockTake.findUnique({ where: { id: takeId }, select: { state: true } });
-    if (!take) throw new Error("That count is no longer there.");
+    if (!take) throw new Error("This stock take no longer exists. Refresh the page.");
     if (take.state !== "DRAFT") throw new Error("This count has already been applied.");
     for (const count of counts) {
         await tx.stockTakeLine.updateMany({
@@ -72,7 +72,7 @@ export async function applyStockTake(tx: TenantTx, tenant: Tenant, membershipId:
             lines: { select: { id: true, productId: true, expected: true, counted: true, unitCost: true, product: { select: { qtyOnHand: true } } } },
         },
     });
-    if (!take) throw new Error("That count is no longer there.");
+    if (!take) throw new Error("This stock take no longer exists. Refresh the page.");
     const countedLines = take.lines.filter((l) => l.counted !== null);
     const problem = applyError(take.state, countedLines.length);
     if (problem) throw new Error(problem);

@@ -150,7 +150,7 @@ export async function quickCreateVehicle(
 
     if (data.customerId) {
         const owner = await db.customer.findUnique({ where: { id: data.customerId }, select: { id: true } });
-        if (!owner) return { ok: false, message: "That customer no longer exists." };
+        if (!owner) return { ok: false, message: "This customer no longer exists. Refresh the page." };
     }
     const clash = await db.vehicle.findFirst({ where: { plate: data.plate, archivedAt: null }, select: VEHICLE_SELECT });
     if (clash) {

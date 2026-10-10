@@ -4,7 +4,7 @@ import { optionalDate } from "@/lib/forms";
 /** One way the money arrived: cash, a card slip, an EFT with its reference. */
 export const tenderSchema = z.object({
     id: z.string().optional(),
-    methodId: z.string().min(1, "Choose how the money was paid"),
+    methodId: z.string({ error: "Choose the payment method." }).min(1, "Choose the payment method."),
     amount: z.coerce.number().finite(),
     /** What was physically handed over, when more than was kept. The difference is change. */
     tendered: z.coerce.number().finite().optional().nullable(),
@@ -21,10 +21,10 @@ export const allocationSchema = z.object({
 });
 
 export const savePaymentSchema = z.object({
-    customerId: z.string().min(1, "Choose a customer"),
+    customerId: z.string({ error: "Choose a customer." }).min(1, "Choose a customer."),
     postDate: optionalDate,
     note: z.string().trim().max(500).optional(),
-    tenders: z.array(tenderSchema).max(10, "That is more tenders than one receipt needs"),
+    tenders: z.array(tenderSchema).max(10, "A receipt can have at most this many tenders."),
     allocations: z.array(allocationSchema).max(200),
 });
 

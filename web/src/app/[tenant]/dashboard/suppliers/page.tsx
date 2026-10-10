@@ -29,7 +29,7 @@ export default async function SuppliersPage({ params, searchParams }: { params: 
                 <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New supplier</Link></Button>
             </div>
             <ul className="divide-y divide-slate-100 rounded-sm border border-slate-200 bg-white">
-                {suppliers.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">None yet.</li>}
+                {suppliers.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No suppliers yet. Add the suppliers you buy parts from with New supplier.</li>}
                 {suppliers.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
                         <Link href={`${base}/${s.id}`} className="font-medium text-slate-800 hover:text-teal-700">{s.companyName}</Link>

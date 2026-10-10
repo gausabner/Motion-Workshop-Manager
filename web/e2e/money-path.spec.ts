@@ -46,7 +46,7 @@ test("an invoice is raised, processed and settled", async ({ page, workshop }) =
     // ahead without them: the reading on this invoice is what the car's next
     // service is worked out from.
     await page.getByRole("button", { name: "Process invoice" }).click();
-    await expect(page.getByText(/check the highlighted answers/i)).toBeVisible();
+    await expect(page.getByText(/correct the highlighted fields/i)).toBeVisible();
 
     await page.getByRole("textbox", { name: /^Odometer/ }).fill("88500");
     await page.getByRole("button", { name: "Process invoice" }).click();

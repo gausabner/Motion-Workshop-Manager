@@ -167,7 +167,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                     <tbody>
                         {lines.length === 0 && (
                             <tr><td colSpan={showCost ? 12 : 11} className="px-4 py-8 text-center text-sm text-slate-500">
-                                No items yet. {readOnly ? "" : "Add a line, or type a product code to pull in its price."}
+                                No lines yet. {readOnly ? "" : "Add a line, or type a product code to use its price."}
                             </td></tr>
                         )}
                         {lines.map((line, i) => {
