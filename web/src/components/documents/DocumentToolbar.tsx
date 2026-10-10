@@ -12,6 +12,7 @@ import { SplitDialog } from "@/components/documents/SplitDialog";
 import { reworkDocumentAction } from "@/lib/documents/split-actions";
 import { reworkError } from "@/lib/documents/split";
 import type { DocumentRecord } from "@/lib/documents/queries";
+import { TERM } from "@/lib/copy/terms";
 
 type Props = {
     tenant: string;
@@ -77,8 +78,8 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
             {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
             {isProcessed && (
                 <form action={markContacted.bind(null, tenant, doc.id)}>
-                    <Button type="submit" size="sm" variant="outline" title={doc.contactedAt ? "Mark as contacted again" : "Record that the customer was told"}>
-                        <MessageCircle className="w-4 h-4 mr-1" />{doc.contactedAt ? "Contacted" : "Mark contacted"}
+                    <Button type="submit" size="sm" variant="outline" title={doc.contactedAt ? "Record that it was sent again" : "Record that the document was sent to the customer outside MOTION"}>
+                        <MessageCircle className="w-4 h-4 mr-1" />{doc.contactedAt ? "Sent" : "Mark as sent"}
                     </Button>
                 </form>
             )}
@@ -101,7 +102,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 <span className="flex items-center gap-2">
                     <input
                         value={reworkNote} onChange={(e) => setReworkNote(e.target.value)} autoFocus
-                        placeholder="What came back?" className="h-8 w-56 rounded-md border border-slate-300 px-2 text-sm"
+                        placeholder="Reason for the rework" className="h-8 w-56 rounded-md border border-slate-300 px-2 text-sm"
                     />
                     <Button
                         type="button" size="sm" variant="outline" disabled={!reworkNote.trim() || opening}
@@ -110,13 +111,13 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                             if (result && !result.ok) setReworkProblem(result.message);
                         })}
                     >
-                        {opening ? "Opening…" : "Open the rework"}
+                        {opening ? "Creating…" : "Create rework job card"}
                     </Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setReworking(false)}>Cancel</Button>
                     {reworkProblem && <span className="text-sm text-red-600" role="alert">{reworkProblem}</span>}
                 </span>
             ) : (
-                <Button type="button" size="sm" variant="outline" onClick={() => setReworking(true)}><Undo2 className="mr-1 h-4 w-4" />Came back</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setReworking(true)}><Undo2 className="mr-1 h-4 w-4" />{TERM.rework}</Button>
             ))}
 
             {doc.state !== "VOID" && canVoid && (

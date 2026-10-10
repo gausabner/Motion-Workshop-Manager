@@ -7,6 +7,7 @@ import { getPayment, openSupplierInvoices } from "@/lib/purchasing/payments";
 import { getPaymentMethods } from "@/lib/payments/queries";
 import { PaymentEditor } from "@/components/purchasing/PaymentEditor";
 import { dateShort, money } from "@/lib/format";
+import { TERM } from "@/lib/copy/terms";
 
 export const metadata = { title: "Supplier payment | MOTION Workshop Manager" };
 
@@ -23,7 +24,7 @@ export default async function SupplierPaymentPage({ params }: { params: Promise<
     return (
         <div className="max-w-4xl space-y-4">
             <div>
-                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← Buying</Link>
+                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← {TERM.purchasing}</Link>
                 <h1 className="mt-1 text-xl font-bold text-slate-800">{payment.number ?? "Supplier payment"}</h1>
                 <p className="text-sm text-slate-500">
                     {STATE[payment.state]} · {dateShort(payment.postDate)} · {money(payment.amount, tenant.currency)}

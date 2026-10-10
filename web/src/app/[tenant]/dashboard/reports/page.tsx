@@ -6,8 +6,9 @@ import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 import { dashboardSummary } from "@/lib/dashboard/queries";
 import { money } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Reports | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle("Reports") };
 
 export default async function ReportsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -21,57 +22,57 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
     const reports = [
         {
             href: `${base}/margin`, icon: TrendingUp, title: "Profit",
-            blurb: "Sales less what the work cost, by parts and labour, by product, and every job ranked by what it made.",
+            blurb: "Sales less the cost of parts and labour, by product, with every job ranked by profit.",
             figure: summary ? `${money(summary.month.profit, tenant.currency)} this month` : null,
             show: showMoney,
         },
         {
-            href: `${base}/receivables`, icon: Receipt, title: "Who owes us",
-            blurb: "Customers with money outstanding, aged, with what is over 30 days.",
-            figure: summary ? `${money(summary.owedToUs, tenant.currency)} owed` : null,
+            href: `${base}/receivables`, icon: Receipt, title: TERM.debtors,
+            blurb: "Customers with money outstanding, aged, including amounts over 30 days.",
+            figure: summary ? `${money(summary.owedToUs, tenant.currency)} outstanding` : null,
             show: true,
         },
         {
-            href: `${base}/payables`, icon: Wallet, title: "What we owe",
-            blurb: "Supplier invoices still to pay, aged by supplier.",
-            figure: summary ? `${money(summary.owedBySupplier, tenant.currency)} owed` : null,
+            href: `${base}/payables`, icon: Wallet, title: TERM.creditors,
+            blurb: "Supplier invoices still to be paid, aged by supplier.",
+            figure: summary ? `${money(summary.owedBySupplier, tenant.currency)} outstanding` : null,
             show: showMoney && can(membership, "products:write") && includes(plan, "purchasing"),
         },
         {
-            href: `${base}/audit`, icon: ShieldCheck, title: "For the auditor",
-            blurb: "The six a council asks for: the number sequence and its gaps, the sales register, tax, the cash book, debtors, and who did what.",
+            href: `${base}/audit`, icon: ShieldCheck, title: TERM.auditReports,
+            blurb: "The six reports a council audit requires: the number sequence and any gaps, the sales register, VAT, the cash book, debtors and the activity log.",
             figure: null,
             show: showMoney && includes(plan, "auditPack"),
         },
         {
-            href: `${base}/business`, icon: LineChart, title: "For the owner",
-            blurb: "What made money, what is standing still, and everyone on file — as files to sort: profit by job, item sales, work in progress, quotes, stock, creditors, renewals.",
+            href: `${base}/business`, icon: LineChart, title: TERM.managementReports,
+            blurb: "Profit by job, item sales, work in progress, quote outcomes, stock, creditors and renewals, as files you can sort.",
             figure: null,
             show: includes(plan, "ownerReports"),
         },
         {
-            href: `${base}/accounting`, icon: FileSpreadsheet, title: "For the bookkeeper",
-            blurb: "Sales, receipts, purchases and payments for a month, as CSV — plain, Xero or a journal.",
+            href: `${base}/accounting`, icon: FileSpreadsheet, title: TERM.accountingExport,
+            blurb: "Sales, receipts, purchases and payments for a month, as CSV: plain, Xero or a journal.",
             figure: null,
             show: showMoney,
         },
         {
-            href: `${base}/handoff`, icon: Share2, title: "Hand-off",
-            blurb: "The nightly journal to the accounting system: whether last night went out, whether anything took it, and everything as one archive.",
+            href: `${base}/handoff`, icon: Share2, title: TERM.accountingIntegration,
+            blurb: "The nightly journal to your accounting system: whether last night's was sent and collected, and a full archive of your data.",
             figure: null,
             show: can(membership, "settings:manage") && includes(plan, "handoff"),
         },
         {
             // Every plan's promise: your data is yours, every table, any time.
-            // Its own card, so it does not depend on the hand-off it lives beside.
-            href: `${base}/handoff/bundle`, icon: Archive, title: "Everything, as one file",
-            blurb: "Every table as a CSV in one archive, with a README saying how they join. Yours to take, whenever you like.",
+            // Its own card, so it does not depend on the integration it lives beside.
+            href: `${base}/handoff/bundle`, icon: Archive, title: "Full data export",
+            blurb: "Every table as CSV in one archive, with a README explaining how they relate. Available at any time.",
             figure: null,
             show: can(membership, "settings:manage") && !includes(plan, "handoff"),
         },
         {
             href: `${base}/labour`, icon: Timer, title: "Mechanic time",
-            blurb: "Hours clocked against hours charged, per mechanic and per job.",
+            blurb: "Hours clocked against hours charged, by mechanic and by job.",
             figure: null,
             show: true,
         },
@@ -81,7 +82,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
         <div className="mx-auto w-full max-w-4xl space-y-4">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-                <p className="text-sm text-slate-500">Every figure is worked out from the documents themselves when you open it — nothing is stored and left to go stale.</p>
+                <p className="text-sm text-slate-500">Every figure is calculated from the documents when you open the report; nothing is stored.</p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2">
                 {reports.map((report) => (

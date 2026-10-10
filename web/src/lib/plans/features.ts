@@ -1,3 +1,5 @@
+import { TERM } from "@/lib/copy/terms";
+
 /**
  * What each plan buys, as features the app can check.
  *
@@ -28,7 +30,7 @@ export const FEATURES: Record<Feature, { name: string; plan: PlanId; what: strin
     purchasing: {
         name: "Purchasing and suppliers",
         plan: "full",
-        what: "Suppliers, purchase orders, supplier invoices and what you owe them.",
+        what: "Suppliers, purchase orders, supplier invoices and creditors.",
     },
     inspections: { name: "Inspections", plan: "full", what: "Vehicle inspections the customer approves on their phone." },
     reminders: {
@@ -38,16 +40,16 @@ export const FEATURES: Record<Feature, { name: string; plan: PlanId; what: strin
     },
     loanCars: { name: "Courtesy cars", plan: "full", what: "Loan cars booked, handed over and returned against a job." },
     ownerReports: {
-        name: "The owner reports",
+        name: TERM.managementReports,
         plan: "full",
         what: "Profit by job, item sales, work in progress, quote outcomes, stock, creditors and renewals.",
     },
     auditPack: {
-        name: "The council audit pack",
+        name: TERM.auditReports,
         plan: "council",
-        what: "The six exports a council audit asks for, including the number-sequence report.",
+        what: "The six reports a council audit requires, including the number-sequence report.",
     },
-    handoff: { name: "Accounting hand-off", plan: "council", what: "The nightly journal into your accounting system." },
+    handoff: { name: TERM.accountingIntegration, plan: "council", what: "A nightly journal to your accounting system." },
     api: { name: "The public API", plan: "council", what: "API keys, for connecting other systems to MOTION." },
 };
 

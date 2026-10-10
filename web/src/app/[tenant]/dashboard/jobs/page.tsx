@@ -3,8 +3,9 @@ import { NewDocumentButtons } from "@/components/documents/NewDocumentButtons";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getJobBoard } from "@/lib/documents/queries";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Jobs | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.openJobCards) };
 
 export default async function JobsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -14,8 +15,8 @@ export default async function JobsPage({ params }: { params: Promise<{ tenant: s
         <div className="flex flex-col h-full overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Jobs on the floor</h1>
-                    <p className="text-sm text-slate-500">{jobs.length} open job card{jobs.length === 1 ? "" : "s"}. Move a card with the selector at its foot.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">{TERM.openJobCards}</h1>
+                    <p className="text-sm text-slate-500">{jobs.length} open job card{jobs.length === 1 ? "" : "s"}. Change a job&apos;s status with the selector on its card.</p>
                 </div>
                 <NewDocumentButtons tenant={slug} />
             </div>

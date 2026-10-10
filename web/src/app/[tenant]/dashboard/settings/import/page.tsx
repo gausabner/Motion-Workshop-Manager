@@ -17,7 +17,7 @@ export default async function ImportPage({ params }: { params: Promise<{ tenant:
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Bring your records across</h3>
+                <h3 className="text-lg font-medium">Import your records</h3>
                 <p className="text-sm text-slate-500">
                     Export a CSV from whatever you use now and drop it here. MOTION recognises the column names the usual systems export — including Workshop Software&rsquo;s —
                     and shows you exactly what it understood before anything is saved.

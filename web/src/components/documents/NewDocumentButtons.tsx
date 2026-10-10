@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { createDocument } from "@/lib/documents/actions";
 
 const KINDS = [
-    { type: "BOOKING", label: "Booking", icon: CalendarPlus },
-    { type: "QUOTE", label: "Quote", icon: FilePlus2 },
-    { type: "JOB_CARD", label: "Job card", icon: Wrench },
-    { type: "INVOICE", label: "Invoice", icon: Receipt },
+    { type: "BOOKING", label: "New booking", icon: CalendarPlus },
+    { type: "QUOTE", label: "New quote", icon: FilePlus2 },
+    { type: "JOB_CARD", label: "New job card", icon: Wrench },
+    { type: "INVOICE", label: "New invoice", icon: Receipt },
 ] as const;
 
 /**

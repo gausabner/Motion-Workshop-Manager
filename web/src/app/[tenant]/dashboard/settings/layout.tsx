@@ -2,15 +2,16 @@ import Link from "next/link";
 import { requireTenant } from "@/lib/auth/session";
 import { includes, type Feature } from "@/lib/plans/features";
 import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash } from "lucide-react";
+import { TERM } from "@/lib/copy/terms";
 
 const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; feature?: Feature }[] = [
     {
-        title: "Company Settings",
+        title: "Company profile",
         href: "company",
         icon: <Building2 className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Tax & Financials",
+        title: "Tax and terms",
         href: "tax",
         icon: <FileText className="w-4 h-4 mr-2" />,
     },
@@ -25,18 +26,18 @@ const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; fea
         icon: <Calendar className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Messaging & Reminders",
+        title: "Messages and templates",
         href: "messaging",
         icon: <MessageSquare className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Pricing",
+        title: "Price matrices",
         href: "pricing",
         feature: "stock" as Feature,
         icon: <Tags className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Inspections",
+        title: "Inspection templates",
         href: "inspections",
         feature: "inspections" as Feature,
         icon: <ClipboardCheck className="w-4 h-4 mr-2" />,
@@ -47,7 +48,7 @@ const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; fea
         icon: <Globe className="w-4 h-4 mr-2" />,
     },
     {
-        title: "Accounting hand-off",
+        title: TERM.accountingIntegration,
         href: "handoff",
         feature: "handoff" as Feature,
         icon: <Share2 className="w-4 h-4 mr-2" />,

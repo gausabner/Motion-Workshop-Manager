@@ -3,7 +3,7 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 
-export const metadata = { title: "Tax settings | MOTION Workshop Manager" };
+export const metadata = { title: "Tax and terms | MOTION Workshop Manager" };
 
 export default async function TaxSettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -14,7 +14,7 @@ export default async function TaxSettingsPage({ params }: { params: Promise<{ te
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Tax &amp; terms</h3>
+                <h3 className="text-lg font-medium">Tax and terms</h3>
                 <p className="text-sm text-slate-500">What gets stamped onto the next document you raise.</p>
             </div>
             <div className="border-t border-slate-200" />

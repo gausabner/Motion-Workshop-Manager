@@ -22,8 +22,13 @@ export function workshopValues(tenant: Tenant): MergeValues {
     };
 }
 
+/**
+ * What a document is called where the customer reads it: printed at the top of
+ * the PDF and named in the message that sends it. A quote is a "Quotation" on
+ * paper, the formal word, while staff screens keep the shorter "Quote".
+ */
 export const DOCUMENT_TITLES: Record<DocumentType, string> = {
-    QUOTE: "Quote",
+    QUOTE: "Quotation",
     BOOKING: "Booking",
     JOB_CARD: "Job card",
     INVOICE: "Tax invoice",

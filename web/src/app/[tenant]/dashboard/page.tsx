@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Receipt, TrendingUp, Truck } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
@@ -8,6 +9,7 @@ import { setupSteps } from "@/lib/setup/checklist";
 import { setupFacts } from "@/lib/setup/queries";
 import { dashboardSummary } from "@/lib/dashboard/queries";
 import { dateShort, money } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
 /**
  * The first screen of the day, and it leads with work rather than takings.
@@ -25,6 +27,12 @@ import { dateShort, money } from "@/lib/format";
  * it came from, so a number that looks wrong can be chased rather than
  * distrusted.
  */
+export async function generateMetadata({ params }: { params: Promise<{ tenant: string }> }): Promise<Metadata> {
+    const { tenant: slug } = await params;
+    const { tenant } = await requireTenant(slug);
+    return { title: tabTitle("Dashboard", tenant.name) };
+}
+
 export default async function DashboardPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { tenant, db, membership, plan } = await requireTenant(slug);
@@ -40,11 +48,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
     const money_ = (value: number) => money(value, currency);
     const headline = showMoney
         ? [
-            { label: "Sold today", value: money_(summary.today.sales), sub: summary.today.profit !== 0 ? `${money_(summary.today.profit)} profit` : "Nothing yet today", href: `${base}/reports/margin` },
-            { label: `This month, from ${dateShort(summary.month.from)}`, value: money_(summary.month.sales), sub: `${money_(summary.month.profit)} profit${summary.month.percent === null ? "" : ` · ${summary.month.percent}%`}`, href: `${base}/reports/margin` },
-            { label: "Owed to us", value: money_(summary.owedToUs), sub: summary.overdue > 0 ? `${money_(summary.overdue)} over 30 days` : "Nothing overdue", href: `${base}/reports/receivables`, warn: summary.overdue > 0 },
+            { label: "Sales today", value: money_(summary.today.sales), sub: summary.today.profit !== 0 ? `${money_(summary.today.profit)} profit` : "No sales yet today", href: `${base}/reports/margin` },
+            { label: `Sales this month, from ${dateShort(summary.month.from)}`, value: money_(summary.month.sales), sub: `${money_(summary.month.profit)} profit${summary.month.percent === null ? "" : ` · ${summary.month.percent}%`}`, href: `${base}/reports/margin` },
+            { label: TERM.debtors, value: money_(summary.owedToUs), sub: summary.overdue > 0 ? `${money_(summary.overdue)} over 30 days` : "Nothing overdue", href: `${base}/reports/receivables`, warn: summary.overdue > 0 },
             ...(includes(plan, "purchasing")
-                ? [{ label: "We owe suppliers", value: money_(summary.owedBySupplier), sub: summary.owedBySupplier > 0 ? "See what we owe" : "Nothing outstanding", href: `${base}/reports/payables` }]
+                ? [{ label: TERM.creditors, value: money_(summary.owedBySupplier), sub: summary.owedBySupplier > 0 ? "Supplier invoices to pay" : "Nothing outstanding", href: `${base}/reports/payables` }]
                 : []),
         ]
         : [];
@@ -71,7 +79,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
         queue.push({
             key: "overdue",
             lead: money_(summary.overdue),
-            text: "owed to us for more than 30 days",
+            text: "owed by customers for more than 30 days",
             href: `${base}/reports/receivables`,
             tone: "overdue",
         });
@@ -87,7 +95,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
         queue.push({
             key: "jobs",
             lead: String(summary.openJobs),
-            text: plural(summary.openJobs, "job card on the floor", "job cards on the floor"),
+            text: plural(summary.openJobs, "open job card", "open job cards"),
             href: `${base}/jobs`,
             tone: "plain",
         });
@@ -116,7 +124,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">{tenant.name}</h1>
                 <p className="text-sm text-slate-500">
-                    {showMoney ? "What is waiting, and how the month is going." : "What is waiting to be done."}
+                    {showMoney ? "Today's work and this month's figures." : "Today's work."}
                 </p>
             </div>
 
@@ -124,11 +132,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
 
             <section aria-labelledby="waiting">
                 <h2 id="waiting" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    Waiting for someone
+                    Needs attention
                 </h2>
                 {queue.length === 0 ? (
                     <p className="rounded-sm border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                        Nothing waiting. The floor is clear.
+                        Nothing needs attention.
                     </p>
                 ) : (
                     <ul className="divide-y divide-slate-100 overflow-hidden rounded-sm border border-slate-200 bg-white">
@@ -148,9 +156,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
             </section>
 
             {headline.length > 0 && (
-                <section aria-labelledby="takings">
-                    <h2 id="takings" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        Takings
+                <section aria-labelledby="figures">
+                    <h2 id="figures" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        Sales and balances
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {headline.map((tile) => (
@@ -167,9 +175,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
             {showMoney && (
                 <div className="flex flex-wrap gap-3 text-sm">
                     <Link href={`${base}/reports/margin`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><TrendingUp className="h-4 w-4 text-slate-400" />Profit</Link>
-                    <Link href={`${base}/reports/receivables`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Receipt className="h-4 w-4 text-slate-400" />Who owes us</Link>
+                    <Link href={`${base}/reports/receivables`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Receipt className="h-4 w-4 text-slate-400" />{TERM.debtors}</Link>
                     {includes(plan, "purchasing") && (
-                        <Link href={`${base}/purchasing`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Truck className="h-4 w-4 text-slate-400" />Buying</Link>
+                        <Link href={`${base}/purchasing`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"><Truck className="h-4 w-4 text-slate-400" />{TERM.purchasing}</Link>
                     )}
                     <Link href={`${base}/reports`} className="inline-flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50">All reports</Link>
                 </div>

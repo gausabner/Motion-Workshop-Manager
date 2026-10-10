@@ -2,8 +2,9 @@ import type { DocumentType } from "@prisma/client";
 import { TransactionCentre, type TabKey } from "@/components/documents/TransactionCentre";
 import { requireTenant } from "@/lib/auth/session";
 import { listDocuments, type DocumentListParams } from "@/lib/documents/queries";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Transaction Centre | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.transactions) };
 
 const TAB_FILTERS: Record<TabKey, Partial<DocumentListParams>> = {
     all: {},

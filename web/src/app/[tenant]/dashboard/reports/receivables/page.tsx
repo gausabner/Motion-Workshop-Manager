@@ -10,8 +10,9 @@ import { AGEING_BUCKETS, AGEING_LABELS } from "@/lib/payments/allocation";
 import { businessToday } from "@/lib/tenant/today";
 import { dateShort, money, whatsappLink } from "@/lib/format";
 import { DownloadPair } from "@/components/exports/DownloadPair";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Who owes us | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.debtors) };
 
 export default async function ReceivablesPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -29,7 +30,7 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                 <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
                     <div className="flex items-center gap-3">
                         <Wallet className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Who owes us</CardTitle>
+                        <CardTitle className="text-lg text-slate-800 font-bold">{TERM.debtors}</CardTitle>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-600">As at {dateShort(asAt)}</span>

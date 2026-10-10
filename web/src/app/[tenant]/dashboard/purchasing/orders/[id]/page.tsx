@@ -8,6 +8,7 @@ import { getOrder, purchasingOptions } from "@/lib/purchasing/queries";
 import { RECEIPT_LABELS } from "@/lib/purchasing/rules";
 import { OrderEditor } from "@/components/purchasing/OrderEditor";
 import { dateShort } from "@/lib/format";
+import { TERM } from "@/lib/copy/terms";
 
 export const metadata = { title: "Purchase order | MOTION Workshop Manager" };
 
@@ -24,7 +25,7 @@ export default async function OrderPage({ params }: { params: Promise<{ tenant: 
     return (
         <div className="max-w-5xl space-y-4">
             <div>
-                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← Buying</Link>
+                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← {TERM.purchasing}</Link>
                 <h1 className="mt-1 text-xl font-bold text-slate-800">Order {order.number}</h1>
                 <p className="text-sm text-slate-500">
                     {STATE[order.state]} · {order.supplier.companyName} · raised {dateShort(order.orderDate)}

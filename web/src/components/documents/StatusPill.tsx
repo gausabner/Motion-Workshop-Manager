@@ -1,4 +1,4 @@
-import type { DocumentState, JobStatus } from "@prisma/client";
+import type { DocumentState, DocumentType, JobStatus } from "@prisma/client";
 import { JOB_STATUS_LABELS, JOB_STATUS_STYLES } from "@/lib/documents/types";
 
 export function JobStatusPill({ status, className = "" }: { status: JobStatus; className?: string }) {
@@ -16,9 +16,15 @@ const STATE_STYLES: Record<DocumentState, string> = {
     VOID: "bg-red-50 text-red-700 border-red-300",
 };
 
-const STATE_LABELS: Record<DocumentState, string> = { DRAFT: "Draft", PROCESSED: "Processed", CLOSED: "Closed", VOID: "Void" };
+const STATE_LABELS: Record<DocumentState, string> = { DRAFT: "Draft", PROCESSED: "Processed", CLOSED: "Paid", VOID: "Void" };
 
-export function StatePill({ state }: { state: DocumentState }) {
-    const label = STATE_LABELS[state];
+/**
+ * CLOSED is reached only by a document that settles — an invoice, a cash sale
+ * or a credit note — once nothing is outstanding on it. For the first two that
+ * is "Paid"; a credit note is not paid, it is used up, so it reads "Settled".
+ * "Closed" stays the internal name.
+ */
+export function StatePill({ state, type }: { state: DocumentState; type?: DocumentType }) {
+    const label = state === "CLOSED" && type === "CREDIT" ? "Settled" : STATE_LABELS[state];
     return <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${STATE_STYLES[state]}`}>{label}</span>;
 }

@@ -58,9 +58,9 @@ export function inWarranty(warrantyEnds: Date | null, asAt: Date): boolean {
 }
 
 export const SERIAL_STATE_LABELS: Record<SerialState, string> = {
-    IN_STOCK: "On the shelf",
+    IN_STOCK: "In stock",
     SOLD: "Sold",
-    RETURNED: "Came back",
+    RETURNED: "Returned",
     WRITTEN_OFF: "Written off",
 };
 

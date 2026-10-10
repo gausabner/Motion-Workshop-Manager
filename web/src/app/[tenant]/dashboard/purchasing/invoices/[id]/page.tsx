@@ -6,6 +6,7 @@ import { AccessDenied } from "@/components/layout/AccessDenied";
 import { getSupplierInvoice, purchasingOptions } from "@/lib/purchasing/queries";
 import { ReceiptEditor } from "@/components/purchasing/ReceiptEditor";
 import { dateShort } from "@/lib/format";
+import { TERM } from "@/lib/copy/terms";
 
 export const metadata = { title: "Supplier invoice | MOTION Workshop Manager" };
 
@@ -22,7 +23,7 @@ export default async function SupplierInvoicePage({ params }: { params: Promise<
     return (
         <div className="max-w-5xl space-y-4">
             <div>
-                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← Buying</Link>
+                <Link href={`/${slug}/dashboard/purchasing`} className="text-xs font-medium text-teal-700 hover:underline">← {TERM.purchasing}</Link>
                 <h1 className="mt-1 text-xl font-bold text-slate-800">{invoice.supplierNumber || "Supplier invoice"}</h1>
                 <p className="text-sm text-slate-500">
                     {STATE[invoice.state]} · {invoice.supplier.companyName} · {dateShort(invoice.postDate)}

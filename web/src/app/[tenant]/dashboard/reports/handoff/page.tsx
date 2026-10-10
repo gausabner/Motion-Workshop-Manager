@@ -10,8 +10,9 @@ import { SHAPE_LABELS, SHAPE_NOTES, shapeHeaders, type LedgerShapeName } from "@
 import { resolveFolder } from "@/lib/handoff/destination";
 import { businessToday } from "@/lib/tenant/today";
 import { dateShort } from "@/lib/format";
+import { TERM, tabTitle } from "@/lib/copy/terms";
 
-export const metadata = { title: "Hand-off | MOTION Workshop Manager" };
+export const metadata = { title: tabTitle(TERM.accountingIntegration) };
 
 /**
  * Did last night's file go out, and did anybody take it?
@@ -54,8 +55,8 @@ export default async function HandoffPage({ params, searchParams }: { params: Pr
         <div className="mx-auto w-full max-w-4xl space-y-4">
             <div>
                 <Link href={`/${slug}/dashboard/reports`} className="text-xs font-medium text-teal-700 hover:underline">← Reports</Link>
-                <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><Share2 className="h-6 w-6 text-slate-400" />Hand-off</h1>
-                <p className="text-sm text-slate-500">MOTION writes a file and the accounting system picks it up. Nothing listens on a port and nothing is exposed — which is also why this page exists, because a drop folder tells you nothing on its own.</p>
+                <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><Share2 className="h-6 w-6 text-slate-400" />{TERM.accountingIntegration}</h1>
+                <p className="text-sm text-slate-500">Each night MOTION writes a journal file, and your accounting system collects it. Nothing listens for incoming connections. This page shows whether each file was written and collected.</p>
             </div>
 
             {sp.sent && (

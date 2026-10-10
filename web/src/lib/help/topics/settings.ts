@@ -16,7 +16,7 @@ export const settingsTopics: Topic[] = [
                 ["See customer contact details", "Addresses and telephone numbers. Names are always visible — a mechanic needs to know whose car is on the lift"],
                 ["Take payments", "Receipts and refunds"],
                 ["Void documents", "Cancelling a processed document, and deleting a stray one"],
-                ["Change workshop settings", "Tax, company details, the hand-off, and the full data export"],
+                ["Change workshop settings", "Tax, company details, the accounting integration, and the full data export"],
             ] },
             { kind: "note", text: "Contact details are removed on the server for anybody without that permission, before the page is built — not hidden in the markup. They are not in the page for somebody to find in the developer tools, and they are stripped from the exports too, so a download is never the way around a permission." },
             { kind: "h", text: "Adding somebody" },

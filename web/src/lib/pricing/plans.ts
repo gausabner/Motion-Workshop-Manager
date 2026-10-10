@@ -100,7 +100,7 @@ export const PLANS: Plan[] = [
             "Courtesy cars",
             "Eleven management reports, including profit by job, item sales, work in progress and quote outcomes",
         ],
-        excludes: ["The council audit pack", "Accounting export", "Installation on your own server"],
+        excludes: ["Audit reports", "Accounting integration", "Installation on your own server"],
         cta: { label: "Register on Full workshop", href: "/register?plan=full" },
         featured: true,
     },

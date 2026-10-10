@@ -7,17 +7,18 @@ import { NewDocumentButtons } from "@/components/documents/NewDocumentButtons";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 import type { listDocuments } from "@/lib/documents/queries";
+import { TERM } from "@/lib/copy/terms";
 
 type Data = Awaited<ReturnType<typeof listDocuments>>;
 
 export const TABS = [
     { key: "all", label: "All" },
     { key: "bookings", label: "Bookings" },
-    { key: "jobs", label: "Jobs" },
+    { key: "jobs", label: "Job cards" },
     { key: "quotes", label: "Quotes" },
     { key: "invoices", label: "Invoices" },
     { key: "unpaid", label: "Unpaid" },
-    { key: "credits", label: "Credits" },
+    { key: "credits", label: "Credit notes" },
 ] as const;
 
 export type TabKey = (typeof TABS)[number]["key"];
@@ -40,7 +41,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                 <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex items-center gap-3">
                         <ListChecks className="w-5 h-5 shrink-0 text-slate-600" />
-                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">Transaction Centre</CardTitle>
+                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">{TERM.transactions}</CardTitle>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
                         <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
@@ -80,14 +81,14 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                     <TableHead className="text-slate-500 font-semibold">Vehicle</TableHead>
                                     <TableHead className="text-slate-500 font-semibold">Status</TableHead>
                                     <TableHead className="text-slate-500 font-semibold">Comment</TableHead>
-                                    <TableHead className="text-slate-500 font-semibold text-center">Told</TableHead>
+                                    <TableHead className="text-slate-500 font-semibold text-center">Sent</TableHead>
                                     <TableHead className="text-slate-500 font-semibold text-right pr-4">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {data.rows.length === 0 && (
                                     <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-slate-500">
-                                        {q ? <>Nothing matches “{q}”.</> : "Nothing here yet. Start a booking, quote, job card or invoice above."}
+                                        {q ? <>No documents match “{q}”.</> : "No documents yet. Create a booking, quote, job card or invoice above."}
                                     </TableCell></TableRow>
                                 )}
                                 {data.rows.map((d, i) => (
@@ -99,7 +100,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                             </Link>
                                         </TableCell>
                                         <TableCell data-label="Type" className="py-2 text-slate-600 whitespace-nowrap">
-                                            {DOCUMENT_TYPE_LABELS[d.type]} <StatePill state={d.state} />
+                                            {DOCUMENT_TYPE_LABELS[d.type]} <StatePill state={d.state} type={d.type} />
                                         </TableCell>
                                         <TableCell data-label="Customer" className="py-2 text-slate-600">
                                             {d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-400">Cash sale</span>}
@@ -110,7 +111,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                         </TableCell>
                                         <TableCell data-label="Status" className="py-2">{d.jobStatus ? <JobStatusPill status={d.jobStatus} /> : ""}</TableCell>
                                         <TableCell data-mobile="hide" className="py-2 text-slate-500 text-xs max-w-[180px] truncate" title={d.statusComment ?? ""}>{d.statusComment}</TableCell>
-                                        <TableCell data-mobile="hide" className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-600 inline" aria-label={`Contacted ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
+                                        <TableCell data-mobile="hide" className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-600 inline" aria-label={`Sent ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
                                         <TableCell data-label="Total" className="py-2 pr-4 text-right tabular-nums font-medium text-slate-700">
                                             {money(d.total)}
                                             {d.amountPaid > 0 && d.amountPaid < d.total && <span className="block text-[10px] text-amber-700">{money(d.total - d.amountPaid)} due</span>}

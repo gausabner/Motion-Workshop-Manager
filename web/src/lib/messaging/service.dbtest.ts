@@ -131,7 +131,7 @@ test("sending hands off — a link is made, a message is logged, and nothing is 
     assert.match(message.body, /https:\/\/tiptop\.example\/share\//, "the body stored is the body a person would paste");
     assert.doesNotMatch(message.body, /\{\{/, "every field resolved");
 
-    // The document is now marked as told, which is what the "Told" column reads.
+    // The document is now marked as told, which is what the "Sent" column reads.
     const document = await prisma.document.findUniqueOrThrow({ where: { id: documentId }, select: { contactedAt: true } });
     assert.ok(document.contactedAt && document.contactedAt.getTime() >= before);
 });

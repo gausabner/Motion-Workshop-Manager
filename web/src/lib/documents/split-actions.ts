@@ -139,7 +139,7 @@ export async function reworkDocumentAction(slug: string, id: string, reason: str
                 createdById: membership.id, reworkOfId: doc.id, reworkReason: reason.trim().slice(0, 500),
                 // A comeback is not a sale. It stays out of the figures, which is what makes rework worth measuring.
                 isInternal: true,
-                jobCardNotes: `Came back on ${doc.jobNumber ?? doc.number ?? ""}: ${reason.trim()}`,
+                jobCardNotes: `Rework of ${doc.jobNumber ?? doc.number ?? ""}: ${reason.trim()}`,
             },
             select: { id: true },
         });

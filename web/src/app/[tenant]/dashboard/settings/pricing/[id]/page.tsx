@@ -18,7 +18,7 @@ export default async function MatrixPage({ params }: { params: Promise<{ tenant:
     return (
         <div className="space-y-4">
             <div>
-                <Link href={`/${slug}/dashboard/settings/pricing`} className="text-xs font-medium text-teal-700 hover:underline">← Pricing</Link>
+                <Link href={`/${slug}/dashboard/settings/pricing`} className="text-xs font-medium text-teal-700 hover:underline">← Price matrices</Link>
                 <h3 className="mt-1 text-lg font-medium">{matrix.name}</h3>
                 <p className="text-sm text-slate-500">Each band covers a range of costs. Leave the last band&rsquo;s &ldquo;up to&rdquo; empty so nothing expensive falls outside it.</p>
             </div>

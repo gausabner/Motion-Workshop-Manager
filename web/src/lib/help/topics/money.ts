@@ -42,8 +42,8 @@ export const moneyTopics: Topic[] = [
         slug: "what-customers-owe",
         group: "money",
         title: "Chasing what is owed",
-        question: "Who owes us money, and how overdue is it?",
-        answer: "Reports → Who owes us ages every unpaid invoice from its due date into current, 30, 60 and 90+.",
+        question: "Which customers owe us money, and how overdue is it?",
+        answer: "Reports → Debtors ages every unpaid invoice from its due date into current, 30, 60 and 90+.",
         screens: ["/dashboard/reports/receivables", "/dashboard/reports"],
         blocks: [
             { kind: "p", text: "Ageing runs from the due date, not the invoice date. An invoice on 30-day terms raised three weeks ago is not overdue, and a report that called it overdue would have you ringing a customer who has done nothing wrong." },
