@@ -77,10 +77,9 @@ export default async function ActivatePage() {
                             // looking for the account number elsewhere is how
                             // people pay the wrong account.
                             <div>
-                                <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Nearly there</h1>
+                                <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Payment details are not yet available</h1>
                                 <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-                                    Your workshop is registered, but we cannot show you payment details right now. Please contact us
-                                    and we will send them to you directly.
+                                    Your workshop is registered. Contact us and we will send the payment details to you directly.
                                 </p>
                                 {support().email && (
                                     <a

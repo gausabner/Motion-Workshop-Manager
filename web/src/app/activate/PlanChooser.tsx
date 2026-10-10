@@ -37,8 +37,8 @@ export function PlanChooser({ plans, vatRate }: { plans: ChoosablePlan[]; vatRat
         <div>
             <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">Choose a plan</h1>
             <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-                Your workshop is created. Pick the tier that fits and we will give you a payment reference — you are in as soon as
-                the payment clears with us.
+                Your workshop has been created. Choose a plan to receive a payment reference. The workshop is activated once the
+                payment is received.
             </p>
 
             {/* The same shape the sign-in and register forms use for a failed

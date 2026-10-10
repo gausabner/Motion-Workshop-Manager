@@ -18,7 +18,7 @@ test("a signed-out visitor gets the front door, not a bare login form", async ({
 
 test("the price is on the page, and it is the floor we set", async ({ page }) => {
     await page.goto("/pricing");
-    await expect(page.getByRole("heading", { name: "What it costs" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pricing", level: 1 })).toBeVisible();
     // The entry tier is the number the whole pricing decision rests on.
     await expect(page.getByText("1,200").first()).toBeVisible();
     await expect(page.getByText("2,400").first()).toBeVisible();

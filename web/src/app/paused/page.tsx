@@ -39,10 +39,10 @@ export default async function PausedPage() {
     const reach = support().email;
     const intro = (
         <>
-            Access to <span className="font-medium text-slate-900">{paused.workshopName}</span> is paused because we have not
-            received your payment. <span className="font-medium text-slate-900">Nothing has been deleted</span> — your customers,
-            vehicles, jobs, quotes and invoices are kept exactly as they were.
-            {sub && bank ? " Pay the amount below and we will switch it back on and email you." : ""}
+            Access to <span className="font-medium text-slate-900">{paused.workshopName}</span> is paused because your
+            subscription payment has not been received. <span className="font-medium text-slate-900">Nothing has been deleted</span>:
+            your customers, vehicles, jobs, quotes and invoices are kept as they were.
+            {sub && bank ? " Pay the amount below and we will restore access and confirm by email." : ""}
         </>
     );
 
@@ -56,7 +56,7 @@ export default async function PausedPage() {
                 <div className="rounded-2xl border border-white/10 bg-white p-8 shadow-2xl shadow-teal-950/50">
                     {sub && bank ? (
                         <PaymentDetails
-                            heading="Access paused — your data is safe"
+                            heading="Access is paused, and your records are safe"
                             intro={intro}
                             workshopName={paused.workshopName}
                             planName={sub.planName}
@@ -74,10 +74,11 @@ export default async function PausedPage() {
                             <span className="grid h-11 w-11 place-items-center rounded-full bg-teal-50 text-teal-700">
                                 <PauseCircle className="h-5 w-5" aria-hidden />
                             </span>
-                            <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900">Access paused — your data is safe</h1>
+                            <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900">Access is paused, and your records are safe</h1>
                             <p className="mt-2 text-[14px] leading-relaxed text-slate-600">{intro}</p>
                             <p className="mt-4 text-[14px] leading-relaxed text-slate-600">
-                                Contact us for the amount and where to pay, and we will restore access as soon as it arrives.
+                                Contact us for the amount due and the payment details. We will restore access as soon as the payment is
+                                received.
                             </p>
                             {reach && (
                                 <a

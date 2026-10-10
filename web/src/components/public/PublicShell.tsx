@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { MotionLockup, MotionLogo } from "@/components/brand/MotionLogo";
 import { HeroField } from "@/components/public/HeroField";
 import { edition, support } from "@/lib/edition";
+import { displayPhone } from "@/lib/messaging/phone";
 
 /**
  * The frame every public page except the landing sits in.
@@ -102,12 +103,12 @@ export function PublicShell({
                         <div>
                             <MotionLockup className="w-48 text-slate-900" />
                             <p className="mt-4 max-w-sm text-[13px] leading-relaxed text-slate-500">
-                                Workshop management built for Namibia: the licence disc, the roadworthy, VAT at 15 %, and WhatsApp as the way
+                                Workshop management built for Namibia: the licence disc, the roadworthy, VAT at 15%, and WhatsApp as the way
                                 you reach a customer.
                             </p>
                         </div>
                         <div className="text-[13px]">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Reach a person</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Contact us</p>
                             <ul className="mt-2.5 space-y-1.5">
                                 {reach.whatsapp && (
                                     <li>
@@ -115,7 +116,7 @@ export function PublicShell({
                                             href={`https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`}
                                             className="text-teal-700 underline-offset-4 hover:underline"
                                         >
-                                            WhatsApp {reach.whatsapp}
+                                            WhatsApp {displayPhone(reach.whatsapp)}
                                         </a>
                                     </li>
                                 )}

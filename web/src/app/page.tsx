@@ -10,7 +10,7 @@ export function generateMetadata(): Metadata {
         ? {
             title: "MOTION Workshop Manager — run the whole job on one document",
             description:
-                "Workshop management built for Namibia. The quote becomes the job card becomes the invoice, without retyping. Licence discs, roadworthies, VAT at 15 %, WhatsApp. From N$1,200 a month.",
+                "Workshop management built for Namibia. Quotes, job cards, invoices and payments on a single document, entered once. From N$ 1,200.00 a month, excluding VAT.",
         }
         : {
             title: "MOTION Workshop Manager",
