@@ -12,16 +12,47 @@ import { Reveal } from "@/components/public/Reveal";
  * it never breaks between stages, which is the point being made, so the five
  * sections share one continuous path rather than each drawing its own.
  *
- * The copy is the product's own, unchanged. It was written for the landing
- * page and it is better than anything an illustration caption would be.
+ * Each stage is a heading that names the document at that point and one
+ * sentence of fact. There is no label above the heading: the numbered node on
+ * the line already gives the order, and the heading names the stage.
  */
 
 const STAGES = [
-    { n: "01", label: "Quote", line: "A price, before anybody has committed to anything.", Scene: QuoteScene, tint: true },
-    { n: "02", label: "The diary", line: "A day in the diary, on the same document.", Scene: DiaryScene, tint: false },
-    { n: "03", label: "Job card", line: "Mechanics clock on. Parts come off stock against it.", Scene: JobCardScene, tint: true },
-    { n: "04", label: "Invoice", line: "The same document, priced and sent by WhatsApp.", Scene: InvoiceScene, tint: false },
-    { n: "05", label: "Payment", line: "Paid, part-paid or owing — worked out, never typed.", Scene: PaymentScene, tint: true },
+    {
+        n: "01",
+        title: "Quote the work",
+        line: "Price the parts and labour before the customer commits, and send the quote by WhatsApp or email.",
+        Scene: QuoteScene,
+        tint: true,
+    },
+    {
+        n: "02",
+        title: "Book it into the diary",
+        line: "The accepted quote becomes the booking, so nothing is entered again.",
+        Scene: DiaryScene,
+        tint: false,
+    },
+    {
+        n: "03",
+        title: "Work from the job card",
+        line: "Mechanics record their time against the job, and parts are issued from stock to it.",
+        Scene: JobCardScene,
+        tint: true,
+    },
+    {
+        n: "04",
+        title: "Invoice the same document",
+        line: "The customer is billed for the work recorded, and the invoice is sent by WhatsApp or email.",
+        Scene: InvoiceScene,
+        tint: false,
+    },
+    {
+        n: "05",
+        title: "Record the payment",
+        line: "Payments are allocated to invoices, and the balance is calculated, never typed.",
+        Scene: PaymentScene,
+        tint: true,
+    },
 ] as const;
 
 /**
@@ -65,7 +96,7 @@ export function DocumentSpine() {
             <Ribbon variant="track" />
             <Ribbon variant="fill" className="spine-fill" />
 
-            {STAGES.map(({ n, label, line, Scene, tint }, i) => {
+            {STAGES.map(({ n, title, line, Scene, tint }, i) => {
                 const figureFirst = i % 2 === 0;
                 return (
                     <div key={n} data-stage className={`relative ${tint ? "bg-slate-100" : "bg-white"}`}>
@@ -99,13 +130,10 @@ export function DocumentSpine() {
                             <Reveal
                                 className={`flex flex-col gap-5 ${figureFirst ? "md:order-3 md:items-start" : "md:order-1 md:items-end md:text-right"}`}
                             >
-                                <span className="inline-flex items-center gap-2 self-start rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-900">
-                                    <i aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" />
-                                    <span className="tabular">{n}</span> {label}
-                                </span>
-                                <h2 className="max-w-[16ch] text-balance text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-900 sm:text-[40px]">
-                                    {line}
+                                <h2 className="max-w-[14ch] text-balance text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-900 sm:text-[40px]">
+                                    {title}
                                 </h2>
+                                <p className="max-w-[36ch] text-pretty text-[17px] leading-relaxed text-slate-500 sm:text-[19px]">{line}</p>
                             </Reveal>
                         </div>
                     </div>

@@ -53,7 +53,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                         <h1 className="text-[clamp(2.25rem,4vw,3rem)] font-semibold leading-[1.05] tracking-[-0.04em] text-slate-900">
                             Sign in
                         </h1>
-                        <p className="mt-2 text-[18px] text-slate-500">Your workshop, where you left it.</p>
+                        <p className="mt-2 text-[18px] text-slate-500">Use the email address you registered or were invited with.</p>
                     </div>
                     <LoginForm next={next} />
                 </main>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { MotionLockup } from "@/components/brand/MotionLogo";
 import { edition, support } from "@/lib/edition";
+import { displayPhone } from "@/lib/messaging/phone";
 
 // Re-exported so a page can take the whole frame from one import.
 export { SpineSection, Pill, PublicButton, PublicHero } from "@/components/public/spine";
@@ -131,7 +132,7 @@ export function PublicFoot({ cta }: { cta?: ReactNode }) {
                         <p className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-white/70">
                             {reach.whatsapp && (
                                 <a href={`https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`} className="hover:text-teal-400">
-                                    WhatsApp {reach.whatsapp}
+                                    WhatsApp {displayPhone(reach.whatsapp)}
                                 </a>
                             )}
                             {reach.email && (

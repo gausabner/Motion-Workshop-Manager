@@ -85,20 +85,20 @@ export function CloudLanding() {
 
     const proof = [
         {
-            title: "Nothing is typed twice",
-            text: "One document changes type as the work moves. What you quoted is what the mechanic works from, and what they did is what the customer is billed for.",
+            title: "Nothing is entered twice",
+            text: "One document changes type as the work progresses. The mechanic works from the quote, and the customer is billed for the work recorded on the job card.",
         },
         {
-            title: "The books can be proved",
-            text: "Every number issued is accounted for, every deletion keeps what it said, and every export records who took it.",
+            title: "Every document is accounted for",
+            text: "Document numbers run without gaps, a deleted document keeps a record of what it said, and every export records who took it.",
         },
         {
-            title: "It speaks the way you do",
-            text: "Invoices, quotes and approvals go out as a WhatsApp link. No app to install, no account to make, no password to forget.",
+            title: "Sent by WhatsApp or email",
+            text: "Quotes, invoices and approvals are sent as a link. Your customer needs no app, no account and no password.",
         },
         {
             title: "Your data is yours",
-            text: "Every table, as a spreadsheet, whenever you ask — with a file explaining how they join. No notice period, no request form.",
+            text: "Export every table as a spreadsheet at any time, with a file explaining how they relate. No notice period and no request form.",
         },
     ];
 
@@ -155,7 +155,7 @@ export function CloudLanding() {
 
                         <div className="motion-safe:[animation:motion-hero-in_720ms_cubic-bezier(0.23,1,0.32,1)_both]" style={{ animationDelay: "150ms" }}>
                             <p className="max-w-[34ch] text-[17px] leading-relaxed text-slate-500 sm:text-[19px]">
-                                From the call to the money — without anybody retyping it.
+                                Quotes, job cards, invoices and payments on a single document, entered once.
                             </p>
                         </div>
 
@@ -229,11 +229,8 @@ export function CloudLanding() {
                     argument with the abstraction taken off. */}
                 <section className="mx-auto max-w-6xl px-5 pb-20 pt-20">
                     <Reveal>
-                        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                            Monday morning, as you find it
-                        </p>
-                        <h2 className="mx-auto mt-3 max-w-2xl text-balance text-center text-[26px] font-semibold leading-tight tracking-[-0.025em] text-slate-900 sm:text-[32px]">
-                            You open one screen and already know what the week owes you.
+                        <h2 className="mx-auto max-w-2xl text-balance text-center text-[26px] font-semibold leading-tight tracking-[-0.025em] text-slate-900 sm:text-[32px]">
+                            One screen shows the work in progress, the money outstanding and what needs attention.
                         </h2>
                     </Reveal>
                     <Reveal delay={90} className="mt-10">
@@ -241,8 +238,8 @@ export function CloudLanding() {
                     </Reveal>
                     <Reveal delay={150}>
                         <p className="mx-auto mt-10 max-w-2xl text-center text-[14px] leading-relaxed text-slate-500">
-                            Most systems make you copy a quote into a job card and the job card into an invoice, and the three drift apart.
-                            This is the difference you feel on the first busy Friday.
+                            When a quote, a job card and an invoice are kept as three documents, they drift apart. MOTION keeps them as one,
+                            so what was quoted, done and billed always agree.
                         </p>
                     </Reveal>
                 </section>
@@ -262,10 +259,9 @@ export function CloudLanding() {
                     <Reveal>
                         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-teal-950 px-8 py-12 text-center">
                             <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: TEAL_GLOW }} />
-                            <h2 className="relative z-10 text-[26px] font-semibold tracking-tight text-white sm:text-[32px]">See it on your own jobs</h2>
+                            <h2 className="relative z-10 text-[26px] font-semibold tracking-tight text-white sm:text-[32px]">See MOTION with your own jobs</h2>
                             <p className="relative z-10 mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-teal-100/70">
-                                Half an hour, on a call or at your counter. Bring a job you ran last week and we will put it through MOTION
-                                in front of you.
+                                A 30-minute demonstration by call or at your workshop, using one of your recent jobs.
                             </p>
                             <div className="relative z-10 mt-7 flex flex-wrap items-center justify-center gap-3">
                                 <PillLink href="/support">
@@ -279,8 +275,6 @@ export function CloudLanding() {
                                     Register your workshop
                                 </Link>
                             </div>
-                            {/* No full stop after the number: a lone "." text node
-                                after the link made this page fail to hydrate. */}
                             {reach.whatsapp && (
                                 <p className="relative z-10 mt-5 text-[14px] text-teal-100/70">
                                     Or WhatsApp us on{" "}
@@ -290,6 +284,7 @@ export function CloudLanding() {
                                     >
                                         {displayPhone(reach.whatsapp)}
                                     </a>
+                                    .
                                 </p>
                             )}
                         </div>

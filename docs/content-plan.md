@@ -217,6 +217,11 @@ that find elements by their wording (six spec files today).
 | 5. Letters and documents | Transactional emails; default printed footers and message templates | One PR |
 | 6. Help | New articles, plan labels, terms aligned with the glossary | One PR |
 
+**Progress.** Phase 1 shipped on 9 October 2026 (PR #27). Phase 2 shipped on
+10 October: landing, pricing with a questions section, support reordered to
+lead with the ways to reach a person, sign-in, activation and paused, and
+eyebrow labels removed from the public pages.
+
 Repeated terms move into one small module (`lib/copy/terms.ts`) so a rename
 happens once. A translation framework is not proposed; MOTION is English-only.
 

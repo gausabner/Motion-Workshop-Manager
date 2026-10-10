@@ -3,14 +3,14 @@ import { IsoScene } from "@/components/public/iso/primitives";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { PricingScene, MigrationScene } from "@/components/public/iso/scenes";
-import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
-import { ALWAYS, CARE, PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
+import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, PublicButton } from "@/components/public/frame";
+import { ALWAYS, CARE, PLANS, QUESTIONS, VAT_RATE, withVat } from "@/lib/pricing/plans";
 import { money } from "@/lib/format";
 
 export const metadata = {
     title: "Pricing | MOTION Workshop Manager",
     description:
-        "What MOTION costs: from N$ 1,200.00 a month, excluding VAT, for a two-bay workshop, with councils and multi-site quoted per site.",
+        "MOTION pricing: from N$ 1,200.00 a month, excluding VAT, with unlimited staff. Councils and multi-site operators are quoted per site.",
 };
 
 /**
@@ -33,9 +33,8 @@ export default function PricingPage() {
         <PublicPage>
             <PublicHero
                 bar={<PublicBar current="/pricing" />}
-                pill={<Pill>Pricing</Pill>}
-                title="What it costs"
-                sub="Priced for this market rather than converted from somewhere else. Every tier includes every member of staff, and your data leaves with you whenever you ask for it."
+                title="Pricing"
+                sub="Monthly subscriptions in Namibian dollars. Every plan includes all your staff, and you can export your data at any time."
                 cta={
                     // The paid path beside the assisted one. Registering works end
                     // to end — plan, reference, payment, activation — and for a
@@ -61,7 +60,7 @@ export default function PricingPage() {
             <main>
                 <SpineSection id="tiers" bend="left" labelledBy="h-tiers">
                     <h2 id="h-tiers" className="sr-only">
-                        Tiers
+                        Plans
                     </h2>
                     <Tiers />
                 </SpineSection>
@@ -71,7 +70,7 @@ export default function PricingPage() {
                         id="h-always"
                         className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900"
                     >
-                        Whichever tier you are on
+                        Included in every plan
                     </h2>
                     <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                         {ALWAYS.map((line, i) => {
@@ -110,9 +109,8 @@ export default function PricingPage() {
                             </p>
                             <p className="max-w-[52ch] text-[1.0625rem] text-slate-500">{CARE.note}</p>
                             <p className="mt-2 max-w-[52ch] rounded-2xl border border-slate-200 px-5 py-4 text-[0.875rem] text-slate-500">
-                                Prices exclude VAT and are per workshop, not per user. A workshop with two branches that keep separate
-                                books is two subscriptions, because in MOTION they are two separate sets of books that cannot see each
-                                other — which is the point.
+                                Prices exclude VAT and are per workshop, not per user. Branches that keep separate books need separate
+                                subscriptions; each is an isolated set of books.
                             </p>
                         </div>
                         <IsoMotion scope="section" tilt={6} drift={10}>
@@ -123,6 +121,27 @@ export default function PricingPage() {
                             </IsoStage>
                         </IsoMotion>
                     </div>
+                </SpineSection>
+
+                {/* The questions a buyer asks before paying, answered where
+                    the price is rather than on a call. A definition list, all
+                    open: short answers read faster than closed drawers, and
+                    nothing here is long enough to need hiding. */}
+                <SpineSection id="questions" bend="right" tint labelledBy="h-questions">
+                    <h2
+                        id="h-questions"
+                        className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900"
+                    >
+                        Questions
+                    </h2>
+                    <dl className="mt-10 grid gap-x-12 gap-y-9 md:grid-cols-2">
+                        {QUESTIONS.map(({ q, a }) => (
+                            <div key={q}>
+                                <dt className="text-[1.0625rem] font-semibold text-slate-900">{q}</dt>
+                                <dd className="mt-2 max-w-[52ch] text-[0.975rem] leading-relaxed text-slate-500">{a}</dd>
+                            </div>
+                        ))}
+                    </dl>
                 </SpineSection>
             </main>
 

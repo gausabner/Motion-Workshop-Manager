@@ -65,21 +65,21 @@ export const PLANS: Plan[] = [
         name: "Workshop",
         price: 1200,
         priceNote: "per month, excluding VAT",
-        who: "A workshop running two or three bays",
-        pitch: "The whole job, from the first phone call to the money in the bank.",
+        who: "For workshops with two or three bays",
+        pitch: "Every job, from the first call to the payment, on one document.",
         includes: [
-            "The booking diary, and a job card per car",
-            "Quotes that become job cards and then invoices, without retyping",
-            "Invoices, cash sales, credit notes and receipts, as PDFs",
-            "Send anything by WhatsApp or email — no account needed at their end",
-            "Customers, vehicles, licence disc and roadworthy dates",
-            "What every customer owes, aged",
+            "The booking diary, with a job card for each vehicle",
+            "Quotes that become job cards and invoices without re-entry",
+            "Invoices, cash sales, credit notes and receipts as PDFs",
+            "Documents sent by WhatsApp or email; your customer needs no account",
+            "Customers and vehicles, with licence disc and roadworthy dates",
+            "Aged debtors",
             "Profit on every job",
-            "Mechanic clock-on, and the offline floor app",
-            "Unlimited staff — MOTION works better when everyone is on it",
+            "Mechanic time recording, with a floor app that works offline",
+            "Unlimited staff",
             "The help library and email support",
         ],
-        excludes: ["Parts and stock", "Purchase orders and suppliers", "Inspections sent to the customer"],
+        excludes: ["Parts and stock", "Purchasing and suppliers", "Inspections approved by the customer"],
         cta: { label: "Register on Workshop", href: "/register?plan=workshop" },
     },
     {
@@ -87,20 +87,20 @@ export const PLANS: Plan[] = [
         name: "Full workshop",
         price: 2400,
         priceNote: "per month, excluding VAT",
-        who: "Five to ten bays, with a parts counter",
-        pitch: "Everything above, plus the parts, the suppliers and the reports an owner decides with.",
+        who: "For workshops with five to ten bays and a parts counter",
+        pitch: "Everything in Workshop, plus parts, purchasing and management reports.",
         includes: [
             "Everything in Workshop",
-            "Stock on hand from a real movement ledger, not a number somebody edits",
-            "Purchase orders, supplier invoices and what you owe them",
+            "Stock levels calculated from every movement, never edited by hand",
+            "Purchase orders, supplier invoices and creditors",
             "Stock takes, including blind counts",
             "Bundles, price matrices and serial numbers",
             "Inspections the customer approves on their phone",
-            "Service and licence reminders",
+            "Service and licence reminders, and campaigns",
             "Courtesy cars",
-            "The eleven owner reports — profit by job, item sales, work in progress, quote outcomes",
+            "Eleven management reports, including profit by job, item sales, work in progress and quote outcomes",
         ],
-        excludes: ["The council audit pack", "Accounting hand-off", "Installed on your own server"],
+        excludes: ["The council audit pack", "Accounting export", "Installation on your own server"],
         cta: { label: "Register on Full workshop", href: "/register?plan=full" },
         featured: true,
     },
@@ -109,28 +109,28 @@ export const PLANS: Plan[] = [
         name: "Council and multi-site",
         price: null,
         priceNote: "quoted per site",
-        who: "Municipalities, fleets, and anyone running more than one workshop",
-        pitch: "For the buyer whose procurement asks what happens if you stop existing.",
+        who: "For municipalities, fleets and multi-site operators",
+        pitch: "For organisations that require installation on their own servers and audit reporting.",
         includes: [
             "Everything in Full workshop",
-            "The six exports a council audit asks for, filed as PDFs and re-addable as CSVs",
-            "A number-sequence report that proves no document is missing",
-            "The nightly journal into your accounting system — outbound only, nothing listening",
-            "Every table as CSV in one archive, whenever you want it",
-            "The public API, and separate sites that cannot see each other",
-            "Installed on your own server, or hosted by us",
-            "A named person, and an agreed response time",
+            "The six reports a council audit requires, as PDFs with CSV copies",
+            "A number-sequence report showing that no document is missing",
+            "A nightly journal to your accounting system, sent outbound only",
+            "Every table as CSV in a single archive, at any time",
+            "The public API, and separate sites with isolated records",
+            "Installation on your own server, or hosting by us",
+            "A named contact and an agreed response time",
         ],
         cta: { label: "Request a quote", href: "/support" },
     },
 ];
 
-/** What is true whichever tier somebody is on. Said once, not three times. */
+/** What is true whichever plan somebody is on. Said once, not three times. */
 export const ALWAYS = [
-    "Your data is yours. Take every table out as CSV, any time, without asking.",
-    "No charge per user. A workshop should not ration logins.",
-    "Namibian from the ground up. 15% VAT, N$, the licence disc, the roadworthy and WhatsApp.",
-    "Month to month. No setup fee to start.",
+    "Your data is yours. Export every table as CSV at any time, without asking.",
+    "No charge per user. Every member of staff can have their own sign-in.",
+    "Built for Namibia. 15% VAT, Namibian dollars, licence discs, roadworthy certificates and WhatsApp.",
+    "Month to month. No setup fee and no notice period.",
 ];
 
 /**
@@ -142,7 +142,50 @@ export const ALWAYS = [
  * N$1,200 prices the second customer out of existence.
  */
 export const CARE = {
-    name: "Getting started",
-    pitch: "Your customers, vehicles and parts brought across from whatever you use now, and a morning with your staff.",
-    note: "Quoted on the size of what is being moved. Not required — the import screen and the help library are built to be used without us.",
+    name: "Moving from another system",
+    pitch: "We import your customers, vehicles and parts from your current system, and spend a morning training your staff.",
+    note: "Quoted according to the amount of data to be moved. It is optional: the import screen and the help library are designed to be used without us.",
 };
+
+/**
+ * The questions a buyer asks before paying, answered on the pricing page.
+ *
+ * Every answer must match the terms and the product as built — the grace
+ * period is `BILLING_GRACE_DAYS`, plan changes take effect as the admin
+ * screen applies them, and exporting needs no request. Change the product and
+ * this together.
+ */
+export const QUESTIONS: { q: string; a: string }[] = [
+    {
+        q: "How do I pay?",
+        a: "By EFT or bank deposit, using the payment reference we email you when you register. Card payments are not available yet.",
+    },
+    {
+        q: "When can we start using MOTION?",
+        a: "As soon as your first payment is confirmed, usually on the same working day. Send the proof of payment to speed this up.",
+    },
+    {
+        q: "Is there a contract?",
+        a: "No. Subscriptions run month to month. Tell us when you want to stop, and your subscription ends at the end of the month you have paid for. There is no exit fee.",
+    },
+    {
+        q: "Will we receive a tax invoice?",
+        a: "Yes. Every payment is confirmed by email with a tax invoice attached, and all your invoices are kept under Settings → Billing.",
+    },
+    {
+        q: "Can we change plan later?",
+        a: "Yes. Features are added or removed as soon as the change is made, and the new price applies from your next renewal. Moving to a smaller plan keeps all your records.",
+    },
+    {
+        q: "What happens if a payment is late?",
+        a: "We send a reminder a week before the renewal date. If the payment has not arrived seven days after that date, MOTION becomes read-only: you can still view, print and export everything, but cannot create new documents until the payment is received.",
+    },
+    {
+        q: "Can we take our data with us?",
+        a: "Yes, at any time and without asking. Every table can be exported as a spreadsheet, with a file explaining how they relate.",
+    },
+    {
+        q: "Do you offer a demonstration?",
+        a: "Yes. A 30-minute demonstration by call or at your workshop, using one of your recent jobs. Book it through the support page.",
+    },
+];

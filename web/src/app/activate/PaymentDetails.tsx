@@ -27,7 +27,7 @@ export function PaymentDetails({
     reference,
     bank,
     supportEmail,
-    heading = "One payment and you are in",
+    heading = "Activate your workshop",
     intro,
 }: {
     workshopName: string;
@@ -52,7 +52,7 @@ export function PaymentDetails({
                 {intro ?? (
                     <>
                         <span className="font-medium text-slate-900">{workshopName}</span> is registered on the {planName} plan. Pay
-                        the amount below and we will switch it on — usually the same working day.
+                        the amount below and we will activate it, usually on the same working day.
                     </>
                 )}
             </p>
@@ -79,8 +79,8 @@ export function PaymentDetails({
                 <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-teal-800">Payment reference</p>
                 <p className="mt-1 select-all font-mono text-[22px] font-semibold tracking-tight text-slate-900">{reference}</p>
                 <p className="mt-2 text-[13px] leading-relaxed text-slate-700">
-                    Use this as the reference on the deposit or transfer. Without it we cannot tell which workshop paid, and your
-                    account will not be switched on.
+                    Use this as the reference on the deposit or transfer. Without it we cannot match your payment, and the
+                    workshop cannot be activated.
                 </p>
             </div>
 
@@ -93,8 +93,8 @@ export function PaymentDetails({
                 ) : (
                     "us"
                 )}{" "}
-                and we will confirm it. You can close this page — signing in again brings you straight back here until the workshop
-                is active.
+                and we will confirm receipt. You may close this page; signing in again returns you here until the workshop is
+                active.
             </p>
         </div>
     );

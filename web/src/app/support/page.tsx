@@ -3,13 +3,13 @@ import { IsoScene } from "@/components/public/iso/primitives";
 import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { SupportScene } from "@/components/public/iso/scenes";
-import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, Pill, PublicButton } from "@/components/public/frame";
+import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, PublicButton } from "@/components/public/frame";
 import { installation, isOnPrem, support } from "@/lib/edition";
 import { displayPhone } from "@/lib/messaging/phone";
 
 export const metadata = {
     title: "Support | MOTION Workshop Manager",
-    description: "How to reach a person at MOTION, what to have ready, and what counts as urgent.",
+    description: "Contact MOTION by phone, WhatsApp or email. Office hours, response times, what counts as urgent, and what to include in your message.",
 };
 
 /**
@@ -21,6 +21,10 @@ export const metadata = {
  * down the corridor and in two days by a vendor in another town. It is also
  * the difference between a support load this business can carry at these
  * prices and one it cannot.
+ *
+ * The ways to reach a person come first. The page used to open by sending
+ * people to the help library, which reads as being turned away by the one
+ * page that promises a person; the library is offered second, beside them.
  *
  * "What to have ready" exists because the single most expensive thing in
  * support is the round trip that only establishes which screen somebody was
@@ -34,17 +38,17 @@ export default function SupportPage() {
     const channels = [
         reach.phone && {
             icon: Phone,
-            label: "Ring",
+            label: "Phone",
             value: displayPhone(reach.phone) ?? reach.phone,
             href: `tel:${reach.phone.replace(/\s/g, "")}`,
-            note: "For a workshop that is stopped.",
+            note: "For urgent problems that stop work.",
         },
         reach.whatsapp && {
             icon: MessageCircle,
             label: "WhatsApp",
             value: displayPhone(reach.whatsapp) ?? reach.whatsapp,
             href: `https://wa.me/${reach.whatsapp.replace(/[^0-9]/g, "")}`,
-            note: "Send the screenshot with it. Most things are solved in one exchange.",
+            note: "Include a screenshot. Most questions are resolved in a single reply.",
         },
         reach.email && {
             icon: Mail,
@@ -56,22 +60,37 @@ export default function SupportPage() {
     ].filter((c): c is NonNullable<Exclude<typeof c, false | "">> => Boolean(c));
 
     const ready = [
-        "Which workshop, and which screen you were on.",
-        "The document or receipt number, if it is about one.",
+        "The workshop's name, and the screen you were using.",
+        "The document or receipt number, if the question is about one.",
         "What you expected to happen, and what happened instead.",
-        "A screenshot. It is worth more than a paragraph describing the screen.",
-        onPrem ? "The version from the front page, so we know what you are running." : "Roughly when it happened.",
+        "A screenshot of the screen.",
+        onPrem ? "The version number shown on the front page." : "Approximately when it happened.",
     ];
+
+    // The bands alternate bend and tint by position, so moving a section
+    // cannot leave two grey bands touching.
+    const first = onPrem ? 1 : 0;
+    const band = (i: number) => ({ bend: (i + first) % 2 === 0 ? ("left" as const) : ("right" as const), tint: (i + first) % 2 === 0 });
 
     return (
         <PublicPage>
             <PublicHero
                 bar={<PublicBar current="/support" />}
-                pill={<Pill>Reach a person</Pill>}
                 title="Support"
-                sub="How to reach a person, what to have ready, and what counts as urgent."
-                aside="Most questions are answered faster in the help library than by waiting for a reply — it is written as the questions people actually ring about. What is not there is below."
-                cta={<PublicButton href="/help">Open the help library</PublicButton>}
+                sub={
+                    onPrem
+                        ? "Ask your administrator first. For faults, contact us by phone, WhatsApp or email."
+                        : "Contact us by phone, WhatsApp or email. We reply to email within one working day."
+                }
+                aside="Many answers are already in the help library, which covers the questions workshops ask most often."
+                cta={
+                    <>
+                        <PublicButton href="#reach">Contact us</PublicButton>
+                        <PublicButton href="/help" tone="outline">
+                            Open the help library
+                        </PublicButton>
+                    </>
+                }
                 figure={
                     <IsoMotion scope="header" tilt={10} drift={18}>
                         <IsoStage height={440} className="max-lg:h-[380px] max-md:h-[290px]" eager>
@@ -97,19 +116,19 @@ export default function SupportPage() {
                             ) : (
                                 "Whoever set up the staff logins at this site."
                             )}{" "}
-                            Logins, permissions and anything about how your workshop is set up are theirs to change, and they are
-                            down the corridor rather than in another town.
+                            Sign-ins, permissions and your workshop&apos;s settings are theirs to change, and they can usually help sooner
+                            than we can.
                         </p>
                     </SpineSection>
                 )}
 
-                <SpineSection id="reach" bend={onPrem ? "right" : "left"} tint={!onPrem} labelledBy="h-reach">
+                <SpineSection id="reach" {...band(0)} labelledBy="h-reach">
                     <h2 id="h-reach" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
-                        {onPrem ? "Reaching MOTION" : "Reaching us"}
+                        {onPrem ? "Contacting MOTION" : "Contact us"}
                     </h2>
                     {reach.hours && (
                         <p className="mt-4 text-[1.0625rem] text-slate-500">
-                            Hours: <span className="tabular-nums">{reach.hours}</span>
+                            Office hours: <span className="tabular-nums">{reach.hours}</span>
                         </p>
                     )}
 
@@ -142,16 +161,98 @@ export default function SupportPage() {
                             ))}
                         </ul>
                     )}
+
+                    {/* Billing has one destination, said here because the
+                        payment letters send people to this page. */}
+                    {!onPrem && reach.email && (
+                        <p className="mt-8 max-w-[60ch] text-[1rem] text-slate-500">
+                            For payments and invoices, email the proof of payment to{" "}
+                            <a href={`mailto:${reach.email}`} className="font-medium text-slate-900 underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
+                                {reach.email}
+                            </a>
+                            {", quoting your payment reference."}
+                        </p>
+                    )}
                 </SpineSection>
 
-                <SpineSection id="ready" bend={onPrem ? "left" : "right"} tint={onPrem} labelledBy="h-ready">
+                <SpineSection id="urgent" {...band(1)} label="What counts as urgent">
+                    <div className="grid gap-5 lg:grid-cols-2">
+                        <article className="flex flex-col items-start gap-4 rounded-[22px] border-[1.5px] border-amber-500 bg-white p-8 max-md:p-6" aria-labelledby="h-stopped">
+                            <h3 id="h-stopped" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
+                                Urgent: work has stopped
+                            </h3>
+                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
+                                <strong className="font-semibold text-slate-900">You cannot invoice, take payments or sign in.</strong>{" "}
+                                Phone us rather than writing, and say that it is urgent at the start of the call.
+                            </p>
+                            {reach.phone && (
+                                <p className="mt-auto inline-flex items-center gap-2 text-base text-slate-900">
+                                    <Phone className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+                                    <a href={`tel:${reach.phone.replace(/\s/g, "")}`} className="tabular-nums underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
+                                        {displayPhone(reach.phone) ?? reach.phone}
+                                    </a>
+                                </p>
+                            )}
+                        </article>
+
+                        <article className="flex flex-col items-start gap-4 rounded-[22px] border border-slate-200 bg-white p-8 max-md:p-6" aria-labelledby="h-else">
+                            <h3 id="h-else" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
+                                Everything else
+                            </h3>
+                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
+                                A figure that looks wrong, a report you need, or a question about how something works. Email or WhatsApp
+                                us and we will reply within one working day.
+                            </p>
+                            <div className="mt-auto">
+                                <PublicButton href="/help" tone="outline">
+                                    <BookOpen className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+                                    Open the help library
+                                </PublicButton>
+                            </div>
+                        </article>
+                    </div>
+                </SpineSection>
+
+                {/* Workshops trade on Saturdays and the office does not, so the
+                    page says what that means instead of leaving a weekend
+                    caller to find out. Only things a person can actually do
+                    without us are listed — nothing here promises cover that
+                    does not exist. */}
+                <SpineSection id="after-hours" {...band(2)} labelledBy="h-after-hours">
+                    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+                        <div>
+                            <h2 id="h-after-hours" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
+                                Outside office hours
+                            </h2>
+                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
+                                Workshops open on Saturdays; our office does not. Messages sent in the evening, at the weekend or on a public
+                                holiday are answered first thing on the next working day. Send yours with a screenshot as soon as you can,
+                                and it will be first in the queue.
+                            </p>
+                        </div>
+                        <ul className="flex flex-col gap-4">
+                            {[
+                                "If the workshop is stopped, mark your WhatsApp message URGENT. It is the first we deal with when the office opens.",
+                                "A forgotten password is reset from the sign-in page, without waiting for us.",
+                                "A member of staff who cannot sign in can be given a new password link by the workshop's owner, from Settings → Team.",
+                                "Mechanics' clock-ons are recorded in the floor app even without a connection, and sent when the signal returns.",
+                            ].map((line) => (
+                                <li key={line} className="flex items-start gap-3 text-[1.0625rem] text-slate-900">
+                                    <Check className="mt-1 h-5 w-5 shrink-0 text-teal-600" strokeWidth={1.75} aria-hidden />
+                                    <span>{line}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </SpineSection>
+                <SpineSection id="ready" {...band(3)} labelledBy="h-ready">
                     <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
                         <div>
                             <h2 id="h-ready" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                                 What to have ready
                             </h2>
                             <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
-                                A first message with these in it usually gets an answer instead of a question back.
+                                Including these in your first message lets us answer without asking follow-up questions.
                             </p>
                         </div>
 
@@ -174,81 +275,9 @@ export default function SupportPage() {
                         </div>
                     </div>
                 </SpineSection>
-
-                <SpineSection id="urgent" bend={onPrem ? "right" : "left"} tint={!onPrem} label="What counts as urgent">
-                    <div className="grid gap-5 lg:grid-cols-2">
-                        <article className="flex flex-col items-start gap-4 rounded-[22px] border-[1.5px] border-amber-500 bg-white p-8 max-md:p-6" aria-labelledby="h-stopped">
-                            <Pill tone="amber">Urgent</Pill>
-                            <h3 id="h-stopped" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
-                                The workshop is stopped
-                            </h3>
-                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
-                                <strong className="font-semibold text-slate-900">Cannot invoice, cannot take money, or cannot get in at all.</strong>{" "}
-                                Ring rather than write, and say so in the first line.
-                            </p>
-                            {reach.phone && (
-                                <p className="mt-auto inline-flex items-center gap-2 text-base text-slate-900">
-                                    <Phone className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
-                                    <a href={`tel:${reach.phone.replace(/\s/g, "")}`} className="tabular-nums underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
-                                        {displayPhone(reach.phone) ?? reach.phone}
-                                    </a>
-                                </p>
-                            )}
-                        </article>
-
-                        <article className="flex flex-col items-start gap-4 rounded-[22px] border border-slate-200 bg-white p-8 max-md:p-6" aria-labelledby="h-else">
-                            <h3 id="h-else" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
-                                Everything else
-                            </h3>
-                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
-                                A figure that looks wrong, a report you need, or a question about how something works. We reply within
-                                one working day, and many answers are already in the help library.
-                            </p>
-                            <div className="mt-auto">
-                                <PublicButton href="/help" tone="outline">
-                                    <BookOpen className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
-                                    Open the help library
-                                </PublicButton>
-                            </div>
-                        </article>
-                    </div>
-                </SpineSection>
-
-                {/* Workshops trade on Saturdays and the office does not, so the
-                    page says what that means instead of leaving a weekend
-                    caller to find out. Only things a person can actually do
-                    without us are listed — nothing here promises cover that
-                    does not exist. */}
-                <SpineSection id="after-hours" bend={onPrem ? "left" : "right"} tint={onPrem} labelledBy="h-after-hours">
-                    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-                        <div>
-                            <h2 id="h-after-hours" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
-                                Outside office hours
-                            </h2>
-                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
-                                Workshops open on Saturdays; our office does not. Anything sent in the evening, at the weekend or on a public
-                                holiday is answered first thing on the next working day — so send it now, with the screenshot, and it will be
-                                first in the queue.
-                            </p>
-                        </div>
-                        <ul className="flex flex-col gap-4">
-                            {[
-                                "If the workshop is stopped, mark your WhatsApp message URGENT. It is the first we deal with when the office opens.",
-                                "A forgotten password is reset from the sign-in page, without waiting for us.",
-                                "A member of staff who cannot sign in can be given a new password link by the workshop's owner, from Settings → Team.",
-                                "Mechanics' clock-ons are recorded in the floor app even without a connection, and sent when the signal returns.",
-                            ].map((line) => (
-                                <li key={line} className="flex items-start gap-3 text-[1.0625rem] text-slate-900">
-                                    <Check className="mt-1 h-5 w-5 shrink-0 text-teal-600" strokeWidth={1.75} aria-hidden />
-                                    <span>{line}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </SpineSection>
             </main>
 
-            <PublicFoot cta={<PublicButton href="#reach" tone="onDark">Reach a person</PublicButton>} />
+            <PublicFoot cta={<PublicButton href="#reach" tone="onDark">Contact us</PublicButton>} />
         </PublicPage>
     );
 }

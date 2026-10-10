@@ -39,9 +39,9 @@ export function MondayMorning() {
             <div className="grid gap-4 sm:grid-cols-3">
                 {/* On the floor now */}
                 <Card className="sm:translate-y-6">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">On the floor</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Open job cards</p>
                     <p className="mt-2 text-[26px] font-semibold tabular-nums leading-none tracking-tight text-slate-900">7</p>
-                    <p className="mt-1 text-[12px] text-slate-500">jobs open across 4 bays</p>
+                    <p className="mt-1 text-[12px] text-slate-500">across 4 bays</p>
                     <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
                         {[
                             ["N 12345 W", "In progress"],
@@ -64,7 +64,7 @@ export function MondayMorning() {
                         </span>
                     </div>
                     <p className="mt-2 text-[26px] font-semibold tabular-nums leading-none tracking-tight text-slate-900">
-                        N$ 142,380
+                        N$ 142,380.00
                     </p>
                     <p className="mt-1 text-[12px] text-teal-700">+12% on last month</p>
                     {/* A bar row, drawn from fixed heights rather than a chart
@@ -83,11 +83,11 @@ export function MondayMorning() {
 
                 {/* Waiting on you */}
                 <Card className="sm:translate-y-10">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Waiting on you</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Needs attention</p>
                     <ul className="mt-3 space-y-2.5">
                         {[
                             { icon: Check, text: "3 quotes to follow up", tone: "text-teal-700 bg-teal-50" },
-                            { icon: Clock, text: "2 discs expire this month", tone: "text-amber-700 bg-amber-50" },
+                            { icon: Clock, text: "2 licence discs expire this month", tone: "text-amber-700 bg-amber-50" },
                             { icon: Check, text: "Month-end export ready", tone: "text-teal-700 bg-teal-50" },
                         ].map((row) => (
                             <li key={row.text} className="flex items-center gap-2.5">
