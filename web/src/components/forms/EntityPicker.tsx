@@ -184,7 +184,7 @@ export function EntityPicker<T extends PickerHit>({
                         </li>
                     ))}
                     {!loading && hits.length === 0 && (
-                        <li className="px-3 py-2 text-slate-500">{query ? <>Nothing matches “{query}”.</> : "No records yet."}</li>
+                        <li className="px-3 py-2 text-slate-500">{query ? <>No matches for “{query}”.</> : "No records yet."}</li>
                     )}
                     {showCreate && (
                         <li

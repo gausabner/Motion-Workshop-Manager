@@ -10,7 +10,7 @@ import { fromZod, str, type ActionState } from "@/lib/forms";
 const optional = (max: number) => z.string().trim().max(max).optional();
 
 const supplierSchema = z.object({
-    companyName: z.string().trim().min(2, "Give the supplier a name").max(120),
+    companyName: z.string().trim().min(2, "Enter the supplier name.").max(120),
     accountNumber: optional(40),
     vatNumber: optional(40),
     address1: optional(120),
@@ -19,7 +19,7 @@ const supplierSchema = z.object({
     postcode: optional(20),
     phone: optional(40),
     mobile: optional(40),
-    email: z.union([z.literal(""), z.email("That email does not look right")]).optional(),
+    email: z.union([z.literal(""), z.email("Enter a valid email address.")]).optional(),
     web: optional(120),
     paymentTermsDays: z.union([z.literal(""), z.coerce.number().int().min(0).max(365)]).optional().transform((v) => (v === "" || v === undefined ? null : Number(v))),
     note: optional(500),

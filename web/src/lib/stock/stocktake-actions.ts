@@ -47,7 +47,7 @@ export async function startStockTakeAction(slug: string, input: unknown, blind: 
 export async function saveCountsAction(slug: string, takeId: string, counts: unknown): Promise<{ ok: boolean; message?: string }> {
     const { db } = await counter(slug);
     const parsed = countsSchema.safeParse(counts);
-    if (!parsed.success) return { ok: false, message: "Those counts were not understood" };
+    if (!parsed.success) return { ok: false, message: "The counts could not be read. Reload the page and try again." };
     try {
         await db.$transaction((tx) => saveCounts(tx, takeId, parsed.data), { timeout: 30_000 });
     } catch (error) {
@@ -60,7 +60,7 @@ export async function saveCountsAction(slug: string, takeId: string, counts: unk
 export async function applyStockTakeAction(slug: string, takeId: string, counts: unknown): Promise<{ ok: boolean; message: string }> {
     const { db, tenant, membership } = await counter(slug);
     const parsed = countsSchema.safeParse(counts);
-    if (!parsed.success) return { ok: false, message: "Those counts were not understood" };
+    if (!parsed.success) return { ok: false, message: "The counts could not be read. Reload the page and try again." };
     try {
         const result = await db.$transaction(async (tx) => {
             await saveCounts(tx, takeId, parsed.data);

@@ -58,7 +58,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
             <section className={card}>
                 <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Orders</h2>
                 {orders.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">No orders yet. Raise one to tell a supplier what you need, and to keep parts tied to the job they are for.</p>
+                    <p className="px-4 py-4 text-sm text-slate-500">No purchase orders yet. Create one to order parts from a supplier and link them to the job they are for.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {orders.map((o) => (
@@ -77,7 +77,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
             <section className={card}>
                 <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Supplier invoices</h2>
                 {invoices.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">Nothing entered yet.</p>
+                    <p className="px-4 py-4 text-sm text-slate-500">No supplier invoices yet. Enter one when a supplier&rsquo;s invoice arrives.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {invoices.map((i) => (
@@ -95,7 +95,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
             <section className={card}>
                 <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Payments out</h2>
                 {payments.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">Nothing paid out yet.</p>
+                    <p className="px-4 py-4 text-sm text-slate-500">No supplier payments yet.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {payments.map((p) => (

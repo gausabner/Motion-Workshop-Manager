@@ -37,7 +37,7 @@ export default async function RemindersPage({ params }: { params: Promise<{ tena
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Reminders</h1>
                     <p className="text-sm text-slate-500">
-                        {items.length === 0 ? "Nobody to remind today." : `${items.length} to send. Each one opens ready-worded on WhatsApp or email.`}
+                        {items.length === 0 ? "No reminders are due today." : `${items.length} to send. Each opens on WhatsApp or email with the message already written.`}
                         {optedOut > 0 && ` ${optedOut} more left out because the customer opted out of messages.`}
                     </p>
                 </div>

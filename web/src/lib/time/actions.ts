@@ -58,8 +58,8 @@ export async function addTimeEntry(slug: string, documentId: string, _prev: Acti
         ctx.db.document.findUnique({ where: { id: documentId }, select: { type: true } }),
         ctx.db.membership.findUnique({ where: { id: mechanicId }, select: { id: true } }),
     ]);
-    if (!doc || (doc.type !== "BOOKING" && doc.type !== "JOB_CARD")) return { ok: false, message: "Time goes on a booking or job card." };
-    if (!mechanic) return { ok: false, errors: { mechanicId: ["That person is not in this workshop"] } };
+    if (!doc || (doc.type !== "BOOKING" && doc.type !== "JOB_CARD")) return { ok: false, message: "Time can only be recorded on a booking or job card." };
+    if (!mechanic) return { ok: false, errors: { mechanicId: ["That person is not a member of this workshop."] } };
 
     await ctx.db.timeEntry.create({ data: { tenantId: ctx.tenant.id, documentId, mechanicId, source: "MANUAL", startedAt, endedAt, minutes, note } });
     await ctx.db.auditEvent.create({ data: { tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "TimeEntry", entityId: documentId, action: "CREATED", diff: { mechanicId, minutes, source: "MANUAL" } } });

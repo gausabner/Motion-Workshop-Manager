@@ -37,7 +37,7 @@ export async function saveVehicle(slug: string, id: string | null, _prev: Action
     let savedId = id;
     if (id) {
         const existing = await db.vehicle.findUnique({ where: { id }, select: { id: true } });
-        if (!existing) return { ok: false, message: "Vehicle not found." };
+        if (!existing) return { ok: false, message: "This vehicle no longer exists. Refresh the page." };
         await db.vehicle.update({ where: { id }, data });
         await db.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Vehicle", entityId: id, action: "UPDATED" } });
     } else {

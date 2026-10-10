@@ -15,7 +15,7 @@ export async function bookLoan(
     input: { loanVehicleId: string; customerId: string | null; documentId: string | null; outAt: Date; dueBackAt: Date; note?: string | null },
 ): Promise<string> {
     const vehicle = await tx.loanVehicle.findUnique({ where: { id: input.loanVehicleId }, select: { id: true, active: true, plate: true } });
-    if (!vehicle) throw new Error("That courtesy car is no longer there.");
+    if (!vehicle) throw new Error("This courtesy car no longer exists. Refresh the page.");
     if (!vehicle.active) throw new Error(`${vehicle.plate} is off the road.`);
     const existing = await tx.loan.findMany({
         where: { loanVehicleId: vehicle.id, state: { in: ["BOOKED", "OUT"] } },
@@ -35,7 +35,7 @@ export async function bookLoan(
 
 export async function handOver(tx: TenantTx, loanId: string, odometerOut: number | null, agreedBy: string | null): Promise<void> {
     const loan = await tx.loan.findUnique({ where: { id: loanId }, select: { state: true, loanVehicleId: true } });
-    if (!loan) throw new Error("That loan is no longer there.");
+    if (!loan) throw new Error("This loan no longer exists. Refresh the page.");
     const problem = handOverError(loan.state);
     if (problem) throw new Error(problem);
     await tx.loan.update({ where: { id: loanId }, data: { state: "OUT", odometerOut, agreedBy: agreedBy?.trim().slice(0, 120) || null, outAt: new Date() } });
@@ -44,7 +44,7 @@ export async function handOver(tx: TenantTx, loanId: string, odometerOut: number
 
 export async function takeBack(tx: TenantTx, loanId: string, odometerIn: number | null, note: string | null, now = new Date()): Promise<void> {
     const loan = await tx.loan.findUnique({ where: { id: loanId }, select: { state: true, outAt: true, odometerOut: true, loanVehicleId: true, note: true } });
-    if (!loan) throw new Error("That loan is no longer there.");
+    if (!loan) throw new Error("This loan no longer exists. Refresh the page.");
     const problem = returnError(loan.state, loan.outAt, now, loan.odometerOut, odometerIn);
     if (problem) throw new Error(problem);
     await tx.loan.update({

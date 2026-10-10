@@ -46,7 +46,7 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
             <section className="rounded-sm border border-slate-200 bg-white">
                 <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Service history</h2>
                 {history.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-slate-500">Nothing recorded yet. Work done here appears as it is processed, and anything from your previous system can be brought in under Settings &rarr; Import.</p>
+                    <p className="px-4 py-3 text-sm text-slate-500">No service history yet. Work on this vehicle appears here once it is processed. Records from your previous system can be imported under Settings &rarr; Import.</p>
                 ) : (
                     <ul className="divide-y divide-slate-100 text-sm">
                         {history.map((visit) => (

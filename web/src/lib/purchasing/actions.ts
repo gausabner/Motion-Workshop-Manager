@@ -10,12 +10,12 @@ import { processInvoice, receiptFromOrder, saveInvoice, saveOrder, setOrderState
 
 const base = (slug: string) => `/${slug}/dashboard/purchasing`;
 const money = z.coerce.number().min(-99_999_999).max(99_999_999);
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-09-20");
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date such as 2026-09-20.");
 const optionalDay = z.union([z.literal(""), day]).nullish().transform((v) => (v ? v : null));
 const optionalId = z.union([z.literal(""), z.string().max(40)]).nullish().transform((v) => (v ? v : null));
 
 const orderSchema = z.object({
-    supplierId: z.string().min(1, "Choose a supplier"),
+    supplierId: z.string({ error: "Choose a supplier." }).min(1, "Choose a supplier."),
     orderDate: day,
     dueDate: optionalDay,
     reference: z.string().trim().max(60).nullish(),
@@ -24,16 +24,16 @@ const orderSchema = z.object({
         id: z.string().max(40).optional(),
         productId: optionalId,
         description: z.string().trim().max(200),
-        quantity: z.coerce.number().min(0.01, "A line needs a quantity").max(999_999),
+        quantity: z.coerce.number().min(0.01, "Enter a quantity for each line.").max(999_999),
         unitCost: money,
         documentId: optionalId,
         dueDate: optionalDay,
         note: z.string().trim().max(200).nullish(),
-    })).min(1, "Add at least one line"),
+    })).min(1, "Add at least one line."),
 });
 
 const invoiceSchema = z.object({
-    supplierId: z.string().min(1, "Choose a supplier"),
+    supplierId: z.string({ error: "Choose a supplier." }).min(1, "Choose a supplier."),
     supplierNumber: z.string().trim().max(60),
     otherReference: z.string().trim().max(60).nullish(),
     postDate: day,
@@ -54,7 +54,7 @@ const invoiceSchema = z.object({
         newSellPrice: z.union([z.literal(""), money]).nullish().transform((v) => (v === "" || v === null || v === undefined ? null : Number(v))),
         serialNumbers: z.string().trim().max(2000).nullish(),
         note: z.string().trim().max(200).nullish(),
-    })).min(1, "Add at least one line"),
+    })).min(1, "Add at least one line."),
 });
 
 type Result = { ok: true; id: string; message?: string } | { ok: false; message: string };
@@ -144,7 +144,7 @@ export async function processInvoiceAction(slug: string, id: string): Promise<{ 
 
 export async function voidInvoiceAction(slug: string, id: string, reason: string): Promise<{ ok: boolean; message?: string }> {
     const { db, tenant, membership, user } = await buyer(slug);
-    if (!reason.trim()) return { ok: false, message: "Give a reason." };
+    if (!reason.trim()) return { ok: false, message: "Enter a reason." };
     try {
         await db.$transaction((tx) => voidInvoice(tx, tenant, { membershipId: membership.id, userId: user.id }, id, reason));
     } catch (error) {

@@ -40,7 +40,7 @@ export async function startInspection(slug: string, documentId: string, template
     const template = templateId
         ? await ctx.db.inspectionTemplate.findFirst({ where: { id: templateId, active: true }, select: { id: true } })
         : await ctx.db.inspectionTemplate.findFirst({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true } });
-    if (!template) throw new Error("There is no inspection template to start from");
+    if (!template) throw new Error("There is no inspection template to start from. Create one under Settings → Inspection templates.");
     const created = await ctx.db.$transaction((tx) => createInspection(tx, ctx.tenant, ctx.membership.id, { documentId, templateId: template.id }));
     revalidatePath(`/${slug}/dashboard/documents/${documentId}`);
     redirect(path(slug, created.id));
@@ -82,7 +82,7 @@ export async function uploadFindingPhoto(slug: string, inspectionId: string, ite
     const ctx = await requireFeature(slug, "inspections");
     assertCan(ctx.membership, "documents:write");
     const item = await ctx.db.inspectionItem.findFirst({ where: { id: itemId, inspectionId }, select: { id: true } });
-    if (!item) return { ok: false, message: "That finding is not on this inspection" };
+    if (!item) return { ok: false, message: "That finding is not part of this inspection." };
     const file = formData.get("file");
     if (!(file instanceof File)) return { ok: false, message: "No photo arrived. Try again." };
     if (!file.type.startsWith("image/")) return { ok: false, message: "That is not a photo." };

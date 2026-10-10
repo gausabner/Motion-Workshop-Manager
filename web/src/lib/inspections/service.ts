@@ -15,12 +15,12 @@ const toNumber = (d: { toNumber(): number } | null) => (d ? d.toNumber() : null)
 /** Start an inspection on a job, copying the template's items so later template edits cannot rewrite it. */
 export async function createInspection(tx: TenantTx, tenant: Tenant, membershipId: string, input: { documentId: string; templateId: string }) {
     const doc = await tx.document.findUnique({ where: { id: input.documentId }, select: { id: true, type: true, state: true, customerId: true, vehicleId: true, odometer: true } });
-    if (!doc) throw new Error("That job is no longer there");
-    if (doc.type !== "BOOKING" && doc.type !== "JOB_CARD") throw new Error("Inspections are done on a booking or job card");
-    if (doc.state === "VOID") throw new Error("That job was voided");
+    if (!doc) throw new Error("This job no longer exists. Refresh the page.");
+    if (doc.type !== "BOOKING" && doc.type !== "JOB_CARD") throw new Error("Inspections can only be started on a booking or job card.");
+    if (doc.state === "VOID") throw new Error("This job has been voided.");
 
     const template = await tx.inspectionTemplate.findUnique({ where: { id: input.templateId }, select: { id: true, name: true, items: { orderBy: { ordering: "asc" } } } });
-    if (!template) throw new Error("That inspection template is no longer there");
+    if (!template) throw new Error("This inspection template no longer exists. Refresh the page.");
 
     const number = await allocateNumber(tx, tenant.id, "INSPECTION");
     const inspection = await tx.inspection.create({
@@ -58,7 +58,7 @@ export type ItemPatch = {
 /** Findings are edited while the inspection is a draft; once it is with the customer, it holds still. */
 export async function saveItems(tx: TenantTx, inspectionId: string, patches: ItemPatch[]): Promise<void> {
     const inspection = await tx.inspection.findUnique({ where: { id: inspectionId }, select: { state: true } });
-    if (!inspection) throw new Error("That inspection is no longer there");
+    if (!inspection) throw new Error("This inspection no longer exists. Refresh the page.");
     if (inspection.state !== "DRAFT") throw new Error("This inspection has been sent to the customer. Take it back to draft to change it.");
     for (const p of patches) {
         const clean = (v: string | null | undefined) => (v == null ? null : v.trim().slice(0, 60) || null);
@@ -81,8 +81,8 @@ export async function saveItems(tx: TenantTx, inspectionId: string, patches: Ite
 /** Put it to the customer. There has to be something to put. */
 export async function requestApproval(tx: TenantTx, inspectionId: string): Promise<void> {
     const inspection = await tx.inspection.findUnique({ where: { id: inspectionId }, select: { state: true, documentId: true, items: { select: { urgent: true, soon: true } } } });
-    if (!inspection) throw new Error("That inspection is no longer there");
-    if (inspection.state !== "DRAFT") throw new Error("This inspection has already been sent");
+    if (!inspection) throw new Error("This inspection no longer exists. Refresh the page.");
+    if (inspection.state !== "DRAFT") throw new Error("This inspection has already been sent.");
     if (!inspection.items.some((i) => i.urgent || i.soon)) throw new Error("Nothing is marked red or amber, so there is nothing to approve. Finalise it instead.");
     await tx.inspection.update({ where: { id: inspectionId }, data: { state: "REQUESTED", requestedAt: new Date() } });
     if (inspection.documentId) {
@@ -93,8 +93,8 @@ export async function requestApproval(tx: TenantTx, inspectionId: string): Promi
 /** Back to draft, to change a finding. Answers already given on unchanged items are kept. */
 export async function reopen(tx: TenantTx, inspectionId: string): Promise<void> {
     const inspection = await tx.inspection.findUnique({ where: { id: inspectionId }, select: { state: true } });
-    if (!inspection) throw new Error("That inspection is no longer there");
-    if (inspection.state === "FINALISED") throw new Error("A finalised inspection cannot be reopened");
+    if (!inspection) throw new Error("This inspection no longer exists. Refresh the page.");
+    if (inspection.state === "FINALISED") throw new Error("A finalised inspection cannot be reopened.");
     await tx.inspection.update({ where: { id: inspectionId }, data: { state: "DRAFT" } });
 }
 
@@ -106,9 +106,9 @@ export async function decide(tx: TenantTx, inspectionId: string, itemId: string,
     // One decision at a time per inspection, so two taps cannot race the state.
     await tx.$queryRaw`SELECT id FROM "Inspection" WHERE id = ${inspectionId} FOR UPDATE`;
     const inspection = await tx.inspection.findUnique({ where: { id: inspectionId }, select: { state: true, items: true } });
-    if (!inspection) throw new Error("That inspection is no longer there");
+    if (!inspection) throw new Error("This inspection no longer exists. Refresh the page.");
     const item = inspection.items.find((i) => i.id === itemId);
-    if (!item) throw new Error("That finding is not on this inspection");
+    if (!item) throw new Error("That finding is not part of this inspection.");
     const problem = decisionError(inspection.state, { ...item, estimate: toNumber(item.estimate) });
     if (problem) throw new Error(problem);
 
@@ -146,9 +146,9 @@ export async function addApprovedToJob(tx: TenantTx, inspectionId: string): Prom
         where: { id: inspectionId },
         select: { tenantId: true, documentId: true, items: { orderBy: { ordering: "asc" }, include: { product: { select: { id: true, type: true, costExTax: true, vatExempt: true } } } } },
     });
-    if (!inspection?.documentId) throw new Error("This inspection is not attached to a job");
+    if (!inspection?.documentId) throw new Error("This inspection is not attached to a job.");
     const doc = await tx.document.findUnique({ where: { id: inspection.documentId }, select: { id: true, state: true, taxRate: true, _count: { select: { lines: true } } } });
-    if (!doc) throw new Error("That job is no longer there");
+    if (!doc) throw new Error("This job no longer exists. Refresh the page.");
     if (doc.state !== "DRAFT") throw new Error("The job has been processed, so its lines are locked. Add the work to a new job card.");
 
     const items = toConvert(inspection.items.map((i) => ({ ...i, estimate: toNumber(i.estimate) })));
@@ -179,7 +179,7 @@ export async function addApprovedToJob(tx: TenantTx, inspectionId: string): Prom
 
 export async function finalise(tx: TenantTx, inspectionId: string): Promise<void> {
     const inspection = await tx.inspection.findUnique({ where: { id: inspectionId }, select: { state: true, documentId: true, items: { select: { approvedAt: true, documentLineId: true, urgent: true, soon: true, declinedAt: true } } } });
-    if (!inspection) throw new Error("That inspection is no longer there");
+    if (!inspection) throw new Error("This inspection no longer exists. Refresh the page.");
     if (inspection.state === "FINALISED") return;
     if (inspection.state === "REQUESTED") throw new Error("The customer has not answered every finding yet.");
     if (inspection.items.some((i) => i.approvedAt && !i.documentLineId)) throw new Error("Add the approved work to the job card first.");

@@ -15,7 +15,7 @@ export const diarySettingsSchema = z.object({
     opensAt: hhmm.default("07:30"),
     closesAt: hhmm.default("17:00"),
     slotMinutes: z.union([z.literal(15), z.literal(30), z.literal(60)]).default(30),
-    workingDays: z.array(z.number().int().min(1).max(7)).min(1, "Open at least one day").default([1, 2, 3, 4, 5]),
+    workingDays: z.array(z.number().int().min(1).max(7)).min(1, "Choose at least one opening day.").default([1, 2, 3, 4, 5]),
     fullAtPercent: z.number().int().min(50).max(100).default(90),
     lanesPerPage: z.number().int().min(1).max(8).default(4),
     defaultBookingHours: z.number().min(0.25).max(12).default(1),
@@ -58,7 +58,7 @@ export const portalSettingsSchema = z.object({
         quotes: z.boolean().default(true),
     }).default({ account: true, inspections: true, jobs: true, bookings: true, vehicles: true, invoices: true, quotes: true }),
     /** The portal's accent, so it looks like the workshop rather than like us. */
-    accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a colour like #0d9488").default("#0d9488"),
+    accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Enter a colour such as #0d9488.").default("#0d9488"),
     welcome: z.string().trim().max(400).default(""),
     /** How long a portal link works. Long, because it is the customer's way back in. */
     linkDays: z.number().int().min(7).max(365).default(180),
@@ -164,7 +164,7 @@ export function parseSettings(value: unknown): TenantSettings {
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
 export const companySettingsSchema = z.object({
-    name: z.string().trim().min(2, "The workshop needs a name").max(120),
+    name: z.string().trim().min(2, "Enter the workshop name.").max(120),
     registrationNumber: optionalText(60),
     vatNumber: optionalText(60),
     address1: optionalText(120),
@@ -177,7 +177,7 @@ export const companySettingsSchema = z.object({
     phone: optionalText(40),
     mobile: optionalText(40),
     whatsapp: optionalText(40),
-    email: z.union([z.literal(""), z.email("That email does not look right")]).optional(),
+    email: z.union([z.literal(""), z.email("Enter a valid email address.")]).optional(),
     web: optionalText(120),
     timezone: z.string().trim().min(3).max(60),
     currency: z.string().trim().min(3).max(3),
@@ -185,9 +185,9 @@ export const companySettingsSchema = z.object({
 });
 
 export const taxSettingsSchema = z.object({
-    taxName: z.string().trim().min(2, "Give the tax a name, such as VAT").max(20),
-    salesTaxRate: z.coerce.number().min(0, "Cannot be negative").max(100),
-    purchaseTaxRate: z.coerce.number().min(0, "Cannot be negative").max(100),
+    taxName: z.string().trim().min(2, "Enter a name for the tax, such as VAT.").max(20),
+    salesTaxRate: z.coerce.number().min(0, "This cannot be negative.").max(100),
+    purchaseTaxRate: z.coerce.number().min(0, "This cannot be negative.").max(100),
     pricesIncludeTax: z.coerce.boolean(),
     defaultPaymentTermsDays: z.coerce.number().int().min(0).max(365),
 });

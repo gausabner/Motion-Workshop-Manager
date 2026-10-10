@@ -33,9 +33,9 @@ export const GET = withKey("READ", async (caller, req) => {
 });
 
 const createSchema = z.object({
-    plate: z.string({ error: "A registration is needed." }).trim().min(1, "A registration is needed."),
-    make: z.string({ error: "A make is needed." }).trim().min(1, "A make is needed."),
-    model: z.string({ error: "A model is needed." }).trim().min(1, "A model is needed."),
+    plate: z.string({ error: "Enter the registration." }).trim().min(1, "Enter the registration."),
+    make: z.string({ error: "Enter the make." }).trim().min(1, "Enter the make."),
+    model: z.string({ error: "Enter the model." }).trim().min(1, "Enter the model."),
     customerId: z.string().trim().min(1).optional(),
     year: z.number().int().min(1900).max(2100).optional(),
     colour: z.string().trim().optional(),

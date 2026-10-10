@@ -54,7 +54,7 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                             </TableHeader>
                             <TableBody>
                                 {rows.length === 0 && (
-                                    <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-slate-500">Nobody owes anything. Every invoice on the books is settled.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-slate-500">No customer owes anything. Every invoice is paid.</TableCell></TableRow>
                                 )}
                                 {rows.map((r, i) => {
                                     const wa = whatsappLink(r.mobile);

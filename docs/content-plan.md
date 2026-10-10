@@ -226,6 +226,12 @@ the glossary applied to navigation, page and tab titles, the dashboard,
 reports, purchasing, document statuses and actions, settings, plan feature
 names and the printed quote title, with the shared names in
 `lib/copy/terms.ts`.
+Phase 4 shipped on 10 October: empty states on every list screen say what
+is missing and what to do; the permission, not-found and error screens and
+the plan and read-only notices follow the voice; about 150 error and
+validation messages are complete sentences, a record that has gone always
+reads "This … no longer exists. Refresh the page.", and required fields name
+themselves ("Enter the make.") instead of showing Zod's default English.
 
 Repeated terms move into one small module (`lib/copy/terms.ts`) so a rename
 happens once. A translation framework is not proposed; MOTION is English-only.

@@ -24,7 +24,7 @@ export function bool(fd: FormData, name: string): boolean {
 
 export function fromZod(error: z.ZodError): ActionState {
     const flat = z.flattenError(error);
-    return { ok: false, message: "Please fix the highlighted fields.", errors: flat.fieldErrors as ActionState["errors"] };
+    return { ok: false, message: "Correct the highlighted fields.", errors: flat.fieldErrors as ActionState["errors"] };
 }
 
 /** Optional numeric field: undefined stays undefined, "" → undefined, else coerced. */
@@ -33,5 +33,5 @@ export const optionalInt = z.preprocess((v) => (v === "" || v === undefined || v
 /** Optional ISO date (yyyy-mm-dd) → Date at UTC midnight. */
 export const optionalDate = z.preprocess(
     (v) => (v === "" || v === undefined || v === null ? undefined : v),
-    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-mm-dd").transform((s) => new Date(`${s}T00:00:00Z`)).optional(),
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date such as 2026-09-20.").transform((s) => new Date(`${s}T00:00:00Z`)).optional(),
 );

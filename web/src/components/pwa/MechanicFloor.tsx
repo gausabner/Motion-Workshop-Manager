@@ -204,7 +204,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
                 <section className="space-y-2">
                     <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-slate-500">My jobs</h2>
-                    {mine.length ? <ul className="space-y-3">{mine.map((j) => card(j, true))}</ul> : <p className="px-1 text-base text-slate-500">Nothing assigned to you today.</p>}
+                    {mine.length ? <ul className="space-y-3">{mine.map((j) => card(j, true))}</ul> : <p className="px-1 text-base text-slate-500">No jobs are assigned to you today.</p>}
                 </section>
 
                 {others.length > 0 && (

@@ -12,18 +12,18 @@ const label = z.string().trim().min(1).max(20);
 export const templateItemSchema = z.object({
     /** Present for a check that already exists; kept so old inspections still point at it. */
     id: z.string().min(1).max(40).optional(),
-    description: z.string().trim().min(1, "Every check needs a name").max(160, "Keep a check under 160 characters"),
-    inputs: z.array(label).max(4, "Up to four readings per check"),
+    description: z.string({ error: "Enter a name for each check." }).trim().min(1, "Enter a name for each check.").max(160, "A check can have at most 160 characters."),
+    inputs: z.array(label).max(4, "A check can have at most four readings."),
     productId: z.string().min(1).max(40).nullable(),
-    defaultEstimate: z.number().min(0, "A price cannot be negative").max(1_000_000).nullable(),
+    defaultEstimate: z.number().min(0, "A price cannot be negative.").max(1_000_000).nullable(),
 });
 
 export const templateDraftSchema = z.object({
-    name: z.string().trim().min(2, "Give the template a name").max(80),
+    name: z.string().trim().min(2, "Enter a name for the template.").max(80),
     groups: z.array(z.object({
-        name: z.string().trim().min(1, "Every group needs a name").max(60),
-        items: z.array(templateItemSchema).min(1, "A group needs at least one check"),
-    })).min(1, "Add at least one group"),
+        name: z.string({ error: "Enter a name for each group." }).trim().min(1, "Enter a name for each group.").max(60),
+        items: z.array(templateItemSchema).min(1, "Add at least one check to each group."),
+    })).min(1, "Add at least one group."),
 }).superRefine((draft, ctx) => {
     const seen = new Set<string>();
     draft.groups.forEach((g, i) => {
@@ -32,9 +32,9 @@ export const templateDraftSchema = z.object({
         seen.add(key);
     });
     const count = draft.groups.reduce((n, g) => n + g.items.length, 0);
-    if (count > 200) ctx.addIssue({ code: "custom", message: "Keep a template under 200 checks", path: ["groups"] });
+    if (count > 200) ctx.addIssue({ code: "custom", message: "A template can have at most 200 checks.", path: ["groups"] });
     const ids = draft.groups.flatMap((g) => g.items.map((it) => it.id)).filter(Boolean);
-    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", message: "A check appears twice", path: ["groups"] });
+    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", message: "A check appears twice in this template.", path: ["groups"] });
 });
 
 export type TemplateDraft = z.infer<typeof templateDraftSchema>;

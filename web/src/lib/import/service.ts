@@ -111,7 +111,7 @@ async function writeRow(tx: TenantTx, tenant: Tenant, entity: ImportEntity, row:
         ]);
         if (!bundle) throw new Error(`No product here with code "${bundleCode}" — import the products first`);
         if (!component) throw new Error(`No product here with code "${componentCode}"`);
-        if (bundle.id === component.id) throw new Error("A bundle cannot contain itself");
+        if (bundle.id === component.id) throw new Error("A bundle cannot contain itself.");
         if (component.isBundle) throw new Error(`"${componentCode}" is itself a bundle, and a bundle cannot go inside another`);
         const quantity = numberOf(v.quantity) ?? 1;
         const existing = await tx.bundleItem.findFirst({ where: { bundleId: bundle.id, componentId: component.id }, select: { id: true } });

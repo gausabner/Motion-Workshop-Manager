@@ -59,7 +59,7 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {data.rows.length === 0 && <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-500">Nothing matches.</td></tr>}
+                        {data.rows.length === 0 && <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-500">{q || type || lowOnly ? "No products match these filters." : archived ? "No archived products." : "No products yet. Add one, or import a price list under Settings → Import."}</td></tr>}
                         {data.rows.map((r) => {
                             const margin = r.retail > 0 ? Math.round(((r.retail - r.cost) / r.retail) * 100) : null;
                             const low = r.tracked && r.onHand <= r.minQty;

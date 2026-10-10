@@ -11,7 +11,7 @@ const joinSchema = z.object({
     firstName: z.string().trim().max(100).optional(),
     lastName: z.string().trim().max(100).optional(),
     mobile: z.string().trim().max(40).optional(),
-    password: z.string().min(8, "At least 8 characters").max(200),
+    password: z.string().min(8, "Use at least 8 characters.").max(200),
 });
 
 /** The only thing a stranger can do with an invitation link: join with it. */

@@ -12,7 +12,7 @@ const base = (slug: string) => `/${slug}/dashboard/purchasing`;
 const paymentPath = (slug: string, id: string) => `${base(slug)}/payments/${id}`;
 
 const schema = z.object({
-    postDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-09-20"),
+    postDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date such as 2026-09-20."),
     reference: z.string().trim().max(60).nullish(),
     methodId: z.union([z.literal(""), z.string().max(40)]).nullish().transform((v) => (v ? v : null)),
     note: z.string().trim().max(500).nullish(),
@@ -67,7 +67,7 @@ export async function postSupplierPaymentAction(slug: string, id: string, input:
 
 export async function reverseSupplierPaymentAction(slug: string, id: string, reason: string): Promise<{ ok: boolean; message?: string }> {
     const { db } = await payer(slug);
-    if (!reason.trim()) return { ok: false, message: "Give a reason." };
+    if (!reason.trim()) return { ok: false, message: "Enter a reason." };
     try {
         await db.$transaction((tx) => reversePayment(tx, id, reason));
     } catch (error) {

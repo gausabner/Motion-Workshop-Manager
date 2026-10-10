@@ -32,7 +32,7 @@ export async function saveCustomer(slug: string, id: string | null, _prev: Actio
     let savedId = id;
     if (id) {
         const existing = await db.customer.findUnique({ where: { id }, select: { id: true } });
-        if (!existing) return { ok: false, message: "Customer not found." };
+        if (!existing) return { ok: false, message: "This customer no longer exists. Refresh the page." };
         await db.customer.update({ where: { id }, data });
         await db.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Customer", entityId: id, action: "UPDATED" } });
     } else {

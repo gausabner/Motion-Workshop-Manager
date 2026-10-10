@@ -27,7 +27,7 @@ export default async function RequestsPage({ params }: { params: Promise<{ tenan
             </div>
 
             {items.length === 0 ? (
-                <p className="rounded-sm border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">No requests waiting.</p>
+                <p className="rounded-sm border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">No booking requests are waiting.</p>
             ) : (
                 <ul className="space-y-3">{items.map((item) => <RequestCard key={item.id} tenant={slug} item={item} mechanics={mechanics} />)}</ul>
             )}

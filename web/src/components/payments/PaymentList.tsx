@@ -101,7 +101,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                             <TableBody>
                                 {data.rows.length === 0 && (
                                     <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-slate-500">
-                                        {q ? <>Nothing matches “{q}”.</> : "No receipts yet. Take payment above, or press Take payment on an invoice."}
+                                        {q ? <>No receipts match “{q}”.</> : "No receipts yet. Take a payment above, or use Take payment on an invoice."}
                                     </TableCell></TableRow>
                                 )}
                                 {data.rows.map((p, i) => (

@@ -29,7 +29,7 @@ export async function sendComment(token: string, text: string): Promise<{ ok: bo
     const found = await inspectionForToken(token);
     if (!found.ok) return { ok: false, message: "This link no longer works." };
     const body = text.trim().slice(0, 1000);
-    if (!body) return { ok: false, message: "Write something first." };
+    if (!body) return { ok: false, message: "Enter a message first." };
     // Kept, not replaced: an earlier message is still part of the conversation.
     const previous = found.inspection.customerComments;
     await found.db.inspection.update({ where: { id: found.inspection.id }, data: { customerComments: previous ? `${previous}\n\n${body}` : body } });

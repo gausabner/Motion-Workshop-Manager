@@ -31,7 +31,7 @@ export function TimeOffPanel({ tenant, mechanics, entries, canEdit }: { tenant: 
                 </form>
             )}
             {entries.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-slate-500">Nobody has time away coming up.</p>
+                <p className="px-4 py-4 text-sm text-slate-500">No upcoming time off.</p>
             ) : (
                 <ul className="divide-y divide-slate-100">
                     {entries.map((e) => (

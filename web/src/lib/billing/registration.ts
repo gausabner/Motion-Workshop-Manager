@@ -105,7 +105,7 @@ export async function choosePlan(userId: string, planId: string): Promise<Choose
         // "Council and multi-site" is priced per site by a human. Issuing a
         // reference for an amount nobody has agreed would invite a payment for
         // the wrong sum, which is harder to undo than to prevent.
-        return { ok: false, message: "That tier is quoted per site — talk to us and we will send you a figure." };
+        return { ok: false, message: "That plan is quoted per site. Contact us for a quote." };
     }
     // No bank-details gate here. There used to be one, and it hid the whole
     // chooser on a deployment whose bank details were not configured — so a

@@ -30,16 +30,16 @@ export default function DashboardError({
             <span className="mb-5 grid h-12 w-12 place-items-center rounded-full bg-amber-50 text-amber-700">
                 <AlertTriangle className="h-5 w-5" aria-hidden="true" />
             </span>
-            <h1 className="text-xl font-bold text-slate-800">That did not work</h1>
+            <h1 className="text-xl font-bold text-slate-800">Something went wrong</h1>
             <p className="mt-2 text-sm text-slate-600">
-                Something went wrong on our side, not yours. Nothing you had already saved is affected.
+                The error was on our side. Anything you had already saved is unaffected. Try again, and if it happens again, contact support.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
                 <Button onClick={reset} className="h-11 bg-teal-600 px-5 hover:bg-teal-700">Try again</Button>
             </div>
             {error.digest && (
                 <p className="mt-6 font-mono text-[11px] text-slate-400">
-                    Reference {error.digest} — quote this if you report it
+                    Reference {error.digest}. Quote this if you contact support.
                 </p>
             )}
         </div>

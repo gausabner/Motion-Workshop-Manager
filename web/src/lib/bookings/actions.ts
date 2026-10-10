@@ -31,7 +31,7 @@ export async function declineBookingRequest(slug: string, requestId: string, rea
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     const why = reason.trim().slice(0, 200);
-    if (!why) return { ok: false, message: "Give a reason — it is what you will tell the customer." };
+    if (!why) return { ok: false, message: "Enter a reason. It is shown to the customer." };
     try {
         await ctx.db.$transaction((tx) => declineRequest(tx, ctx.membership.id, requestId, why));
         await ctx.db.auditEvent.create({ data: { tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "BookingRequest", entityId: requestId, action: "DECLINED", diff: { reason: why } } });
@@ -43,8 +43,8 @@ export async function declineBookingRequest(slug: string, requestId: string, rea
 }
 
 const appointmentTypeSchema = z.object({
-    description: z.string().trim().min(2, "Name the service").max(80),
-    estimatedHours: z.coerce.number().min(0.25, "At least a quarter of an hour").max(24),
+    description: z.string().trim().min(2, "Enter a name for the service.").max(80),
+    estimatedHours: z.coerce.number().min(0.25, "Enter at least 15 minutes.").max(24),
     active: z.boolean(),
 });
 
