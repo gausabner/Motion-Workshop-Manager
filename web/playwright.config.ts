@@ -55,7 +55,12 @@ export default defineConfig({
     webServer: {
         // The production build, not the dev server: these tests should fail if
         // something only works with hot reloading in front of it.
-        command: `npm run build && npx next start --port ${PORT}`,
+        //
+        // Built without the deployment's own settings, as the image is built in
+        // CI, and started with them, as the server runs it. Built with them, a
+        // page that bakes them in at build time passes here and then shows
+        // production a support page with nobody to contact — which it did.
+        command: `env -u MOTION_EDITION -u MOTION_SUPPORT_WHATSAPP -u MOTION_SUPPORT_PHONE -u MOTION_SUPPORT_EMAIL -u MOTION_SUPPORT_HOURS npm run build && npx next start --port ${PORT}`,
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 300_000,

@@ -25,6 +25,18 @@ test("the price is on the page, and it is the floor we set", async ({ page }) =>
     await expect(page.getByText("By quote").first()).toBeVisible();
 });
 
+test("the support page lists the server's contact details, not the build's", async ({ page }) => {
+    // CI sets these for the server only; the build runs without them (see
+    // playwright.config.ts). A support page that was prerendered at build time
+    // says no contact details are configured.
+    await page.goto("/support");
+    await expect(page.getByText("No contact details are configured")).toHaveCount(0);
+    await expect(page.locator('a[href^="mailto:"]').first()).toBeVisible();
+    await expect(page.locator('a[href^="tel:"]').first()).toBeVisible();
+    await expect(page.locator('a[href^="https://wa.me/"]').first()).toBeVisible();
+    await expect(page.getByText(/Office hours:/)).toBeVisible();
+});
+
 test("every page the shell links to exists", async ({ page }) => {
     await page.goto("/");
     const hrefs = await page.locator("footer a, header a").evaluateAll((links) =>

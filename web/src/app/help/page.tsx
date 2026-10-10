@@ -6,6 +6,7 @@ import { PublicPage, PublicBar, PublicFoot, PublicButton } from "@/components/pu
 import { TopicFinder, type FinderGroup } from "@/components/help/TopicFinder";
 import { byGroup, TOPICS } from "@/lib/help";
 import { haystack } from "@/lib/help/content";
+import { atRequestTime } from "@/lib/edition";
 
 export const metadata = {
     title: "Help | MOTION Workshop Manager",
@@ -30,7 +31,8 @@ export const metadata = {
  * search; reusing it means the two searches agree about what a topic says,
  * and it ships as data instead of as every article's full prose.
  */
-export default function HelpIndex() {
+export default async function HelpIndex() {
+    await atRequestTime();
     const groups: FinderGroup[] = byGroup().map((g) => ({
         id: g.id,
         label: g.label,

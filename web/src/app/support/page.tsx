@@ -4,7 +4,7 @@ import { IsoStage } from "@/components/public/iso/IsoStage";
 import { IsoMotion } from "@/components/public/iso/IsoMotion";
 import { SupportScene } from "@/components/public/iso/scenes";
 import { PublicPage, PublicBar, PublicHero, PublicFoot, SpineSection, PublicButton } from "@/components/public/frame";
-import { installation, isOnPrem, support } from "@/lib/edition";
+import { atRequestTime, installation, isOnPrem, support } from "@/lib/edition";
 import { displayPhone } from "@/lib/messaging/phone";
 
 export const metadata = {
@@ -30,7 +30,8 @@ export const metadata = {
  * support is the round trip that only establishes which screen somebody was
  * on. Every line on that list removes one of those.
  */
-export default function SupportPage() {
+export default async function SupportPage() {
+    await atRequestTime();
     const reach = support();
     const onPrem = isOnPrem();
     const admin = installation().administrator;

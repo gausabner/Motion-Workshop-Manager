@@ -1,5 +1,20 @@
 import "server-only";
 
+import { connection } from "next/server";
+
+/**
+ * Waits for a request, so the settings below are read from the running server.
+ *
+ * They are environment variables of the deployment, not of the build. A page
+ * that reads nothing else request-specific is prerendered when the image is
+ * built — in CI, where none of them are set — and production then served a
+ * support page saying no contact details were configured while the server had
+ * all of them. Every otherwise-static page that reads these calls this first.
+ */
+export async function atRequestTime(): Promise<void> {
+    await connection();
+}
+
 /**
  * Which front door this deployment shows.
  *

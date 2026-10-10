@@ -33,7 +33,9 @@ jobs:
       # support page correctly renders "no support channels are configured".
       # Setting them here means CI exercises the configured page rather than
       # the warning — and a deployment that forgets them now fails visibly
-      # instead of shipping a support page with nobody to contact.
+      # instead of shipping a support page with nobody to contact. They reach
+      # the server only: playwright.config.ts builds without them, as the
+      # image is built, so a page that bakes them in at build time fails.
       MOTION_EDITION: cloud
       MOTION_SUPPORT_WHATSAPP: "+264815765935"
       MOTION_SUPPORT_PHONE: "+264815765935"
