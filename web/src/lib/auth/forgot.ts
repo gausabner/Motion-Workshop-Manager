@@ -3,7 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { after } from "next/server";
 import { prisma } from "@/lib/db";
-import { sendMail } from "@/lib/mail/send";
+import { SIGN_OFF, sendMail } from "@/lib/mail/send";
 import { hashResetToken } from "@/lib/team/recovery";
 
 /**
@@ -187,17 +187,17 @@ async function deliverResetLink(message: {
         // screen above exists to prevent.
         subject: "Reset your MOTION password",
         text: [
-            `Hi ${message.firstName},`,
+            `Hello ${message.firstName},`,
             "",
-            `Somebody asked to reset the MOTION password for ${message.workshop}. If that was you, open this link:`,
+            `We received a request to reset your MOTION password for ${message.workshop}. If you made this request, open this link:`,
             "",
             link,
             "",
-            `It works once, and for ${minutes} minutes.`,
+            `The link can be used once and expires in ${minutes} minutes.`,
             "",
-            "If it wasn't you, nothing has changed and you can ignore this. Your current password still works.",
+            "If you did not make this request, you can ignore this email. Your password has not changed.",
             "",
-            "— MOTION",
+            ...SIGN_OFF,
         ].join("\n"),
         html: resetHtml({ firstName: message.firstName, workshop: message.workshop, link, minutes }),
     });
@@ -237,15 +237,15 @@ function resetHtml(parts: { firstName: string; workshop: string; link: string; m
     return `<!doctype html>
 <html lang="en"><body style="margin:0;padding:24px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
-    <p style="margin:0 0 16px;font-size:16px;line-height:1.5">Hi ${name},</p>
-    <p style="margin:0 0 24px;font-size:16px;line-height:1.5">Somebody asked to reset the MOTION password for <strong>${workshop}</strong>. If that was you, set a new one here.</p>
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5">Hello ${name},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5">We received a request to reset your MOTION password for <strong>${workshop}</strong>. If you made this request, set a new password here.</p>
     <p style="margin:0 0 24px">
       <a href="${href}" style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:12px 20px;border-radius:8px">Set a new password</a>
     </p>
-    <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#475569">It works once, and for ${parts.minutes} minutes. If the button does nothing, copy this into your browser:<br>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#475569">The link can be used once and expires in ${parts.minutes} minutes. If the button does not work, copy this address into your browser:<br>
       <span style="word-break:break-all;color:#0f766e">${href}</span>
     </p>
-    <p style="margin:0;font-size:14px;line-height:1.5;color:#475569">If it wasn't you, nothing has changed and you can ignore this — your current password still works.</p>
+    <p style="margin:0;font-size:14px;line-height:1.5;color:#475569">If you did not make this request, you can ignore this email. Your password has not changed.</p>
   </div>
 </body></html>`;
 }

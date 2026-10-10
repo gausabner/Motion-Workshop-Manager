@@ -54,21 +54,21 @@ export const PURPOSE_LABELS: Record<MessagePurpose, string> = {
  * out, which is why "Amount due" sits on a line by itself.
  */
 export const DEFAULT_MESSAGES: Record<MessagePurpose, string> = {
-    QUOTE: "Hi {{customer_first_name}}, here is your quote {{document_number}} for the {{vehicle}} ({{plate}}): {{total}}.\n{{link}}\nReply here with any questions. — {{workshop_name}}",
+    QUOTE: "Hi {{customer_first_name}}, here is quotation {{document_number}} for your {{vehicle}} ({{plate}}): {{total}}.\n{{link}}\nIf you have any questions, reply to this message. — {{workshop_name}}",
     JOB_CARD: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is booked in with us as job {{document_number}}.\n{{link}}\n— {{workshop_name}}",
-    INSPECTION: "Hi {{customer_first_name}}, we have inspected your {{vehicle}} ({{plate}}). Some things need your go-ahead:\nUrgent: {{urgent_total}}\nSoon: {{soon_total}}\nSee the photos and tick what you want done:\n{{link}}\n— {{workshop_name}}",
-    INVOICE: "Hi {{customer_first_name}}, your invoice {{document_number}} from {{workshop_name}} is ready: {{total}}.\nAmount due: {{amount_due}}\n{{link}}\nBanking details are on the invoice. Thank you!",
+    INSPECTION: "Hi {{customer_first_name}}, we have inspected your {{vehicle}} ({{plate}}). Some items need your approval:\nUrgent: {{urgent_total}}\nSoon: {{soon_total}}\nView the photos and select the work you would like done:\n{{link}}\n— {{workshop_name}}",
+    INVOICE: "Hi {{customer_first_name}}, your invoice {{document_number}} from {{workshop_name}} is ready: {{total}}.\nAmount due: {{amount_due}}\n{{link}}\nOur banking details are on the invoice. Thank you for your business.",
     CREDIT: "Hi {{customer_first_name}}, here is credit note {{document_number}} from {{workshop_name}} for {{total}}.\n{{link}}",
-    RECEIPT: "Hi {{customer_first_name}}, thank you — we received {{total}}. Your receipt {{document_number}}:\n{{link}}\n— {{workshop_name}}",
-    REFUND: "Hi {{customer_first_name}}, we have refunded you {{total}}. Your refund slip {{document_number}}:\n{{link}}\n— {{workshop_name}}",
-    STATEMENT: "Hi {{customer_first_name}}, here is your statement from {{workshop_name}}.\nBalance due: {{account_balance}}\n{{link}}\nPlease quote your account name as the EFT reference.",
-    PORTAL: "Hi {{customer_first_name}}, here is your own page at {{workshop_name}}: your invoices, your vehicles' service dates, and anything waiting for your go-ahead, all in one place.\n{{link}}\nKeep this message — the link is your way back in.",
+    RECEIPT: "Hi {{customer_first_name}}, thank you for your payment of {{total}}. Here is your receipt, {{document_number}}:\n{{link}}\n— {{workshop_name}}",
+    REFUND: "Hi {{customer_first_name}}, we have refunded {{total}} to you. Here is your refund slip, {{document_number}}:\n{{link}}\n— {{workshop_name}}",
+    STATEMENT: "Hi {{customer_first_name}}, here is your statement from {{workshop_name}}.\nBalance due: {{account_balance}}\n{{link}}\nPlease use your account name as the payment reference.",
+    PORTAL: "Hi {{customer_first_name}}, here is your customer page at {{workshop_name}}, with your invoices, your vehicles' service dates and anything awaiting your approval.\n{{link}}\nKeep this message: the link is how you return to your page.",
     // Vehicle reminders carry the online booking page when it is open; the "Book online" line drops out when it is not.
-    REMINDER_SERVICE: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is due for a service on {{due_date}}.\nReply here to book it in.\nOr book online: {{link}}\n— {{workshop_name}}",
-    REMINDER_LICENCE: "Hi {{customer_first_name}}, the licence disc on your {{vehicle}} ({{plate}}) expires on {{due_date}}. If it needs a roadworthy or any work first, reply here and we will fit you in.\nOr book online: {{link}}\n— {{workshop_name}}",
-    REMINDER_ROADWORTHY: "Hi {{customer_first_name}}, the roadworthy on your {{vehicle}} ({{plate}}) runs out on {{due_date}}. Reply here to book the test.\nOr book online: {{link}}\n— {{workshop_name}}",
-    REMINDER_BOOKING: "Hi {{customer_first_name}}, a reminder that your {{vehicle}} ({{plate}}) is booked in with us on {{scheduled_at}}.\n{{link}}\nReply here if you need to change it. — {{workshop_name}}",
-    REMINDER_QUOTE: "Hi {{customer_first_name}}, just checking in on quote {{document_number}} for your {{vehicle}} ({{plate}}): {{total}}.\n{{link}}\nReply here to go ahead, or with any questions. — {{workshop_name}}",
+    REMINDER_SERVICE: "Hi {{customer_first_name}}, your {{vehicle}} ({{plate}}) is due for a service on {{due_date}}.\nReply to this message to book it in.\nOr book online: {{link}}\n— {{workshop_name}}",
+    REMINDER_LICENCE: "Hi {{customer_first_name}}, the licence disc for your {{vehicle}} ({{plate}}) expires on {{due_date}}. If it needs a roadworthy test or any work first, reply to this message and we will book you in.\nOr book online: {{link}}\n— {{workshop_name}}",
+    REMINDER_ROADWORTHY: "Hi {{customer_first_name}}, the roadworthy certificate for your {{vehicle}} ({{plate}}) expires on {{due_date}}. Reply to this message to book the test.\nOr book online: {{link}}\n— {{workshop_name}}",
+    REMINDER_BOOKING: "Hi {{customer_first_name}}, a reminder that your {{vehicle}} ({{plate}}) is booked in with us on {{scheduled_at}}.\n{{link}}\nIf you need to change it, reply to this message. — {{workshop_name}}",
+    REMINDER_QUOTE: "Hi {{customer_first_name}}, a reminder about quotation {{document_number}} for your {{vehicle}} ({{plate}}): {{total}}.\n{{link}}\nReply to this message to go ahead, or with any questions. — {{workshop_name}}",
 };
 
 export function purposeForDocument(type: DocumentType): MessagePurpose {
