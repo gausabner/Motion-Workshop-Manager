@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireTenant } from "@/lib/auth/session";
-import { includes, type Feature } from "@/lib/plans/features";
-import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash } from "lucide-react";
+import { FEATURES, PLAN_NAMES, includes, type Feature } from "@/lib/plans/features";
+import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash, Lock } from "lucide-react";
 import { TERM } from "@/lib/copy/terms";
 
 const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; feature?: Feature }[] = [
@@ -85,32 +85,50 @@ export default async function SettingsLayout({
 }) {
     const resolvedParams = await params;
     const basePath = `/${resolvedParams.tenant}/dashboard/settings`;
-    // Settings for a feature the plan does not include are not offered.
+    // Settings for a Full workshop feature the plan does not include are shown
+    // locked, leading to Billing, as in the main navigation. Council-only ones
+    // are not offered at all.
     const { plan } = await requireTenant(resolvedParams.tenant);
-    const items = sidebarNavItems.filter((item) => !item.feature || includes(plan, item.feature));
+    const isLocked = (item: (typeof sidebarNavItems)[number]) => !!item.feature && !includes(plan, item.feature);
+    const items = sidebarNavItems.filter((item) => !isLocked(item) || FEATURES[item.feature!].plan !== "council");
 
     return (
         <div className="flex flex-col space-y-6">
             <div className="flex flex-col space-y-2">
                 <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
                 <p className="text-muted-foreground text-slate-500">
-                    Manage your workshop configurations, tax profiles, and user roles.
+                    Your workshop&apos;s details, tax, document numbers, messages and team.
                 </p>
             </div>
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
                 <aside className="lg:w-1/5">
                     <nav className="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
-                        {items.map((item) => (
-                            <div key={item.href} className="flex flex-col">
-                                <Link
-                                    href={`${basePath}/${item.href}`}
-                                    className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
-                                >
-                                    {item.icon}
-                                    {item.title}
-                                </Link>
-                            </div>
-                        ))}
+                        {items.map((item) =>
+                            isLocked(item) ? (
+                                <div key={item.href} className="flex flex-col">
+                                    <Link
+                                        href={`${basePath}/billing?feature=${item.feature}`}
+                                        title={`Included in the ${PLAN_NAMES[FEATURES[item.feature!].plan]} plan`}
+                                        className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-100/50 hover:text-slate-600"
+                                    >
+                                        {item.icon}
+                                        {item.title}
+                                        <Lock className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                        <span className="sr-only">, included in the {PLAN_NAMES[FEATURES[item.feature!].plan]} plan</span>
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div key={item.href} className="flex flex-col">
+                                    <Link
+                                        href={`${basePath}/${item.href}`}
+                                        className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
+                                    >
+                                        {item.icon}
+                                        {item.title}
+                                    </Link>
+                                </div>
+                            ),
+                        )}
                     </nav>
                 </aside>
                 <div className="flex-1 lg:max-w-4xl">{children}</div>

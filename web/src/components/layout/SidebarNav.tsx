@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import {
     Bell, Building2, Car, CarFront, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
     ListChecks, Megaphone, Package, Receipt, Settings, Timer, TrendingUp, Truck,
-    Users, Wallet, Wrench,
+    Users, Wallet, Wrench, Lock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { Feature } from "@/lib/plans/features";
+import { FEATURES, PLAN_NAMES, type Feature } from "@/lib/plans/features";
 import { TERM } from "@/lib/copy/terms";
 
 /**
@@ -27,7 +27,15 @@ import { TERM } from "@/lib/copy/terms";
  * service advisor reaches for it to find a job, not to count takings.
  */
 
-type Item = { href: string; label: string; icon: LucideIcon; show?: boolean };
+/**
+ * `show` is about the person: a role that may not see costs never sees the
+ * parts screens. `feature` is about the workshop's plan, and a screen outside
+ * it is shown locked rather than hidden, so an owner can see what the next plan
+ * adds and find out how to move up. Council-only features stay hidden: they
+ * are for a different kind of buyer, and listing them to a two-bay workshop
+ * would be noise.
+ */
+type Item = { href: string; label: string; icon: LucideIcon; show?: boolean; feature?: Feature };
 type Group = { label: string; items: Item[] };
 
 export function SidebarNav({
@@ -53,7 +61,7 @@ export function SidebarNav({
             items: [
                 { href: `${base}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
                 { href: `${base}/dashboard/schedule`, label: "Booking diary", icon: CalendarDays },
-                { href: `${base}/dashboard/reminders`, label: "Reminders", icon: Bell, show: has("reminders") },
+                { href: `${base}/dashboard/reminders`, label: "Reminders", icon: Bell, feature: "reminders" },
                 { href: `${base}/dashboard/messages`, label: "Messages", icon: Megaphone },
             ],
         },
@@ -64,7 +72,7 @@ export function SidebarNav({
                 { href: `${base}/dashboard/transactions`, label: TERM.transactions, icon: ListChecks },
                 { href: `${base}/dashboard/customers`, label: "Customers", icon: Users },
                 { href: `${base}/dashboard/vehicles`, label: "Vehicles", icon: Car },
-                { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront, show: has("loanCars") },
+                { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront, feature: "loanCars" },
             ],
         },
         {
@@ -80,9 +88,9 @@ export function SidebarNav({
         {
             label: "Parts and purchasing",
             items: [
-                { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost && has("stock") },
-                { href: `${base}/dashboard/purchasing`, label: TERM.purchasing, icon: Truck, show: cost && has("purchasing") },
-                { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost && has("purchasing") },
+                { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost, feature: "stock" },
+                { href: `${base}/dashboard/purchasing`, label: TERM.purchasing, icon: Truck, show: cost, feature: "purchasing" },
+                { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost, feature: "purchasing" },
             ],
         },
         {
@@ -94,8 +102,12 @@ export function SidebarNav({
         },
     ];
 
+    const locked = (i: Item) => !!i.feature && !has(i.feature);
     const visible = groups
-        .map((g) => ({ ...g, items: g.items.filter((i) => i.show !== false) }))
+        .map((g) => ({
+            ...g,
+            items: g.items.filter((i) => i.show !== false && !(locked(i) && FEATURES[i.feature!].plan === "council")),
+        }))
         .filter((g) => g.items.length > 0);
 
     // Longest matching href wins, so /settings/users marks Team rather than
@@ -103,6 +115,7 @@ export function SidebarNav({
     // gets both of those wrong.
     const active = visible
         .flatMap((g) => g.items)
+        .filter((i) => !locked(i))
         .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
         .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
@@ -114,8 +127,24 @@ export function SidebarNav({
                         {group.label}
                     </p>
                     {group.items.map((item) => {
-                        const isActive = item.href === active;
                         const Icon = item.icon;
+                        if (locked(item)) {
+                            const plan = PLAN_NAMES[FEATURES[item.feature!].plan];
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={`${base}/dashboard/settings/billing?feature=${item.feature}`}
+                                    title={`Included in the ${plan} plan`}
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 focus-visible:bg-slate-100 focus-visible:text-slate-600"
+                                >
+                                    <Icon className="h-[12px] w-[12px] shrink-0" aria-hidden="true" />
+                                    {item.label}
+                                    <Lock className="ml-auto h-[11px] w-[11px] shrink-0" aria-hidden="true" />
+                                    <span className="sr-only">, included in the {plan} plan</span>
+                                </Link>
+                            );
+                        }
+                        const isActive = item.href === active;
                         return (
                             <Link
                                 key={item.href}
