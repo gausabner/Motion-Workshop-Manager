@@ -7,7 +7,7 @@ import { TopicRail } from "@/components/help/TopicRail";
 
 export const metadata = {
     title: "Help | MOTION Workshop Manager",
-    description: "How to run a workshop on MOTION: the job, the money, the parts and the reports.",
+    description: "How to run a workshop on MOTION: the job, customers, money, parts, reports and your subscription.",
 };
 
 /**

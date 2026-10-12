@@ -31,7 +31,7 @@ export function LoanFleet({ tenant, fleet, timezone, customers, jobs, today }: {
 
     const run = (work: () => Promise<{ ok: boolean; message?: string }>) => start(async () => {
         const result = await work();
-        setMessage(result.ok ? null : { ok: false, text: result.message ?? "That did not work" });
+        setMessage(result.ok ? null : { ok: false, text: result.message ?? "That could not be completed. Try again." });
         if (result.ok) { setBooking(null); setAdding(false); router.refresh(); }
     });
 

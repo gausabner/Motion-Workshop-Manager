@@ -23,7 +23,7 @@ async function run(slug: string, id: string, work: (ctx: Awaited<ReturnType<type
         revalidatePath(`/${slug}/dashboard/jobs`);
         return { ok: true, message: message || undefined };
     } catch (error) {
-        return { ok: false, message: error instanceof Error ? error.message : "That did not work" };
+        return { ok: false, message: error instanceof Error ? error.message : "That could not be completed. Try again." };
     }
 }
 

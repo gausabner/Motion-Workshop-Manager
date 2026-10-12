@@ -238,6 +238,13 @@ credit note, plan change, suspension, restored, password reset, staff
 invitation) in the formal voice with one sign-off; the default customer
 messages and printed footers neutral, with quotes called "quotation" where
 the customer reads them. Workshops that edited a template keep their words.
+Phase 6 shipped on 12 October: twelve new help articles (the diary, online
+booking, inspections, the mechanic clock, reminders, campaigns, courtesy cars,
+the customer portal, purchasing, paying for MOTION, read-only and paused
+access, changing plan) in two new groups; every article for a feature outside
+the Workshop plan says which plan includes it; the existing eighteen use the
+glossary and the voice. Alongside it (PR #33), features outside a workshop's
+plan show in the menu with a lock instead of disappearing.
 
 Repeated terms move into one small module (`lib/copy/terms.ts`) so a rename
 happens once. A translation framework is not proposed; MOTION is English-only.

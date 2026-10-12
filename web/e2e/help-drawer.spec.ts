@@ -18,9 +18,9 @@ test("help opens over the screen you are on, already on the right page", async (
 
     const drawer = page.getByRole("dialog", { name: "Help" });
     await expect(drawer).toBeVisible();
-    await expect(drawer.getByRole("heading", { name: "Counting the shelves" })).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "Stock takes" })).toBeVisible();
     // The answer leads, before any of the detail.
-    await expect(drawer.getByText("Draw up a sheet, count onto it")).toBeVisible();
+    await expect(drawer.getByText("Start a stock take, record the counts")).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
@@ -37,7 +37,7 @@ test("a different screen gets a different page", async ({ page, workshop }) => {
     // because somebody pressing Help on the audit page most often wants to
     // know what the six reports are — and the gap report is offered beside it
     // rather than buried.
-    await expect(drawer.getByRole("heading", { name: "The six an auditor asks for" })).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "Audit reports" })).toBeVisible();
     await expect(drawer.getByRole("button", { name: "Number sequence and gaps" })).toBeVisible();
 });
 

@@ -40,6 +40,7 @@ export default async function HelpIndex() {
             slug: t.slug,
             title: t.title,
             question: t.question,
+            plan: t.plan,
             haystack: `${g.label} ${t.title} ${t.question} ${haystack(t)}`.toLowerCase().replace(/[‘’]/g, "'"),
         })),
     }));
@@ -66,7 +67,7 @@ export default async function HelpIndex() {
                     </IsoMotion>
                 }
             />
-            <PublicFoot cta={<PublicButton href="/support" tone="onDark">Reach a person</PublicButton>} />
+            <PublicFoot cta={<PublicButton href="/support" tone="onDark">Contact us</PublicButton>} />
         </PublicPage>
     );
 }
