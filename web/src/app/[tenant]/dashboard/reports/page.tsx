@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Archive, FileSpreadsheet, LineChart, Receipt, Share2, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
+import { Archive, FileSpreadsheet, LineChart, Lock, Receipt, Share2, ShieldCheck, Timer, TrendingUp, Wallet } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
-import { includes } from "@/lib/plans/features";
+import { FEATURES, PLAN_NAMES, includes, type Feature } from "@/lib/plans/features";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 import { dashboardSummary } from "@/lib/dashboard/queries";
@@ -19,7 +19,9 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
     const summary = showMoney ? await dashboardSummary(db, tenant) : null;
     const base = `/${slug}/dashboard/reports`;
 
-    const reports = [
+    // A Full workshop report the plan lacks is listed locked, leading to
+    // Billing; council-only reports stay off the list (see SidebarNav).
+    const reports: { href: string; icon: typeof Receipt; title: string; blurb: string; figure: string | null; show: boolean; feature?: Feature }[] = [
         {
             href: `${base}/margin`, icon: TrendingUp, title: "Profit",
             blurb: "Sales less the cost of parts and labour, by product, with every job ranked by profit.",
@@ -48,7 +50,8 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
             href: `${base}/business`, icon: LineChart, title: TERM.managementReports,
             blurb: "Profit by job, item sales, work in progress, quote outcomes, stock, creditors and renewals, as files you can sort.",
             figure: null,
-            show: includes(plan, "ownerReports"),
+            show: true,
+            feature: "ownerReports" as Feature,
         },
         {
             href: `${base}/accounting`, icon: FileSpreadsheet, title: TERM.accountingExport,
@@ -85,18 +88,31 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
                 <p className="text-sm text-slate-500">Every figure is calculated from the documents when you open the report; nothing is stored.</p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2">
-                {reports.map((report) => (
-                    <li key={report.href}>
-                        <Link href={report.href} className="flex h-full gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3 transition-shadow hover:shadow-md">
-                            <report.icon className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                            <span>
-                                <span className="block font-medium text-slate-800">{report.title}</span>
-                                <span className="block text-xs text-slate-500">{report.blurb}</span>
-                                {report.figure && <span className="mt-1 block text-sm font-semibold tabular-nums text-slate-700">{report.figure}</span>}
-                            </span>
-                        </Link>
-                    </li>
-                ))}
+                {reports.map((report) => {
+                    const locked = report.feature && !includes(plan, report.feature) ? report.feature : null;
+                    return (
+                        <li key={report.href}>
+                            <Link
+                                href={locked ? `/${slug}/dashboard/settings/billing?feature=${locked}` : report.href}
+                                className={`flex h-full gap-3 rounded-sm border px-4 py-3 transition-shadow hover:shadow-md ${locked ? "border-dashed border-slate-300 bg-slate-50" : "border-slate-200 bg-white"}`}
+                            >
+                                <report.icon className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                                <span>
+                                    <span className={`block font-medium ${locked ? "text-slate-500" : "text-slate-800"}`}>{report.title}</span>
+                                    <span className="block text-xs text-slate-500">{report.blurb}</span>
+                                    {locked ? (
+                                        <span className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                                            <Lock className="h-3 w-3" aria-hidden="true" />
+                                            Included in the {PLAN_NAMES[FEATURES[locked].plan]} plan
+                                        </span>
+                                    ) : (
+                                        report.figure && <span className="mt-1 block text-sm font-semibold tabular-nums text-slate-700">{report.figure}</span>
+                                    )}
+                                </span>
+                            </Link>
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );
