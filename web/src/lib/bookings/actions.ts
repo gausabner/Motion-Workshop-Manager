@@ -23,7 +23,7 @@ export async function approveBookingRequest(slug: string, requestId: string, mec
         return { ok: true, documentId: result.documentId, note };
     } catch (error) {
         unstable_rethrow(error);
-        return { ok: false, message: error instanceof Error ? error.message : "That did not work" };
+        return { ok: false, message: error instanceof Error ? error.message : "That could not be completed. Try again." };
     }
 }
 
@@ -31,12 +31,12 @@ export async function declineBookingRequest(slug: string, requestId: string, rea
     const ctx = await requireTenant(slug);
     assertCan(ctx.membership, "documents:write");
     const why = reason.trim().slice(0, 200);
-    if (!why) return { ok: false, message: "Enter a reason. It is shown to the customer." };
+    if (!why) return { ok: false, message: "Enter a reason, as you will give it to the customer." };
     try {
         await ctx.db.$transaction((tx) => declineRequest(tx, ctx.membership.id, requestId, why));
         await ctx.db.auditEvent.create({ data: { tenantId: ctx.tenant.id, actorUserId: ctx.user.id, entityType: "BookingRequest", entityId: requestId, action: "DECLINED", diff: { reason: why } } });
     } catch (error) {
-        return { ok: false, message: error instanceof Error ? error.message : "That did not work" };
+        return { ok: false, message: error instanceof Error ? error.message : "That could not be completed. Try again." };
     }
     revalidate(slug);
     return { ok: true };

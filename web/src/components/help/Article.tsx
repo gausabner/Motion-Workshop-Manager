@@ -1,5 +1,5 @@
 import { Info } from "lucide-react";
-import { slugify, type Block, type Topic } from "@/lib/help/content";
+import { planLine, slugify, type Block, type Topic } from "@/lib/help/content";
 
 /**
  * One article, rendered from blocks.
@@ -113,6 +113,9 @@ export function Article({ topic, compact = false }: { topic: Topic; compact?: bo
             <h1 className={`font-semibold tracking-tight text-slate-900 ${compact ? "text-[17px]" : "text-[30px] leading-tight"}`}>
                 {topic.title}
             </h1>
+            {topic.plan && (
+                <p className={`mt-1.5 text-slate-500 ${compact ? "text-[12px]" : "text-[13px]"}`}>{planLine(topic.plan)}</p>
+            )}
 
             {/* The answer, before anything else. Somebody who reads one
                 sentence and leaves should still have been helped. */}

@@ -27,7 +27,7 @@ export async function joinAction(token: string, _prev: ActionState, formData: Fo
     try {
         joined = await acceptInvitation(token, parsed.data);
     } catch (error) {
-        return { ok: false, message: error instanceof Error ? error.message : "That did not work" };
+        return { ok: false, message: error instanceof Error ? error.message : "That could not be completed. Try again." };
     }
     await createSession(joined.userId, null, (await headers()).get("user-agent"));
     redirect(`/${joined.slug}/dashboard`);

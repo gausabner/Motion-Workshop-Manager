@@ -5,6 +5,8 @@ import { moneyTopics } from "@/lib/help/topics/money";
 import { partsTopics } from "@/lib/help/topics/parts";
 import { reportTopics } from "@/lib/help/topics/reports";
 import { settingsTopics } from "@/lib/help/topics/settings";
+import { customerTopics } from "@/lib/help/topics/customers";
+import { accountTopics } from "@/lib/help/topics/account";
 
 /**
  * The library, and the three ways in.
@@ -20,8 +22,8 @@ import { settingsTopics } from "@/lib/help/topics/settings";
 export * from "@/lib/help/content";
 
 export const TOPICS: Topic[] = [
-    ...startTopics, ...jobTopics, ...moneyTopics,
-    ...partsTopics, ...reportTopics, ...settingsTopics,
+    ...startTopics, ...jobTopics, ...customerTopics, ...moneyTopics,
+    ...partsTopics, ...reportTopics, ...settingsTopics, ...accountTopics,
 ];
 
 export const byGroup = (): { id: GroupId; label: string; topics: Topic[] }[] =>

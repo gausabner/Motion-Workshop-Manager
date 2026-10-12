@@ -172,7 +172,7 @@ export function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                         </>
                     ) : (
                         <div className="text-[13px] leading-[1.65] text-slate-600">
-                            <p>There is no page written for this screen yet.</p>
+                            <p>There is no help page for this screen yet.</p>
                             <p className="mt-3">
                                 Search above, or{" "}
                                 <Link href="/help" target="_blank" className="text-teal-700 underline underline-offset-4">

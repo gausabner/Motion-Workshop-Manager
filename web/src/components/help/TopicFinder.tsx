@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { SpineSection, Pill, PublicHero } from "@/components/public/spine";
+import { SpineSection, PublicHero } from "@/components/public/spine";
 
 /**
  * The help index: everything there is, and a way to make it smaller.
@@ -28,7 +28,7 @@ import { SpineSection, Pill, PublicHero } from "@/components/public/spine";
  * is handed in from the server, since it reads the edition.
  */
 
-export type FinderTopic = { slug: string; title: string; question: string; haystack: string };
+export type FinderTopic = { slug: string; title: string; question: string; haystack: string; plan?: "full" | "council" };
 export type FinderGroup = { id: string; label: string; topics: FinderTopic[] };
 
 export function TopicFinder({
@@ -69,13 +69,8 @@ export function TopicFinder({
         <>
             <PublicHero
                 bar={bar}
-                pill={
-                    <Pill>
-                        <span className="tabular-nums">{total}</span> topics
-                    </Pill>
-                }
                 title="Help"
-                sub={`${total} topics, written as the questions people actually ring about. Every one opens with its answer in a single sentence.`}
+                sub={`${total} topics, each written as the question you would ask and answered in its first sentence.`}
                 figure={figure}
                 cta={
                     <div className="flex w-full flex-col gap-5">
@@ -129,12 +124,12 @@ export function TopicFinder({
                 {shown.length === 0 && (
                     <SpineSection bend="left" label="No matching topics">
                         <p className="max-w-[46ch] text-[1.125rem] text-slate-900">
-                            No topic matches “{term}”. Try one word, like <em>invoice</em> or <em>stock</em> — or{" "}
+                            No topic matches “{term}”. Try a single word, such as <em>invoice</em> or <em>stock</em>, or{" "}
                             <Link
                                 href="/support"
                                 className="font-medium text-slate-900 underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700"
                             >
-                                ask support
+                                contact support
                             </Link>
                             .
                         </p>
@@ -151,16 +146,15 @@ export function TopicFinder({
                     >
                         <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
                             <div className="flex flex-col items-start gap-4">
-                                <Pill>
-                                    <span className="tabular-nums">{group.topics.length}</span>{" "}
-                                    {group.topics.length === 1 ? "topic" : "topics"}
-                                </Pill>
                                 <h2
                                     id={`h-${group.id}`}
                                     className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900"
                                 >
                                     {group.label}
                                 </h2>
+                                <p className="text-[0.9375rem] text-slate-500">
+                                    <span className="tabular-nums">{group.topics.length}</span> {group.topics.length === 1 ? "topic" : "topics"}
+                                </p>
                             </div>
 
                             <ul className="grid gap-4 sm:grid-cols-2">
@@ -178,6 +172,11 @@ export function TopicFinder({
                                             <span className="text-pretty text-[1.125rem] font-medium leading-[1.4] tracking-[-0.01em]">
                                                 “{topic.question}”
                                             </span>
+                                            {topic.plan && (
+                                                <span className="mt-auto pt-1 text-[0.8125rem] text-slate-500">
+                                                    {topic.plan === "full" ? "Full workshop and Council plans" : "Council and multi-site plan"}
+                                                </span>
+                                            )}
                                         </Link>
                                     </li>
                                 ))}

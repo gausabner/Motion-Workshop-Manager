@@ -36,16 +36,18 @@ export type Block =
     | { kind: "term"; term: string; text: string }
     | { kind: "table"; head: string[]; rows: string[][] };
 
-export const GROUPS = ["start", "job", "money", "parts", "reports", "settings"] as const;
+export const GROUPS = ["start", "job", "customers", "money", "parts", "reports", "settings", "account"] as const;
 export type GroupId = (typeof GROUPS)[number];
 
 export const GROUP_LABELS: Record<GroupId, string> = {
     start: "Getting started",
     job: "The job",
+    customers: "Customers and vehicles",
     money: "Money",
-    parts: "Parts and stock",
+    parts: "Parts and purchasing",
     reports: "Reports",
     settings: "Settings and people",
+    account: "Your MOTION subscription",
 };
 
 export type Topic = {
@@ -76,7 +78,20 @@ export type Topic = {
      */
     screens?: string[];
     related?: string[];
+    /**
+     * The plan a feature belongs to, when it is not in every plan. The article
+     * says so under its title, so a reader on a smaller plan learns why the
+     * screen is locked rather than hunting for it.
+     */
+    plan?: "full" | "council";
 };
+
+/** The line an article carries under its title when its feature is not in every plan. */
+export function planLine(plan: Topic["plan"]): string | null {
+    if (plan === "full") return "Included in the Full workshop plan and the Council and multi-site plan.";
+    if (plan === "council") return "Included in the Council and multi-site plan.";
+    return null;
+}
 
 /** Every heading in an article, for the "on this page" rail. */
 export function anchorsOf(topic: Topic): { id: string; text: string }[] {
