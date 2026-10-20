@@ -54,7 +54,7 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
                                 <span className="w-24 shrink-0 tabular-nums text-slate-500">{dateShort(visit.date)}</span>
                                 <span className="min-w-0 flex-1">
                                     <Link href={`/${slug}/dashboard/documents/${visit.id}`} className="text-slate-800 hover:text-teal-700">{visit.description ?? "Service"}</Link>
-                                    <span className="block text-xs text-slate-400">
+                                    <span className="block text-xs text-slate-500">
                                         {visit.number ?? visit.reference ?? ""}
                                         {visit.odometer ? ` · ${visit.odometer.toLocaleString("en-NA")} km` : ""}
                                         {visit.imported ? " · from your previous system" : ""}

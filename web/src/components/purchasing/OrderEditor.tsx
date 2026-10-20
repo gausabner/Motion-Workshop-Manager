@@ -104,7 +104,7 @@ export function OrderEditor({ tenant, order, options, currency, taxRate, today }
                                 </span>
                                 {editable && (
                                     <button type="button" onClick={() => setLines((ls) => (ls.length === 1 ? ls : ls.filter((_, n) => n !== i)))} disabled={line.received > 0}
-                                        className="p-1 text-slate-400 hover:text-red-700 disabled:opacity-30" aria-label="Remove line">
+                                        className="relative hit-area p-1 text-slate-500 hover:text-red-700 disabled:opacity-30" aria-label="Remove line">
                                         <Trash2 className="h-4 w-4" />
                                     </button>
                                 )}

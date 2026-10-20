@@ -177,7 +177,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                                 <tr key={line.key} className={line.bundleRole === "COMPONENT" ? "border-b border-slate-100 last:border-0 bg-slate-50/70 hover:bg-slate-50" : "border-b border-slate-100 last:border-0 hover:bg-slate-50/60"}>
                                     <td className="text-center text-slate-300">
                                         {/* What is inside a bundle sits under it, so the grid reads the way the document prints. */}
-                                        {line.bundleRole === "COMPONENT" ? <span className="text-slate-400" title="Part of the bundle above">└</span> : <GripVertical className="w-3.5 h-3.5 inline" />}
+                                        {line.bundleRole === "COMPONENT" ? <span className="text-slate-500" title="Part of the bundle above">└</span> : <GripVertical className="w-3.5 h-3.5 inline" />}
                                     </td>
                                     <td className="px-1 py-1">
                                         <input
@@ -204,7 +204,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                                     {showCost && (
                                         <td className="px-1 py-1">
                                             <input type="number" step="0.01" min="0" className={num} value={line.unitCost} disabled={readOnly} onChange={(e) => update(i, { unitCost: Number(e.target.value) })} aria-label={`Unit cost, line ${i + 1}`} />
-                                            {t.cost > 0 && <span className={`block text-[10px] text-right pr-1 ${margin < 0 ? "text-red-600" : "text-slate-400"}`}>{margin}% margin</span>}
+                                            {t.cost > 0 && <span className={`block text-[10px] text-right pr-1 ${margin < 0 ? "text-red-600" : "text-slate-500"}`}>{margin}% margin</span>}
                                         </td>
                                     )}
                                     <td className="px-1 py-1"><input type="number" step="0.01" min="0" max="100" className={num} value={line.discountPercent} disabled={readOnly} onChange={(e) => update(i, { discountPercent: Number(e.target.value) })} aria-label={`Discount percent, line ${i + 1}`} /></td>
@@ -212,7 +212,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                                     <td className="px-2 py-1 text-right tabular-nums font-medium text-slate-700">{money(t.lineTotal)}</td>
                                     {!readOnly && (
                                         <td className="px-1 py-1 text-center">
-                                            <button type="button" onClick={() => onChange((prev) => prev.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-600" aria-label={`Remove line ${i + 1}`} title="Remove line">
+                                            <button type="button" onClick={() => onChange((prev) => prev.filter((_, j) => j !== i))} className="relative hit-area text-slate-500 hover:text-red-600" aria-label={`Remove line ${i + 1}`} title="Remove line">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>

@@ -132,7 +132,7 @@ export function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                         type="button"
                         onClick={onClose}
                         aria-label="Close help"
-                        className="-mr-1 flex h-8 w-8 items-center justify-center text-slate-400 hover:text-slate-900"
+                        className="relative hit-area -mr-1 flex h-8 w-8 items-center justify-center text-slate-500 hover:text-slate-900"
                     >
                         <X aria-hidden strokeWidth={1.75} className="h-4 w-4" />
                     </button>

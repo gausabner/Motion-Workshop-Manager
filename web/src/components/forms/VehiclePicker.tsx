@@ -65,7 +65,7 @@ function QuickVehicle({ tenant, customerId, query, done, cancel }: { tenant: str
             </div>
             {message && !Object.keys(errors).length && <p className="text-xs text-red-600" role="alert">{message}</p>}
             <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-slate-400">{customerId ? "Owned by this customer." : "No owner yet — set one on the vehicle page."} VIN, compliance and servicing can be added later.</p>
+                <p className="text-[11px] text-slate-500">{customerId ? "Owned by this customer." : "No owner yet — set one on the vehicle page."} VIN, compliance and servicing can be added later.</p>
                 <div className="flex shrink-0 gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
                     <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" onClick={submit} disabled={pending}>

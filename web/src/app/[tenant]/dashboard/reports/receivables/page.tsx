@@ -71,16 +71,16 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                                                     data-label={bucket === "d90" ? AGEING_LABELS[bucket] : undefined}
                                                     className={`py-2 text-right tabular-nums ${bucket === "d90" && r.ageing[bucket] > 0 ? "text-red-700 font-medium" : "text-slate-600"}`}
                                                 >
-                                                    {r.ageing[bucket] === 0 ? <span className="text-slate-300">—</span> : money(r.ageing[bucket])}
+                                                    {r.ageing[bucket] === 0 ? <span className="text-slate-500">—</span> : money(r.ageing[bucket])}
                                                 </TableCell>
                                             ))}
                                             <TableCell data-label="Owing" className={`py-2 text-right tabular-nums font-semibold ${r.ageing.total < 0 ? "text-teal-700" : "text-slate-800"}`}>{money(r.ageing.total)}</TableCell>
                                             <TableCell className="pr-4 py-2 text-right whitespace-nowrap">
-                                                <Link href={`${base}/customers/${r.customerId}/statement`} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700" title="Statement">
+                                                <Link href={`${base}/customers/${r.customerId}/statement`} className="relative hit-area inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700" title="Statement">
                                                     <FileText className="w-3.5 h-3.5" />
                                                 </Link>
                                                 {wa && (
-                                                    <a href={wa} target="_blank" rel="noopener noreferrer" className="ml-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700" title={`WhatsApp ${r.mobile}`}>
+                                                    <a href={wa} target="_blank" rel="noopener noreferrer" className="relative hit-area ml-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700" title={`WhatsApp ${r.mobile}`}>
                                                         <MessageCircle className="w-3.5 h-3.5" />
                                                     </a>
                                                 )}
@@ -101,12 +101,12 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                     <dl className="flex flex-wrap items-end gap-6 text-xs">
                         {AGEING_BUCKETS.map((bucket) => (
                             <div key={bucket} className="text-right">
-                                <dt className="text-[10px] uppercase tracking-wider text-slate-400">{AGEING_LABELS[bucket]}</dt>
+                                <dt className="text-[10px] uppercase tracking-wider text-slate-500">{AGEING_LABELS[bucket]}</dt>
                                 <dd className={`tabular-nums font-medium ${bucket === "d90" && totals[bucket] > 0 ? "text-red-700" : "text-slate-700"}`}>{money(totals[bucket])}</dd>
                             </div>
                         ))}
                         <div className="text-right border-l pl-6">
-                            <dt className="text-[10px] uppercase tracking-wider text-slate-400">Total owing</dt>
+                            <dt className="text-[10px] uppercase tracking-wider text-slate-500">Total owing</dt>
                             <dd className="text-base tabular-nums font-bold text-slate-800">{money(totals.total)}</dd>
                         </div>
                     </dl>

@@ -86,7 +86,7 @@ export function RegisterForm({ host, initialPlan }: { host: string; initialPlan?
                 <select id="country" name="country" value={country} onChange={(e) => setCountry(e.target.value)} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
                     {Object.entries(COUNTRY_DEFAULTS).map(([code, c]) => <option key={code} value={code}>{c.name}</option>)}
                 </select>
-                <p className="text-xs text-slate-400">Sets {local.currency}, {local.taxName} at {local.taxRate}% and {local.timezone.split("/")[1]} time. You can change any of it later.</p>
+                <p className="text-xs text-slate-500">Sets {local.currency}, {local.taxName} at {local.taxRate}% and {local.timezone.split("/")[1]} time. You can change any of it later.</p>
             </Field>
             <div className="grid grid-cols-2 gap-3">
                 <Field label="First name" name="firstName" error={state.errors?.firstName}><Input id="firstName" name="firstName" required autoComplete="given-name" /></Field>

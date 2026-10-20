@@ -70,7 +70,7 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                                     <td data-mobile="hide" className="px-2 py-2 text-slate-500">{TYPE_LABEL[r.type] ?? r.type}</td>
                                     <td data-label="Shelf" className="px-2 py-2 text-slate-500">{r.location ?? ""}</td>
                                     <td data-label="On hand" className={`px-2 py-2 text-right tabular-nums ${r.onHand < 0 ? "font-semibold text-red-700" : low ? "font-medium text-amber-700" : "text-slate-700"}`}>
-                                        {r.tracked ? r.onHand : <span className="text-slate-300">—</span>}
+                                        {r.tracked ? r.onHand : <span className="text-slate-500">—</span>}
                                         {low && r.onHand >= 0 && <AlertTriangle className="ml-1 inline h-3 w-3" aria-label="At or below minimum" />}
                                     </td>
                                     <td data-label="Cost" className="px-2 py-2 text-right tabular-nums text-slate-600">{money(r.cost, currency)}</td>

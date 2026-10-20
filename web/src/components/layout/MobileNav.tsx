@@ -130,13 +130,13 @@ export function MobileNav({
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 aria-label="Close menu"
-                                className="-mr-2 grid h-10 w-10 place-items-center rounded-lg text-slate-500"
+                                className="relative hit-area -mr-2 grid h-10 w-10 place-items-center rounded-lg text-slate-500"
                             >
                                 <X className="h-5 w-5" aria-hidden="true" />
                             </button>
                         </div>
                         <div className="border-b px-4 py-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Workshop</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Workshop</p>
                             <p className="truncate text-sm font-medium text-slate-800">{workshopName}</p>
                         </div>
                         {/* `contain` keeps this list's own bounce but stops the page

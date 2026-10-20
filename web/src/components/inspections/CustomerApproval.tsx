@@ -127,7 +127,7 @@ export function CustomerApproval({ token, workshop, vehicle, findings: initial, 
                         <summary className="flex cursor-pointer items-center justify-between text-base font-medium text-teal-800">
                             {fine.length} things checked and fine <ChevronDown className="h-5 w-5" />
                         </summary>
-                        <ul className="mt-2 space-y-1 text-sm text-slate-600">{fine.map((g, n) => <li key={n}>✓ {g.description} <span className="text-slate-400">· {g.group}</span></li>)}</ul>
+                        <ul className="mt-2 space-y-1 text-sm text-slate-600">{fine.map((g, n) => <li key={n}>✓ {g.description} <span className="text-slate-500">· {g.group}</span></li>)}</ul>
                     </details>
                 )}
 

@@ -81,7 +81,7 @@ export function TopicFinder({
                             <div className="relative">
                                 <Search
                                     aria-hidden
-                                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+                                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-600"
                                     strokeWidth={1.75}
                                 />
                                 <input
@@ -97,7 +97,7 @@ export function TopicFinder({
                             {/* Polite, not assertive: this updates on every
                                 keystroke, and assertive would interrupt a
                                 screen reader on each letter typed. */}
-                            <p aria-live="polite" className="text-[0.8125rem] text-slate-500">
+                            <p aria-live="polite" className="text-[0.8125rem] text-slate-600">
                                 {term ? (count === 1 ? "1 topic matches" : `${count} topics match`) : `Showing all ${total} topics`}
                             </p>
                         </div>
@@ -152,7 +152,7 @@ export function TopicFinder({
                                 >
                                     {group.label}
                                 </h2>
-                                <p className="text-[0.9375rem] text-slate-500">
+                                <p className="text-[0.9375rem] text-slate-600">
                                     <span className="tabular-nums">{group.topics.length}</span> {group.topics.length === 1 ? "topic" : "topics"}
                                 </p>
                             </div>
@@ -164,7 +164,7 @@ export function TopicFinder({
                                             href={`/help/${topic.slug}`}
                                             className="flex h-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-[1.4rem] pb-[1.4rem] pt-5 text-slate-900 motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 hover:border-teal-700"
                                         >
-                                            <span className="text-[0.875rem] font-medium text-slate-500">{topic.title}</span>
+                                            <span className="text-[0.875rem] font-medium text-slate-600">{topic.title}</span>
                                             {/* The question in the words somebody
                                                 would say it. This is what makes the
                                                 list scannable: a reader looks for
@@ -173,7 +173,7 @@ export function TopicFinder({
                                                 “{topic.question}”
                                             </span>
                                             {topic.plan && (
-                                                <span className="mt-auto pt-1 text-[0.8125rem] text-slate-500">
+                                                <span className="mt-auto pt-1 text-[0.8125rem] text-slate-600">
                                                     {topic.plan === "full" ? "Full workshop and Council plans" : "Council and multi-site plan"}
                                                 </span>
                                             )}

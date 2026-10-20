@@ -86,7 +86,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
                                 <span className="min-w-0 flex-1 truncate text-slate-600">{i.supplier.companyName}{i.order?.number ? ` · order ${i.order.number}` : ""}</span>
                                 <span className="text-xs text-slate-500">{dateShort(i.postDate)}</span>
                                 <span className="tabular-nums text-slate-700">{money(i.total, tenant.currency)}</span>
-                                <span className={`w-20 text-right text-xs ${i.state === "VOID" ? "text-slate-400" : i.state === "DRAFT" ? "text-amber-700" : "text-slate-500"}`}>{INVOICE_STATE[i.state]}</span>
+                                <span className={`w-20 text-right text-xs ${i.state === "VOID" ? "text-slate-500" : i.state === "DRAFT" ? "text-amber-700" : "text-slate-500"}`}>{INVOICE_STATE[i.state]}</span>
                             </li>
                         ))}
                     </ul>
@@ -104,7 +104,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
                                 <span className="min-w-0 flex-1 truncate text-slate-600">{p.suppliers.join(", ") || "Nothing applied yet"}</span>
                                 <span className="text-xs text-slate-500">{dateShort(p.postDate)}{p.method ? ` · ${p.method}` : ""}{p.reference ? ` · ${p.reference}` : ""}</span>
                                 <span className="tabular-nums text-slate-700">{money(p.amount, tenant.currency)}</span>
-                                <span className={`w-16 text-right text-xs ${p.state === "VOID" ? "text-slate-400" : p.state === "DRAFT" ? "text-amber-700" : "text-slate-500"}`}>
+                                <span className={`w-16 text-right text-xs ${p.state === "VOID" ? "text-slate-500" : p.state === "DRAFT" ? "text-amber-700" : "text-slate-500"}`}>
                                     {p.state === "VOID" ? "Reversed" : p.state === "DRAFT" ? "Draft" : "Paid"}
                                 </span>
                             </li>

@@ -16,7 +16,7 @@ colors:
   surface: "#ffffff"
   surface-sunken: "#f8fafc"
   surface-band: "#e2e8f0"
-  app-ground: "oklch(0.97 0 0)"
+  app-ground: "#f8fafc"
   overdue: "#b91c1c"
   caution: "#b45309"
 typography:
@@ -191,15 +191,15 @@ A slate-and-white palette with one teal, and two warning hues that are allowed t
 ### Neutral
 - **Ledger Ink** (`{colors.ink}`): headings, titles, the value a reader came for, the active rail item.
 - **Body Ink** (`{colors.ink-strong}` / `{colors.secondary-ink}`): running prose and table values.
-- **Muted Ink** (`{colors.muted-ink}`): labels, captions, questions under a title, secondary counts. The most-used text colour in the app, which is correct for a surface made mostly of labels.
-- **Faint Ink** (`{colors.faint-ink}`): icons at rest, scrollbar thumb hover, the em-dash standing in for an empty figure.
+- **Muted Ink** (`{colors.muted-ink}`): labels, captions, questions under a title, secondary counts, and the em-dash standing in for an empty figure. The most-used text colour in the app, which is correct for a surface made mostly of labels. It is 4.8:1 on white and 4.55:1 on the app ground, so it holds AA on both; on a slate-100 band (the public pages) step up to slate-600.
+- **Faint Ink** (`{colors.faint-ink}`): decorative icons beside a label, scrollbar thumb hover. Never text, and never the only mark of a control: at 2.6:1 on white it is under AA for both.
 - **Hairline** (`{colors.hairline}`): the workhorse. Every structural division in the product is this, 1px.
 - **Faint Hairline** (`{colors.hairline-faint}`): the lighter divider used between rows of a list where a full hairline would over-rule the stack.
 - **Field Edge** (`{colors.field-edge}`): the resting border of a text field, one step darker than a structural hairline so a field reads as a control.
 - **Paper** (`{colors.surface}`): the ground of every surface a reader looks at.
 - **Sunken Paper** (`{colors.surface-sunken}`): zebra rows, table heads, footer summaries, the note block's ground at 70% opacity.
 - **Band Slate** (`{colors.surface-band}`): the filled header band at the top of a report panel.
-- **App Ground** (`{colors.app-ground}`): the body colour behind everything, a near-white grey. Surfaces paint pure white on top of it.
+- **App Ground** (`{colors.app-ground}`): the body colour behind everything, slate-50. Surfaces paint pure white on top of it and are told apart by their hairlines. It was a darker grey until 20 October 2026, when muted ink on it measured 4.36:1.
 
 ### Tertiary
 - **Overdue Red** (`{colors.overdue}`): one job only — a figure or state that is past due or has failed. Never a brand colour, never a button.
@@ -278,7 +278,7 @@ Silhouette is rectangular and edge-to-edge. Panels run to the full width of thei
 - **Shape:** square-ish; 2px corners (`rounded-sm`) on icon buttons, 2px on text buttons. 36px default height, 32px small, 40px large.
 - **Primary:** filled teal, white label, 14px medium, 16px side padding.
 - **Hover / Focus:** hover deepens the teal one step; focus is the global 2px teal outline at 2px offset, keyboard-only. Transitions are colour-only, 150ms.
-- **Outline / Ghost:** white ground with a slate-200 border and slate-700 label; ghost is bare, taking a `surface-sunken` ground and ink-dark label on hover. Icon-only buttons are 32px squares of faint ink that darken and take a faint ground on hover.
+- **Outline / Ghost:** white ground with a slate-200 border and slate-700 label; ghost is bare, taking a `surface-sunken` ground and ink-dark label on hover. Icon-only buttons are 32px squares of muted ink that darken and take a faint ground on hover. Each carries an `aria-label` and the `.hit-area` class, which gives it an invisible 44px target on a touch screen without moving the layout.
 - **Touch:** on coarse pointers a press scales to 0.985 so the control answers the finger rather than the lift; suppressed under `prefers-reduced-motion`.
 
 ### Cards / Containers

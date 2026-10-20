@@ -105,11 +105,11 @@ export function TemplateEditor({ tenant, kind, label, description, body: initial
                     </details>
                 </div>
                 <div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">What the customer reads</p>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">What the customer reads</p>
                     <div className="rounded-md border border-slate-200 bg-[#e7f7ee] p-3">
-                        <p className="whitespace-pre-wrap break-words text-sm text-slate-800">{preview || <span className="italic text-slate-400">Nothing — this prints blank.</span>}</p>
+                        <p className="whitespace-pre-wrap break-words text-sm text-slate-800">{preview || <span className="italic text-slate-500">Nothing — this prints blank.</span>}</p>
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-400">Sample customer and vehicle; your own workshop details.</p>
+                    <p className="mt-1 text-[11px] text-slate-500">Sample customer and vehicle; your own workshop details.</p>
                 </div>
             </div>
         </form>

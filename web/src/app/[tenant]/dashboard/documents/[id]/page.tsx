@@ -108,7 +108,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                                     {loan.inAt ? ` on ${dateShort(loan.inAt)}` : `, due back ${dateShort(loan.dueBackAt)}`}
                                 </span>
                                 {loan.odometerOut !== null && (
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-slate-500">
                                         {loan.odometerIn !== null
                                             ? `${(loan.odometerIn - loan.odometerOut).toLocaleString("en-NA")} km on it`
                                             : `out on ${loan.odometerOut.toLocaleString("en-NA")} km`}
@@ -220,7 +220,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                                     <strong className="font-medium">{JOB_STATUS_LABELS[e.toStatus]}</strong>
                                     {e.comment && <span className="text-slate-500"> — {e.comment}</span>}
                                 </span>
-                                <span className="text-xs text-slate-400 whitespace-nowrap">
+                                <span className="text-xs text-slate-500 whitespace-nowrap">
                                     {e.by ? `${e.by.user.firstName} ${e.by.user.lastName} · ` : ""}{dateShort(e.at)}
                                 </span>
                             </li>

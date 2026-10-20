@@ -84,7 +84,7 @@ export function CustomerSheet({
                         type="button"
                         onClick={() => router.back()}
                         aria-label="Close"
-                        className="-mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-500"
+                        className="relative hit-area -mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-500"
                     >
                         <X className="h-5 w-5" aria-hidden="true" />
                     </button>

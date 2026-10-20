@@ -10,7 +10,7 @@ export function RevokeLinkButton({ tenant, shareLinkId }: { tenant: string; shar
 
     if (!confirming) {
         return (
-            <button type="button" onClick={() => setConfirming(true)} className="text-[11px] text-slate-400 hover:text-red-700">
+            <button type="button" onClick={() => setConfirming(true)} className="text-[11px] text-slate-500 hover:text-red-700">
                 Withdraw link
             </button>
         );
@@ -24,7 +24,7 @@ export function RevokeLinkButton({ tenant, shareLinkId }: { tenant: string; shar
             >
                 {pending ? "Withdrawing…" : "Confirm — it will stop opening"}
             </button>
-            <button type="button" onClick={() => setConfirming(false)} className="text-slate-400 hover:text-slate-600">Cancel</button>
+            <button type="button" onClick={() => setConfirming(false)} className="text-slate-500 hover:text-slate-600">Cancel</button>
         </span>
     );
 }

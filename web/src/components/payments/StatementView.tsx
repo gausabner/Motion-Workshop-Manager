@@ -59,7 +59,7 @@ export function StatementView({ tenant, statement, workshopName, canSend = false
                         {customer.postalAddress1 && <p>{customer.postalAddress1}</p>}
                         {customer.postalCity && <p>{customer.postalCity}</p>}
                         {customer.email && <p>{customer.email}</p>}
-                        <p className="mt-1 text-slate-400">{workshopName}</p>
+                        <p className="mt-1 text-slate-500">{workshopName}</p>
                     </div>
                 </div>
 
@@ -83,7 +83,7 @@ export function StatementView({ tenant, statement, workshopName, canSend = false
                         {rows.map((r) => (
                             <TableRow key={`${r.kind}-${r.id}`} className="text-sm">
                                 <TableCell className="pl-6 py-1.5 tabular-nums text-slate-600 whitespace-nowrap">{dateShort(r.postDate)}</TableCell>
-                                <TableCell className="py-1.5 text-slate-700">{r.label}{r.reference ? <span className="text-slate-400"> · {r.reference}</span> : null}</TableCell>
+                                <TableCell className="py-1.5 text-slate-700">{r.label}{r.reference ? <span className="text-slate-500"> · {r.reference}</span> : null}</TableCell>
                                 <TableCell className="py-1.5 text-slate-600">
                                     {r.kind === "DOCUMENT"
                                         ? <Link href={`/${tenant}/dashboard/documents/${r.id}`} className="hover:text-teal-700">{r.number ?? "—"}</Link>
@@ -103,7 +103,7 @@ export function StatementView({ tenant, statement, workshopName, canSend = false
                     <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-1 text-xs">
                         {AGEING_BUCKETS.map((bucket) => (
                             <div key={bucket}>
-                                <dt className="text-[10px] uppercase tracking-wider text-slate-400">{AGEING_LABELS[bucket]}</dt>
+                                <dt className="text-[10px] uppercase tracking-wider text-slate-500">{AGEING_LABELS[bucket]}</dt>
                                 <dd className={`tabular-nums font-medium ${bucket === "d90" && ageing[bucket] > 0 ? "text-red-700" : "text-slate-700"}`}>{money(ageing[bucket])}</dd>
                             </div>
                         ))}

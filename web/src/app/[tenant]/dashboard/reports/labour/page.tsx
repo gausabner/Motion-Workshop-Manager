@@ -15,7 +15,7 @@ export const metadata = { title: "Mechanic time | MOTION Workshop Manager" };
 const valid = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 
 function tone(efficiency: number | null): string {
-    if (efficiency === null) return "text-slate-400";
+    if (efficiency === null) return "text-slate-500";
     if (efficiency >= 100) return "text-teal-700";
     if (efficiency >= 80) return "text-amber-700";
     return "text-red-700";

@@ -29,7 +29,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
                             else. */}
                         <Link href="/help" className="flex shrink-0 items-center gap-2.5 text-slate-900">
                             <MotionLogo className="h-[18px] w-auto" />
-                            <span className="hidden text-[13px] text-slate-400 sm:inline">Help</span>
+                            <span className="hidden text-[13px] text-slate-500 sm:inline">Help</span>
                         </Link>
                         {/* Desktop: search sits between the brand and the way
                             back in, reachable from every page of the manual. */}

@@ -33,7 +33,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                     <div className="flex items-center gap-3">
                         <CustomerListControls q={q} archived={archived} />
                         <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
-                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add vehicle">
+                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add vehicle" aria-label="Add vehicle">
                             <Link href={`${base}/vehicles/new`}><Plus className="w-5 h-5" /></Link>
                         </Button>
                     </div>
@@ -61,11 +61,11 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                                 <TableRow key={v.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none text-sm`}>
                                     <TableCell data-mobile="primary" className="pl-4 py-2"><Link href={`${base}/vehicles/${v.id}`} className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded">{v.plate}</Link></TableCell>
                                     <TableCell data-label="Vehicle" className="py-2 text-slate-700">{v.year ? `${v.year} ` : ""}{v.make} {v.model}</TableCell>
-                                    <TableCell data-label="Customer" className="py-2 text-slate-600">{v.customer ? <Link href={`${base}/customers/${v.customer.id}`} className="hover:text-teal-700">{v.customer.firstName} {v.customer.lastName}</Link> : <span className="text-slate-400">—</span>}</TableCell>
+                                    <TableCell data-label="Customer" className="py-2 text-slate-600">{v.customer ? <Link href={`${base}/customers/${v.customer.id}`} className="hover:text-teal-700">{v.customer.firstName} {v.customer.lastName}</Link> : <span className="text-slate-500">—</span>}</TableCell>
                                     <TableCell data-label="Odometer" className="py-2 text-right tabular-nums text-slate-600">{v.odometer?.toLocaleString("en-NA") ?? ""}</TableCell>
                                     <TableCell data-label="Licence disc" className={`py-2 tabular-nums ${flag(v.licenceExpiry)}`}>{dateShort(v.licenceExpiry)}</TableCell>
                                     <TableCell className={`py-2 tabular-nums ${flag(v.roadworthyExpiry)}`}>{dateShort(v.roadworthyExpiry)}</TableCell>
-                                    <TableCell className="py-2 pr-4 text-right"><Link href={`${base}/vehicles/${v.id}`} className="inline-flex items-center justify-center w-8 h-7 rounded-sm border border-teal-500 text-teal-700 bg-white hover:bg-teal-50 shadow-sm" title="Edit"><Pencil className="w-4 h-4" /></Link></TableCell>
+                                    <TableCell className="relative hit-area py-2 pr-4 text-right"><Link href={`${base}/vehicles/${v.id}`} className="inline-flex items-center justify-center w-8 h-7 rounded-sm border border-teal-500 text-teal-700 bg-white hover:bg-teal-50 shadow-sm" title="Edit"><Pencil className="w-4 h-4" /></Link></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -73,10 +73,10 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                 </CardContent>
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
-                        <Link href={pageHref(data.page - 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
+                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
+                        <Link aria-label="Previous page" href={pageHref(data.page - 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
                         <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link href={pageHref(data.page + 1)} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
+                        <Link aria-label="Next page" href={pageHref(data.page + 1)} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>
             </Card>

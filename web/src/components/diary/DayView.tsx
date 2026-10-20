@@ -181,7 +181,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                         <span className={`text-[10px] tabular-nums ${tone!.text}`}>{info.working ? `${info.load.percent}%` : "Off"}</span>
                                     </div>
                                 ) : (
-                                    <p className="mt-0.5 text-[10px] text-slate-400">{count ? `${count} to place` : "Nothing waiting"}</p>
+                                    <p className="mt-0.5 text-[10px] text-slate-500">{count ? `${count} to place` : "Nothing waiting"}</p>
                                 )}
                             </div>
                         );
@@ -190,7 +190,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                     {/* Time gutter */}
                     <div className="relative border-r border-slate-200" style={{ height }}>
                         {slots.map((m) => (
-                            <span key={m} className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums text-slate-400" style={{ top: y(m) }}>
+                            <span key={m} className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums text-slate-500" style={{ top: y(m) }}>
                                 {m % 60 === 0 ? minuteLabel(m) : ""}
                             </span>
                         ))}
@@ -272,7 +272,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                             onPointerUp={() => onBlockPointerUp(b)}
                                             onPointerCancel={() => setDrag(null)}
                                             title={`${minuteLabel(b.start)}–${minuteLabel(b.start + minutes)} · ${b.plate ?? ""} ${b.customer ?? ""}${clashing.has(b.id) ? " · clashes with another booking" : ""}`}
-                                            className={`absolute z-10 select-none overflow-hidden rounded border-l-4 border px-1.5 py-0.5 text-[11px] leading-tight shadow-sm touch-none ${blockTone(b.jobStatus, clashing.has(b.id))} ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${moving ? "opacity-40" : ""}`}
+                                            className={`absolute z-10 select-none overflow-hidden rounded border px-1.5 py-0.5 text-[11px] leading-tight shadow-sm touch-none ${blockTone(b.jobStatus, clashing.has(b.id))} ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${moving ? "opacity-40" : ""}`}
                                             style={{ top: y(b.start) + 1, height: Math.max(minutes * PX_PER_MINUTE - 2, 18), left: `calc(${place.column * width}% + 2px)`, width: `calc(${width}% - 4px)` }}
                                         >
                                             <p className="font-semibold tabular-nums">
@@ -298,7 +298,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                     })}
                 </div>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500">
                 Drag a booking to move it, drag its bottom edge to change how long it takes, click an empty slot to book it. Red outlines are clashes — allowed, just visible.
             </p>
         </div>

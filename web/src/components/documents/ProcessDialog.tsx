@@ -107,7 +107,7 @@ export function ProcessDialog({ tenant, doc }: { tenant: string; doc: DocumentRe
                                                 <input name="roadworthyExpiry" type="date" defaultValue={doc.vehicle.roadworthyExpiry ? dateInput(doc.vehicle.roadworthyExpiry) : ""} className={input} />
                                             </label>
                                         </div>
-                                        <p className="text-[11px] text-slate-400">These go on the car&rsquo;s record and drive its reminders. Leave a renewal blank to keep what is on file.</p>
+                                        <p className="text-[11px] text-slate-500">These go on the car&rsquo;s record and drive its reminders. Leave a renewal blank to keep what is on file.</p>
                                     </>
                                 )}
                             </div>

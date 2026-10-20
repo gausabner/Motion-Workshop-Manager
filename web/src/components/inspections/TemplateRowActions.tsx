@@ -24,7 +24,7 @@ export function TemplateRowActions({ tenant, id, active, used }: { tenant: strin
                         <Button type="button" size="sm" variant="ghost" className="h-7" onClick={() => setConfirmDelete(false)}>Keep</Button>
                     </>
                 ) : (
-                    <Button type="button" size="sm" variant="ghost" className="h-7 text-slate-400" onClick={() => setConfirmDelete(true)}>Delete</Button>
+                    <Button type="button" size="sm" variant="ghost" className="h-7 text-slate-500" onClick={() => setConfirmDelete(true)}>Delete</Button>
                 ))}
             </div>
             {message && <p className="max-w-xs text-right text-xs text-red-600" role="alert">{message}</p>}

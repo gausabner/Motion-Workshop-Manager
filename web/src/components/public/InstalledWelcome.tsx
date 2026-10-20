@@ -83,7 +83,7 @@ export function InstalledWelcome() {
                         ].map(([label, value]) => (
                             <div key={label} className="flex gap-2 border-b border-slate-100 py-1.5">
                                 <dt className="w-40 shrink-0 text-slate-500">{label}</dt>
-                                <dd className={value ? "text-slate-800" : "text-slate-400"}>{value ?? "not recorded"}</dd>
+                                <dd className={value ? "text-slate-800" : "text-slate-500"}>{value ?? "not recorded"}</dd>
                             </div>
                         ))}
                     </dl>

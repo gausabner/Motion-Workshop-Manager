@@ -8,14 +8,21 @@ desktop width.
 
 ## Health score
 
-| # | Dimension | Score | Key finding |
-| --- | --- | --- | --- |
-| 1 | Accessibility | 3 | Locked menu items were 2.6:1 contrast (fixed) |
-| 2 | Performance | 3 | Registration progress bar animated `width` for 500ms (fixed) |
-| 3 | Theming | 2 → 4 | Settings used rounded, tinted cards and two teals (fixed in the follow-up) |
-| 4 | Responsive | 3 → 4 | Settings menu was 1,260px wide on a 375px phone; drawer rows were 32px (both fixed) |
-| 5 | Implementation integrity | 3 | One detector finding (fixed); the voice and glossary hold |
-| **Total** | | **14/20 → 17/20** | **Good** at the audit; every P2 since resolved |
+| # | Dimension | At the audit | Whole app, after #36 | After #37 | Still between it and 4 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Accessibility | 3 | 3 | 4 | — (axe on the screens PR 2 restyles) |
+| 2 | Performance | 3 | 3 | 4 | — |
+| 3 | Theming | 2 | 3 | 3 | Rounded, shadowed and tinted panels outside settings |
+| 4 | Responsive | 3 | 3 | 3 | Document editor, diary week and report tables unchecked at 375px |
+| 5 | Implementation integrity | 3 | 3 | 3 | The same drift as Theming, screen by screen |
+| **Total** | | **14** | **15** | **17/20** | PR 2: the Ledger pass over the rest of the app |
+
+**A correction.** After #36 this table said 17/20. That raised Theming and
+Responsive to 4 on the strength of the settings screens alone; a scan of the
+whole app found the same rounded, tinted and shadowed panels on most other
+screens (149 `rounded-md`, 54 larger radii, 38 shadows, 42 tinted boxes) and
+32px icon buttons throughout. Scored across the whole app it was 15. The
+17 above is the whole app after #37.
 
 **Integrity verdict: pass.** The public pages and the signed-in app each
 express their own coherent system: the iso/spine world outside, the Ledger
@@ -78,6 +85,64 @@ anti-pattern in the files changed (the sidebar's 2px coloured marker).
   cookie is sent by the proxy to `/start`, which looks the session up and
   goes on to their workshop, or clears a dead cookie and returns them to the
   front page. Five clean loads out of five after the change.
+
+### Fixed in #37: contrast, labels, targets, measured
+
+- **Helper text at 2.6:1.** 166 uses of slate-400 on text, and on the
+  only mark of an icon-only control, are now slate-500 (4.8:1). Icons beside
+  a label keep slate-400. One label on the dark inspection-approval header
+  stays light, where slate-400 is the higher contrast. The em-dash for an
+  empty figure moved with them.
+- **Muted ink on the grey ground was 4.36:1.** axe found that slate-500,
+  which passes on white, fails on the old app ground (#f5f5f5) and on
+  slate-100. The ground is now slate-50 (#f8fafc), where it is 4.55:1; this
+  fixes about forty page subtitles at once. On the public pages the slate-100
+  bands are kept and the text inside them is slate-600.
+- **Unnamed controls.** Eight pagination arrows were announced as "link";
+  they are "Previous page" and "Next page". The two Add buttons gained a
+  label as well as a title. The job board's sideways-scrolling area can now be
+  reached and scrolled from the keyboard.
+- **White on amber-500 (2.1:1).** The customer list's WhatsApp and Email
+  buttons now use the teal outline of the buttons beside them; amber is kept
+  for money, as DESIGN.md has it.
+- **Touch targets.** Every icon-only control (55 found by a scan, and every
+  icon size of the shared Button) carries `.hit-area`: on a coarse pointer an
+  invisible 44px square centred on it, with no change to the layout. Checked
+  on an emulated phone: a 32×28 WhatsApp button and the 32px help button both
+  take a tap 5px outside their drawn edge. Four pagination groups lost the
+  `overflow: hidden` that clipped those squares.
+- **`transition-all` in the shared Button, Tabs and Switch.** Every button in
+  the app inherited it. Now `transition` (colour, shadow, transform) and
+  `transition-colors`.
+- **Detector: 0 findings across `src`.** The diary's 4px status stripes went;
+  the blocks keep their status tint and 1px border. The portal's welcome note
+  lost its stripe, and the team screen's tabs use a 1px underline on the rule.
+- **axe in the end-to-end suite.** `e2e/accessibility.spec.ts` checks WCAG 2.2
+  A and AA on six public pages and twelve signed-in screens against the
+  production build, and fails on any violation. It found the ground problem
+  above, which no review had.
+- **Measured, not assumed.** Production build, Pixel 7 profile, 4× CPU
+  slowdown, 1.6 Mbps with 150 ms latency, cache off:
+
+  | Page | JS (compressed) | Total | LCP | CLS |
+  | --- | --- | --- | --- | --- |
+  | Front page | 168 KB | 289 KB | 1.16 s | 0 |
+  | Pricing | 167 KB | 283 KB | 1.01 s | 0 |
+  | Sign in | 249 KB | 360 KB | 1.04 s | 0 |
+  | Dashboard | 233 KB | 360 KB | 1.01 s | 0 |
+  | Customers | 165 KB | 282 KB | 1.00 s | 0 |
+  | Jobs | 167 KB | 271 KB | 1.02 s | 0 |
+  | Transactions | 163 KB | 281 KB | 1.05 s | 0 |
+  | Diary | 167 KB | 282 KB | 1.04 s | 0 |
+  | Billing | 159 KB | 272 KB | 1.04 s | 0 |
+
+  Every page is well inside "good" (LCP under 2.5 s, CLS under 0.1). Sign in
+  carries about 80 KB more script than the pages around it; worth a look,
+  not a defect.
+
+What axe cannot judge is still unjudged: keyboard order through the job
+card, invoice and payment, and how those read to a screen reader. The
+Browser pane does not deliver real keystrokes, so that needs a person.
 
 ### Kept, with the reason
 

@@ -22,7 +22,7 @@ import { initialActionState } from "@/lib/forms";
 
 const FIELD =
     "w-full min-h-[52px] rounded-xl border border-slate-500 bg-white px-4 text-base text-slate-900 " +
-    "placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/20 " +
+    "placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/20 " +
     "aria-[invalid=true]:border-amber-500";
 
 export function LoginForm({ next }: { next?: string }) {
