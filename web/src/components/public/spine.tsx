@@ -109,9 +109,10 @@ export function PublicButton({
 }) {
     const base =
         "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-[1.5px] px-6 text-base font-semibold " +
-        "motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5";
+        "motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5";
     const tones = {
-        solid: "border-teal-600 bg-teal-600 text-white",
+        // 700 under white: 5.5:1. Teal-600 was 3.7:1, short of AA for a 16px label.
+        solid: "border-teal-700 bg-teal-700 text-white",
         outline: "border-teal-600 text-teal-700",
         onDark: "self-start border-teal-400 text-white",
     };

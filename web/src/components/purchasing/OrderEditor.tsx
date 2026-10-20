@@ -129,7 +129,7 @@ export function OrderEditor({ tenant, order, options, currency, taxRate, today }
             </label>
 
             <div className="flex flex-wrap items-center gap-2">
-                {editable && <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => save()}>{busy ? "Saving…" : order ? "Save" : "Save order"}</Button>}
+                {editable && <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => save()}>{busy ? "Saving…" : order ? "Save" : "Save order"}</Button>}
                 {order && order.state === "SUGGESTED" && (
                     <Button type="button" variant="outline" disabled={busy} onClick={() => save(() => start(async () => { await setOrderStateAction(tenant, order.id, "ORDERED"); router.refresh(); }))}>Send to supplier</Button>
                 )}

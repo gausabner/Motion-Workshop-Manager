@@ -16,7 +16,7 @@ const key = () => `k${++counter}`;
 const blankItem = (): Item => ({ key: key(), description: "", readings: "", productId: "", estimate: "" });
 
 const TYPE_LABELS: Record<string, string> = { LABOUR: "Labour", SUBLET: "Sublet", STOCK: "Parts", CONSUMABLE: "Consumables", ACCESSORY: "Accessories", TYRE: "Tyres" };
-const field = "h-8 rounded-md border border-slate-300 bg-white px-2 text-sm";
+const field = "h-8 rounded-sm border border-slate-300 bg-white px-2 text-sm";
 
 function fromDraft(draft: TemplateDraft): Group[] {
     return draft.groups.map((g) => ({
@@ -166,7 +166,7 @@ export function TemplateBuilder({ tenant, id, initial, products, currencySymbol 
                         {status ? <span className={status.ok ? "text-teal-700" : "text-red-600"} role={status.ok ? undefined : "alert"}>{status.text}</span>
                             : <span className="text-slate-500">{groups.length} group{groups.length === 1 ? "" : "s"}, {checks} check{checks === 1 ? "" : "s"}{dirty ? " · unsaved changes" : ""}</span>}
                     </span>
-                    <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={saving || !dirty} onClick={save}>{saving ? "Saving…" : "Save template"}</Button>
+                    <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={saving || !dirty} onClick={save}>{saving ? "Saving…" : "Save template"}</Button>
                 </div>
             </div>
         </div>

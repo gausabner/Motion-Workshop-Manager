@@ -27,7 +27,7 @@ export default async function PricingSettingsPage({ params }: { params: Promise<
                     <p className="text-sm text-slate-500">Markup bands by cost. Put a product on a matrix and its selling price follows its cost — so a supplier&rsquo;s increase does not quietly come out of your margin.</p>
                 </div>
                 <form action={newMatrixAction.bind(null, slug)}>
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Plus className="mr-1 h-4 w-4" />New matrix</Button>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800"><Plus className="mr-1 h-4 w-4" />New matrix</Button>
                 </form>
             </div>
             <div className="border-t border-slate-200" />

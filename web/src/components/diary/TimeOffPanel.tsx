@@ -25,7 +25,7 @@ export function TimeOffPanel({ tenant, mechanics, entries, canEdit }: { tenant: 
                     <TextField label="Until" name="endsAt" type="datetime-local" errors={errors} />
                     <TextField label="Reason" name="reason" errors={errors} placeholder="Annual leave, course…" />
                     <Field label=" " name="submit">
-                        <Button type="submit" size="sm" className="h-8 w-full bg-teal-600 hover:bg-teal-700" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
+                        <Button type="submit" size="sm" className="h-8 w-full bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
                     </Field>
                     {state.message && <p className={`md:col-span-5 text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</p>}
                 </form>

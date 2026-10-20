@@ -61,7 +61,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                             key={t.key}
                             href={href({ tab: t.key, page: 1 })}
                             className={`whitespace-nowrap px-3 py-2 text-sm border-b-2 -mb-px transition-colors ${
-                                t.key === tab ? "border-teal-600 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
+                                t.key === tab ? "border-teal-700 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
                             }`}
                         >
                             {t.label}
@@ -111,7 +111,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                         </TableCell>
                                         <TableCell data-label="Status" className="py-2">{d.jobStatus ? <JobStatusPill status={d.jobStatus} /> : ""}</TableCell>
                                         <TableCell data-mobile="hide" className="py-2 text-slate-500 text-xs max-w-[180px] truncate" title={d.statusComment ?? ""}>{d.statusComment}</TableCell>
-                                        <TableCell data-mobile="hide" className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-600 inline" aria-label={`Sent ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
+                                        <TableCell data-mobile="hide" className="py-2 text-center">{d.contactedAt ? <MessageCircle className="w-3.5 h-3.5 text-teal-700 inline" aria-label={`Sent ${dateShort(d.contactedAt)}`} /> : ""}</TableCell>
                                         <TableCell data-label="Total" className="py-2 pr-4 text-right tabular-nums font-medium text-slate-700">
                                             {money(d.total)}
                                             {d.amountPaid > 0 && d.amountPaid < d.total && <span className="block text-[10px] text-amber-700">{money(d.total - d.amountPaid)} due</span>}
@@ -127,7 +127,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
                     <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
                         <Link href={href({ page: data.page - 1 })} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-600 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
+                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
                         <Link href={href({ page: data.page + 1 })} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>

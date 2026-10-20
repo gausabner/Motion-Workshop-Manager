@@ -58,7 +58,7 @@ export function LoanFleet({ tenant, fleet, timezone, customers, jobs, today }: {
                     <label className="space-y-1 text-xs text-slate-500"><span className="block">Year</span><input name="year" inputMode="numeric" className={`${field} w-20`} /></label>
                     <label className="space-y-1 text-xs text-slate-500"><span className="block">Colour</span><input name="colour" className={`${field} w-24`} /></label>
                     <label className="space-y-1 text-xs text-slate-500"><span className="block">Odometer</span><input name="odometer" inputMode="numeric" className={`${field} w-24`} /></label>
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy}>Add</Button>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}>Add</Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
                 </form>
             )}
@@ -128,7 +128,7 @@ export function LoanFleet({ tenant, fleet, timezone, customers, jobs, today }: {
                                 </label>
                                 <label className="space-y-1 text-xs text-slate-500"><span className="block">Out</span><input type="datetime-local" name="outAt" defaultValue={`${today}T08:00`} className={`${field} w-44`} /></label>
                                 <label className="space-y-1 text-xs text-slate-500"><span className="block">Due back</span><input type="datetime-local" name="dueBackAt" defaultValue={`${today}T17:00`} className={`${field} w-44`} /></label>
-                                <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy}>Book</Button>
+                                <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}>Book</Button>
                             </form>
                         )}
 
@@ -157,12 +157,12 @@ export function LoanFleet({ tenant, fleet, timezone, customers, jobs, today }: {
 
 function HandOverForm({ tenant, loanId, busy, onRun }: { tenant: string; loanId: string; busy: boolean; onRun: (work: () => Promise<{ ok: boolean; message?: string }>) => void }) {
     const [open, setOpen] = useState(false);
-    if (!open) return <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => setOpen(true)}>Hand it over</Button>;
+    if (!open) return <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" onClick={() => setOpen(true)}>Hand it over</Button>;
     return (
         <form className="flex items-end gap-2" action={(fd) => onRun(() => handOverAction(tenant, loanId, String(fd.get("odometerOut") ?? ""), String(fd.get("agreedBy") ?? "")))}>
             <input name="odometerOut" inputMode="numeric" placeholder="Odometer out" className={`${field} w-28`} aria-label="Odometer going out" />
             <input name="agreedBy" placeholder="Who signed" className={`${field} w-32`} aria-label="Who signed for it" />
-            <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy}>Out</Button>
+            <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}>Out</Button>
         </form>
     );
 }
@@ -174,7 +174,7 @@ function ReturnForm({ tenant, loanId, busy, onRun }: { tenant: string; loanId: s
         <form className="flex items-end gap-2" action={(fd) => onRun(() => takeBackAction(tenant, loanId, String(fd.get("odometerIn") ?? ""), String(fd.get("note") ?? "")))}>
             <input name="odometerIn" inputMode="numeric" placeholder="Odometer back" className={`${field} w-28`} aria-label="Odometer coming back" />
             <input name="note" placeholder="Anything to note" className={`${field} w-40`} aria-label="Note" />
-            <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy}>Back</Button>
+            <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}>Back</Button>
         </form>
     );
 }

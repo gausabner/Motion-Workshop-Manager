@@ -38,7 +38,7 @@ export function BookingSettingsForm({ tenant, diary }: { tenant: string; diary: 
                 <p className="text-sm text-slate-500">Mechanics follow these hours unless their own are set under Diary → Hours &amp; leave.</p>
                 <div className="flex items-center gap-3">
                     {state.message && <span className={state.ok ? "text-sm text-teal-700" : "text-sm text-red-600"} role={state.ok ? undefined : "alert"}>{state.message}</span>}
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={saving}><Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}</Button>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}><Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}</Button>
                 </div>
             </div>
 
@@ -50,7 +50,7 @@ export function BookingSettingsForm({ tenant, diary }: { tenant: string; diary: 
                     <div className="flex flex-wrap gap-2">
                         {DAYS.map(([value, label]) => (
                             <label key={value} className="flex items-center gap-1.5 rounded border border-slate-200 px-2 py-1 text-sm">
-                                <input type="checkbox" name="workingDays" value={value} defaultChecked={diary.workingDays.includes(value)} className="accent-teal-600" />
+                                <input type="checkbox" name="workingDays" value={value} defaultChecked={diary.workingDays.includes(value)} className="accent-teal-700" />
                                 {label.slice(0, 3)}
                             </label>
                         ))}

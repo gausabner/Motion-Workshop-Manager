@@ -16,7 +16,7 @@
  *
  * Colour comes from `currentColor` for the wordmark, so one component works on
  * the white app and the dark landing without a prop deciding which. Only the
- * accent is passed, because teal-600 disappears into near-black and teal-400
+ * accent is passed, because teal-700 disappears into near-black and teal-400
  * is too light on white.
  */
 

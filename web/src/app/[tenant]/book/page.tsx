@@ -93,7 +93,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     if (!type) {
         return shell(
             <div className="space-y-3">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Wrench className="w-5 h-5 text-teal-600" />What does the car need?</h2>
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Wrench className="w-5 h-5 text-teal-700" />What does the car need?</h2>
                 <ul className="space-y-2">
                     {types.map((t) => (
                         <li key={t.id}>
@@ -119,7 +119,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
         const open = days.filter((d) => d.open);
         return shell(
             <div className="space-y-3">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><CalendarDays className="w-5 h-5 text-teal-600" />{type.description} — which day?</h2>
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><CalendarDays className="w-5 h-5 text-teal-700" />{type.description} — which day?</h2>
                 <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {open.map((d) =>
                         d.slots.length ? (
@@ -149,7 +149,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     if (minute === null || !day.slots.includes(minute)) {
         return shell(
             <div className="space-y-3">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Clock className="w-5 h-5 text-teal-600" />{dayHeading(day.day)} — what time?</h2>
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Clock className="w-5 h-5 text-teal-700" />{dayHeading(day.day)} — what time?</h2>
                 <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {day.slots.map((s) => (
                         <li key={s}>

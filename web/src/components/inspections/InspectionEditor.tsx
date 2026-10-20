@@ -141,7 +141,7 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                                             <button
                                                 key={value} type="button" role="radio" aria-checked={r === value} disabled={!editable}
                                                 onClick={() => setRag(item, r === value ? "unchecked" : value)}
-                                                className={`min-h-10 px-3 capitalize ${r === value ? (value === "red" ? "bg-red-600 text-white" : value === "amber" ? "bg-amber-500 text-white" : "bg-teal-600 text-white") : "bg-white text-slate-500"} disabled:cursor-default`}
+                                                className={`min-h-10 px-3 capitalize ${r === value ? (value === "red" ? "bg-red-600 text-white" : value === "amber" ? "bg-amber-500 text-white" : "bg-teal-700 text-white") : "bg-white text-slate-500"} disabled:cursor-default`}
                                             >
                                                 {value === "green" ? "OK" : value === "amber" ? "Soon" : "Urgent"}
                                             </button>
@@ -222,12 +222,12 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                                 {unrated.length === 1 ? "1 item has" : `${unrated.length} items have`} not been checked: {unrated.slice(0, 3).map((i) => i.description).join(", ")}{unrated.length > 3 ? "…" : ""}. The customer will not see them.
                             </span>
                             <Button type="button" size="sm" variant="outline" onClick={() => setConfirmUnrated(false)}>Keep checking</Button>
-                            <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => { setConfirmUnrated(false); act(() => sendForApproval(tenant, inspection.id)); }}>
+                            <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => { setConfirmUnrated(false); act(() => sendForApproval(tenant, inspection.id)); }}>
                                 <Send className="mr-1 h-4 w-4" />Send anyway
                             </Button>
                         </span>
                     ) : editable && (
-                        <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => (unrated.length > 0 ? setConfirmUnrated(true) : act(() => sendForApproval(tenant, inspection.id)))}>
+                        <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => (unrated.length > 0 ? setConfirmUnrated(true) : act(() => sendForApproval(tenant, inspection.id)))}>
                             <Send className="mr-1 h-4 w-4" />Ready for the customer
                         </Button>
                     )}

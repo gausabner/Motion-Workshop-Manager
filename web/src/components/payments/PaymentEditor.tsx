@@ -294,7 +294,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                             </div>
                         </dl>
                         {!readOnly && (
-                            <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>
+                            <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>
                                 <Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}
                             </Button>
                         )}

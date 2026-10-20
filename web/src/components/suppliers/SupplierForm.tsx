@@ -50,7 +50,7 @@ export function SupplierForm({ tenant, supplier }: { tenant: string; supplier: S
                 </div>
             </section>
             <div className="flex items-center gap-3">
-                <Button type="submit" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>{saving ? "Saving…" : supplier ? "Save" : "Add supplier"}</Button>
+                <Button type="submit" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Saving…" : supplier ? "Save" : "Add supplier"}</Button>
                 {supplier && (
                     <Button type="button" size="sm" variant="outline" disabled={archiving} onClick={() => startArchive(() => archiveSupplier(tenant, supplier.id, !supplier.archivedAt))}>
                         {supplier.archivedAt ? "Put back on the list" : "Archive"}

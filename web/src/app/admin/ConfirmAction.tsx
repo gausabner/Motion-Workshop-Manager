@@ -57,11 +57,11 @@ export function ConfirmAction({
     }
 
     const trigger = {
-        primary: "border-teal-600 bg-teal-600 text-white hover:bg-teal-700",
+        primary: "border-teal-700 bg-teal-700 text-white hover:bg-teal-800",
         neutral: "border-slate-300 bg-white text-slate-900 hover:border-slate-400",
         danger: "border-slate-300 bg-white text-red-700 hover:border-red-300",
     }[tone];
-    const confirm = tone === "danger" ? "border-red-600 bg-red-600 text-white hover:bg-red-700" : "border-teal-600 bg-teal-600 text-white hover:bg-teal-700";
+    const confirm = tone === "danger" ? "border-red-600 bg-red-600 text-white hover:bg-red-700" : "border-teal-700 bg-teal-700 text-white hover:bg-teal-800";
 
     const failure = state.message && !state.ok ? state.message : null;
 

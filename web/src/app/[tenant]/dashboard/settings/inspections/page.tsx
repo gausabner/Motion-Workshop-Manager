@@ -26,7 +26,7 @@ export default async function InspectionTemplatesPage({ params }: { params: Prom
                     <p className="text-sm text-slate-500">The checklists your mechanics work through. Changing a template never changes an inspection already done.</p>
                 </div>
                 <form action={newTemplateAction.bind(null, slug)}>
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Plus className="w-4 h-4 mr-1" />New template</Button>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800"><Plus className="w-4 h-4 mr-1" />New template</Button>
                 </form>
             </div>
             <div className="border-t border-slate-200" />

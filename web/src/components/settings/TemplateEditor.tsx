@@ -57,7 +57,7 @@ export function TemplateEditor({ tenant, kind, label, description, body: initial
                     <p className="text-[11px] text-slate-500">{description}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${custom ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-300 bg-white text-slate-500"}`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-[0.05em] ${custom ? "text-teal-700" : "text-slate-500"}`}>
                         {custom ? "Your wording" : "Standard wording"}
                     </span>
                     {state.message && <span className={`text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</span>}
@@ -70,7 +70,7 @@ export function TemplateEditor({ tenant, kind, label, description, body: initial
                             <RotateCcw className="w-3.5 h-3.5 mr-1" />Reset
                         </Button>
                     )}
-                    <Button type="submit" size="sm" className="h-7 bg-teal-600 hover:bg-teal-700" disabled={saving || body === initial}>
+                    <Button type="submit" size="sm" className="h-7 bg-teal-700 hover:bg-teal-800" disabled={saving || body === initial}>
                         <Save className="w-3.5 h-3.5 mr-1" />{saving ? "Saving…" : "Save"}
                     </Button>
                 </div>
@@ -80,7 +80,7 @@ export function TemplateEditor({ tenant, kind, label, description, body: initial
                 <div className="space-y-2">
                     <textarea
                         ref={area} name="body" value={body} onChange={(e) => setBody(e.target.value)} rows={7}
-                        className="w-full rounded-md border border-input bg-white px-2 py-1.5 font-mono text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                        className="w-full rounded-sm border border-input bg-white px-2 py-1.5 font-mono text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                     />
                     {state.errors?.body && <p className="text-xs text-red-600">{state.errors.body[0]}</p>}
                     {typos.length > 0 && (

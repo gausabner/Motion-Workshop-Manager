@@ -109,7 +109,7 @@ export function CustomerApproval({ token, workshop, vehicle, findings: initial, 
                             ) : closed ? null : (
                                 <div className="grid grid-cols-2 gap-2">
                                     <button type="button" disabled={pending} onClick={() => answer(f, "approve")} aria-pressed={f.answer === "approve"}
-                                        className={`flex h-14 items-center justify-center gap-2 rounded-lg text-base font-semibold ${f.answer === "approve" ? "bg-teal-600 text-white" : "border-2 border-teal-600 text-teal-700"}`}>
+                                        className={`flex h-14 items-center justify-center gap-2 rounded-lg text-base font-semibold ${f.answer === "approve" ? "bg-teal-700 text-white" : "border-2 border-teal-700 text-teal-700"}`}>
                                         <Check className="h-5 w-5" />{f.answer === "approve" ? "Yes, do it" : "Do it"}
                                     </button>
                                     <button type="button" disabled={pending} onClick={() => answer(f, "decline")} aria-pressed={f.answer === "decline"}

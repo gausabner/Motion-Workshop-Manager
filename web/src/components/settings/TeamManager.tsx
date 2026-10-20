@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { GROUP_LABELS, GRANTABLE, can } from "@/lib/auth/permissions";
 import { createMemberAction, inviteMemberAction, issuePasswordResetAction, revokeInvitationAction, updateMemberAction, type InviteResult } from "@/lib/team/actions";
 import type { PendingInvitation, TeamMember } from "@/lib/team/queries";
+import { Notice } from "@/components/ui/notice";
 
-const field = "h-8 rounded-md border border-slate-300 px-2 text-sm bg-white";
+const field = "h-8 rounded-sm border border-slate-300 px-2 text-sm bg-white";
 const heading = "text-[11px] font-semibold uppercase tracking-wider text-slate-500";
 
 /**
@@ -64,7 +65,7 @@ function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
                         type="button"
                         onClick={() => setMode(m)}
                         className={`rounded-t-sm border-b-2 px-3 py-1.5 text-xs font-medium ${
-                            mode === m ? "border-teal-600 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-700"
+                            mode === m ? "border-teal-700 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-700"
                         }`}
                     >
                         {m === "invite" ? "Send an invitation" : "Create them now"}
@@ -91,22 +92,22 @@ function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
                 </label>
                 <label className="space-y-1 text-xs text-slate-500 sm:col-span-3"><span>Mobile (optional, for WhatsApp)</span><input name="mobile" type="tel" className={`${field} w-full`} /></label>
                 <div className="flex sm:col-span-2 sm:justify-end">
-                    <Button type="submit" className="h-11 w-full bg-teal-600 hover:bg-teal-700 sm:h-8 sm:w-auto" disabled={pending}><UserPlus className="w-3.5 h-3.5 mr-1" />{pending ? "…" : "Invite"}</Button>
+                    <Button type="submit" className="h-11 w-full bg-teal-700 hover:bg-teal-800 sm:h-8 sm:w-auto" disabled={pending}><UserPlus className="w-3.5 h-3.5 mr-1" />{pending ? "…" : "Invite"}</Button>
                 </div>
             </form>
             {result && !result.ok && <p className="px-4 pb-3 text-xs text-red-600" role="alert">{result.message}</p>}
             {result?.ok && (
-                <div className="mx-4 mb-3 rounded-sm border border-teal-200 bg-teal-50 p-3 space-y-2">
-                    <p className="text-sm text-teal-900">Invitation ready for {result.email}. Send it from your phone — it works once, for 7 days.</p>
+                <Notice role="status" className="mx-4 mb-3" title={`Invitation ready for ${result.email}`}>
+                    <p>Send it from your phone. It works once, for 7 days.</p>
                     <div className="flex flex-wrap gap-2">
                         <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => { void navigator.clipboard?.writeText(result.link).then(() => setCopied(true)); }}>
                             <Copy className="w-3.5 h-3.5 mr-1" />{copied ? "Copied" : "Copy link"}
                         </Button>
-                        {result.whatsappUrl && <a href={result.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-7 items-center rounded-md border border-slate-300 bg-white px-2 text-xs font-medium"><MessageCircle className="w-3.5 h-3.5 mr-1" />WhatsApp</a>}
-                        {result.mailtoUrl && <a href={result.mailtoUrl} className="inline-flex h-7 items-center rounded-md border border-slate-300 bg-white px-2 text-xs font-medium"><Mail className="w-3.5 h-3.5 mr-1" />Email</a>}
+                        {result.whatsappUrl && <a href={result.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-7 items-center rounded-sm border border-slate-300 bg-white px-2 text-xs font-medium"><MessageCircle className="w-3.5 h-3.5 mr-1" />WhatsApp</a>}
+                        {result.mailtoUrl && <a href={result.mailtoUrl} className="inline-flex h-7 items-center rounded-sm border border-slate-300 bg-white px-2 text-xs font-medium"><Mail className="w-3.5 h-3.5 mr-1" />Email</a>}
                     </div>
                     <input readOnly value={result.link} className={`${field} w-full font-mono text-xs`} aria-label="Invitation link" onFocus={(e) => e.currentTarget.select()} />
-                </div>
+                </Notice>
             )}
         </section>
     );
@@ -158,10 +159,10 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                 </select>
                 {isSelf && <input type="hidden" name="group" value={member.group} />}
                 <div className="col-span-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                    <label className="flex items-center gap-1"><input type="checkbox" name="isMechanic" defaultChecked={member.isMechanic} className="accent-teal-600" />Mechanic</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="showOnDiary" defaultChecked={member.showOnDiary} className="accent-teal-600" />On diary</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="isServiceAdvisor" defaultChecked={member.isServiceAdvisor} className="accent-teal-600" />Advisor</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="active" defaultChecked={!inactive} disabled={isSelf} className="accent-teal-600" />Active</label>
+                    <label className="flex items-center gap-1"><input type="checkbox" name="isMechanic" defaultChecked={member.isMechanic} className="accent-teal-700" />Mechanic</label>
+                    <label className="flex items-center gap-1"><input type="checkbox" name="showOnDiary" defaultChecked={member.showOnDiary} className="accent-teal-700" />On diary</label>
+                    <label className="flex items-center gap-1"><input type="checkbox" name="isServiceAdvisor" defaultChecked={member.isServiceAdvisor} className="accent-teal-700" />Advisor</label>
+                    <label className="flex items-center gap-1"><input type="checkbox" name="active" defaultChecked={!inactive} disabled={isSelf} className="accent-teal-700" />Active</label>
                     {isSelf && <input type="hidden" name="active" value="on" />}
                 </div>
                 <div className="col-span-1 flex justify-end">
@@ -185,7 +186,7 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                                     type="checkbox"
                                     name={`grant:${g.permission}`}
                                     defaultChecked={member.extraPermissions?.includes(g.permission)}
-                                    className="accent-teal-600"
+                                    className="accent-teal-700"
                                 />
                                 {g.label}
                                 <span className="text-slate-400">— {g.caution}</span>
@@ -215,12 +216,10 @@ function ResetPassword({ tenant, membershipId, name }: { tenant: string; members
 
     if (issued) {
         return (
-            <div className="w-full space-y-2 rounded-sm border border-teal-200 bg-teal-50 p-3">
-                <p className="text-sm text-teal-900">
-                    A link for {name}. It works once, expires in a day, and signs them out everywhere when used.
-                </p>
+            <Notice role="status" className="w-full">
+                <p>A link for {name}. It works once, expires in a day, and signs them out everywhere when used.</p>
                 <div className="flex items-center gap-2">
-                    <input readOnly value={issued.url} className="min-w-0 flex-1 rounded-sm border border-teal-200 bg-white px-2 py-1 font-mono text-[11px]" />
+                    <input readOnly value={issued.url} aria-label="Password link" className="min-w-0 flex-1 rounded-sm border border-slate-300 bg-white px-2 py-1 font-mono text-[11px]" />
                     <Button
                         type="button" size="sm" variant="outline" className="h-8 shrink-0"
                         onClick={() => { navigator.clipboard?.writeText(issued.url); setCopied(true); }}
@@ -229,13 +228,13 @@ function ResetPassword({ tenant, membershipId, name }: { tenant: string; members
                         <span className="ml-1">{copied ? "Copied" : "Copy"}</span>
                     </Button>
                 </div>
-                <p className="text-[11px] text-teal-800">
+                <p className="text-[11px] text-slate-500">
                     Give it to them directly. Once this box is closed the link cannot be shown again.
                 </p>
                 <button type="button" onClick={() => setIssued(null)} className="text-[11px] font-medium text-teal-700 underline">
                     Done
                 </button>
-            </div>
+            </Notice>
         );
     }
 
@@ -268,20 +267,20 @@ function CreateMember({ tenant, groups }: { tenant: string; groups: UserGroup[] 
 
     if (done) {
         return (
-            <div className="m-4 space-y-2 rounded-sm border border-teal-200 bg-teal-50 p-3">
-                <p className="text-sm text-teal-900">
+            <Notice role="status" className="m-4">
+                <p>
                     {done.name} is on the team.{" "}
                     {done.url
                         ? "Give them this link to set their own password — it works once and lasts a day."
                         : "They will be asked to choose their own password the first time they sign in."}
                 </p>
                 {done.url && (
-                    <input readOnly value={done.url} className="w-full rounded-sm border border-teal-200 bg-white px-2 py-1 font-mono text-[11px]" />
+                    <input readOnly value={done.url} aria-label="Password link" className="w-full rounded-sm border border-slate-300 bg-white px-2 py-1 font-mono text-[11px]" />
                 )}
                 <button type="button" onClick={() => setDone(null)} className="text-[11px] font-medium text-teal-700 underline">
                     Add another
                 </button>
-            </div>
+            </Notice>
         );
     }
 
@@ -332,7 +331,7 @@ function CreateMember({ tenant, groups }: { tenant: string; groups: UserGroup[] 
             )}
 
             <div className="flex sm:col-span-4 sm:justify-end">
-                <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-600 hover:bg-teal-700 sm:h-8 sm:w-auto">
+                <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-700 hover:bg-teal-800 sm:h-8 sm:w-auto">
                     <UserPlus className="mr-1 h-3.5 w-3.5" />{pending ? "Adding…" : "Add to the team"}
                 </Button>
             </div>

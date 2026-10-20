@@ -21,7 +21,7 @@ export default function NotFound() {
                 This page or record does not exist. It may have been deleted, or the address may be mistyped.
             </p>
             <div className="mt-7">
-                <Button asChild className="h-11 bg-teal-600 px-5 hover:bg-teal-700">
+                <Button asChild className="h-11 bg-teal-700 px-5 hover:bg-teal-800">
                     <Link href="../">Go back</Link>
                 </Button>
             </div>

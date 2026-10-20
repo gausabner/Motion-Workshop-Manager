@@ -66,7 +66,7 @@ export function ProcessDialog({ tenant, doc }: { tenant: string; doc: DocumentRe
                                 </label>
                                 {lower && (
                                     <label className="flex items-start gap-2 text-xs text-amber-900">
-                                        <input type="checkbox" name="odometerCorrected" className="mt-0.5 accent-teal-600" />
+                                        <input type="checkbox" name="odometerCorrected" className="mt-0.5 accent-teal-700" />
                                         That is lower than the last reading of {last!.toLocaleString("en-NA")} km — the clock was replaced, or that reading was wrong.
                                     </label>
                                 )}

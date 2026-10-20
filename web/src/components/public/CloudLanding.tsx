@@ -59,8 +59,9 @@ function PillLink({
             href={href}
             className={
                 // Solid is used on both grounds — the light hero and the dark
-                // closing band — and teal-600 under white holds on either, so
-                // it needs no variant of its own.
+                // closing band. Teal-700, not 600: white on teal-600 is 3.7:1,
+                // under the 4.5:1 a 15px label needs; 700 is 5.5:1 and holds
+                // on either ground, so it needs no variant of its own.
                 //
                 // Ghost is light-ground only, and is used once. It was written
                 // for the dark hero as white-on-white borders; when the hero
@@ -70,7 +71,7 @@ function PillLink({
                 // a ghost is ever needed on dark again, give it a prop rather
                 // than changing these.
                 variant === "solid"
-                    ? `${base} bg-teal-600 text-white shadow-lg shadow-teal-900/15 hover:bg-teal-700 hover:shadow-teal-900/20`
+                    ? `${base} bg-teal-700 text-white shadow-lg shadow-teal-900/15 hover:bg-teal-800 hover:shadow-teal-900/20`
                     : `${base} border border-teal-600/40 text-teal-700 hover:border-teal-600 hover:bg-teal-50`
             }
         >

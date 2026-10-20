@@ -15,7 +15,7 @@ import type { AdminActionState } from "@/app/admin/actions";
 type Action = (prev: AdminActionState, formData: FormData) => Promise<AdminActionState>;
 
 const input =
-    "h-9 rounded-md border border-slate-300 bg-white px-2.5 text-[13px] text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20";
+    "h-9 rounded-md border border-slate-300 bg-white px-2.5 text-[13px] text-slate-900 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20";
 const label = "flex flex-col gap-1 text-[12px] font-medium text-slate-600";
 
 /** Closes the form when the action succeeds — the row redrawing with the new date is the confirmation. */
@@ -55,7 +55,7 @@ function Footer({ pending, submit, onCancel, state }: { pending: boolean; submit
                 <button
                     type="submit"
                     disabled={pending}
-                    className="inline-flex min-h-9 items-center rounded-md border border-teal-600 bg-teal-600 px-3 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+                    className="inline-flex min-h-9 items-center rounded-md border border-teal-700 bg-teal-700 px-3 text-[13px] font-medium text-white hover:bg-teal-800 disabled:opacity-70"
                 >
                     {pending ? "Working…" : submit}
                 </button>
@@ -355,7 +355,7 @@ export function DeclinePlanChange({ action, tenantId, requestId }: { action: Act
                     maxLength={300}
                     rows={2}
                     placeholder="No payment has arrived under the reference after 14 days."
-                    className="rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20"
+                    className="rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20"
                 />
             </label>
             <Footer pending={pending} submit="Decline and tell the owner" onCancel={() => setOpen(false)} state={state} />

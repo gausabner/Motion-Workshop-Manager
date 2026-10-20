@@ -65,7 +65,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                                     <TableCell data-label="Odometer" className="py-2 text-right tabular-nums text-slate-600">{v.odometer?.toLocaleString("en-NA") ?? ""}</TableCell>
                                     <TableCell data-label="Licence disc" className={`py-2 tabular-nums ${flag(v.licenceExpiry)}`}>{dateShort(v.licenceExpiry)}</TableCell>
                                     <TableCell className={`py-2 tabular-nums ${flag(v.roadworthyExpiry)}`}>{dateShort(v.roadworthyExpiry)}</TableCell>
-                                    <TableCell className="py-2 pr-4 text-right"><Link href={`${base}/vehicles/${v.id}`} className="inline-flex items-center justify-center w-8 h-7 rounded-sm border border-teal-500 text-teal-600 bg-white hover:bg-teal-50 shadow-sm" title="Edit"><Pencil className="w-4 h-4" /></Link></TableCell>
+                                    <TableCell className="py-2 pr-4 text-right"><Link href={`${base}/vehicles/${v.id}`} className="inline-flex items-center justify-center w-8 h-7 rounded-sm border border-teal-500 text-teal-700 bg-white hover:bg-teal-50 shadow-sm" title="Edit"><Pencil className="w-4 h-4" /></Link></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -75,7 +75,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
                     <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
                         <Link href={pageHref(data.page - 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-600 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
+                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
                         <Link href={pageHref(data.page + 1)} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>

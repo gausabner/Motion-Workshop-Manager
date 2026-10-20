@@ -144,7 +144,7 @@ export function CustomerSheet({
                 <div className="border-t px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
                     <Link
                         href={`${base}/customers/${customer.id}`}
-                        className="flex h-11 w-full items-center justify-center rounded-lg bg-teal-600 text-sm font-semibold text-white"
+                        className="flex h-11 w-full items-center justify-center rounded-lg bg-teal-700 text-sm font-semibold text-white"
                     >
                         Open the full customer
                     </Link>

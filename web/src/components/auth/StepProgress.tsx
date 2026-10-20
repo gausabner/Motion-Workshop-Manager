@@ -47,7 +47,7 @@ export function StepProgress({ steps, current }: { steps: readonly Step[]; curre
                                 aria-hidden
                                 className={`grid h-4 w-4 shrink-0 place-items-center rounded-full text-[9px] font-semibold tabular ${
                                     done
-                                        ? "bg-teal-600 text-white"
+                                        ? "bg-teal-700 text-white"
                                         : live
                                           ? "bg-teal-600/15 text-teal-700 ring-1 ring-inset ring-teal-600"
                                           : "bg-slate-200 text-slate-500"

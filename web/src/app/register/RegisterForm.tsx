@@ -114,7 +114,7 @@ export function RegisterForm({ host, initialPlan }: { host: string; initialPlan?
                 </ol>
             </div>
             {state.message && !state.ok && <p className="text-sm text-red-600" role="alert">{state.message}</p>}
-            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={pending}>
+            <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={pending}>
                 {pending ? "Registering…" : "Register workshop"}
             </Button>
             <p className="text-center text-sm text-slate-500">

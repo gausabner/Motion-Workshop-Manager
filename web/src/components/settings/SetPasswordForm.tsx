@@ -5,7 +5,7 @@ import { setPasswordFromResetAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
 
 const field =
-    "w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-teal-500";
+    "w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-base outline-none focus-visible:ring-1 focus-visible:ring-teal-500";
 
 export function SetPasswordForm({ token, slug }: { token: string; slug: string }) {
     const [state, action, pending] = useActionState(
@@ -25,7 +25,7 @@ export function SetPasswordForm({ token, slug }: { token: string; slug: string }
                 <input name="confirm" type="password" autoComplete="new-password" required className={field} />
             </label>
             {state.message && !state.ok && <p className="text-sm text-red-600" role="alert">{state.message}</p>}
-            <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-600 hover:bg-teal-700">
+            <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-700 hover:bg-teal-800">
                 {pending ? "Saving…" : "Set password and sign in"}
             </Button>
             <p className="text-[11px] text-slate-500">

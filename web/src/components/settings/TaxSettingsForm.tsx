@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CheckField, Section, TextField } from "@/components/forms/fields";
 import { initialActionState } from "@/lib/forms";
 import { saveTaxSettings } from "@/lib/settings/actions";
+import { Notice } from "@/components/ui/notice";
 
 export type TaxProfile = {
     taxName: string;
@@ -32,7 +33,7 @@ export function TaxSettingsForm({ tenant, tax }: { tenant: string; tax: TaxProfi
                 <p className="text-sm text-slate-500">Applies to documents raised from now on.</p>
                 <div className="flex items-center gap-3">
                     {state.message && <span className={state.ok ? "text-sm text-teal-700" : "text-sm text-red-600"} role={state.ok ? undefined : "alert"}>{state.message}</span>}
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>
                         <Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}
                     </Button>
                 </div>
@@ -53,10 +54,12 @@ export function TaxSettingsForm({ tenant, tax }: { tenant: string; tax: TaxProfi
                 </div>
             </Section>
 
-            <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-                Changing the rate never rewrites history. Every quote, invoice and credit note keeps the rate it was raised at, so last
-                year&rsquo;s invoices still add up to what the customer actually paid.
-            </p>
+            <Notice>
+                <p>
+                    Changing the rate never rewrites history. Every quote, invoice and credit note keeps the rate it was raised at, so last
+                    year&rsquo;s invoices still add up to what the customer actually paid.
+                </p>
+            </Notice>
         </form>
     );
 }

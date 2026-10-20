@@ -6,8 +6,9 @@ import { Check, Copy, KeyRound, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createApiKey, revokeApiKey, type NewKeyState } from "@/lib/api/key-actions";
 import type { KeyRow } from "@/lib/api/key-service";
+import { Notice } from "@/components/ui/notice";
 
-const field = "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm";
+const field = "h-9 rounded-sm border border-slate-300 bg-white px-2 text-sm";
 
 /**
  * Making a key shows it once. Everything after that shows only its head, so
@@ -38,10 +39,10 @@ export function ApiKeys({ tenant, keys, timezone }: { tenant: string; keys: KeyR
     return (
         <div className="space-y-4">
             {state.ok && state.token && (
-                <div className="rounded-sm border border-teal-300 bg-teal-50 px-4 py-3">
-                    <p className="text-sm font-medium text-teal-900">“{state.name}” is ready. Copy it now — this is the only time it is shown.</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <code className="min-w-0 flex-1 break-all rounded-sm border border-teal-200 bg-white px-2 py-1 font-mono text-xs text-slate-800">{state.token}</code>
+                <Notice role="status" title={`“${state.name}” is ready`}>
+                    <p>Copy it now. This is the only time it is shown.</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <code className="min-w-0 flex-1 break-all rounded-sm border border-slate-300 bg-white px-2 py-1 font-mono text-xs text-slate-800">{state.token}</code>
                         <Button
                             type="button"
                             size="sm"
@@ -51,8 +52,8 @@ export function ApiKeys({ tenant, keys, timezone }: { tenant: string; keys: KeyR
                             {copied ? <><Check className="mr-1 h-4 w-4" />Copied</> : <><Copy className="mr-1 h-4 w-4" />Copy</>}
                         </Button>
                     </div>
-                    <p className="mt-2 text-xs text-teal-800">We keep only a fingerprint of it. If it is lost, revoke it here and make another.</p>
-                </div>
+                    <p className="text-xs text-slate-500">We keep only a fingerprint of it. If it is lost, revoke it here and make another.</p>
+                </Notice>
             )}
 
             <div className="flex items-center justify-between">

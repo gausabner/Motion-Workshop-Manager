@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
+import { Notice } from "@/components/ui/notice";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { bankDetails } from "@/lib/billing/config";
@@ -78,23 +79,24 @@ export default async function BillingPage({
             <div className="border-t border-slate-200" />
 
             {locked && (
-                <div role="alert" className="rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm text-slate-800">
-                    <p className="font-semibold text-slate-900">
-                        {FEATURES[locked].name} {FEATURES[locked].name.endsWith("s") ? "are" : "is"} part of the {PLAN_NAMES[FEATURES[locked].plan]} plan
-                    </p>
-                    <p className="mt-1">
+                <Notice
+                    role="alert"
+                    icon={Lock}
+                    title={`${FEATURES[locked].name} ${FEATURES[locked].name.endsWith("s") ? "are" : "is"} part of the ${PLAN_NAMES[FEATURES[locked].plan]} plan`}
+                >
+                    <p>
                         {FEATURES[locked].what} {plan ? `Your workshop is on the ${PLAN_NAMES[plan]} plan.` : ""}
                     </p>
                     {manager && FEATURES[locked].plan !== "council" ? (
                         <Link
                             href={`${changeHref}?step=review&plan=${FEATURES[locked].plan}`}
-                            className="mt-3 inline-flex items-center gap-1 font-medium text-teal-700 hover:underline"
+                            className="inline-flex items-center gap-1 font-medium text-teal-700 hover:underline"
                         >
                             Move up to {PLAN_NAMES[FEATURES[locked].plan]}
                             <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                         </Link>
                     ) : (
-                        <p className="mt-1">
+                        <p>
                             {manager ? "It is quoted per site. " : "Your workshop owner can change the plan on this page. "}
                             {manager && support().email && (
                                 <a href={`mailto:${support().email}?subject=${encodeURIComponent(`Moving ${tenant.name} to ${PLAN_NAMES[FEATURES[locked].plan]}`)}`} className="font-medium text-teal-700 hover:underline">
@@ -103,22 +105,18 @@ export default async function BillingPage({
                             )}
                         </p>
                     )}
-                </div>
+                </Notice>
             )}
 
             {(pastDue || readonly) && (
-                <div role="alert" className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
-                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden />
-                    <div className="space-y-1 text-sm text-slate-800">
-                        <p className="font-semibold text-slate-900">MOTION is read-only until the subscription is paid</p>
+                <Notice role="alert" tone="caution" title="MOTION is read-only until the subscription is paid">
                         <p>
                             {end ? `The payment due on ${billingDay(end)} has not been received. ` : ""}
                             Everyone can still sign in, view every customer, vehicle and job, print and export. Creating quotes, job cards
                             and invoices is paused until MOTION confirms the payment.
                         </p>
                         {!manager && <p>Your workshop owner can see how to pay on this page.</p>}
-                    </div>
-                </div>
+                </Notice>
             )}
 
             {!sub || sub.status !== "ACTIVE" ? (
@@ -137,7 +135,7 @@ export default async function BillingPage({
                 </p>
             ) : (
                 <>
-                    <dl className="grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2">
+                    <dl className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-2">
                         <Cell label="Plan" value={sub.planName} />
                         <Cell
                             label={pastDue || s === "grace" || s === "overdue" ? "Was due" : "Paid up to"}
@@ -200,7 +198,7 @@ export default async function BillingPage({
                         <section className="space-y-3">
                             <h4 className="text-sm font-semibold text-slate-900">How to pay</h4>
                             {bank ? (
-                                <dl className="overflow-hidden rounded-lg border border-slate-200 text-sm">
+                                <dl className="overflow-hidden border border-slate-200 bg-white text-sm">
                                     <Row label="Bank" value={bank.bankName} />
                                     <Row label="Account name" value={bank.accountName} />
                                     <Row label="Account number" value={bank.accountNumber} mono />
@@ -244,7 +242,7 @@ export default async function BillingPage({
                             {payments.length === 0 ? (
                                 <p className="text-sm text-slate-500">None recorded in MOTION yet.</p>
                             ) : (
-                                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                <div className="overflow-x-auto border border-slate-200 bg-white">
                                     <table className="w-full text-sm">
                                         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                                             <tr>
@@ -337,7 +335,7 @@ function PlanSummary({ plan }: { plan: PlanId | null }) {
     if (!current) return null;
     return (
         <section className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="border border-slate-200 bg-white p-4">
                 <h4 className="text-sm font-semibold text-slate-900">On {current.name}</h4>
                 <ul className="mt-2 space-y-1 text-sm text-slate-600">
                     {current.includes.map((line) => (
@@ -346,7 +344,7 @@ function PlanSummary({ plan }: { plan: PlanId | null }) {
                 </ul>
             </div>
             {next && (
-                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <div className="border border-slate-200 bg-white p-4">
                     <h4 className="text-sm font-semibold text-slate-900">
                         {next.name} adds{next.price ? ` — ${money(withVat(next.price))} a month incl. VAT` : ""}
                     </h4>

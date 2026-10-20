@@ -11,7 +11,7 @@ import { whatsappLink } from "@/lib/format";
 type Data = Awaited<ReturnType<typeof listCustomers>>;
 
 const iconBtn = "inline-flex items-center justify-center w-8 h-7 rounded-sm border shadow-sm transition-colors";
-const teal = `${iconBtn} border-teal-500 text-teal-600 bg-white hover:bg-teal-50`;
+const teal = `${iconBtn} border-teal-500 text-teal-700 bg-white hover:bg-teal-50`;
 const amber = `${iconBtn} border-amber-500 text-white bg-amber-500 hover:bg-amber-600`;
 const disabled = `${iconBtn} border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed`;
 
@@ -103,7 +103,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                     <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
                         <Link aria-disabled={data.page <= 1} href={pageHref(1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>First</Link>
                         <Link aria-disabled={data.page <= 1} href={pageHref(data.page - 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-600 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
+                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
                         <Link aria-disabled={data.page >= data.pages} href={pageHref(data.page + 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                         <Link aria-disabled={data.page >= data.pages} href={pageHref(data.pages)} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>Last</Link>
                     </div>

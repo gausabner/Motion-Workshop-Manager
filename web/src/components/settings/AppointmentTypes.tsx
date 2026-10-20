@@ -42,9 +42,9 @@ function Row({ tenant, type, onDone }: { tenant: string; type: Type | null; onDo
     return (
         <li>
             <form action={action} className="grid grid-cols-12 items-center gap-2 px-4 py-2">
-                <input name="description" defaultValue={type?.description} placeholder="e.g. Minor service" required className="col-span-6 h-8 rounded-md border border-slate-300 px-2 text-sm" aria-label="Service" />
-                <input name="estimatedHours" type="number" step="0.25" min="0.25" defaultValue={type?.estimatedHours ?? 1} className="col-span-2 h-8 rounded-md border border-slate-300 px-2 text-sm tabular-nums" aria-label="Hours" />
-                <label className="col-span-2 flex items-center gap-1.5 text-sm"><input type="checkbox" name="active" defaultChecked={type?.active ?? true} className="accent-teal-600" />Online</label>
+                <input name="description" defaultValue={type?.description} placeholder="e.g. Minor service" required className="col-span-6 h-8 rounded-sm border border-slate-300 px-2 text-sm" aria-label="Service" />
+                <input name="estimatedHours" type="number" step="0.25" min="0.25" defaultValue={type?.estimatedHours ?? 1} className="col-span-2 h-8 rounded-sm border border-slate-300 px-2 text-sm tabular-nums" aria-label="Hours" />
+                <label className="col-span-2 flex items-center gap-1.5 text-sm"><input type="checkbox" name="active" defaultChecked={type?.active ?? true} className="accent-teal-700" />Online</label>
                 <div className="col-span-2 flex justify-end">
                     <Button type="submit" size="sm" variant="outline" className="h-7" disabled={saving}>{saving ? "…" : type ? "Save" : "Add"}</Button>
                 </div>

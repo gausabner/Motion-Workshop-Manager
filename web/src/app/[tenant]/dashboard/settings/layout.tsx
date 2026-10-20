@@ -111,7 +111,7 @@ export default async function SettingsLayout({
                                     <Link
                                         href={`${basePath}/billing?feature=${item.feature}`}
                                         title={`Included in the ${PLAN_NAMES[FEATURES[item.feature!].plan]} plan`}
-                                        className="flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100/50 hover:text-slate-700"
+                                        className="flex items-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium pointer-coarse:min-h-11 text-slate-500 transition-colors hover:bg-slate-100/50 hover:text-slate-700"
                                     >
                                         {item.icon}
                                         {item.title}
@@ -123,7 +123,7 @@ export default async function SettingsLayout({
                                 <div key={item.href} className="flex shrink-0 flex-col">
                                     <Link
                                         href={`${basePath}/${item.href}`}
-                                        className="flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
+                                        className="flex items-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium pointer-coarse:min-h-11 hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
                                     >
                                         {item.icon}
                                         {item.title}

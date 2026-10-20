@@ -15,7 +15,7 @@ export function SetupChecklist({ steps }: { steps: SetupStep[] }) {
                     <p className="text-xs text-slate-500">{progress.done} of {progress.total} done. Each step opens the screen that does it.</p>
                 </div>
                 <div className="h-1.5 w-32 rounded-full bg-teal-100" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done} aria-label="Setup progress">
-                    <div className="h-1.5 rounded-full bg-teal-600" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                    <div className="h-1.5 rounded-full bg-teal-700" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
                 </div>
             </div>
             <ol className="divide-y divide-slate-100">
@@ -23,7 +23,7 @@ export function SetupChecklist({ steps }: { steps: SetupStep[] }) {
                     <li key={step.key}>
                         <Link href={step.href} className={`flex items-start gap-3 px-4 py-2.5 hover:bg-slate-50 ${step === next ? "bg-teal-50/40" : ""}`}>
                             {step.done
-                                ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" aria-label="Done" />
+                                ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" aria-label="Done" />
                                 : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" aria-label="Not done" />}
                             <span className="flex-1 min-w-0">
                                 <span className={`block text-sm ${step.done ? "text-slate-400 line-through decoration-slate-300" : "text-slate-800 font-medium"}`}>

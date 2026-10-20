@@ -241,7 +241,9 @@ table th,
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.5 0.12 195); /* Teal-600 */
+  /* Workshop Teal, the one accent (DESIGN.md): Tailwind teal-700, #0f766e.
+     White on it is 5.5:1; the teal-600 it replaced was 3.7:1. */
+  --primary: oklch(51.1% 0.096 186.391);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.96 0 195); /* Light teal tint */
   --secondary-foreground: oklch(0.4 0.1 195);

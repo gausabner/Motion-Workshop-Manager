@@ -43,7 +43,7 @@ export function SplitDialog({ tenant, documentId, lines, total, currency }: { te
                     <div className="space-y-4">
                         <div className="flex overflow-hidden rounded-md border border-slate-300 text-sm">
                             {([["excess", "An insurer pays, less an excess"], ["lines", "Pick the lines they pay"]] as const).map(([value, label]) => (
-                                <button key={value} type="button" onClick={() => setMode(value)} className={`flex-1 px-3 py-2 ${mode === value ? "bg-teal-600 text-white" : "bg-white text-slate-600"}`}>{label}</button>
+                                <button key={value} type="button" onClick={() => setMode(value)} className={`flex-1 px-3 py-2 ${mode === value ? "bg-teal-700 text-white" : "bg-white text-slate-600"}`}>{label}</button>
                             ))}
                         </div>
 
@@ -68,7 +68,7 @@ export function SplitDialog({ tenant, documentId, lines, total, currency }: { te
                                         <li key={line.id}>
                                             <label className="flex items-center gap-2 px-3 py-1.5 text-sm">
                                                 <input
-                                                    type="checkbox" checked={moving.has(line.id)} className="accent-teal-600"
+                                                    type="checkbox" checked={moving.has(line.id)} className="accent-teal-700"
                                                     onChange={(e) => setMoving((m) => { const next = new Set(m); if (e.target.checked) next.add(line.id); else next.delete(line.id); return next; })}
                                                 />
                                                 <span className="min-w-0 flex-1 truncate text-slate-700">{line.description}</span>
@@ -87,7 +87,7 @@ export function SplitDialog({ tenant, documentId, lines, total, currency }: { te
                         <div className="flex justify-end gap-2">
                             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
                             <Button
-                                type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy || !payer}
+                                type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy || !payer}
                                 onClick={() => start(async () => {
                                     setError(undefined);
                                     const result = await splitDocumentAction(tenant, documentId, { customerId: payer?.id ?? "", mode, excess: mode === "excess" ? excess : "", lineIds: [...moving] });

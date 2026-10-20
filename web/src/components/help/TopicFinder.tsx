@@ -91,7 +91,7 @@ export function TopicFinder({
                                     placeholder="invoice, stock, payment…"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
-                                    className="min-h-[52px] w-full rounded-2xl border-[1.5px] border-slate-200 bg-white pl-11 pr-4 text-base text-slate-900 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/20"
+                                    className="min-h-[52px] w-full rounded-2xl border-[1.5px] border-slate-200 bg-white pl-11 pr-4 text-base text-slate-900 placeholder:text-slate-500 focus:border-teal-700 focus:outline-none focus:ring-[3px] focus:ring-teal-700/20"
                                 />
                             </div>
                             {/* Polite, not assertive: this updates on every
@@ -108,7 +108,7 @@ export function TopicFinder({
                                     <li key={g.id}>
                                         <a
                                             href={`#${g.id}`}
-                                            className="inline-flex min-h-11 items-center rounded-full border border-slate-200 bg-white px-[0.95rem] text-[0.875rem] text-slate-900 hover:border-teal-600 hover:text-teal-700"
+                                            className="inline-flex min-h-11 items-center rounded-full border border-slate-200 bg-white px-[0.95rem] text-[0.875rem] text-slate-900 hover:border-teal-700 hover:text-teal-700"
                                         >
                                             {g.label}
                                         </a>
@@ -127,7 +127,7 @@ export function TopicFinder({
                             No topic matches “{term}”. Try a single word, such as <em>invoice</em> or <em>stock</em>, or{" "}
                             <Link
                                 href="/support"
-                                className="font-medium text-slate-900 underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700"
+                                className="font-medium text-slate-900 underline decoration-teal-700 decoration-2 underline-offset-4 hover:text-teal-700"
                             >
                                 contact support
                             </Link>
@@ -162,7 +162,7 @@ export function TopicFinder({
                                     <li key={topic.slug}>
                                         <Link
                                             href={`/help/${topic.slug}`}
-                                            className="flex h-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-[1.4rem] pb-[1.4rem] pt-5 text-slate-900 motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 hover:border-teal-600"
+                                            className="flex h-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-[1.4rem] pb-[1.4rem] pt-5 text-slate-900 motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 hover:border-teal-700"
                                         >
                                             <span className="text-[0.875rem] font-medium text-slate-500">{topic.title}</span>
                                             {/* The question in the words somebody

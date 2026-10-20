@@ -61,7 +61,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                         </select>
                     </label>
                     <label className="flex items-end gap-2 pb-2 text-sm text-slate-600">
-                        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-teal-600" />In use
+                        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-teal-700" />In use
                     </label>
                 </div>
             </section>
@@ -120,7 +120,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => run(() => saveMatrixAction(tenant, matrix.id, payload()))}>{busy ? "Saving…" : "Save matrix"}</Button>
+                <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => run(() => saveMatrixAction(tenant, matrix.id, payload()))}>{busy ? "Saving…" : "Save matrix"}</Button>
                 <Button type="button" variant="outline" disabled={busy} onClick={() => start(async () => setPreview(await previewRepriceAction(tenant, matrix.id)))}>
                     See what repricing would change
                 </Button>
@@ -141,7 +141,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                             {preview.changes.length} price{preview.changes.length === 1 ? "" : "s"} would change · {preview.unchanged} already right{preview.unpriceable > 0 ? ` · ${preview.unpriceable} the bands cannot price` : ""}
                         </h2>
                         {preview.changes.length > 0 && (
-                            <Button type="button" size="sm" className="h-7 bg-teal-600 hover:bg-teal-700" disabled={busy}
+                            <Button type="button" size="sm" className="h-7 bg-teal-700 hover:bg-teal-800" disabled={busy}
                                 onClick={() => run(async () => { const r = await repriceMatrixAction(tenant, matrix.id); setPreview(null); return r; })}>
                                 Apply these prices
                             </Button>

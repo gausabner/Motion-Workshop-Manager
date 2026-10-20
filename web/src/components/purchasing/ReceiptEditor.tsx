@@ -111,7 +111,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
                     <label className="space-y-1 text-sm"><span className="text-slate-600">Tax rate</span><input value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} inputMode="decimal" disabled={!editable} className={`${numCell} h-9`} /></label>
                     <label className="space-y-1 text-sm"><span className="text-slate-600">Freight</span><input value={freight} onChange={(e) => setFreight(Number(e.target.value) || 0)} inputMode="decimal" disabled={!editable} className={`${numCell} h-9`} /></label>
                     <label className="flex items-end gap-2 pb-2 text-sm text-slate-600">
-                        <input type="checkbox" checked={pricesIncludeTax} onChange={(e) => setPricesIncludeTax(e.target.checked)} disabled={!editable} className="accent-teal-600" />
+                        <input type="checkbox" checked={pricesIncludeTax} onChange={(e) => setPricesIncludeTax(e.target.checked)} disabled={!editable} className="accent-teal-700" />
                         Their costs include tax
                     </label>
                 </div>
@@ -187,7 +187,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
 
             <div className="flex flex-wrap items-center gap-2">
                 {editable && <Button type="button" variant="outline" disabled={busy} onClick={() => save()}>{busy ? "Saving…" : "Save"}</Button>}
-                {editable && <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={process}>Put on the shelf</Button>}
+                {editable && <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={process}>Put on the shelf</Button>}
                 {invoice.state === "PROCESSED" && (
                     <Button type="button" variant="ghost" className="text-slate-500" disabled={busy}
                         onClick={() => {

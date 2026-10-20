@@ -60,7 +60,7 @@ export function RequestCard({ tenant, item, mechanics }: { tenant: string; item:
 
             <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
                 <div className="flex items-start gap-2">
-                    {m.customer ? <UserCheck className="w-4 h-4 mt-0.5 text-teal-600" /> : <UserPlus className="w-4 h-4 mt-0.5 text-slate-400" />}
+                    {m.customer ? <UserCheck className="w-4 h-4 mt-0.5 text-teal-700" /> : <UserPlus className="w-4 h-4 mt-0.5 text-slate-400" />}
                     <div>
                         <p className="font-medium text-slate-700">{item.name} <a href={wa} target="_blank" rel="noopener noreferrer" className="font-normal text-teal-700 hover:underline">{item.mobile}</a></p>
                         <p className="text-xs text-slate-500">{m.customer ? <>Matches <strong>{m.customer.name}</strong> on file</> : "New customer — will be created"}{item.email ? ` · ${item.email}` : ""}</p>
@@ -101,7 +101,7 @@ export function RequestCard({ tenant, item, mechanics }: { tenant: string; item:
                         <option value="">Unassigned</option>
                         {mechanics.map((mech) => <option key={mech.id} value={mech.id}>{mech.name}{mech.id === item.suggestedMechanicId ? " (free)" : ""}</option>)}
                     </select>
-                    <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={pending} onClick={approve}><Check className="w-4 h-4 mr-1" />Approve</Button>
+                    <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending} onClick={approve}><Check className="w-4 h-4 mr-1" />Approve</Button>
                     <Button type="button" size="sm" variant="ghost" className="text-slate-500 hover:text-red-700" onClick={() => setDeclining(true)}><X className="w-4 h-4 mr-1" />Decline</Button>
                     {item.clashes && <span className="flex items-center gap-1 text-xs text-amber-800"><AlertTriangle className="w-3.5 h-3.5" />Nobody is free then — approving it will make a clash</span>}
                 </div>

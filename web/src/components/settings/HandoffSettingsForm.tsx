@@ -27,12 +27,12 @@ export function HandoffSettingsForm({ tenant, handoff, accounting }: { tenant: s
     const [state, action, saving] = useActionState(saveHandoffSettings.bind(null, tenant), initialActionState);
     const [folder, setFolder] = useState(handoff.folder);
 
-    const field = "h-9 w-full rounded-md border border-slate-300 px-2 text-sm";
+    const field = "h-9 w-full rounded-sm border border-slate-300 px-2 text-sm";
 
     return (
         <form action={action} className="max-w-3xl space-y-4">
             <label className="flex items-start gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3">
-                <input type="checkbox" name="enabled" defaultChecked={handoff.enabled} className="mt-1 accent-teal-600" />
+                <input type="checkbox" name="enabled" defaultChecked={handoff.enabled} className="mt-1 accent-teal-700" />
                 <span>
                     <span className="block font-medium text-slate-800">Send a journal every night</span>
                     <span className="block text-sm text-slate-500">
@@ -49,7 +49,7 @@ export function HandoffSettingsForm({ tenant, handoff, accounting }: { tenant: s
                     {SHAPES.map((s) => (
                         <li key={s.value}>
                             <label className="flex items-start gap-3 px-4 py-2.5">
-                                <input type="radio" name="shape" value={s.value} defaultChecked={handoff.shape === s.value} className="mt-1 accent-teal-600" />
+                                <input type="radio" name="shape" value={s.value} defaultChecked={handoff.shape === s.value} className="mt-1 accent-teal-700" />
                                 <span>
                                     <span className="block text-sm font-medium text-slate-800">{s.label}</span>
                                     <span className="block text-xs text-slate-500">{s.hint}</span>
@@ -101,7 +101,7 @@ export function HandoffSettingsForm({ tenant, handoff, accounting }: { tenant: s
                                 {a.label}
                                 <span className="block text-xs text-slate-500">{a.hint}</span>
                             </label>
-                            <input id={`acc-${a.key}`} name={a.key} defaultValue={String(accounting[a.key] ?? "")} className="h-9 w-28 rounded-md border border-slate-300 px-2 text-sm tabular-nums" />
+                            <input id={`acc-${a.key}`} name={a.key} defaultValue={String(accounting[a.key] ?? "")} className="h-9 w-28 rounded-sm border border-slate-300 px-2 text-sm tabular-nums" />
                         </li>
                     ))}
                 </ul>

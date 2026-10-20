@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getSessionUser, signedInLanding } from "@/lib/auth/session";
 import { isCloud } from "@/lib/edition";
 import { CloudLanding } from "@/components/public/CloudLanding";
 import { InstalledWelcome } from "@/components/public/InstalledWelcome";
@@ -22,14 +20,19 @@ export function generateMetadata(): Metadata {
  * The front door.
  *
  * Somebody already signed in has not come here to read about the product, so
- * they go straight to their workshop, exactly as before. Everybody else used
- * to be bounced to a login form with no explanation of what they were logging
- * in to — which is fine for staff and useless for anyone else.
+ * they go straight to their workshop, exactly as before — decided before this
+ * page renders, by `proxy.ts` and `app/start/route.ts`. Everybody else used to
+ * be bounced to a login form with no explanation of what they were logging in
+ * to, which is fine for staff and useless for anyone else.
+ *
+ * Rendered per request, so the edition and the support contacts come from the
+ * running server rather than the build, without awaiting anything here. Any
+ * await before the landing rendered — a session lookup, even `connection()` —
+ * made it fail to hydrate in development about four loads in five; the route
+ * segment option does the same job with none.
  */
-export default async function Home() {
-    const user = await getSessionUser();
-    if (user) {
-        redirect(await signedInLanding(user.id));
-    }
+export const dynamic = "force-dynamic";
+
+export default function Home() {
     return isCloud() ? <CloudLanding /> : <InstalledWelcome />;
 }

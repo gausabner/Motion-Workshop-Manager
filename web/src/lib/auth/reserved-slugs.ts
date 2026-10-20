@@ -30,6 +30,7 @@ export const RESERVED_SLUGS = new Set([
     "register",
     "reset",
     "share",
+    "start",
     "support",
     "terms",
     // Kept back for what comes next, or for the obvious guess at it. "admin" is

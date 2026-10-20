@@ -37,7 +37,7 @@ export function AccountSummary({ tenant, customerId, account, canTakePayment }: 
                     )}
                     {canTakePayment && (
                         <form action={createPayment.bind(null, tenant, { customerId })}>
-                            <Button type="submit" size="sm" className="h-7 bg-teal-600 hover:bg-teal-700"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
+                            <Button type="submit" size="sm" className="h-7 bg-teal-700 hover:bg-teal-800"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
                         </form>
                     )}
                 </div>

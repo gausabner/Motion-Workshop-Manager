@@ -55,7 +55,7 @@ export function AccessDenied({
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-                <Button asChild className="h-11 bg-teal-600 px-5 hover:bg-teal-700">
+                <Button asChild className="h-11 bg-teal-700 px-5 hover:bg-teal-800">
                     <Link href={`/${tenant}/dashboard`}>Go to the dashboard</Link>
                 </Button>
             </div>

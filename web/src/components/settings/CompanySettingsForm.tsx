@@ -44,7 +44,7 @@ export function CompanySettingsForm({ tenant, profile }: { tenant: string; profi
                 <p className="text-sm text-slate-500">These details head every quote, invoice, receipt and statement that leaves the workshop.</p>
                 <div className="flex items-center gap-3">
                     {state.message && <span className={state.ok ? "text-sm text-teal-700" : "text-sm text-red-600"} role={state.ok ? undefined : "alert"}>{state.message}</span>}
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>
                         <Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}
                     </Button>
                 </div>
@@ -87,7 +87,7 @@ export function CompanySettingsForm({ tenant, profile }: { tenant: string; profi
                     <Field label="Printed in the invoice footer" name="bankDetails" errors={errors} hint="Whatever your bank wants quoted — branch, account number, reference.">
                         <textarea
                             id="bankDetails" name="bankDetails" rows={3} defaultValue={profile.bankDetails}
-                            className="w-full rounded-md border border-input bg-white px-2 py-1.5 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                            className="w-full rounded-sm border border-input bg-white px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                         />
                     </Field>
                 </div>

@@ -75,7 +75,7 @@ function QuickCustomer({ tenant, query, done, cancel }: { tenant: string; query:
                 <p className="text-[11px] text-slate-400">Address, pricing and terms can be added on the customer page later.</p>
                 <div className="flex shrink-0 gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
-                    <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={submit} disabled={pending}>
+                    <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" onClick={submit} disabled={pending}>
                         {pending ? "Creating…" : "Create and select"}
                     </Button>
                 </div>

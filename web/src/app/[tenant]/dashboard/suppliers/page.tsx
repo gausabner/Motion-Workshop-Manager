@@ -26,7 +26,7 @@ export default async function SuppliersPage({ params, searchParams }: { params: 
                     <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Building2 className="h-6 w-6 text-slate-400" />Suppliers</h1>
                     <p className="text-sm text-slate-500">Who you buy from. <Link href={archived ? base : `${base}?archived=1`} className="text-teal-700 hover:underline">{archived ? "Show current" : "Show archived"}</Link></p>
                 </div>
-                <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New supplier</Link></Button>
+                <Button asChild size="sm" className="bg-teal-700 hover:bg-teal-800"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New supplier</Link></Button>
             </div>
             <ul className="divide-y divide-slate-100 rounded-sm border border-slate-200 bg-white">
                 {suppliers.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No suppliers yet. Add the suppliers you buy parts from with New supplier.</li>}

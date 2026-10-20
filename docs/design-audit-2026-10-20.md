@@ -12,10 +12,10 @@ desktop width.
 | --- | --- | --- | --- |
 | 1 | Accessibility | 3 | Locked menu items were 2.6:1 contrast (fixed) |
 | 2 | Performance | 3 | Registration progress bar animated `width` for 500ms (fixed) |
-| 3 | Theming | 2 | Settings and Billing use rounded, tinted cards the Ledger Page rejects |
-| 4 | Responsive | 3 | Settings menu was 1,260px wide on a 375px phone (fixed) |
+| 3 | Theming | 2 → 4 | Settings used rounded, tinted cards and two teals (fixed in the follow-up) |
+| 4 | Responsive | 3 → 4 | Settings menu was 1,260px wide on a 375px phone; drawer rows were 32px (both fixed) |
 | 5 | Implementation integrity | 3 | One detector finding (fixed); the voice and glossary hold |
-| **Total** | | **14/20** | **Good**, with Theming the weak dimension |
+| **Total** | | **14/20 → 17/20** | **Good** at the audit; every P2 since resolved |
 
 **Integrity verdict: pass.** The public pages and the signed-in app each
 express their own coherent system: the iso/spine world outside, the Ledger
@@ -46,27 +46,45 @@ anti-pattern in the files changed (the sidebar's 2px coloured marker).
 - **[P3] One visible em-dash on a public page.** The register form's
   "quoted per site —" is now a colon.
 
-### Open, recommended next
+### Fixed in the follow-up pull request
 
-- **[P2] Settings section drifts from the Ledger Page.** Billing and its
-  siblings use `rounded-lg` cards and tinted alert boxes (teal-50, amber-50);
-  DESIGN.md calls for square panels, hairlines and no tinted cards. The new
-  plan-change screens follow DESIGN.md, so the section is now visibly mixed.
-  → `/impeccable polish` on `settings/*`.
-- **[P2] Two teals.** DESIGN.md's accent is teal-700 (#0f766e); most app
-  buttons are teal-600. The new flow uses teal-700. → `/impeccable colorize`
-  to settle one value as a token.
-- **[P2] Sidebar targets are ~32px tall.** Below the 44px touch minimum in
-  the phone drawer, which reuses the desktop sidebar. → `/impeccable adapt`.
+- **[P2] Settings section drifted from the Ledger Page** (`/impeccable
+  polish`). Every settings screen is now square (`rounded-sm` on controls,
+  none on panels and tables), with no drop shadows. The tinted alert boxes
+  (teal-50, amber-50) are one component, `components/ui/notice.tsx`: white
+  ground, hairline, and a 1px marker down the left, teal for information
+  and amber for money that needs attention. It serves Billing's locked and
+  read-only notices, the tax note, the team invitations, the API key shown
+  once, and the import result. The WhatsApp preview bubble keeps its own
+  colour, because it pictures a message, not MOTION.
+- **[P2] Two teals** (`/impeccable colorize`). One accent: teal-700
+  (#0f766e) for every button, link and marker in the app, hovering to
+  teal-800, and `--primary` in `globals.css` set to the same value. White on
+  it is 5.5:1; on teal-600 it was 3.7:1, below AA for a button label. The
+  public pages' solid buttons moved to teal-700 for the same reason. Their
+  teal-600 icons, dots and rules stay: they are not text, and 3.7:1 clears
+  the 3:1 that graphics need.
+- **[P2] Sidebar targets were ~32px tall** (`/impeccable adapt`). On a
+  touch screen (`pointer: coarse`) the sidebar and settings menu rows are
+  44px with 14px labels and 16px icons. A mouse keeps the compact rows.
+- **[P3] `OnThisPage` marker used `transition-all`** (`animate`). The
+  marker is now a 1px line moved and stretched with `transform` alone
+  (`translateY` and `scaleY` from the top), 180ms on the strong ease-in-out.
+  Under reduced motion it jumps instead.
+- **[P3] Development-only hydration warning on the landing page.** Traced to
+  the session lookup at the top of the page: any wait before rendering made
+  the page stream after the shell around it, and React lost the match about
+  four loads in five. The page now renders at once. A visitor with a session
+  cookie is sent by the proxy to `/start`, which looks the session up and
+  goes on to their workshop, or clears a dead cookie and returns them to the
+  front page. Five clean loads out of five after the change.
+
+### Kept, with the reason
+
 - **[P3] Landing hero carries a price line under its buttons.** The
   marketing lens treats a pricing line in the hero as clutter. Kept
   deliberately: in this market the price is the first question, and the line
   is short. Revisit only if the hero is redesigned.
-- **[P3] `OnThisPage` marker uses `motion-safe:transition-all`.** Name the
-  property (`transform` / `top`). → `/impeccable animate`.
-- **[P3] Development-only hydration warning on the landing page.** About two
-  loads in five, none in production (checked on 10 October). Leave unless
-  it reaches a production build.
 
 ### False positives, checked
 
