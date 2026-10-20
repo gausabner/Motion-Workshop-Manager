@@ -411,6 +411,7 @@ model Tenant {
   subscriptionPayments       SubscriptionPayment[]
   subscriptionInvoices       SubscriptionInvoice[]
   subscriptionCreditNotes    SubscriptionCreditNote[]
+  planChangeRequests         PlanChangeRequest[]
   platformAuditEvents        PlatformAuditEvent[]
 }
 
@@ -489,8 +490,9 @@ model Subscription {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payments SubscriptionPayment[]
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments           SubscriptionPayment[]
+  planChangeRequests PlanChangeRequest[]
 
   @@index([periodEndsAt])
 }
@@ -521,8 +523,68 @@ model SubscriptionPayment {
   reversedAt   DateTime?
   confirmedBy  User?                @relation(fields: [confirmedById], references: [id], onDelete: SetNull)
   invoice      SubscriptionInvoice?
+  /// The plan change this payment paid for, when it was one.
+  planChange   PlanChangeRequest?
 
   @@index([tenantId, confirmedAt])
+}
+
+enum PlanChangeStatus {
+  /// Asked for by the workshop, waiting on MOTION.
+  PENDING
+  /// Applied by staff. For a move up, once the payment was confirmed.
+  APPROVED
+  /// Refused by staff, with a reason the owner is told.
+  DECLINED
+  /// Taken back by the workshop before anybody acted on it.
+  WITHDRAWN
+}
+
+/// A workshop asking to move to another plan, and what came of it.
+///
+/// A request rather than a switch, because a move up is paid for first: the
+/// owner pays one full period at the new plan's price, staff match it on the
+/// statement, and only then does the plan change and the paid-up-to date
+/// restart from that day. A move down needs no payment and is applied when
+/// staff approve it, with the lower price from the next renewal.
+///
+/// The plans and prices are snapshotted on the request, as on `Subscription`:
+/// what the owner was shown and agreed to is what staff act on, even if the
+/// price list changes in between. One request at a time per workshop, held by
+/// a partial unique index on PENDING.
+model PlanChangeRequest {
+  id             String           @id @default(cuid())
+  tenantId       String
+  subscriptionId String
+  fromPlanId     String
+  fromPlanName   String
+  /// Excluding VAT, as the workshop was paying on the day it asked.
+  fromPrice      Decimal          @db.Decimal(12, 2)
+  toPlanId       String
+  toPlanName     String
+  /// Excluding VAT, from the price list on the day it asked.
+  toPrice        Decimal          @db.Decimal(12, 2)
+  /// What must be paid before it is applied, excluding VAT. Zero for a move down.
+  amountExclVat  Decimal          @db.Decimal(12, 2)
+  amountInclVat  Decimal          @db.Decimal(12, 2)
+  status         PlanChangeStatus @default(PENDING)
+  requestedById  String?
+  requestedAt    DateTime         @default(now())
+  decidedById    String?
+  decidedAt      DateTime?
+  /// Why staff declined it, in words the owner is sent.
+  declineReason  String?
+  /// The payment that paid for a move up, recorded when it was approved.
+  paymentId      String?          @unique
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  requestedBy  User?                @relation("PlanChangeRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy    User?                @relation("PlanChangeDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  payment      SubscriptionPayment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, requestedAt])
+  @@index([status, requestedAt])
 }
 
 /// The tax invoice for one confirmed payment, from Omzizi Investment CC,
@@ -643,6 +705,8 @@ model User {
   platformAuditEvents           PlatformAuditEvent[]
   confirmedSubscriptionPayments SubscriptionPayment[]
   issuedCreditNotes             SubscriptionCreditNote[]
+  requestedPlanChanges          PlanChangeRequest[]      @relation("PlanChangeRequestedBy")
+  decidedPlanChanges            PlanChangeRequest[]      @relation("PlanChangeDecidedBy")
 }
 
 /// What MOTION's staff did, and to which workshop.

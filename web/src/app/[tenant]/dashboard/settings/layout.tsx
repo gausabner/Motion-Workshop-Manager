@@ -101,15 +101,17 @@ export default async function SettingsLayout({
                 </p>
             </div>
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-                <aside className="lg:w-1/5">
-                    <nav className="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
+                {/* Below lg the thirteen items are one row that scrolls on its own,
+                    rather than a row that widened the whole page past the screen. */}
+                <aside className="-mx-4 min-w-0 sm:-mx-6 lg:mx-0 lg:w-1/5">
+                    <nav className="flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:thin] sm:px-6 lg:flex-col lg:gap-0 lg:space-y-1 lg:overflow-visible lg:px-0 lg:pb-0">
                         {items.map((item) =>
                             isLocked(item) ? (
-                                <div key={item.href} className="flex flex-col">
+                                <div key={item.href} className="flex shrink-0 flex-col">
                                     <Link
                                         href={`${basePath}/billing?feature=${item.feature}`}
                                         title={`Included in the ${PLAN_NAMES[FEATURES[item.feature!].plan]} plan`}
-                                        className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-100/50 hover:text-slate-600"
+                                        className="flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100/50 hover:text-slate-700"
                                     >
                                         {item.icon}
                                         {item.title}
@@ -118,10 +120,10 @@ export default async function SettingsLayout({
                                     </Link>
                                 </div>
                             ) : (
-                                <div key={item.href} className="flex flex-col">
+                                <div key={item.href} className="flex shrink-0 flex-col">
                                     <Link
                                         href={`${basePath}/${item.href}`}
-                                        className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
+                                        className="flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
                                     >
                                         {item.icon}
                                         {item.title}

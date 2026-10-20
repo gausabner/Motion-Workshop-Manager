@@ -19,6 +19,8 @@ const ACTION_WORDS: Record<string, (name: string) => string> = {
     PAYMENT_REVERSED: (n) => `reversed a payment from ${n} and issued a credit note`,
     CREDIT_NOTE_SENT: (n) => `sent ${n} its credit note again`,
     PLAN_CHANGED: (n) => `changed ${n}'s plan`,
+    PLAN_CHANGE_APPROVED: (n) => `approved ${n}'s plan change`,
+    PLAN_CHANGE_DECLINED: (n) => `declined ${n}'s plan change`,
 };
 
 export function actorName(actor: { firstName: string; lastName: string } | null): string {

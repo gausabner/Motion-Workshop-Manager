@@ -62,7 +62,7 @@ export function RegisterForm({ host, initialPlan }: { host: string; initialPlan?
                 </div>
                 {state.errors?.planId && <p className="text-xs text-red-600">{state.errors.planId[0]}</p>}
                 <p className="text-[12px] text-slate-500">
-                    More than one workshop, or buying for a municipality? Those are quoted per site —{" "}
+                    More than one workshop, or buying for a municipality? Those are quoted per site:{" "}
                     <Link href="/support" className="font-medium text-teal-700 hover:underline">request a quote</Link>.
                 </p>
             </fieldset>

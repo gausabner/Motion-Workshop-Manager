@@ -135,7 +135,7 @@ export function SidebarNav({
                                     key={item.href}
                                     href={`${base}/dashboard/settings/billing?feature=${item.feature}`}
                                     title={`Included in the ${plan} plan`}
-                                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 focus-visible:bg-slate-100 focus-visible:text-slate-600"
+                                    className="flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:bg-slate-100 focus-visible:text-slate-700"
                                 >
                                     <Icon className="h-[12px] w-[12px] shrink-0" aria-hidden="true" />
                                     {item.label}
@@ -152,8 +152,8 @@ export function SidebarNav({
                                 aria-current={isActive ? "page" : undefined}
                                 className={
                                     isActive
-                                        ? "flex items-center gap-3 rounded-lg border-l-2 border-teal-600 bg-teal-50 py-2 pl-[10px] pr-3 font-semibold text-teal-900 transition-all"
-                                        : "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:text-slate-900"
+                                        ? "flex items-center gap-3 rounded-sm border-l border-teal-700 bg-teal-50 py-2 pl-[11px] pr-3 font-semibold text-teal-900 transition-colors duration-150"
+                                        : "flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:text-slate-900"
                                 }
                             >
                                 <Icon className="h-[12px] w-[12px] shrink-0" aria-hidden="true" />

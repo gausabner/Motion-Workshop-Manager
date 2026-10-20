@@ -29,9 +29,11 @@ export function StepProgress({ steps, current }: { steps: readonly Step[]; curre
     return (
         <div className="w-full">
             <div aria-hidden className="relative h-1 overflow-hidden rounded-full bg-slate-200">
+                {/* Scaled rather than resized: a width change re-lays the bar out on
+                    every frame, a transform does not. */}
                 <span
-                    className="absolute inset-y-0 left-0 rounded-full bg-teal-600 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
-                    style={{ width: `${percent}%` }}
+                    className="absolute inset-0 origin-left rounded-full bg-teal-600 motion-safe:transition-transform motion-safe:duration-[240ms] motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
+                    style={{ transform: `scaleX(${percent / 100})` }}
                 />
             </div>
 

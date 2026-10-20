@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { BillingPeriod } from "@prisma/client";
+import type { ChangeKind } from "@/lib/billing/plan-change";
 import { bankDetails } from "@/lib/billing/config";
 import { appUrl, supportAddress, teamAddress } from "@/lib/billing/registration";
 import { billingDay } from "@/lib/billing/periods";
@@ -170,17 +172,34 @@ export async function sendCreditNoteLetter(
  * because those are the two questions an owner has.
  */
 export async function sendPlanChangedLetter(
-    n: Owner & { slug: string; planName: string; price: number; nextRenewal: Date | null; gained: string[]; lost: string[] },
+    n: Owner & {
+        slug: string;
+        planName: string;
+        price: number;
+        nextRenewal: Date | null;
+        gained: string[];
+        lost: string[];
+        /** A move up the owner paid for: what arrived, the new paid-up-to date, and its tax invoice. */
+        payment?: { amountInclVat: number; paidUntil: Date; invoice?: { number: string; attachment: MailAttachment } };
+    },
 ): Promise<void> {
     const base = appUrl();
     const reach = supportAddress();
     await sendMail({
         to: n.to,
+        attachments: n.payment?.invoice ? [n.payment.invoice.attachment] : undefined,
         subject: `${n.workshopName} is now on the ${n.planName} plan`,
         text: [
             `Hello ${n.firstName},`,
             "",
             `${n.workshopName} is now on MOTION's ${n.planName} plan.`,
+            ...(n.payment
+                ? [
+                      "",
+                      `We have received your payment of ${money(n.payment.amountInclVat)}, and ${n.workshopName} is paid up to ${billingDay(n.payment.paidUntil)}.`,
+                      ...(n.payment.invoice ? [`Your tax invoice, ${n.payment.invoice.number}, is attached.`] : []),
+                  ]
+                : []),
             ...(n.gained.length ? ["", "Available from today:", ...n.gained.map((g) => `  • ${g}`)] : []),
             ...(n.lost.length ? ["", "No longer included (your records are kept):", ...n.lost.map((g) => `  • ${g}`)] : []),
             "",
@@ -188,6 +207,126 @@ export async function sendPlanChangedLetter(
                 ? `From your next renewal on ${billingDay(n.nextRenewal)}, the subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT). Amounts already paid are not affected.`
                 : `The subscription is ${money(withVat(n.price))} a month (${money(n.price)} plus ${VAT_RATE}% VAT).`,
             ...(base ? ["", `${base}/${n.slug}/dashboard`] : []),
+            ...(reach ? ["", `If you have any questions, contact ${reach}.`] : []),
+            "",
+            ...SIGN_OFF,
+        ].join("\n"),
+    });
+}
+
+const PERIOD_LENGTH: Record<BillingPeriod, string> = { MONTHLY: "one month", QUARTERLY: "three months", ANNUAL: "one year" };
+
+type PlanChangeNotice = Owner & {
+    slug: string;
+    kind: ChangeKind;
+    fromPlanName: string;
+    toPlanName: string;
+    /** Excluding VAT, per period, on the new plan. */
+    toPrice: number;
+    period: BillingPeriod;
+    /** What must be paid first. Zero for a move down. */
+    amountExclVat: number;
+    amountInclVat: number;
+    reference: string;
+    /** Whole days left on the current period, which a move up gives up. */
+    unusedDays: number;
+    /** When the lower price starts, for a move down. */
+    nextRenewal: Date | null;
+    gained: string[];
+    lost: string[];
+};
+
+/**
+ * The owner's receipt for asking. Says that the request is logged, and — for
+ * a move up — everything needed to pay for it, in the letter itself, as every
+ * letter that asks for money does.
+ */
+export async function sendPlanChangeRequestedLetter(n: PlanChangeNotice): Promise<void> {
+    const base = appUrl();
+    const up = n.kind === "upgrade";
+    await sendMail({
+        to: n.to,
+        subject: `Your request to move ${n.workshopName} to the ${n.toPlanName} plan`,
+        text: [
+            `Hello ${n.firstName},`,
+            "",
+            `We have logged your request to move ${n.workshopName} from the ${n.fromPlanName} plan to the ${n.toPlanName} plan.`,
+            ...(n.gained.length ? ["", "This adds:", ...n.gained.map((g) => `  • ${g}`)] : []),
+            ...(n.lost.length ? ["", "These will be locked (your records in them are kept):", ...n.lost.map((g) => `  • ${g}`)] : []),
+            "",
+            ...(up
+                ? [
+                      `To complete the change, pay ${PERIOD_LENGTH[n.period]} at the ${n.toPlanName} price:`,
+                      "",
+                      ...payBlock(n.amountExclVat, n.reference),
+                      ...proofLine(),
+                      "",
+                      `We switch on the ${n.toPlanName} plan as soon as the payment is confirmed, and email you the tax invoice. Your paid-up-to date then restarts from that day.`,
+                      ...(n.unusedDays > 0
+                          ? [`The ${n.unusedDays} ${n.unusedDays === 1 ? "day" : "days"} left on your current period are not refunded.`]
+                          : []),
+                  ]
+                : [
+                      "No payment is needed. We will apply the change shortly and email you when it is done.",
+                      n.nextRenewal
+                          ? `The lower price, ${money(withVat(n.toPrice))} a month (${money(n.toPrice)} plus ${VAT_RATE}% VAT), applies from your next renewal on ${billingDay(n.nextRenewal)}.`
+                          : `The lower price, ${money(withVat(n.toPrice))} a month (${money(n.toPrice)} plus ${VAT_RATE}% VAT), applies from your next renewal.`,
+                  ]),
+            "",
+            "You can see the request, or withdraw it, under Settings → Billing:",
+            "",
+            base ? `${base}/${n.slug}/dashboard/settings/billing` : "Settings → Billing",
+            "",
+            ...SIGN_OFF,
+        ].join("\n"),
+    });
+}
+
+/** The team's notice of a request, with what to look for on the statement. */
+export async function sendPlanChangeTeamNotice(n: {
+    workshopName: string;
+    slug: string;
+    kind: ChangeKind;
+    fromPlanName: string;
+    toPlanName: string;
+    amountInclVat: number;
+    reference: string;
+    requestedBy: string;
+}): Promise<void> {
+    const to = teamAddress();
+    if (!to) return;
+    const base = appUrl();
+    await sendMail({
+        to,
+        subject: `Plan change ${n.reference}: ${n.workshopName}, ${n.fromPlanName} to ${n.toPlanName}`,
+        text: [
+            `${n.requestedBy} has asked to move ${n.workshopName} from ${n.fromPlanName} to ${n.toPlanName}.`,
+            "",
+            n.kind === "upgrade"
+                ? `It is a move up. Wait for ${money(n.amountInclVat)} under reference ${n.reference}, then approve it: the plan changes and the paid-up-to date restarts from that day.`
+                : "It is a move down. No payment is due; approve it to apply the change.",
+            "",
+            base ? `${base}/admin` : "/admin",
+            "",
+            "— MOTION",
+        ].join("\n"),
+    });
+}
+
+/** A request staff turned down, with their reason. */
+export async function sendPlanChangeDeclinedLetter(n: Owner & { toPlanName: string; reason: string }): Promise<void> {
+    const reach = supportAddress();
+    await sendMail({
+        to: n.to,
+        subject: `Your request to move ${n.workshopName} to the ${n.toPlanName} plan`,
+        text: [
+            `Hello ${n.firstName},`,
+            "",
+            `We have not made the change to the ${n.toPlanName} plan for ${n.workshopName}.`,
+            "",
+            `Reason: ${n.reason}`,
+            "",
+            "Your current plan continues unchanged.",
             ...(reach ? ["", `If you have any questions, contact ${reach}.`] : []),
             "",
             ...SIGN_OFF,

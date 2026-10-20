@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { Prisma, type BillingPeriod, type SubscriptionCreditNote, type SubscriptionInvoice, type TenantStatus } from "@prisma/client";
 import { asStaff } from "@/lib/admin/platform";
 import { sendActivationLetter, sendRestoredLetter, sendSuspensionLetter } from "@/lib/billing/registration";
-import { sendCreditNoteLetter, sendInvoiceLetter, sendPlanChangedLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { sendCreditNoteLetter, sendInvoiceLetter, sendPlanChangeDeclinedLetter, sendPlanChangedLetter, sendRenewalReceipt } from "@/lib/billing/renewal-letters";
+import { applyPlanChange, declinePlanChange } from "@/lib/billing/plan-change-staff";
 import { addPeriod, anchorDayOf, billingDateFromInput, billingDay, periodStartFor, renewalRefusal, renewalRules, renewalStart } from "@/lib/billing/periods";
 import { issueInvoice } from "@/lib/billing/invoices";
 import { reversePayment } from "@/lib/billing/reversals";
@@ -663,6 +664,104 @@ export async function changePlanAction(_prev: AdminActionState, formData: FormDa
                           gained,
                           lost,
                       })
+                : null,
+        };
+    });
+}
+
+// ── a plan change the workshop asked for ─────────────────────────────────────
+
+/** Who hears about a decision: the owner, and whoever asked if that was somebody else. */
+function recipients(w: Workshop, asker: { email: string; firstName: string } | null) {
+    const o = owner(w);
+    const all = [o, asker].filter((r): r is { email: string; firstName: string } => r !== null);
+    return all.filter((r, i) => all.findIndex((x) => x.email.toLowerCase() === r.email.toLowerCase()) === i);
+}
+
+/**
+ * Applies a requested plan change — see `lib/billing/plan-change-staff.ts`.
+ * A move up is approved once its payment is on the statement; the owner is
+ * emailed with the tax invoice. A move down is applied as it stands.
+ */
+export async function approvePlanChangeAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const requestId = String(formData.get("requestId") ?? "");
+    if (!requestId) return { ok: false, message: "No request was named." };
+
+    return run(formData, async (tx, staff, w, now) => {
+        const sub = w.subscription;
+        const result = await applyPlanChange(tx, {
+            staffId: staff.id,
+            tenant: { id: w.id, name: w.name, status: w.status },
+            subscription: sub ? { id: sub.id, status: sub.status, period: sub.period, periodEndsAt: sub.periodEndsAt } : null,
+            requestId,
+            now,
+        });
+        if (!result.ok) return result.stale ? STALE(w.name) : { ok: false, message: result.message };
+        const a = result.applied;
+        await audit(tx, staff, w, "PLAN_CHANGE_APPROVED", {
+            request: requestId,
+            kind: a.kind,
+            fromPlan: a.from,
+            toPlan: a.to,
+            toAmount: a.price,
+            ...(a.paid ? { paidUntil: a.paid.to.toISOString(), invoice: a.paid.invoice.number } : {}),
+        });
+
+        const people = recipients(w, a.requestedBy);
+        const paid = a.paid;
+        return {
+            ok: true,
+            slug: w.slug,
+            message: paid
+                ? `${w.name} is on ${a.toPlanName} now and paid up to ${billingDay(paid.to)}${a.restored ? ", with full access back" : ""}. Tax invoice ${paid.invoice.number} is on its way to the owner.`
+                : `${w.name} is on ${a.toPlanName} now, at ${money(withVat(a.price))} a month from its next renewal. The owner has been emailed.`,
+            letter: people.length
+                ? async () => {
+                      const attachment = paid ? await invoiceAttachment(paid.invoice) : undefined;
+                      for (const p of people) {
+                          await sendPlanChangedLetter({
+                              to: p.email,
+                              firstName: p.firstName,
+                              workshopName: w.name,
+                              slug: w.slug,
+                              planName: a.toPlanName,
+                              price: a.price,
+                              nextRenewal: a.nextRenewal,
+                              gained: a.gained,
+                              lost: a.lost,
+                              payment: paid ? { amountInclVat: paid.amountInclVat, paidUntil: paid.to, invoice: attachment } : undefined,
+                          });
+                      }
+                      if (paid) await markEmailed(paid.invoice.id);
+                  }
+                : null,
+        };
+    });
+}
+
+/** Turns a request down, with a reason the owner is sent. */
+export async function declinePlanChangeAction(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+    const requestId = String(formData.get("requestId") ?? "");
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (!requestId) return { ok: false, message: "No request was named." };
+    if (reason.length < 5) return { ok: false, message: "Enter the reason. It is sent to the owner." };
+    if (reason.length > 300) return { ok: false, message: "Keep the reason to 300 characters." };
+
+    return run(formData, async (tx, staff, w, now) => {
+        const req = await declinePlanChange(tx, { staffId: staff.id, tenantId: w.id, requestId, reason, now });
+        if (!req) return STALE(w.name);
+        await audit(tx, staff, w, "PLAN_CHANGE_DECLINED", { request: requestId, toPlan: req.toPlanId, reason });
+        const people = recipients(w, req.requestedBy);
+        return {
+            ok: true,
+            slug: w.slug,
+            message: `Declined. ${w.name} stays on its current plan, and the owner has been told why.`,
+            letter: people.length
+                ? async () => {
+                      for (const p of people) {
+                          await sendPlanChangeDeclinedLetter({ to: p.email, firstName: p.firstName, workshopName: w.name, toPlanName: req.toPlanName, reason });
+                      }
+                  }
                 : null,
         };
     });

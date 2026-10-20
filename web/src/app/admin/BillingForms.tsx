@@ -312,3 +312,53 @@ export function ChangePlan({
         </form>
     );
 }
+
+/**
+ * Turning down a plan change. Folded behind a button like the reversal, and
+ * asking for the reason in words, because the owner is sent it.
+ */
+export function DeclinePlanChange({ action, tenantId, requestId }: { action: Action; tenantId: string; requestId: string }) {
+    const [state, formAction, pending] = useActionState(action, { ok: false, message: "" });
+    const [open, setOpen] = useState(false);
+    const [seen, setSeen] = useState(state);
+    const [done, setDone] = useState<string | null>(null);
+    if (state !== seen) {
+        setSeen(state);
+        if (state.ok) {
+            setOpen(false);
+            setDone(state.message);
+        }
+    }
+
+    if (done) return <p role="status" className="max-w-xs text-[13px] font-medium leading-snug text-teal-800">{done}</p>;
+    if (!open) {
+        return (
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="inline-flex min-h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-[13px] font-medium text-slate-700 hover:border-slate-400"
+            >
+                Decline
+            </button>
+        );
+    }
+    return (
+        <form action={formAction} className="flex w-full max-w-sm flex-col gap-3 rounded-md border border-slate-200 bg-white p-3 text-left">
+            <input type="hidden" name="tenantId" value={tenantId} />
+            <input type="hidden" name="requestId" value={requestId} />
+            <label className={label}>
+                Reason, sent to the owner
+                <textarea
+                    name="reason"
+                    required
+                    minLength={5}
+                    maxLength={300}
+                    rows={2}
+                    placeholder="No payment has arrived under the reference after 14 days."
+                    className="rounded-md border border-slate-300 bg-white px-2.5 py-2 text-[13px] text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20"
+                />
+            </label>
+            <Footer pending={pending} submit="Decline and tell the owner" onCancel={() => setOpen(false)} state={state} />
+        </form>
+    );
+}

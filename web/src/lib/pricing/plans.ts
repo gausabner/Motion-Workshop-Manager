@@ -174,7 +174,7 @@ export const QUESTIONS: { q: string; a: string }[] = [
     },
     {
         q: "Can we change plan later?",
-        a: "Yes. Features are added or removed as soon as the change is made, and the new price applies from your next renewal. Moving to a smaller plan keeps all your records.",
+        a: "Yes, from Settings → Billing at any time. A move up is switched on once you have paid one month at the new price, and your paid-up-to date restarts from that day. A move down needs no payment; the lower price applies from your next renewal, and your records are kept.",
     },
     {
         q: "What happens if a payment is late?",
