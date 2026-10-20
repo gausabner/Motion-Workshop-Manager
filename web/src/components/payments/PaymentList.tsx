@@ -113,14 +113,14 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                                             {p.direction === "REFUND" && <span className="ml-1 inline-block rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700">Refund</span>}
                                         </TableCell>
                                         <TableCell data-label="Customer" className="py-2 text-slate-600">
-                                            {p.customer ? <Link href={`/${tenant}/dashboard/customers/${p.customer.id}`} className="hover:text-teal-700">{p.customer.firstName} {p.customer.lastName}</Link> : <span className="text-slate-400">Not chosen</span>}
+                                            {p.customer ? <Link href={`/${tenant}/dashboard/customers/${p.customer.id}`} className="hover:text-teal-700">{p.customer.firstName} {p.customer.lastName}</Link> : <span className="text-slate-500">Not chosen</span>}
                                         </TableCell>
                                         <TableCell data-label="Tendered as" className="py-2 text-slate-500 text-xs max-w-[260px] truncate" title={p.methods.map((m) => `${m.name}${m.reference ? ` ${m.reference}` : ""}`).join(", ")}>
                                             {p.methods.map((m) => m.name).join(" + ") || "—"}
                                         </TableCell>
                                         <TableCell data-label="Amount" className={`py-2 text-right tabular-nums font-medium ${p.direction === "REFUND" ? "text-red-700" : "text-slate-700"}`}>{money(p.amount)}</TableCell>
                                         <TableCell data-label="Applied" className="py-2 text-right tabular-nums text-slate-600">{money(p.allocated)}</TableCell>
-                                        <TableCell data-label="Unapplied" className={`py-2 pr-4 text-right tabular-nums ${p.unapplied > 0 ? "text-amber-700 font-medium" : "text-slate-400"}`}>{money(p.unapplied)}</TableCell>
+                                        <TableCell data-label="Unapplied" className={`py-2 pr-4 text-right tabular-nums ${p.unapplied > 0 ? "text-amber-700 font-medium" : "text-slate-500"}`}>{money(p.unapplied)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -130,10 +130,10 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} receipt{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
-                        <Link href={href({ page: data.page - 1 })} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
+                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
+                        <Link aria-label="Previous page" href={href({ page: data.page - 1 })} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
                         <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link href={href({ page: data.page + 1 })} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
+                        <Link aria-label="Next page" href={href({ page: data.page + 1 })} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>
             </Card>

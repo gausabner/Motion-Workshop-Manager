@@ -155,7 +155,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
                         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
                             <input type="checkbox" name="isCashSale" defaultChecked={isCashSale} onChange={(e) => setIsCashSale(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-700" disabled={readOnly} />
-                            <span>Cash sale<span className="block text-[11px] text-slate-400">No customer account</span></span>
+                            <span>Cash sale<span className="block text-[11px] text-slate-500">No customer account</span></span>
                         </label>
                         <CheckField label="Internal job" name="isInternal" defaultChecked={doc.isInternal} hint="Excluded from sales reporting" />
                     </div>
@@ -225,7 +225,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                                     <div className="flex justify-between font-semibold"><dt>Due</dt><dd className="tabular-nums">{money(doc.amountDue)}</dd></div>
                                 </div>
                             )}
-                            <p className="pt-2 text-[11px] text-slate-400">
+                            <p className="pt-2 text-[11px] text-slate-500">
                                 Prices {pricesIncludeTax ? "include" : "exclude"} {doc.taxName} at {taxRate}% — fixed when this document was raised.
                             </p>
                         </dl>

@@ -34,7 +34,7 @@ export default async function SuppliersPage({ params, searchParams }: { params: 
                     <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
                         <Link href={`${base}/${s.id}`} className="font-medium text-slate-800 hover:text-teal-700">{s.companyName}</Link>
                         <span className="min-w-0 flex-1 truncate text-slate-500">{[s.accountNumber, s.city, s.phone, s.email].filter(Boolean).join(" · ")}</span>
-                        <span className="text-xs text-slate-400">{s._count.products} product{s._count.products === 1 ? "" : "s"} · {s._count.purchaseOrders} order{s._count.purchaseOrders === 1 ? "" : "s"}{s.paymentTermsDays !== null ? ` · ${s.paymentTermsDays} days` : ""}</span>
+                        <span className="text-xs text-slate-500">{s._count.products} product{s._count.products === 1 ? "" : "s"} · {s._count.purchaseOrders} order{s._count.purchaseOrders === 1 ? "" : "s"}{s.paymentTermsDays !== null ? ` · ${s.paymentTermsDays} days` : ""}</span>
                     </li>
                 ))}
             </ul>

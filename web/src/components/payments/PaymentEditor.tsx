@@ -215,7 +215,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                                                 onChange={(e) => setTender(t.key, { received: e.target.value === "" ? null : Number(e.target.value) })}
                                                 className="h-8 w-40 rounded-md border border-input bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
                                             />
-                                            <span className={`text-xs ${given > 0 ? "text-slate-700" : "text-slate-400"}`}>
+                                            <span className={`text-xs ${given > 0 ? "text-slate-700" : "text-slate-500"}`}>
                                                 {given > 0 ? <>Change <strong className="tabular-nums">{money(given)}</strong></> : "Change 0.00"}
                                             </span>
                                         </div>
@@ -235,7 +235,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                                     />
                                     {!readOnly && (
                                         <button
-                                            type="button" aria-label="Remove tender" className="sm:col-span-1 justify-self-end text-slate-400 hover:text-red-600"
+                                            type="button" aria-label="Remove tender" className="relative hit-area sm:col-span-1 justify-self-end text-slate-500 hover:text-red-600"
                                             onClick={() => { setTenders((rows) => rows.filter((r) => r.key !== t.key)); setDirty(true); }}
                                         >
                                             <Trash2 className="w-4 h-4" />

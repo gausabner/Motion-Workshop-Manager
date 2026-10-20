@@ -81,20 +81,20 @@ export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page,
                             <Link key={m} href={href({ mode: m })} className={`px-3 py-1.5 capitalize ${m === mode ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{m}</Link>
                         ))}
                     </div>
-                    <div className="flex items-center overflow-hidden rounded-md border border-slate-300 bg-white text-sm">
-                        <Link href={href({ day: prev })} aria-label="Previous" className="px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronLeft className="w-4 h-4" /></Link>
+                    <div className="flex items-center rounded-sm border border-slate-300 bg-white text-sm">
+                        <Link href={href({ day: prev })} aria-label="Previous" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronLeft className="w-4 h-4" /></Link>
                         <Link href={href({ day: today })} className="border-x border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">Today</Link>
-                        <Link href={href({ day: next })} aria-label="Next" className="px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronRight className="w-4 h-4" /></Link>
+                        <Link href={href({ day: next })} aria-label="Next" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronRight className="w-4 h-4" /></Link>
                     </div>
                     <form method="get" action={base} className="flex items-center">
                         <input type="hidden" name="view" value={mode} />
                         <input type="date" name="date" defaultValue={anchor} aria-label="Go to date" onChange={(e) => e.currentTarget.form?.requestSubmit()} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm" />
                     </form>
                     {mode === "day" && pages > 1 && (
-                        <div className="flex items-center overflow-hidden rounded-md border border-slate-300 bg-white text-xs">
-                            <Link href={href({ page: Math.max(0, shownPage - 1) })} aria-label="Previous mechanics" className={`px-2 py-1.5 ${shownPage === 0 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-4 h-4" /></Link>
+                        <div className="flex items-center rounded-sm border border-slate-300 bg-white text-xs">
+                            <Link href={href({ page: Math.max(0, shownPage - 1) })} aria-label="Previous mechanics" className={`relative hit-area px-2 py-1.5 ${shownPage === 0 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-4 h-4" /></Link>
                             <span className="border-x border-slate-300 px-2 py-1.5 tabular-nums text-slate-600">Mechanics {shownPage * perPage + 1}–{Math.min(diary.mechanics.length, shownPage * perPage + perPage)} of {diary.mechanics.length}</span>
-                            <Link href={href({ page: Math.min(pages - 1, shownPage + 1) })} aria-label="Next mechanics" className={`px-2 py-1.5 ${shownPage >= pages - 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-4 h-4" /></Link>
+                            <Link href={href({ page: Math.min(pages - 1, shownPage + 1) })} aria-label="Next mechanics" className={`relative hit-area px-2 py-1.5 ${shownPage >= pages - 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-4 h-4" /></Link>
                         </div>
                     )}
                     {canManageHours && (

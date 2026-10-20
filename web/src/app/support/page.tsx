@@ -109,7 +109,7 @@ export default async function SupportPage() {
                         <h2 id="h-admin" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                             Ask your own administrator first
                         </h2>
-                        <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
+                        <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-600">
                             {admin ? (
                                 <>
                                     At this site that is <span className="font-medium text-slate-900">{admin}</span>.
@@ -128,7 +128,7 @@ export default async function SupportPage() {
                         {onPrem ? "Contacting MOTION" : "Contact us"}
                     </h2>
                     {reach.hours && (
-                        <p className="mt-4 text-[1.0625rem] text-slate-500">
+                        <p className="mt-4 text-[1.0625rem] text-slate-600">
                             Office hours: <span className="tabular-nums">{reach.hours}</span>
                         </p>
                     )}
@@ -157,7 +157,7 @@ export default async function SupportPage() {
                                     >
                                         {c.value}
                                     </a>
-                                    <p className="text-[0.9375rem] text-slate-500">{c.note}</p>
+                                    <p className="text-[0.9375rem] text-slate-600">{c.note}</p>
                                 </li>
                             ))}
                         </ul>
@@ -166,7 +166,7 @@ export default async function SupportPage() {
                     {/* Billing has one destination, said here because the
                         payment letters send people to this page. */}
                     {!onPrem && reach.email && (
-                        <p className="mt-8 max-w-[60ch] text-[1rem] text-slate-500">
+                        <p className="mt-8 max-w-[60ch] text-[1rem] text-slate-600">
                             For payments and invoices, email the proof of payment to{" "}
                             <a href={`mailto:${reach.email}`} className="font-medium text-slate-900 underline decoration-teal-600 decoration-2 underline-offset-4 hover:text-teal-700">
                                 {reach.email}
@@ -182,7 +182,7 @@ export default async function SupportPage() {
                             <h3 id="h-stopped" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                                 Urgent: work has stopped
                             </h3>
-                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
+                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-600">
                                 <strong className="font-semibold text-slate-900">You cannot invoice, take payments or sign in.</strong>{" "}
                                 Phone us rather than writing, and say that it is urgent at the start of the call.
                             </p>
@@ -200,7 +200,7 @@ export default async function SupportPage() {
                             <h3 id="h-else" className="text-[clamp(1.5rem,2.2vw,1.875rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                                 Everything else
                             </h3>
-                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-500">
+                            <p className="max-w-[42ch] text-[1.0625rem] text-slate-600">
                                 A figure that looks wrong, a report you need, or a question about how something works. Email or WhatsApp
                                 us and we will reply within one working day.
                             </p>
@@ -225,7 +225,7 @@ export default async function SupportPage() {
                             <h2 id="h-after-hours" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                                 Outside office hours
                             </h2>
-                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
+                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-600">
                                 Workshops open on Saturdays; our office does not. Messages sent in the evening, at the weekend or on a public
                                 holiday are answered first thing on the next working day. Send yours with a screenshot as soon as you can,
                                 and it will be first in the queue.
@@ -252,7 +252,7 @@ export default async function SupportPage() {
                             <h2 id="h-ready" className="max-w-[20ch] text-balance text-[clamp(1.625rem,2.6vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
                                 What to have ready
                             </h2>
-                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-500">
+                            <p className="mt-4 max-w-[52ch] text-[1.0625rem] text-slate-600">
                                 Including these in your first message lets us answer without asking follow-up questions.
                             </p>
                         </div>
@@ -261,7 +261,7 @@ export default async function SupportPage() {
                             square, the rest rounded — so the list reads as the
                             thing you are about to send rather than as rules. */}
                         <div className="rounded-[22px] rounded-bl-md border border-slate-200 bg-white p-7 max-md:p-6">
-                            <p className="mb-5 flex items-center gap-2 text-[0.875rem] text-slate-500">
+                            <p className="mb-5 flex items-center gap-2 text-[0.875rem] text-slate-600">
                                 <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
                                 Your first message
                             </p>

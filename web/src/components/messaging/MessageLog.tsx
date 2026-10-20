@@ -40,7 +40,7 @@ export function MessageLog({ tenant, timezone = "Africa/Windhoek", rows, showSub
                                         <span className="font-medium">
                                             {row.status === "HANDED_OFF" ? `Handed to ${CHANNEL_LABEL[row.channel]}` : row.status === "FAILED" ? `${CHANNEL_LABEL[row.channel]} failed` : `Sent by ${CHANNEL_LABEL[row.channel]}`}
                                         </span>
-                                        <span className="text-slate-400">to {row.channel === "WHATSAPP" ? `+${row.recipient}` : row.recipient}</span>
+                                        <span className="text-slate-500">to {row.channel === "WHATSAPP" ? `+${row.recipient}` : row.recipient}</span>
                                         {showCustomer && row.customer && (
                                             <Link href={`${base}/customers/${row.customer.id}`} className="text-slate-500 hover:text-teal-700">
                                                 · {row.customer.firstName} {row.customer.lastName}
@@ -57,7 +57,7 @@ export function MessageLog({ tenant, timezone = "Africa/Windhoek", rows, showSub
                                             </Link>
                                         )}
                                     </span>
-                                    <span className="text-xs text-slate-400">{row.sentBy ? `${row.sentBy} · ` : ""}{when(row.createdAt, timezone)}</span>
+                                    <span className="text-xs text-slate-500">{row.sentBy ? `${row.sentBy} · ` : ""}{when(row.createdAt, timezone)}</span>
                                 </div>
 
                                 <div className="mt-1 flex flex-wrap items-center gap-3 pl-6 text-xs">
@@ -68,15 +68,15 @@ export function MessageLog({ tenant, timezone = "Africa/Windhoek", rows, showSub
                                             Opened {when(link.firstOpenedAt, timezone)}{link.openCount > 1 ? ` · ${link.openCount} times, last ${when(link.lastOpenedAt!, timezone)}` : ""}
                                         </span>
                                     ) : link && row.status !== "FAILED" ? (
-                                        <span className="text-slate-400">Not opened yet</span>
+                                        <span className="text-slate-500">Not opened yet</span>
                                     ) : null}
                                     {link?.revokedAt && <span className="text-red-700">Link withdrawn {when(link.revokedAt, timezone)}</span>}
-                                    {link && !link.revokedAt && link.expiresAt <= new Date() && <span className="text-slate-400">Link expired</span>}
+                                    {link && !link.revokedAt && link.expiresAt <= new Date() && <span className="text-slate-500">Link expired</span>}
                                     {live && <RevokeLinkButton tenant={tenant} shareLinkId={link.id} />}
                                 </div>
 
                                 <details className="mt-1 pl-6">
-                                    <summary className="cursor-pointer text-[11px] text-slate-400 hover:text-slate-600">What was sent</summary>
+                                    <summary className="cursor-pointer text-[11px] text-slate-500 hover:text-slate-600">What was sent</summary>
                                     {row.subject && <p className="mt-1 text-xs font-medium text-slate-600">{row.subject}</p>}
                                     <p className="mt-1 whitespace-pre-wrap text-xs text-slate-600">{row.body}</p>
                                 </details>

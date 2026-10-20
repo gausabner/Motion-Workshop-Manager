@@ -170,7 +170,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         type="search"
                         defaultValue={q}
                         placeholder="Reference, workshop or owner email"
-                        className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20"
+                        className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-[14px] text-slate-900 placeholder:text-slate-500 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20"
                     />
                 </form>
             </div>

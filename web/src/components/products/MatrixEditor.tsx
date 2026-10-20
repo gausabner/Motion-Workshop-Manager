@@ -81,7 +81,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                                     className={`${numCell} col-span-4 w-full`} aria-label="Cost to"
                                 />
                                 <input value={band.percent} onChange={(e) => set(i, { percent: Number(e.target.value) || 0 })} inputMode="decimal" className={`${numCell} col-span-3 w-full`} aria-label="Percent" />
-                                <button type="button" onClick={() => setBands((bs) => (bs.length === 1 ? bs : bs.filter((_, n) => n !== i)))} className="col-span-1 justify-self-end p-1 text-slate-400 hover:text-red-700" aria-label="Remove band"><Trash2 className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => setBands((bs) => (bs.length === 1 ? bs : bs.filter((_, n) => n !== i)))} className="relative hit-area col-span-1 justify-self-end p-1 text-slate-500 hover:text-red-700" aria-label="Remove band"><Trash2 className="h-4 w-4" /></button>
                             </li>
                         ))}
                     </ul>
@@ -109,13 +109,13 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                                     <tr key={cost}>
                                         <td className="px-4 py-1.5 tabular-nums text-slate-500">{money(cost, currency)}</td>
                                         <td className="px-2 py-1.5 text-right font-medium tabular-nums text-slate-800">{price === null ? "—" : money(price, currency)}</td>
-                                        <td className="px-4 py-1.5 text-right text-xs tabular-nums text-slate-400">{margin === null ? "" : `${Math.round(margin)}%`}</td>
+                                        <td className="px-4 py-1.5 text-right text-xs tabular-nums text-slate-500">{margin === null ? "" : `${Math.round(margin)}%`}</td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
-                    <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Cost on the left, what it would sell for on the right, and the margin that leaves.</p>
+                    <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">Cost on the left, what it would sell for on the right, and the margin that leaves.</p>
                 </section>
             </div>
 
@@ -152,12 +152,12 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                             <li key={row.id} className="flex flex-wrap items-center gap-x-4 px-4 py-1.5">
                                 <span className="font-medium text-slate-800">{row.itemCode}</span>
                                 <span className="min-w-0 flex-1 truncate text-slate-500">{row.description}</span>
-                                <span className="text-xs tabular-nums text-slate-400">cost {money(row.cost, currency)}</span>
+                                <span className="text-xs tabular-nums text-slate-500">cost {money(row.cost, currency)}</span>
                                 <span className="tabular-nums text-slate-500">{money(row.from, currency)}</span>
                                 <span className="tabular-nums font-medium text-slate-900">→ {money(row.to, currency)}</span>
                             </li>
                         ))}
-                        {preview.changes.length > 50 && <li className="px-4 py-1.5 text-xs text-slate-400">and {preview.changes.length - 50} more…</li>}
+                        {preview.changes.length > 50 && <li className="px-4 py-1.5 text-xs text-slate-500">and {preview.changes.length - 50} more…</li>}
                     </ul>
                 </section>
             )}

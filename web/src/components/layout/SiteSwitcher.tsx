@@ -23,7 +23,7 @@ export function SiteSwitcher({ current, sites }: { current: string; sites: { slu
     if (sites.length <= 1) {
         return (
             <div className="border-b px-4 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400">Workshop</p>
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Workshop</p>
                 <p className="truncate text-xs font-semibold text-slate-700" title={name}>{name}</p>
             </div>
         );
@@ -40,7 +40,7 @@ export function SiteSwitcher({ current, sites }: { current: string; sites: { slu
             >
                 <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
                 <span className="min-w-0 flex-1">
-                    <span className="block text-[10px] uppercase tracking-wider text-slate-400">Workshop</span>
+                    <span className="block text-[10px] uppercase tracking-wider text-slate-500">Workshop</span>
                     <span className="block truncate text-xs font-semibold text-slate-700" title={name}>{name}</span>
                 </span>
                 <ChevronsUpDown className="h-3 w-3 shrink-0 text-slate-400" />

@@ -122,7 +122,7 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
             </div>
 
             {inspection.customerComments && (
-                <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><span className="text-xs font-semibold uppercase tracking-wider text-slate-400">The customer wrote</span><br />&ldquo;{inspection.customerComments}&rdquo;</p>
+                <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><span className="text-xs font-semibold uppercase tracking-wider text-slate-500">The customer wrote</span><br />&ldquo;{inspection.customerComments}&rdquo;</p>
             )}
             {inspection.customerViewedAt && <p className="text-xs text-teal-700">Opened by the customer {new Date(inspection.customerViewedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" })}</p>}
 
@@ -195,7 +195,7 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                                             <span className="ml-auto flex gap-1">
                                                 <Button type="button" size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => act(() => decideForCustomer(tenant, inspection.id, item.id, "approve"))}>Approve by phone</Button>
                                                 <Button type="button" size="sm" variant="ghost" className="h-8" disabled={busy} onClick={() => act(() => decideForCustomer(tenant, inspection.id, item.id, "decline"))}>Declined</Button>
-                                                {answered(item) && <Button type="button" size="sm" variant="ghost" className="h-8 text-slate-400" disabled={busy} onClick={() => act(() => decideForCustomer(tenant, inspection.id, item.id, "clear"))}>Undo</Button>}
+                                                {answered(item) && <Button type="button" size="sm" variant="ghost" className="h-8 text-slate-500" disabled={busy} onClick={() => act(() => decideForCustomer(tenant, inspection.id, item.id, "clear"))}>Undo</Button>}
                                             </span>
                                         )}
                                     </div>
@@ -257,7 +257,7 @@ function Photos({ tenant, inspectionId, item, editable, onChange }: { tenant: st
                     {/* eslint-disable-next-line @next/next/no-img-element -- private, session-served files; next/image cannot optimise them */}
                     <img src={`/${tenant}/attachments/${p.id}`} alt={item.description} className="h-16 w-16 rounded-md border border-slate-200 object-cover" />
                     {editable && (
-                        <button type="button" aria-label="Remove photo" onClick={() => start(async () => { await removeFindingPhoto(tenant, inspectionId, p.id); onChange(item.photos.filter((x) => x.id !== p.id)); })} className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-slate-500 shadow">
+                        <button type="button" aria-label="Remove photo" onClick={() => start(async () => { await removeFindingPhoto(tenant, inspectionId, p.id); onChange(item.photos.filter((x) => x.id !== p.id)); })} className="hit-area absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-slate-500 shadow">
                             <Trash2 className="h-3.5 w-3.5" />
                         </button>
                     )}

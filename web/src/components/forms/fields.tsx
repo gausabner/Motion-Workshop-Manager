@@ -12,7 +12,7 @@ export function Field({ label, name, errors, hint, className, children }: { labe
         <div className={cn("space-y-1", className)}>
             <Label htmlFor={name} className="text-xs text-slate-600">{label}</Label>
             {children}
-            {err ? <p className="text-xs text-red-600">{err}</p> : hint ? <p className="text-[11px] text-slate-400">{hint}</p> : null}
+            {err ? <p className="text-xs text-red-600">{err}</p> : hint ? <p className="text-[11px] text-slate-500">{hint}</p> : null}
         </div>
     );
 }
@@ -60,7 +60,7 @@ export function CheckField({ label, name, defaultChecked, hint }: { label: strin
     return (
         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
             <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-4 w-4 accent-teal-700" />
-            <span>{label}{hint && <span className="block text-[11px] text-slate-400">{hint}</span>}</span>
+            <span>{label}{hint && <span className="block text-[11px] text-slate-500">{hint}</span>}</span>
         </label>
     );
 }

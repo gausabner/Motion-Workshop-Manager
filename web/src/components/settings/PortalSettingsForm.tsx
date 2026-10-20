@@ -66,7 +66,7 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
                     <span className="block text-xs text-slate-500">Send a fresh link any time; you can withdraw one from the customer&rsquo;s page.</span>
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
-                    <span className="block font-medium text-slate-700">Welcome message <span className="font-normal text-slate-400">(optional)</span></span>
+                    <span className="block font-medium text-slate-700">Welcome message <span className="font-normal text-slate-500">(optional)</span></span>
                     <textarea name="welcome" defaultValue={settings.welcome} maxLength={400} rows={3} className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. Open Mon–Fri 07:30–17:00. Collections until 17:30." />
                 </label>
             </div>

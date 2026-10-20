@@ -151,7 +151,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                             </div>
 
                             {loading ? (
-                                <p className="flex items-center gap-2 py-6 text-sm text-slate-400"><Loader2 className="w-4 h-4 animate-spin" />Preparing the message…</p>
+                                <p className="flex items-center gap-2 py-6 text-sm text-slate-500"><Loader2 className="w-4 h-4 animate-spin" />Preparing the message…</p>
                             ) : draft ? (
                                 <>
                                     {draft.warnings.map((w) => (
@@ -167,7 +167,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                                             placeholder={channel === "WHATSAPP" ? "+264 81 234 5678" : "name@example.com"}
                                             className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                                         />
-                                        {channel === "WHATSAPP" && <span className="block text-[11px] text-slate-400">Local numbers are fine — 081… becomes +264 81….</span>}
+                                        {channel === "WHATSAPP" && <span className="block text-[11px] text-slate-500">Local numbers are fine — 081… becomes +264 81….</span>}
                                     </label>
                                     {channel === "EMAIL" && (
                                         <label className="block space-y-1">
@@ -184,7 +184,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                                             value={body} onChange={(e) => setBody(e.target.value)} rows={7}
                                             className="w-full rounded-md border border-input bg-white px-2 py-1.5 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
                                         />
-                                        <span className="block text-[11px] text-slate-400">
+                                        <span className="block text-[11px] text-slate-500">
                                             <code className="text-slate-500">{"{{link}}"}</code> {linkNote(target).field}
                                         </span>
                                     </label>

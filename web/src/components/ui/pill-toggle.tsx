@@ -46,7 +46,7 @@ export function PillToggle({
             {/* Label OFF (Right side, showing when unchecked) */}
             <span
                 className={cn(
-                    "absolute right-2 text-[9px] font-bold text-slate-400 transition-opacity duration-200",
+                    "absolute right-2 text-[9px] font-bold text-slate-500 transition-opacity duration-200",
                     !checked ? "opacity-100 text-teal-700" : "opacity-0"
                 )}
             >

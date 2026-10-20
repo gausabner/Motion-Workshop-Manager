@@ -87,7 +87,7 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                             <dt className="font-medium text-slate-700">Profit</dt>
                             <dd className={`text-right font-semibold tabular-nums ${margin.profit < 0 ? "text-red-700" : "text-teal-700"}`}>{money(margin.profit, tenant.currency)}{percent !== null ? ` · ${percent}%` : ""}</dd>
                         </dl>
-                        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Excluding tax, credit notes taken off.</p>
+                        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">Excluding tax, credit notes taken off.</p>
                     </section>
 
                     {product.requiresSerial && (
@@ -111,7 +111,7 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                                     ))}
                                 </ul>
                             )}
-                            <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">
+                            <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
                                 {serials.filter((u) => u.state === "IN_STOCK").length} on the shelf{product.warrantyMonths ? ` · ${product.warrantyMonths} months' warranty from the day each is sold` : ""}
                             </p>
                         </section>
@@ -133,7 +133,7 @@ export default async function ProductPage({ params }: { params: Promise<{ tenant
                                                     {KIND_LABEL[m.kind] ?? m.kind}
                                                     {m.document && <> · <Link href={`${base}/documents/${m.document.id}`} className="hover:text-teal-700">{m.document.number ?? m.document.jobNumber}</Link></>}
                                                 </span>
-                                                <span className="block text-[11px] text-slate-400">{dateShortIn(m.at, tenant.timezone)}{m.by ? ` · ${m.by.user.firstName}` : ""}{m.note ? ` · ${m.note}` : ""}</span>
+                                                <span className="block text-[11px] text-slate-500">{dateShortIn(m.at, tenant.timezone)}{m.by ? ` · ${m.by.user.firstName}` : ""}{m.note ? ` · ${m.note}` : ""}</span>
                                             </span>
                                         </li>
                                     );

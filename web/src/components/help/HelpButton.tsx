@@ -47,7 +47,7 @@ export function HelpButton() {
                 onClick={() => { setMounted(true); setOpen(true); }}
                 aria-label="Help for this screen"
                 title="Help for this screen"
-                className="flex h-8 w-8 items-center justify-center rounded-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                className="relative hit-area flex h-8 w-8 items-center justify-center rounded-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
                 <HelpCircle aria-hidden strokeWidth={1.75} className="h-[18px] w-[18px]" />
             </button>

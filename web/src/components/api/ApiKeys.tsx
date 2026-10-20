@@ -87,11 +87,11 @@ export function ApiKeys({ tenant, keys, timezone }: { tenant: string; keys: KeyR
                         <li key={row.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
                             <KeyRound className={`h-4 w-4 shrink-0 ${row.revokedAt ? "text-slate-300" : "text-slate-400"}`} />
                             <span className="min-w-0">
-                                <span className={`block text-sm font-medium ${row.revokedAt ? "text-slate-400 line-through" : "text-slate-800"}`}>{row.name}</span>
-                                <span className="block font-mono text-xs text-slate-400">{row.prefix}…</span>
+                                <span className={`block text-sm font-medium ${row.revokedAt ? "text-slate-500 line-through" : "text-slate-800"}`}>{row.name}</span>
+                                <span className="block font-mono text-xs text-slate-500">{row.prefix}…</span>
                             </span>
                             <span className="text-xs text-slate-500">{row.scopes.includes("WRITE") ? "Reads and writes" : "Reads only"}</span>
-                            <span className="min-w-0 flex-1 text-xs text-slate-400">
+                            <span className="min-w-0 flex-1 text-xs text-slate-500">
                                 {row.revokedAt
                                     ? `Revoked ${when(row.revokedAt)}`
                                     : row.lastUsedAt

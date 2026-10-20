@@ -131,7 +131,7 @@ export function PaymentEditor({ tenant, payment, open, methods, currency }: {
                 )}
                 <div className="flex flex-wrap items-center justify-end gap-4 border-t border-slate-100 px-4 py-2 text-sm">
                     <span className="text-slate-500">Applied <span className="tabular-nums text-slate-800">{money(total, currency)}</span></span>
-                    <span className={left === 0 ? "text-slate-400" : "font-medium text-amber-700"}>
+                    <span className={left === 0 ? "text-slate-500" : "font-medium text-amber-700"}>
                         {left > 0 ? `${money(left, currency)} not yet applied` : left < 0 ? `${money(-left, currency)} more than the payment` : "Fully applied"}
                     </span>
                 </div>

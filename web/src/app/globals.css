@@ -222,6 +222,24 @@ button,
   }
 }
 
+/* An icon-only control is drawn at the size the layout needs, often 24–32px,
+   which is smaller than a fingertip. On a touch screen `.hit-area` gives it an
+   invisible 44px square to land on, centred on the icon, without moving
+   anything around it. The control must be positioned (`relative` or
+   `absolute`) for the square to centre on it, and an ancestor with
+   `overflow: hidden` clips it. */
+@media (pointer: coarse) {
+  .hit-area::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Money is the product: every screen here is somebody's books, and a column
    of figures that does not line up is a defect rather than a preference.
    Applying this to table cells rather than to a class means a new screen
@@ -235,7 +253,9 @@ table th,
 
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.97 0 0); /* Light gray for depth */
+  /* The app ground: Tailwind slate-50, #f8fafc. Muted ink (slate-500) on it is
+     4.55:1; on the grey it replaced (#f5f5f5) it was 4.36:1, under AA. */
+  --background: oklch(0.984 0.003 247.858);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0); /* Pure white for cards */
   --card-foreground: oklch(0.145 0 0);

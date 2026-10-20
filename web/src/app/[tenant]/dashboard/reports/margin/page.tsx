@@ -35,14 +35,14 @@ function Rows({ rows, currency, href }: { rows: MarginRow[]; currency: string; h
                 <tr key={r.key} className="hover:bg-slate-50">
                     <td className="px-4 py-1.5">
                         {href ? <Link href={href(r)} className="font-medium text-slate-800 hover:text-teal-700">{r.label}</Link> : <span className="font-medium text-slate-800">{r.label}</span>}
-                        {r.sub && <span className="block text-[11px] text-slate-400">{r.sub}</span>}
+                        {r.sub && <span className="block text-[11px] text-slate-500">{r.sub}</span>}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular-nums text-slate-500">{r.quantity}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums text-slate-700">{money(r.margin.sales, currency)}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums text-slate-500">{money(r.margin.cost, currency)}</td>
                     <td className={`px-4 py-1.5 text-right font-semibold tabular-nums ${r.margin.profit < 0 ? "text-red-700" : "text-slate-800"}`}>
                         {money(r.margin.profit, currency)}
-                        <span className="ml-1 text-[11px] font-normal text-slate-400">{r.margin.percent === null ? "" : `${r.margin.percent}%`}</span>
+                        <span className="ml-1 text-[11px] font-normal text-slate-500">{r.margin.percent === null ? "" : `${r.margin.percent}%`}</span>
                     </td>
                 </tr>
             ))}
@@ -114,7 +114,7 @@ export default async function MarginReportPage({ params, searchParams }: { param
                 <section className={card}>
                     <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Sold at a loss, or close to it</h2>
                     <table className="w-full text-sm"><Head /><Rows rows={report.worstProducts} currency={tenant.currency} /></table>
-                    <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">Under 10% margin, or below cost. Usually a stale cost price, or a discount that went too far.</p>
+                    <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">Under 10% margin, or below cost. Usually a stale cost price, or a discount that went too far.</p>
                 </section>
             )}
 

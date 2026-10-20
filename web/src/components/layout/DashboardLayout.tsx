@@ -81,7 +81,7 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
             <div className="flex items-center gap-3 border-slate-200 sm:border-l sm:pl-4">
                 <div className="hidden text-right leading-tight sm:block">
                     <p className="text-sm font-medium text-slate-800">{userName}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400">{GROUP_LABELS[group]}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500">{GROUP_LABELS[group]}</p>
                 </div>
                 <form action={logoutAction}>
                     <Button type="submit" variant="ghost" size="icon" className="rounded-full" aria-label="Sign out" title="Sign out">
@@ -96,7 +96,7 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
 export function DashboardLayout({ children, ...shell }: ShellProps & { children: React.ReactNode }) {
     const base = `/${shell.tenant}`;
     return (
-        <div className="flex h-dvh w-full overflow-hidden bg-slate-100">
+        <div className="flex h-dvh w-full overflow-hidden bg-background">
             <Sidebar {...shell} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <TopNav {...shell} />

@@ -68,13 +68,13 @@ export function PortalView({ customerName, workshop, data, links, banner }: { cu
                         <p className="truncate font-semibold text-slate-800">{workshop.name}</p>
                         <p className="text-xs text-slate-500">Your account, {customerName}</p>
                     </div>
-                    {wa && <a href={`https://wa.me/${wa}`} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-600" aria-label="WhatsApp the workshop"><MessageCircle className="h-5 w-5" /></a>}
-                    {phone && <a href={`tel:${phone}`} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-600" aria-label="Call the workshop"><Phone className="h-5 w-5" /></a>}
+                    {wa && <a href={`https://wa.me/${wa}`} className="relative hit-area grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-600" aria-label="WhatsApp the workshop"><MessageCircle className="h-5 w-5" /></a>}
+                    {phone && <a href={`tel:${phone}`} className="relative hit-area grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-600" aria-label="Call the workshop"><Phone className="h-5 w-5" /></a>}
                 </div>
             </header>
 
             <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-                {workshop.welcome && <p className="whitespace-pre-line rounded-lg bg-white px-4 py-3 text-sm text-slate-700 border-l-4" style={{ borderColor: "var(--accent)" }}>{workshop.welcome}</p>}
+                {workshop.welcome && <p className="whitespace-pre-line rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">{workshop.welcome}</p>}
 
                 {waiting.map((i) => (
                     <Go key={i.id} to={links.inspection(i.id)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-white shadow-sm" style={{ background: "var(--accent)" }}>
@@ -147,13 +147,13 @@ export function PortalView({ customerName, workshop, data, links, banner }: { cu
                                                         <div key={d.label} className="contents">
                                                             <dt className="text-slate-500">{d.label}</dt>
                                                             <dd className={u?.soon ? "font-medium text-amber-700" : "text-slate-700"}>
-                                                                {[d.day && dateShort(d.day), d.extra].filter(Boolean).join(" ")}{u && <span className="text-slate-400"> ({u.text})</span>}
+                                                                {[d.day && dateShort(d.day), d.extra].filter(Boolean).join(" ")}{u && <span className="text-slate-500"> ({u.text})</span>}
                                                             </dd>
                                                         </div>
                                                     );
                                                 })}
                                             </dl>
-                                        ) : <p className="text-sm text-slate-400">No dates on file yet.</p>}
+                                        ) : <p className="text-sm text-slate-500">No dates on file yet.</p>}
                                     </li>
                                 );
                             })}
@@ -193,12 +193,12 @@ export function PortalView({ customerName, workshop, data, links, banner }: { cu
                                 <li key={d.id}>
                                     <a href={links.document(d.id)} className="flex items-center gap-3 px-4 py-3">
                                         <span className="flex-1 min-w-0">
-                                            <span className={`block text-sm font-medium ${d.void ? "text-slate-400 line-through" : "text-slate-800"}`}>{TYPE_LABEL[d.type as keyof typeof TYPE_LABEL] ?? "Invoice"} {d.number} · {dateShort(d.date)}</span>
+                                            <span className={`block text-sm font-medium ${d.void ? "text-slate-500 line-through" : "text-slate-800"}`}>{TYPE_LABEL[d.type as keyof typeof TYPE_LABEL] ?? "Invoice"} {d.number} · {dateShort(d.date)}</span>
                                             {d.vehicle && <span className="block truncate text-xs text-slate-500">{d.vehicle}</span>}
                                         </span>
                                         <span className="text-right">
                                             <span className="block text-sm tabular-nums text-slate-700">{money(Math.abs(d.total), workshop.currency)}</span>
-                                            <span className={`block text-xs ${d.void ? "text-slate-400" : d.outstanding > 0 ? "text-amber-700 font-medium" : "text-teal-700"}`}>
+                                            <span className={`block text-xs ${d.void ? "text-slate-500" : d.outstanding > 0 ? "text-amber-700 font-medium" : "text-teal-700"}`}>
                                                 {d.void ? "Cancelled" : d.outstanding > 0 ? `${money(d.outstanding, workshop.currency)} due` : d.type === "CREDIT" ? "Credit" : "Paid"}
                                             </span>
                                         </span>
@@ -228,7 +228,7 @@ export function PortalView({ customerName, workshop, data, links, banner }: { cu
 
                 {nothing && <p className="rounded-lg bg-white px-4 py-6 text-center text-sm text-slate-500">There is nothing on your account yet.</p>}
 
-                <p className="pt-2 text-center text-xs text-slate-400">This page is private to you. Please don&rsquo;t forward the link.</p>
+                <p className="pt-2 text-center text-xs text-slate-500">This page is private to you. Please don&rsquo;t forward the link.</p>
             </main>
         </div>
     );

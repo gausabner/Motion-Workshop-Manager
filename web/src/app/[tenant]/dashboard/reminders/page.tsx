@@ -72,7 +72,7 @@ export default async function RemindersPage({ params }: { params: Promise<{ tena
                                         </p>
                                     </div>
                                     <p className={`text-xs tabular-nums ${overdue ? "text-amber-700" : "text-slate-600"}`}>
-                                        {WHAT[r.kind]} {dateShort(new Date(`${r.showOn}T00:00:00Z`))} <span className="text-slate-400">({relativeDay(r.showOn, today)})</span>
+                                        {WHAT[r.kind]} {dateShort(new Date(`${r.showOn}T00:00:00Z`))} <span className="text-slate-500">({relativeDay(r.showOn, today)})</span>
                                     </p>
                                     {canSend && (
                                         <div className="flex items-center gap-1">
@@ -93,14 +93,14 @@ export default async function RemindersPage({ params }: { params: Promise<{ tena
                     <ul className="divide-y divide-slate-100 text-sm">
                         {recent.map((r) => (
                             <li key={r.id} className="flex flex-wrap items-center gap-x-3 px-4 py-2">
-                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${r.outcome === "SENT" ? "text-teal-700" : "text-slate-400"}`}>
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${r.outcome === "SENT" ? "text-teal-700" : "text-slate-500"}`}>
                                     {r.outcome === "SENT" ? (r.message?.status === "HANDED_OFF" ? "Handed off" : "Sent") : "Skipped"}
                                 </span>
                                 <span className="text-slate-700">{KIND_NOUNS[r.kind]}</span>
                                 <span className="text-slate-500">
                                     {r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : ""}{r.vehicle ? ` · ${r.vehicle.plate}` : ""}{r.document?.number ? ` · ${r.document.number}` : ""}
                                 </span>
-                                <span className="ml-auto text-xs text-slate-400">
+                                <span className="ml-auto text-xs text-slate-500">
                                     {r.actedBy?.user.firstName ?? ""} · {dateShortIn(r.actedAt, tenant.timezone)}
                                 </span>
                                 {r.outcome === "SKIPPED" && canSend && <UnskipButton tenant={slug} reminderId={r.id} />}

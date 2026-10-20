@@ -27,7 +27,7 @@ export function TenderProof({ tenant, tenderId, proof, onChange, disabled }: {
     const [error, setError] = useState<string>();
 
     if (!tenderId) {
-        return <p className="text-[11px] text-slate-400">Save the receipt, then attach the proof of payment here.</p>;
+        return <p className="text-[11px] text-slate-500">Save the receipt, then attach the proof of payment here.</p>;
     }
 
     function choose(file: File) {
@@ -58,7 +58,7 @@ export function TenderProof({ tenant, tenderId, proof, onChange, disabled }: {
                     </a>
                     {!disabled && (
                         <button
-                            type="button" className="text-slate-400 hover:text-red-600" aria-label="Remove proof of payment"
+                            type="button" className="relative hit-area text-slate-500 hover:text-red-600" aria-label="Remove proof of payment"
                             onClick={() => start(async () => {
                                 await removeTenderProof(tenant, tenderId!);
                                 onChange(null);
@@ -69,7 +69,7 @@ export function TenderProof({ tenant, tenderId, proof, onChange, disabled }: {
                     )}
                 </>
             ) : disabled ? (
-                <span className="text-slate-400">No proof of payment attached.</span>
+                <span className="text-slate-500">No proof of payment attached.</span>
             ) : (
                 <>
                     <input
@@ -88,7 +88,7 @@ export function TenderProof({ tenant, tenderId, proof, onChange, disabled }: {
                         {pending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Paperclip className="w-3 h-3" />}
                         {pending ? "Uploading…" : "Attach proof of payment"}
                     </button>
-                    <span className="text-slate-400">{ALLOWED_TYPE_LABEL}, up to {MAX_UPLOAD_BYTES / 1024 / 1024} MB</span>
+                    <span className="text-slate-500">{ALLOWED_TYPE_LABEL}, up to {MAX_UPLOAD_BYTES / 1024 / 1024} MB</span>
                 </>
             )}
             {error && <span className="text-red-600" role="alert">{error}</span>}
