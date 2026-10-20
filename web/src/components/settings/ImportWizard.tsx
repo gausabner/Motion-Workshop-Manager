@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { ENTITY_LIST, type ImportEntity } from "@/lib/import/entities";
 import { analyseFileAction, importFileAction, type Preview } from "@/lib/import/actions";
 import type { ImportResult } from "@/lib/import/service";
+import { Notice } from "@/components/ui/notice";
 
-const field = "h-8 rounded-md border border-slate-300 bg-white px-2 text-sm";
+const field = "h-8 rounded-sm border border-slate-300 bg-white px-2 text-sm";
 
 /**
  * Bringing a workshop's records across. Nothing is written until the file has
@@ -69,11 +70,11 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
                         <textarea
                             value={text} onChange={(e) => setText(e.target.value)} rows={4} spellCheck={false}
                             placeholder="First Name,Last Name,Mobile,Email&#10;Anna,Shilongo,081 234 5678,anna@example.com"
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs"
+                            className="w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-xs"
                         />
                     </label>
                     <div className="mt-2 flex items-center gap-2">
-                        <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy || !text.trim()} onClick={() => look(text)}>
+                        <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy || !text.trim()} onClick={() => look(text)}>
                             {busy ? "Reading…" : "Read the file"}
                         </Button>
                         {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
@@ -113,7 +114,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
                                 {preview.readyCount} of {preview.total} row{preview.total === 1 ? "" : "s"} ready · matched on {spec.matchOn}
                             </h2>
                             <Button
-                                type="button" size="sm" className="h-7 bg-teal-600 hover:bg-teal-700"
+                                type="button" size="sm" className="h-7 bg-teal-700 hover:bg-teal-800"
                                 disabled={busy || preview.readyCount === 0 || preview.missingRequired.length > 0}
                                 onClick={() => start(async () => {
                                     const response = await importFileAction(tenant, entity, text, preview.mapping);
@@ -160,16 +161,13 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
             )}
 
             {result && (
-                <section className="rounded-sm border border-teal-300 bg-teal-50 px-4 py-3">
-                    <p className="flex items-center gap-2 font-medium text-teal-900">
-                        <CheckCircle2 className="h-5 w-5" />{result.created} added, {result.updated} updated{result.skipped > 0 ? `, ${result.skipped} skipped` : ""}.
-                    </p>
+                <Notice role="status" icon={CheckCircle2} title={`${result.created} added, ${result.updated} updated${result.skipped > 0 ? `, ${result.skipped} skipped` : ""}.`}>
                     {result.problems.length > 0 && (
-                        <ul className="mt-2 max-h-40 space-y-0.5 overflow-auto text-xs text-teal-900">
+                        <ul className="max-h-40 space-y-0.5 overflow-auto text-xs text-slate-700">
                             {result.problems.map((p) => <li key={p.line}>Line {p.line}: {p.message}</li>)}
                         </ul>
                     )}
-                </section>
+                </Notice>
             )}
         </div>
     );

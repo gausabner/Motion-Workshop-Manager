@@ -88,7 +88,7 @@ export function WorkingHoursGrid({ tenant, mechanics, overrides, shop, canEdit }
                                                 <div className="space-y-1 rounded border border-teal-500 bg-white p-2 shadow-sm">
                                                     {(["shop", "custom", "off"] as const).map((value) => (
                                                         <label key={value} className="flex items-center gap-1.5 text-xs">
-                                                            <input type="radio" name={`mode-${m.id}-${w}`} checked={mode === value} onChange={() => setMode(value)} className="accent-teal-600" />
+                                                            <input type="radio" name={`mode-${m.id}-${w}`} checked={mode === value} onChange={() => setMode(value)} className="accent-teal-700" />
                                                             {value === "shop" ? "Shop hours" : value === "custom" ? "Own hours" : "Day off"}
                                                         </label>
                                                     ))}
@@ -100,7 +100,7 @@ export function WorkingHoursGrid({ tenant, mechanics, overrides, shop, canEdit }
                                                     )}
                                                     {error && <p className="text-[11px] text-red-600">{error}</p>}
                                                     <div className="flex gap-1 pt-1">
-                                                        <Button type="button" size="sm" className="h-6 px-2 text-xs bg-teal-600 hover:bg-teal-700" disabled={pending} onClick={save}>Save</Button>
+                                                        <Button type="button" size="sm" className="h-6 px-2 text-xs bg-teal-700 hover:bg-teal-800" disabled={pending} onClick={save}>Save</Button>
                                                         <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(null)}>Cancel</Button>
                                                     </div>
                                                 </div>

@@ -7,18 +7,18 @@ import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
 
 const field =
-    "w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-teal-500";
+    "w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-base outline-none focus-visible:ring-1 focus-visible:ring-teal-500";
 
 export function ChangePasswordForm({ tenant, forced, name }: { tenant: string; forced: boolean; name: string }) {
     const [state, action, pending] = useActionState(changePasswordAction.bind(null, tenant), { ok: true } as { ok: boolean; message?: string });
 
     return (
-        <form action={action} className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow-sm">
+        <form action={action} className="w-full max-w-sm space-y-4 border border-slate-200 bg-white p-6">
             <MotionLogo className="h-[22px] w-auto" />
 
             <div>
                 <h1 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                    <KeyRound className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                    <KeyRound className="h-4 w-4 text-teal-700" aria-hidden="true" />
                     Choose your own password
                 </h1>
                 {forced ? (
@@ -51,7 +51,7 @@ export function ChangePasswordForm({ tenant, forced, name }: { tenant: string; f
                 <p className="text-sm text-red-600" role="alert">{state.message}</p>
             )}
 
-            <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-600 hover:bg-teal-700">
+            <Button type="submit" disabled={pending} className="h-11 w-full bg-teal-700 hover:bg-teal-800">
                 {pending ? "Saving…" : "Save and sign in again"}
             </Button>
 

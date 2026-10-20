@@ -77,10 +77,16 @@ export function OnThisPage({ anchors }: { anchors: { id: string; text: string }[
                 {/* The rail the marker runs in. */}
                 <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-slate-200" />
                 {marker && (
+                    // Moved and sized by transform alone: a 1px-tall line,
+                    // stretched to the item and slid to it. Animating `top`
+                    // and `height` re-laid the rail out on every frame. It
+                    // moves as the reader scrolls — often — so it is quick
+                    // (180ms) on the in-out curve for something travelling
+                    // on screen, and instant under reduced motion.
                     <span
                         aria-hidden
-                        className="absolute left-0 w-px bg-teal-700 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]"
-                        style={{ top: marker.top, height: marker.height }}
+                        className="absolute left-0 top-0 h-px w-px origin-top bg-teal-700 motion-safe:transition-transform motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.77,0,0.175,1)]"
+                        style={{ transform: `translateY(${marker.top}px) scaleY(${marker.height})` }}
                     />
                 )}
                 <ul ref={list} className="space-y-px">

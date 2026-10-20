@@ -143,7 +143,7 @@ export function PaymentEditor({ tenant, payment, open, methods, currency }: {
 
             <div className="flex flex-wrap items-center gap-2">
                 {editable && <Button type="button" variant="outline" disabled={busy} onClick={() => run(() => saveSupplierPaymentAction(tenant, payment.id, payload()))}>Save draft</Button>}
-                {editable && <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => run(() => postSupplierPaymentAction(tenant, payment.id, payload()))}>Record the payment</Button>}
+                {editable && <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => run(() => postSupplierPaymentAction(tenant, payment.id, payload()))}>Record the payment</Button>}
                 {payment.state === "PROCESSED" && (
                     <Button type="button" variant="ghost" className="text-slate-500" disabled={busy}
                         onClick={() => { const reason = window.prompt("Why is this payment being reversed? The invoices it paid will re-open."); if (reason) run(() => reverseSupplierPaymentAction(tenant, payment.id, reason)); }}>

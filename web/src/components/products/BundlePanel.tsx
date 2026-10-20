@@ -75,7 +75,7 @@ export function BundlePanel({ tenant, product, products, currency }: { tenant: s
                     Sells for <strong className="tabular-nums">{money(sells, currency)}</strong>, costs <span className="tabular-nums">{money(costs, currency)}</span>
                     {sells > 0 && <span className="text-slate-400"> · {Math.round(((sells - costs) / sells) * 100)}% margin</span>}
                 </span>
-                <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={busy}
+                <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}
                     onClick={() => start(async () => {
                         const result = await saveBundleItems(tenant, product.id, rows.filter((r) => r.componentId).map((r) => ({ componentId: r.componentId, quantity: r.quantity })));
                         setStatus({ ok: result.ok, text: result.message });

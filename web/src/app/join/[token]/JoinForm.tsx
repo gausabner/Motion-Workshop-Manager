@@ -36,7 +36,7 @@ export function JoinForm({ token, hasAccount }: { token: string; hasAccount: boo
                 <Input id="password" name="password" type="password" required minLength={8} autoComplete={hasAccount ? "current-password" : "new-password"} autoFocus={hasAccount} />
             </Field>
             {state.message && !state.ok && <p className="text-sm text-red-600" role="alert">{state.message}</p>}
-            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={pending}>
+            <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={pending}>
                 {pending ? "Joining…" : "Join the workshop"}
             </Button>
         </form>

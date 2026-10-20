@@ -59,7 +59,7 @@ export function SelectField({ label, name, errors, defaultValue, options, allowE
 export function CheckField({ label, name, defaultChecked, hint }: { label: string; name: string; defaultChecked?: boolean; hint?: string }) {
     return (
         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
-            <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-4 w-4 accent-teal-600" />
+            <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-4 w-4 accent-teal-700" />
             <span>{label}{hint && <span className="block text-[11px] text-slate-400">{hint}</span>}</span>
         </label>
     );

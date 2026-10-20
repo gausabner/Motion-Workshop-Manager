@@ -118,7 +118,7 @@ export function LoginForm({ next }: { next?: string }) {
             <button
                 type="submit"
                 disabled={pending}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border-[1.5px] border-teal-600 bg-teal-600 text-base font-semibold text-white motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-progress disabled:opacity-75"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border-[1.5px] border-teal-700 bg-teal-700 text-base font-semibold text-white motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-progress disabled:opacity-75"
             >
                 {pending ? "Signing in…" : "Sign in"}
             </button>

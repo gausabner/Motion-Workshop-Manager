@@ -113,13 +113,13 @@ export function CampaignComposer({ tenant, sources, currency, portalOn }: { tena
                         <div className="flex flex-wrap items-center gap-3 text-sm">
                             <span className="flex overflow-hidden rounded-md border border-slate-300">
                                 {(["WHATSAPP", "EMAIL"] as const).map((c) => (
-                                    <button key={c} type="button" onClick={() => setChannel(c)} className={`px-3 py-1.5 text-sm ${channel === c ? "bg-teal-600 text-white" : "bg-white text-slate-600"}`}>
+                                    <button key={c} type="button" onClick={() => setChannel(c)} className={`px-3 py-1.5 text-sm ${channel === c ? "bg-teal-700 text-white" : "bg-white text-slate-600"}`}>
                                         {c === "WHATSAPP" ? "WhatsApp" : "Email"}
                                     </button>
                                 ))}
                             </span>
                             <label className="flex items-center gap-2 text-slate-600">
-                                <input type="checkbox" checked={usePreferred} onChange={(e) => setUsePreferred(e.target.checked)} className="accent-teal-600" />
+                                <input type="checkbox" checked={usePreferred} onChange={(e) => setUsePreferred(e.target.checked)} className="accent-teal-700" />
                                 Use each customer&rsquo;s preferred way, falling back to the other
                             </label>
                         </div>
@@ -178,7 +178,7 @@ export function CampaignComposer({ tenant, sources, currency, portalOn }: { tena
                         )}
                     </div>
                 </section>
-                <Button type="button" className="w-full bg-teal-600 hover:bg-teal-700" disabled={creating || !preview || preview.reachable === 0} onClick={create}>
+                <Button type="button" className="w-full bg-teal-700 hover:bg-teal-800" disabled={creating || !preview || preview.reachable === 0} onClick={create}>
                     {creating ? "Preparing…" : `Prepare ${preview?.reachable ?? 0} message${preview?.reachable === 1 ? "" : "s"}`}
                 </Button>
                 <p className="text-xs text-slate-500">Nothing goes out yet. The next screen lists them, and you send each with a tap — WhatsApp opens on your phone, email in your mail app.</p>

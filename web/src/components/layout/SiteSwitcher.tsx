@@ -56,7 +56,7 @@ export function SiteSwitcher({ current, sites }: { current: string; sites: { slu
                             onClick={() => setOpen(false)}
                             className={`flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 ${site.slug === current ? "font-semibold text-slate-800" : "text-slate-600"}`}
                         >
-                            {site.slug === current ? <Check className="h-3 w-3 shrink-0 text-teal-600" /> : <span className="w-3 shrink-0" />}
+                            {site.slug === current ? <Check className="h-3 w-3 shrink-0 text-teal-700" /> : <span className="w-3 shrink-0" />}
                             <span className="truncate" title={site.name}>{site.name}</span>
                         </Link>
                     ))}

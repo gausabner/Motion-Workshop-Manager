@@ -119,6 +119,10 @@ export function SidebarNav({
         .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
         .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
+    // Dense for a mouse, as a counter screen wants: 11px items in a 180px
+    // rail. On a touch screen — the phone drawer reuses this list — each row
+    // grows to the 44px a thumb needs and the text to 14px, so the same
+    // navigation is usable by hand without a second copy of it.
     return (
         <nav className="grid items-start gap-px px-2 text-[11px] font-medium">
             {visible.map((group) => (
@@ -135,9 +139,9 @@ export function SidebarNav({
                                     key={item.href}
                                     href={`${base}/dashboard/settings/billing?feature=${item.feature}`}
                                     title={`Included in the ${plan} plan`}
-                                    className="flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:bg-slate-100 focus-visible:text-slate-700"
+                                    className="flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:bg-slate-100 focus-visible:text-slate-700 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
                                 >
-                                    <Icon className="h-[12px] w-[12px] shrink-0" aria-hidden="true" />
+                                    <Icon className="h-[12px] w-[12px] shrink-0 pointer-coarse:h-4 pointer-coarse:w-4" aria-hidden="true" />
                                     {item.label}
                                     <Lock className="ml-auto h-[11px] w-[11px] shrink-0" aria-hidden="true" />
                                     <span className="sr-only">, included in the {plan} plan</span>
@@ -152,11 +156,11 @@ export function SidebarNav({
                                 aria-current={isActive ? "page" : undefined}
                                 className={
                                     isActive
-                                        ? "flex items-center gap-3 rounded-sm border-l border-teal-700 bg-teal-50 py-2 pl-[11px] pr-3 font-semibold text-teal-900 transition-colors duration-150"
-                                        : "flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:text-slate-900"
+                                        ? "flex items-center gap-3 rounded-sm border-l border-teal-700 bg-teal-50 py-2 pl-[11px] pr-3 font-semibold text-teal-900 transition-colors duration-150 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
+                                        : "flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:text-slate-900 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
                                 }
                             >
-                                <Icon className="h-[12px] w-[12px] shrink-0" aria-hidden="true" />
+                                <Icon className="h-[12px] w-[12px] shrink-0 pointer-coarse:h-4 pointer-coarse:w-4" aria-hidden="true" />
                                 {item.label}
                             </Link>
                         );

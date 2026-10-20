@@ -155,7 +155,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     <button
                         type="button" disabled={pending}
                         onClick={() => act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job))}
-                        className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60"
+                        className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-teal-700 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60"
                     >
                         <Play className="h-5 w-5" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
                     </button>

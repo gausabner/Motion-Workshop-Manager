@@ -304,7 +304,7 @@ Silhouette is rectangular and edge-to-edge. Panels run to the full width of thei
 - **Mobile:** mark the table `data-mobile="cards"` and below 768px it becomes a stack of one card per record — identifying field leading at 15px/600, supporting fields prefixed by their 11px uppercase label, comparison-only columns hidden with `data-mobile="hide"`.
 
 ### Navigation
-- **App sidebar:** 180px, `surface-sunken` ground, hairline on the right, 11px medium items in a 1px-gap grid, group captions at 9px/0.12em uppercase in faint ink, 12px icons.
+- **App sidebar:** 180px, `surface-sunken` ground, hairline on the right, 11px medium items in a 1px-gap grid, group captions at 9px/0.12em uppercase in faint ink, 12px icons. On a coarse pointer (the phone drawer, a tablet) the same rows, and the settings menu's, grow to 44px with 14px labels and 16px icons.
 - **App mobile:** a four-column bottom tab bar of 56px targets with a hairline top edge, 10px labels under 20px icons, plus `env(safe-area-inset-bottom)`. Anything else fixed to the bottom of a screen must use `.above-tab-bar` or it sits behind the bar and is simply not there.
 - **Reading rail:** the left-marker form — 13px items, slate-600 at rest against a slate-200 marker, ink-dark against a teal-700 marker when current, marker darkening to slate-400 on hover. `aria-current="page"` on the active item.
 - **Reading rail on a phone:** one disclosure row with a 10px "Contents" label above the current title at 13px/500 and a 16px chevron that rotates 180 degrees over 200ms. Suppressed where the page below already prints the same list.
@@ -314,6 +314,7 @@ Help over the work, already on the right page. A right-anchored white panel at `
 
 ### Notes and Terms
 - **Note:** a hairline top-and-bottom band on `surface-sunken` at 70%, 12px side padding, with a 16px info glyph in faint ink. One tone only — three colours of callout teaches the reader to ignore two of them.
+- **Notice:** what a settings screen needs to say before the form (a feature on another plan, MOTION read-only, a key shown once, an import's result) is `components/ui/notice.tsx`: white ground, hairline all round, and the left marker in teal-700, or in caution amber when it is about money that needs attention. Never a teal-50 or amber-50 ground.
 - **Term:** a 1px `field-edge` left marker with the term at 13px/600 ink-dark and its definition in secondary ink.
 - **List:** the bullet is a 10px hairline, not a glyph. The page is built from rules; so are its lists.
 - **Steps:** a teal tabular numeral in a 16px right-aligned column, so a list running past nine keeps its text aligned.

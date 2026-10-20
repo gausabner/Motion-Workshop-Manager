@@ -46,7 +46,7 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
                 <div className="hidden items-center gap-2 sm:flex">
                     {state.message && !state.ok && <span className="text-sm text-red-600" role="alert">{state.message}</span>}
                     <Button asChild variant="outline" size="sm"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={pending}>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending}>
                         <Save className="w-4 h-4 mr-1" /> {pending ? "Saving…" : "Save"}
                     </Button>
                 </div>
@@ -129,7 +129,7 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
                 className="fixed inset-x-0 z-30 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(15,23,42,.06)] sm:hidden"
             >
                 <Button asChild variant="outline" className="h-12 flex-1"><Link href={`/${tenant}/dashboard/customers`}>Cancel</Link></Button>
-                <Button type="submit" className="h-12 flex-[2] bg-teal-600 hover:bg-teal-700" disabled={pending}>
+                <Button type="submit" className="h-12 flex-[2] bg-teal-700 hover:bg-teal-800" disabled={pending}>
                     <Save className="mr-1 h-4 w-4" /> {pending ? "Saving…" : "Save"}
                 </Button>
             </div>

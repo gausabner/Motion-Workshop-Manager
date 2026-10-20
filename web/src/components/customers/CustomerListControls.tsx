@@ -25,7 +25,7 @@ export function CustomerListControls({ q, archived }: { q: string; archived: boo
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none sm:gap-3">
             <label className="flex items-center bg-white rounded-full border border-slate-300 px-3 py-1 gap-2 shrink-0 shadow-sm cursor-pointer">
                 <Switch checked={!archived} onCheckedChange={(on) => push({ archived: !on })} className="data-[state=checked]:bg-teal-500 scale-75 origin-left" />
-                <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mr-1">{archived ? "Archived" : "Active"}</span>
+                <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider mr-1">{archived ? "Archived" : "Active"}</span>
             </label>
             <form
                 className="relative w-full min-w-0 sm:w-64"

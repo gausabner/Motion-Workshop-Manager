@@ -8,6 +8,15 @@ const PROTECTED = /^\/[^/]+\/(dashboard|admin|pwa)(\/|$)/;
 
 export function proxy(req: NextRequest) {
     const { pathname, search } = req.nextUrl;
+    // Somebody already signed in has not come to the front page to read about
+    // the product. `/start` looks the session up and sends them on, so the
+    // front page never waits on the database to render (see app/start/route.ts).
+    if (pathname === "/" && req.cookies.get(SESSION_COOKIE)?.value) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/start";
+        url.search = "";
+        return NextResponse.redirect(url);
+    }
     if (PUBLIC.some((re) => re.test(pathname))) return NextResponse.next();
     if (PROTECTED.test(pathname) && !req.cookies.get(SESSION_COOKIE)?.value) {
         const url = req.nextUrl.clone();

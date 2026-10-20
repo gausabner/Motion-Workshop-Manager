@@ -39,7 +39,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ tenan
                         <span className="ml-2 text-xs text-slate-500">on {open.length} invoice{open.length === 1 ? "" : "s"}</span>
                     </span>
                     <form action={payAllForSupplierAction.bind(null, slug, id)}>
-                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700">Pay this supplier</Button>
+                        <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800">Pay this supplier</Button>
                     </form>
                 </div>
             )}

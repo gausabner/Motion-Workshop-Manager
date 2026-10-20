@@ -26,8 +26,8 @@ export function PillToggle({
             disabled={disabled}
             onClick={() => !disabled && onChange(!checked)}
             className={cn(
-                "relative inline-flex h-6 w-16 shrink-0 cursor-pointer items-center justify-between rounded-full border border-slate-300 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                checked ? "bg-teal-600 border-teal-600" : "bg-white",
+                "relative inline-flex h-6 w-16 shrink-0 cursor-pointer items-center justify-between rounded-full border border-slate-300 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-700 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                checked ? "bg-teal-700 border-teal-700" : "bg-white",
                 className
             )}
         >
@@ -47,7 +47,7 @@ export function PillToggle({
             <span
                 className={cn(
                     "absolute right-2 text-[9px] font-bold text-slate-400 transition-opacity duration-200",
-                    !checked ? "opacity-100 text-teal-600" : "opacity-0"
+                    !checked ? "opacity-100 text-teal-700" : "opacity-0"
                 )}
             >
                 {labelOff}

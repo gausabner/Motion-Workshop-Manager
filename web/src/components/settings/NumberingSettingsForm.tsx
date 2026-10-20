@@ -42,14 +42,14 @@ export function NumberingSettingsForm({ tenant, rows }: { tenant: string; rows: 
                             {state.message}
                         </span>
                     )}
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>
                         <Save className="mr-1 h-4 w-4" />
                         {saving ? "Saving…" : "Save"}
                     </Button>
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="overflow-hidden border border-slate-200 bg-white">
                 <div className="hidden grid-cols-[minmax(0,1.6fr)_8rem_8rem_minmax(0,1fr)] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-500 md:grid">
                     <span>Document</span>
                     <span>Prefix</span>
@@ -79,7 +79,7 @@ export function NumberingSettingsForm({ tenant, rows }: { tenant: string; rows: 
                                         spellCheck={false}
                                         aria-invalid={!!prefixErr}
                                         aria-label={`${row.label} prefix`}
-                                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 font-mono text-sm text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20 aria-[invalid=true]:border-red-500"
+                                        className="h-9 w-full rounded-sm border border-slate-300 bg-white px-2.5 font-mono text-sm text-slate-900 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20 aria-[invalid=true]:border-red-500"
                                     />
                                     {prefixErr && <span className="block text-xs text-red-600">{prefixErr}</span>}
                                 </label>
@@ -93,7 +93,7 @@ export function NumberingSettingsForm({ tenant, rows }: { tenant: string; rows: 
                                         autoComplete="off"
                                         aria-invalid={!!nextErr}
                                         aria-label={`${row.label} next number`}
-                                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 font-mono text-sm tabular-nums text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20 aria-[invalid=true]:border-red-500"
+                                        className="h-9 w-full rounded-sm border border-slate-300 bg-white px-2.5 font-mono text-sm tabular-nums text-slate-900 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20 aria-[invalid=true]:border-red-500"
                                     />
                                     {nextErr && <span className="block text-xs text-red-600">{nextErr}</span>}
                                 </label>

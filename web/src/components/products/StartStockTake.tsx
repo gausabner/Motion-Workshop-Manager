@@ -34,9 +34,9 @@ export function StartStockTake({ tenant, groups }: { tenant: string; groups: { i
                 <label className="space-y-1 text-sm sm:col-span-2 lg:col-span-4"><span className="text-slate-600">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Month-end count, front store" className={`${field} w-full`} /></label>
             </div>
             <div className="flex flex-wrap items-center gap-4 border-t border-slate-100 px-4 py-3 text-sm text-slate-600">
-                <label className="flex items-center gap-2"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} className="accent-teal-600" />Blind count — hide what the system expects</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={includeZero} onChange={(e) => setIncludeZero(e.target.checked)} className="accent-teal-600" />Include items the books say are at zero</label>
-                <Button type="button" className="ml-auto bg-teal-600 hover:bg-teal-700" disabled={busy}
+                <label className="flex items-center gap-2"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} className="accent-teal-700" />Blind count — hide what the system expects</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={includeZero} onChange={(e) => setIncludeZero(e.target.checked)} className="accent-teal-700" />Include items the books say are at zero</label>
+                <Button type="button" className="ml-auto bg-teal-700 hover:bg-teal-800" disabled={busy}
                     onClick={() => start(async () => {
                         setError(undefined);
                         const result = await startStockTakeAction(tenant, { location, codeFrom, codeTo, groupId, includeZero }, blind, note);

@@ -65,7 +65,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                             <Button type="submit" size="sm" variant="outline" className="h-8"><Minus className="w-3.5 h-3.5 mr-1" />Refund</Button>
                         </form>
                         <form action={createPayment.bind(null, tenant, undefined)}>
-                            <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
+                            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
                         </form>
                     </div>
                 </CardHeader>
@@ -76,7 +76,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                             key={t.key}
                             href={href({ tab: t.key, page: 1 })}
                             className={`whitespace-nowrap px-3 py-2 text-sm border-b-2 -mb-px transition-colors ${
-                                t.key === tab ? "border-teal-600 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
+                                t.key === tab ? "border-teal-700 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
                             }`}
                         >
                             {t.label}
@@ -132,7 +132,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} receipt{data.total === 1 ? "" : "s"}</span>
                     <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
                         <Link href={href({ page: data.page - 1 })} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-600 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
+                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
                         <Link href={href({ page: data.page + 1 })} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>

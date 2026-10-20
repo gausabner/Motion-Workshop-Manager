@@ -39,7 +39,7 @@ export default async function ResetPage({ params }: { params: Promise<{ tenant: 
         <main className="grid min-h-svh place-items-center bg-slate-100 p-6">
             <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow-sm">
                 <h1 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                    <KeyRound className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                    <KeyRound className="h-4 w-4 text-teal-700" aria-hidden="true" />
                     Set a new password
                 </h1>
                 <p className="text-sm text-slate-600">

@@ -68,7 +68,7 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                     <span className="flex gap-1">
                         {(["all", "todo", "differs"] as const).map((f) => (
                             <button key={f} type="button" onClick={() => setFilter(f)}
-                                className={`rounded px-2 py-1 text-xs ${filter === f ? "bg-teal-600 text-white" : "bg-white text-slate-600 hover:bg-slate-100"}`}>
+                                className={`rounded px-2 py-1 text-xs ${filter === f ? "bg-teal-700 text-white" : "bg-white text-slate-600 hover:bg-slate-100"}`}>
                                 {f === "all" ? "All" : f === "todo" ? "Still to count" : "Differences"}
                             </button>
                         ))}
@@ -112,7 +112,7 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
             {editable && (
                 <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" disabled={busy} onClick={() => run(() => saveCountsAction(tenant, take.id, payload()))}>{busy ? "Saving…" : "Save what is counted"}</Button>
-                    <Button type="button" className="bg-teal-600 hover:bg-teal-700" disabled={busy}
+                    <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy}
                         onClick={() => {
                             const left = summary.uncounted;
                             const warn = left > 0 ? `${left} of ${summary.lines} have not been counted. They will be left exactly as they are. Apply the rest?` : "Apply this count and correct the stock?";

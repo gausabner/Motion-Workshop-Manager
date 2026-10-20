@@ -33,7 +33,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ tenan
                     </p>
                 </div>
                 {campaignsOn && (
-                    <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700">
+                    <Button asChild size="sm" className="bg-teal-700 hover:bg-teal-800">
                         <Link href={`/${slug}/dashboard/messages/new`}><Plus className="w-4 h-4 mr-1" />New campaign</Link>
                     </Button>
                 )}

@@ -47,7 +47,7 @@ export function PublicBookingForm({ slug, type, day, time }: { slug: string; typ
 
             {state.message && !state.ok && <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{state.message}</p>}
 
-            <button type="submit" disabled={pending} className="h-12 w-full rounded-md bg-teal-600 text-base font-semibold text-white hover:bg-teal-700 disabled:opacity-60">
+            <button type="submit" disabled={pending} className="h-12 w-full rounded-md bg-teal-700 text-base font-semibold text-white hover:bg-teal-800 disabled:opacity-60">
                 {pending ? "Sending…" : "Request this booking"}
             </button>
             <p className="text-center text-xs text-slate-500">The workshop confirms every booking. You will hear from them on WhatsApp.</p>

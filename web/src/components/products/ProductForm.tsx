@@ -55,7 +55,7 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
                     <label className={label}><span className="text-slate-600">Labour hours by default</span><input name="defaultLabourQty" defaultValue={product?.defaultLabourQty ?? ""} inputMode="decimal" className={field} /></label>
                 </div>
                 <div className="flex flex-wrap gap-4 border-t border-slate-100 px-4 py-2 text-sm text-slate-600">
-                    <label className="flex items-center gap-2"><input type="checkbox" name="isBundle" defaultChecked={product?.isBundle} className="accent-teal-600" />A bundle of other products</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="isBundle" defaultChecked={product?.isBundle} className="accent-teal-700" />A bundle of other products</label>
                     <label className="flex items-center gap-2">Priced
                         <select name="bundlePricing" defaultValue={product?.bundlePricing ?? "FIXED"} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm">
                             <option value="FIXED">at the bundle price</option>
@@ -70,10 +70,10 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
                     </label>
                 </div>
                 <div className="flex flex-wrap gap-4 border-t border-slate-100 px-4 py-2 text-sm text-slate-600">
-                    <label className="flex items-center gap-2"><input type="checkbox" name="isService" defaultChecked={product?.isService} className="accent-teal-600" />A service, not a thing on a shelf</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" name="dontUpdateQty" defaultChecked={product?.dontUpdateQty} className="accent-teal-600" />Do not count stock for this</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" name="vatExempt" defaultChecked={product?.vatExempt} className="accent-teal-600" />VAT exempt</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" name="requiresSerial" defaultChecked={product?.requiresSerial} className="accent-teal-600" />Each one has a serial number</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="isService" defaultChecked={product?.isService} className="accent-teal-700" />A service, not a thing on a shelf</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="dontUpdateQty" defaultChecked={product?.dontUpdateQty} className="accent-teal-700" />Do not count stock for this</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="vatExempt" defaultChecked={product?.vatExempt} className="accent-teal-700" />VAT exempt</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" name="requiresSerial" defaultChecked={product?.requiresSerial} className="accent-teal-700" />Each one has a serial number</label>
                     <label className="flex items-center gap-2">Warranty
                         <input name="warrantyMonths" defaultValue={product?.warrantyMonths ?? ""} inputMode="numeric" placeholder="—" className="h-8 w-16 rounded-md border border-slate-300 px-2 text-right text-sm tabular-nums" />
                         months
@@ -115,7 +115,7 @@ export function ProductForm({ tenant, product, options, currency }: { tenant: st
             </section>
 
             <div className="flex items-center gap-3">
-                <Button type="submit" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>{saving ? "Saving…" : product ? "Save" : "Create product"}</Button>
+                <Button type="submit" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Saving…" : product ? "Save" : "Create product"}</Button>
                 {state.message && <p className={`text-sm ${state.ok ? "text-teal-700" : "text-red-600"}`} role={state.ok ? undefined : "alert"}>{state.message}</p>}
             </div>
         </form>

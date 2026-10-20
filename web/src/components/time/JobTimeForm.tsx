@@ -22,7 +22,7 @@ export function AddTimeForm({ tenant, documentId, mechanics }: { tenant: string;
             <TextField label="Finished" name="endedAt" type="datetime-local" errors={e} />
             <TextField label="Note" name="note" errors={e} placeholder="Forgot to clock on…" />
             <div className="flex gap-2">
-                <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
+                <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
                 <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setOpen(false)}>Close</Button>
             </div>
             {state.message && <p className={`md:col-span-5 text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</p>}

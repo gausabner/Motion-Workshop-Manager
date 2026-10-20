@@ -11,7 +11,7 @@ export default async function ThanksPage({ params, searchParams }: { params: Pro
     return (
         <main className="min-h-svh bg-slate-100 px-4 py-12">
             <div className="mx-auto max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
-                <CheckCircle2 className="mx-auto h-12 w-12 text-teal-600" />
+                <CheckCircle2 className="mx-auto h-12 w-12 text-teal-700" />
                 <h1 className="text-xl font-bold text-slate-800">Request sent</h1>
                 <p className="text-slate-600">{tenant.name} will confirm your booking — usually on WhatsApp. It is not booked until they do.</p>
                 {ref && /^[A-Z0-9]{6}$/.test(ref) && <p className="text-sm text-slate-500">Your reference: <strong className="tabular-nums text-slate-700">{ref}</strong></p>}

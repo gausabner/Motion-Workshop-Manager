@@ -180,7 +180,7 @@ export function EntityPicker<T extends PickerHit>({
                                 <span className="block truncate font-medium text-slate-800">{hit.label}</span>
                                 {hit.sublabel && <span className="block truncate text-[11px] text-slate-500">{hit.sublabel}</span>}
                             </span>
-                            {value?.id === hit.id && <Check className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />}
+                            {value?.id === hit.id && <Check className="h-4 w-4 shrink-0 text-teal-700" aria-hidden />}
                         </li>
                     ))}
                     {!loading && hits.length === 0 && (

@@ -57,7 +57,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
             )}
             {owing && canTakePayment && (
                 <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
-                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>
+                    <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800"><Wallet className="w-4 h-4 mr-1" />Take payment</Button>
                 </form>
             )}
             {refundable && canTakePayment && (

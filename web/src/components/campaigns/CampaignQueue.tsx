@@ -43,7 +43,7 @@ export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: 
             {openUrl && (
                 <div className="sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-sm border border-teal-300 bg-teal-50 px-4 py-3">
                     <span className="text-sm text-teal-900">Recorded. Now open it and press send.</span>
-                    <a href={openUrl.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white">
+                    <a href={openUrl.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-3 py-1.5 text-sm font-semibold text-white">
                         <ExternalLink className="h-4 w-4" />Open {campaign.channel === "EMAIL" ? "mail app" : "WhatsApp"}
                     </a>
                     <button type="button" onClick={() => setOpenUrl(null)} className="text-xs text-teal-800 underline">Dismiss</button>
@@ -70,7 +70,7 @@ export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: 
                                     <span className="block text-sm font-medium text-slate-800">{row.customer.firstName} {row.customer.lastName}</span>
                                     <span className="block text-xs text-slate-500">{campaign.channel === "EMAIL" || row.customer.preferredContact === "EMAIL" ? row.customer.email : row.customer.mobile}</span>
                                 </span>
-                                <Button type="button" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700" disabled={busy} onClick={() => send(row)}>
+                                <Button type="button" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={busy} onClick={() => send(row)}>
                                     {campaign.channel === "EMAIL" ? <Mail className="mr-1 h-3.5 w-3.5" /> : <MessageCircle className="mr-1 h-3.5 w-3.5" />}Send
                                 </Button>
                                 <Button type="button" size="sm" variant="ghost" className="h-8 text-slate-500" disabled={busy} onClick={() => start(() => skipRecipientAction(tenant, row.id))}>Skip</Button>

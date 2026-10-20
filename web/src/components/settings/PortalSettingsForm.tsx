@@ -22,7 +22,7 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
     return (
         <form action={action} className="space-y-4 max-w-3xl">
             <label className="flex items-start gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3">
-                <input type="checkbox" name="enabled" defaultChecked={settings.enabled} className="mt-1 accent-teal-600" />
+                <input type="checkbox" name="enabled" defaultChecked={settings.enabled} className="mt-1 accent-teal-700" />
                 <span>
                     <span className="block font-medium text-slate-800">Customer portal is on</span>
                     <span className="block text-sm text-slate-500">Each customer gets their own private link, sent from their customer page. Turning this off stops every link already sent, straight away.</span>
@@ -36,7 +36,7 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
                     {SECTIONS.map((s) => (
                         <li key={s.key}>
                             <label className="flex items-start gap-3 px-4 py-2.5">
-                                <input type="checkbox" name={`section.${s.key}`} defaultChecked={settings.sections[s.key]} className="mt-1 accent-teal-600" />
+                                <input type="checkbox" name={`section.${s.key}`} defaultChecked={settings.sections[s.key]} className="mt-1 accent-teal-700" />
                                 <span>
                                     <span className="block text-sm font-medium text-slate-700">{s.label}</span>
                                     <span className="block text-xs text-slate-500">{s.hint}</span>
@@ -52,7 +52,7 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
                     <span className="block font-medium text-slate-700">Colour</span>
                     <span className="flex items-center gap-2">
                         <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-9 w-12 rounded border border-slate-300" aria-label="Portal colour" />
-                        <input name="accent" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-9 w-28 rounded-md border border-slate-300 px-2 font-mono text-sm" aria-label="Portal colour code" />
+                        <input name="accent" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-9 w-28 rounded-sm border border-slate-300 px-2 font-mono text-sm" aria-label="Portal colour code" />
                     </span>
                     <span className="block text-xs text-slate-500">Buttons and highlights. Your logo from the company profile goes at the top.</span>
                     {state.errors?.accent && <span className="block text-xs text-red-600">{state.errors.accent[0]}</span>}
@@ -60,19 +60,19 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
                 <label className="space-y-1 text-sm">
                     <span className="block font-medium text-slate-700">Links last</span>
                     <span className="flex items-center gap-2">
-                        <input type="number" name="linkDays" min={7} max={365} defaultValue={settings.linkDays} className="h-9 w-20 rounded-md border border-slate-300 px-2 text-sm tabular-nums" />
+                        <input type="number" name="linkDays" min={7} max={365} defaultValue={settings.linkDays} className="h-9 w-20 rounded-sm border border-slate-300 px-2 text-sm tabular-nums" />
                         <span className="text-slate-500">days</span>
                     </span>
                     <span className="block text-xs text-slate-500">Send a fresh link any time; you can withdraw one from the customer&rsquo;s page.</span>
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
                     <span className="block font-medium text-slate-700">Welcome message <span className="font-normal text-slate-400">(optional)</span></span>
-                    <textarea name="welcome" defaultValue={settings.welcome} maxLength={400} rows={3} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. Open Mon–Fri 07:30–17:00. Collections until 17:30." />
+                    <textarea name="welcome" defaultValue={settings.welcome} maxLength={400} rows={3} className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. Open Mon–Fri 07:30–17:00. Collections until 17:30." />
                 </label>
             </div>
 
             <div className="flex items-center gap-3">
-                <Button type="submit" className="bg-teal-600 hover:bg-teal-700" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                <Button type="submit" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
                 {state.message && <p className={`text-sm ${state.ok ? "text-teal-700" : "text-red-600"}`} role={state.ok ? undefined : "alert"}>{state.message}</p>}
             </div>
         </form>

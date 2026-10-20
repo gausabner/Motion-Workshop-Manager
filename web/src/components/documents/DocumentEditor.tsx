@@ -97,7 +97,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     {state.ok && state.message && <span className="text-sm text-teal-700">{state.message}</span>}
                     {state.message && !state.ok && <span className="text-sm text-red-600" role="alert">{state.message}</span>}
                     {!readOnly && (
-                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={pending}>
+                        <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending}>
                             <Save className="w-4 h-4 mr-1" />{pending ? "Saving…" : "Save"}
                         </Button>
                     )}
@@ -154,7 +154,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     {isJob && <TextField label="Estimated hours" name="estimatedHours" type="number" step="0.25" min="0" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} errors={errors} />}
                     <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
                         <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
-                            <input type="checkbox" name="isCashSale" defaultChecked={isCashSale} onChange={(e) => setIsCashSale(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" disabled={readOnly} />
+                            <input type="checkbox" name="isCashSale" defaultChecked={isCashSale} onChange={(e) => setIsCashSale(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-700" disabled={readOnly} />
                             <span>Cash sale<span className="block text-[11px] text-slate-400">No customer account</span></span>
                         </label>
                         <CheckField label="Internal job" name="isInternal" defaultChecked={doc.isInternal} hint="Excluded from sales reporting" />

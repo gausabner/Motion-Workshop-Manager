@@ -56,7 +56,7 @@ export function ForgotForm() {
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" name="email" type="email" autoComplete="email" required autoFocus className="h-11" />
                 </div>
-                <Button type="submit" className="h-11 w-full bg-teal-600 text-[15px] hover:bg-teal-700" disabled={pending}>
+                <Button type="submit" className="h-11 w-full bg-teal-700 text-[15px] hover:bg-teal-800" disabled={pending}>
                     {pending ? "Sending…" : "Send the link"}
                 </Button>
             </form>

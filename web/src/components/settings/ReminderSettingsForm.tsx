@@ -22,12 +22,12 @@ export function ReminderSettingsForm({ tenant, settings }: { tenant: string; set
                 {ROWS.map((row) => (
                     <li key={row.key} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
                         <label className="flex w-40 items-center gap-2 font-medium text-slate-700">
-                            <input type="checkbox" name={`${row.key}.enabled`} defaultChecked={settings[row.key].enabled} className="accent-teal-600" />
+                            <input type="checkbox" name={`${row.key}.enabled`} defaultChecked={settings[row.key].enabled} className="accent-teal-700" />
                             {row.label}
                         </label>
                         <input
                             type="number" name={`${row.key}.days`} min={0} max={row.max} defaultValue={settings[row.key].days}
-                            className="h-8 w-16 rounded-md border border-slate-300 px-2 text-sm tabular-nums" aria-label={`${row.label}: ${row.unit}`}
+                            className="h-8 w-16 rounded-sm border border-slate-300 px-2 text-sm tabular-nums" aria-label={`${row.label}: ${row.unit}`}
                         />
                         <span className="text-slate-500">{row.unit}</span>
                     </li>

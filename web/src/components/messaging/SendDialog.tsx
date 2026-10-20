@@ -118,7 +118,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                     {phase.step === "done" ? (
                         <div className="space-y-3 py-2">
                             <p className="flex items-start gap-2 text-sm text-slate-700">
-                                <CheckCircle2 className="w-5 h-5 text-teal-600 shrink-0" />
+                                <CheckCircle2 className="w-5 h-5 text-teal-700 shrink-0" />
                                 <span>
                                     The message is ready in {phase.channel === "WHATSAPP" ? "WhatsApp" : "your mail app"}. Press send there.
                                     You will see on this page when the customer opens it.
@@ -142,7 +142,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
                                 {(["WHATSAPP", "EMAIL"] as const).map((c) => (
                                     <button
                                         key={c} type="button" role="radio" aria-checked={channel === c} onClick={() => load(c)}
-                                        className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${channel === c ? "border-teal-600 bg-teal-50 text-teal-800 font-medium" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}
+                                        className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${channel === c ? "border-teal-700 bg-teal-50 text-teal-800 font-medium" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}
                                     >
                                         {c === "WHATSAPP" ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                                         {c === "WHATSAPP" ? "WhatsApp" : "Email"}
@@ -195,7 +195,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
 
                             <div className="flex items-center justify-end gap-2 pt-1">
                                 <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                                <Button type="button" size="sm" className="bg-teal-600 hover:bg-teal-700" disabled={!draft || sending || loading || !recipient.trim()} onClick={send}>
+                                <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={!draft || sending || loading || !recipient.trim()} onClick={send}>
                                     {sending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
                                     Open in {app}
                                 </Button>

@@ -30,7 +30,7 @@ export default async function SerialLookupPage({ params, searchParams }: { param
 
             <form action={`${base}/products/serials`} method="get" className="flex gap-2">
                 <input name="q" defaultValue={q} autoFocus placeholder="Serial number, or part of one" className="h-10 flex-1 rounded-md border border-slate-300 px-3 text-sm" />
-                <button type="submit" className="h-10 rounded-md bg-teal-600 px-4 text-sm font-medium text-white hover:bg-teal-700">Find it</button>
+                <button type="submit" className="h-10 rounded-md bg-teal-700 px-4 text-sm font-medium text-white hover:bg-teal-800">Find it</button>
             </form>
 
             {q && results.length === 0 && (

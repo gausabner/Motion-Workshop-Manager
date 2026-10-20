@@ -35,7 +35,7 @@ export default async function PurchasingPage({ params }: { params: Promise<{ ten
                     <p className="text-sm text-slate-500">Orders are a commitment; stock arrives when you enter the supplier&rsquo;s invoice against them.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/orders/new`}><Plus className="mr-1 h-4 w-4" />New order</Link></Button>
+                    <Button asChild size="sm" className="bg-teal-700 hover:bg-teal-800"><Link href={`${base}/orders/new`}><Plus className="mr-1 h-4 w-4" />New order</Link></Button>
                     <form action={newSupplierInvoiceAction.bind(null, slug)}>
                         <Button type="submit" size="sm" variant="outline">Enter supplier invoice</Button>
                     </form>

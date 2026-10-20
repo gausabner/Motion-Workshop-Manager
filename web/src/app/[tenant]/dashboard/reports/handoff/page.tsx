@@ -76,7 +76,7 @@ export default async function HandoffPage({ params, searchParams }: { params: Pr
             ) : (
                 <section className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${missing.length === 0 && waiting.length === 0 ? "border-teal-200 bg-teal-50" : "border-amber-300 bg-amber-50"}`}>
                     {missing.length === 0 && waiting.length === 0
-                        ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-600" aria-hidden="true" />
+                        ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" aria-hidden="true" />
                         : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />}
                     <div className="min-w-0 space-y-1">
                         {missing.length === 0

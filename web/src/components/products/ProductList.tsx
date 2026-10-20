@@ -29,7 +29,7 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                 <span className="flex gap-2">
                     <Button asChild size="sm" variant="outline"><Link href={`${base}/serials`}>Find a serial</Link></Button>
                     {canWrite && <Button asChild size="sm" variant="outline"><Link href={`${base}/stock-take`}>Stock take</Link></Button>}
-                    {canWrite && <Button asChild size="sm" className="bg-teal-600 hover:bg-teal-700"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New product</Link></Button>}
+                    {canWrite && <Button asChild size="sm" className="bg-teal-700 hover:bg-teal-800"><Link href={`${base}/new`}><Plus className="mr-1 h-4 w-4" />New product</Link></Button>}
                 </span>
             </div>
 
@@ -39,8 +39,8 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                     <option value="">Every type</option>
                     {Object.entries(TYPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
-                <label className="flex items-center gap-1.5 text-sm text-slate-600"><input type="checkbox" name="low" value="1" defaultChecked={lowOnly} className="accent-teal-600" />At or below minimum</label>
-                <label className="flex items-center gap-1.5 text-sm text-slate-600"><input type="checkbox" name="archived" value="1" defaultChecked={archived} className="accent-teal-600" />Archived</label>
+                <label className="flex items-center gap-1.5 text-sm text-slate-600"><input type="checkbox" name="low" value="1" defaultChecked={lowOnly} className="accent-teal-700" />At or below minimum</label>
+                <label className="flex items-center gap-1.5 text-sm text-slate-600"><input type="checkbox" name="archived" value="1" defaultChecked={archived} className="accent-teal-700" />Archived</label>
                 <Button type="submit" size="sm" variant="outline" className="h-9">Search</Button>
             </form>
 

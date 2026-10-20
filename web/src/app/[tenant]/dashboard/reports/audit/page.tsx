@@ -76,7 +76,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
 
             <section className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${holes === 0 ? "border-teal-200 bg-teal-50" : "border-amber-300 bg-amber-50"}`}>
                 {holes === 0
-                    ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-600" aria-hidden="true" />
+                    ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" aria-hidden="true" />
                     : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />}
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-800">

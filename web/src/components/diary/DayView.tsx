@@ -242,7 +242,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                 )}
                                 {/* Where a dragged booking will land */}
                                 {target && dragged && (
-                                    <div className="pointer-events-none absolute inset-x-1 z-20 rounded border-2 border-dashed border-teal-600 bg-teal-100/60" style={{ top: y(target.minute), height: dragged.minutes * PX_PER_MINUTE }}>
+                                    <div className="pointer-events-none absolute inset-x-1 z-20 rounded border-2 border-dashed border-teal-700 bg-teal-100/60" style={{ top: y(target.minute), height: dragged.minutes * PX_PER_MINUTE }}>
                                         <span className="px-1 text-[10px] font-semibold text-teal-800">{minuteLabel(target.minute)}</span>
                                     </div>
                                 )}
@@ -251,7 +251,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                     <button
                                         type="button" disabled={pending}
                                         onClick={() => start(() => bookSlotAction(tenant, { day: day.day, minute: slot.minute, mechanicId: lane.id === UNASSIGNED ? null : lane.id }))}
-                                        className="absolute inset-x-1 z-20 flex items-center gap-1 rounded border border-teal-600 bg-white px-2 text-xs font-medium text-teal-700 shadow-sm hover:bg-teal-50"
+                                        className="absolute inset-x-1 z-20 flex items-center gap-1 rounded border border-teal-700 bg-white px-2 text-xs font-medium text-teal-700 shadow-sm hover:bg-teal-50"
                                         style={{ top: y(slot.minute), height: settings.slotMinutes * PX_PER_MINUTE }}
                                     >
                                         <Plus className="w-3.5 h-3.5" />Book {minuteLabel(slot.minute)}{lane.id === UNASSIGNED ? "" : ` with ${lane.name.split(" ")[0]}`}

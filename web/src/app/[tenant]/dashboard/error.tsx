@@ -35,7 +35,7 @@ export default function DashboardError({
                 The error was on our side. Anything you had already saved is unaffected. Try again, and if it happens again, contact support.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-                <Button onClick={reset} className="h-11 bg-teal-600 px-5 hover:bg-teal-700">Try again</Button>
+                <Button onClick={reset} className="h-11 bg-teal-700 px-5 hover:bg-teal-800">Try again</Button>
             </div>
             {error.digest && (
                 <p className="mt-6 font-mono text-[11px] text-slate-400">
