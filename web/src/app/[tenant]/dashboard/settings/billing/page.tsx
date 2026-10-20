@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { bankDetails } from "@/lib/billing/config";
@@ -9,6 +9,8 @@ import { PLANS, VAT_RATE, withVat } from "@/lib/pricing/plans";
 import { FEATURES, PLAN_NAMES, includes, isFeature, type PlanId } from "@/lib/plans/features";
 import { support } from "@/lib/edition";
 import { money } from "@/lib/format";
+import { pendingChange } from "@/lib/billing/plan-change-service";
+import { ChangeProgress } from "@/components/billing/ChangeProgress";
 
 export const metadata = { title: "Billing | MOTION Workshop Manager" };
 
@@ -58,6 +60,8 @@ export default async function BillingPage({
         : [];
 
     const gaps = manager ? recipientGaps(tenant) : [];
+    const pending = manager ? await pendingChange(db, tenant.id) : null;
+    const changeHref = `/${slug}/dashboard/settings/billing/change`;
     const rules = renewalRules();
     const end = sub?.status === "ACTIVE" ? sub.periodEndsAt : null;
     const s = standing(end, new Date(), rules);
@@ -79,16 +83,26 @@ export default async function BillingPage({
                         {FEATURES[locked].name} {FEATURES[locked].name.endsWith("s") ? "are" : "is"} part of the {PLAN_NAMES[FEATURES[locked].plan]} plan
                     </p>
                     <p className="mt-1">
-                        {FEATURES[locked].what} {plan ? `Your workshop is on the ${PLAN_NAMES[plan]} plan.` : ""} To change plan, email{" "}
-                        {support().email ? (
-                            <a href={`mailto:${support().email}?subject=${encodeURIComponent(`Moving ${tenant.name} to ${PLAN_NAMES[FEATURES[locked].plan]}`)}`} className="font-medium text-teal-700 hover:underline">
-                                {support().email}
-                            </a>
-                        ) : (
-                            "MOTION"
-                        )}
-                        . The features are added on the day we change your plan, and the new price applies from your next renewal.
+                        {FEATURES[locked].what} {plan ? `Your workshop is on the ${PLAN_NAMES[plan]} plan.` : ""}
                     </p>
+                    {manager && FEATURES[locked].plan !== "council" ? (
+                        <Link
+                            href={`${changeHref}?step=review&plan=${FEATURES[locked].plan}`}
+                            className="mt-3 inline-flex items-center gap-1 font-medium text-teal-700 hover:underline"
+                        >
+                            Move up to {PLAN_NAMES[FEATURES[locked].plan]}
+                            <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                        </Link>
+                    ) : (
+                        <p className="mt-1">
+                            {manager ? "It is quoted per site. " : "Your workshop owner can change the plan on this page. "}
+                            {manager && support().email && (
+                                <a href={`mailto:${support().email}?subject=${encodeURIComponent(`Moving ${tenant.name} to ${PLAN_NAMES[FEATURES[locked].plan]}`)}`} className="font-medium text-teal-700 hover:underline">
+                                    Contact us for a quote
+                                </a>
+                            )}
+                        </p>
+                    )}
                 </div>
             )}
 
@@ -143,6 +157,37 @@ export default async function BillingPage({
                     </dl>
 
                     <PlanSummary plan={plan} />
+
+                    {manager &&
+                        (pending ? (
+                            <section className="space-y-4 border border-slate-200 bg-white px-4 py-4">
+                                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <h4 className="text-sm font-semibold text-slate-900">
+                                        Plan change requested: {pending.fromPlanName} to {pending.toPlanName}
+                                    </h4>
+                                    <Link href={changeHref} className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline">
+                                        View request
+                                        <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                                    </Link>
+                                </div>
+                                <ChangeProgress kind={pending.kind} current={2} />
+                                <p className="text-sm text-slate-600">
+                                    {pending.kind === "upgrade"
+                                        ? `Pay ${money(pending.amountInclVat)} under ${sub.reference} to switch it on.`
+                                        : "Waiting for MOTION to approve it."}
+                                </p>
+                            </section>
+                        ) : (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-200 py-3">
+                                <p className="text-sm text-slate-600">Move to another plan. A move up is paid for first; a move down needs no payment.</p>
+                                <Link
+                                    href={changeHref}
+                                    className="inline-flex h-10 items-center rounded-sm bg-teal-700 px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-teal-800"
+                                >
+                                    Change plan
+                                </Link>
+                            </div>
+                        ))}
 
                     {!pastDue && end && (s === "dueSoon" || s === "grace") && (
                         <p className="text-sm text-slate-700">

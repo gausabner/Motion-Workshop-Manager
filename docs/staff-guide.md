@@ -23,6 +23,7 @@ payments and look after accounts. Everything here happens at
 | --- | --- | --- |
 | **New registration MOT-XXXXXX — Workshop** | A workshop signs up and picks a plan | Watch the bank statement for that reference |
 | **Renewals: 2 reminded, 1 now read-only** | 07:00 each morning, only if something is due | Watch the statement for those references |
+| **Plan change MOT-XXXXXX: Workshop, Workshop to Full workshop** | An owner asks to change plan | A move up: watch the statement for the amount under that reference. A move down: approve it |
 
 Customers send proof of payment to info@ as well. The reference on a proof of
 payment is what you search for on `/admin`.
@@ -165,17 +166,39 @@ pricing page. The rules live in one place (`web/src/lib/plans/features.ts`).
 | --- | --- |
 | **Workshop** | The diary, job cards, quotes to invoices, receipts, sending, customers and vehicles, what customers owe, profit, the mechanic clock, the portal, online booking, import, and every table as CSV |
 | **Full workshop** | Parts and stock, purchasing and suppliers, inspections, reminders and campaigns, courtesy cars, the owner reports |
-| **Council and multi-site** | The audit pack, the accounting hand-off, the public API |
+| **Council and multi-site** | Audit reports, accounting integration, the public API |
 
-- A screen outside the plan is not in the workshop's menus. Reached by an old
-  link, it sends them to Settings → Billing, which says which plan includes it
-  and how to move up.
+- A Full workshop screen outside the plan shows in the workshop's menus
+  greyed with a lock, and leads to Settings → Billing, which says which plan
+  includes it and starts the move up. Council-only screens are not shown.
 - A workshop with **no plan** — one switched on before plans existed — keeps
   everything until **Set up billing** gives it one.
 - Nothing is deleted when a workshop moves down. Their stock, suppliers and
   inspections stay on file, out of reach, and come back if they move up.
 
-### Move a workshop to another plan
+### An owner has asked to change plan
+
+Owners (and administrators) ask from Settings → Billing → **Change plan**. The
+request appears at the top of `/admin` under **Plan changes**, and the team
+gets an email. Only one request can be open per workshop.
+
+- **A move up** is paid for first: one full month at the new plan's price,
+  under the workshop's usual reference. When it is on the statement, press
+  **Payment received**. The plan changes, the payment is recorded for one
+  month from today — the paid-up-to date restarts here — and the owner is
+  emailed the tax invoice. Unused days on the old plan are not refunded; the
+  owner was told so before asking. A read-only workshop is back to full access.
+- **A move down** needs no payment. Press **Approve**: the higher-plan screens
+  lock at once (nothing is deleted) and the lower price applies from the next
+  renewal. The owner is emailed.
+- **Decline** asks for a reason, which the owner is sent — for example, no
+  payment after two weeks. The owner can also withdraw a request themselves
+  until you act on it.
+
+A decided request stays on `/admin` for a day, saying who approved or declined
+it, so a row you just acted on does not simply disappear.
+
+### Move a workshop to another plan yourself
 
 Open its page and use **Change plan**: choose the plan, check the monthly
 amount (excluding VAT — change it for a negotiated price). What it can use

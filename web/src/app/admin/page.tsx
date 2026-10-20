@@ -7,10 +7,12 @@ import { money, dateShort } from "@/lib/format";
 import { withVat } from "@/lib/pricing/plans";
 import { bankDetails } from "@/lib/billing/config";
 import { ConfirmAction } from "@/app/admin/ConfirmAction";
-import { ChangePaidUntil, SetUpBilling } from "@/app/admin/BillingForms";
+import { ChangePaidUntil, DeclinePlanChange, SetUpBilling } from "@/app/admin/BillingForms";
 import {
     activateAction,
+    approvePlanChangeAction,
     cancelAction,
+    declinePlanChangeAction,
     reactivateAction,
     renewAction,
     setPaidUntilAction,
@@ -20,6 +22,8 @@ import {
 import { billingDay, billingInputValue, readOnlyFrom, renewalRules, standing } from "@/lib/billing/periods";
 import { PLANS } from "@/lib/pricing/plans";
 import { actorName, describeAction } from "@/app/admin/activity";
+import { changeKind } from "@/lib/billing/plan-change";
+import { asPlanId } from "@/lib/plans/features";
 
 /**
  * Registrations, and every workshop's standing with MOTION.
@@ -74,8 +78,39 @@ function searchWhere(q: string): Prisma.TenantWhereInput | undefined {
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
     const { q = "" } = await searchParams;
 
-    const { workshops, activity } = await asStaff(async (tx) => ({
+    const decidedSince = new Date();
+    decidedSince.setDate(decidedSince.getDate() - 1);
+    const { workshops, activity, changes } = await asStaff(async (tx) => ({
         workshops: await tx.tenant.findMany({ where: searchWhere(q), orderBy: { createdAt: "asc" }, select: WORKSHOP_SELECT }),
+        // Open requests, and those decided in the last day. The decided ones
+        // stay so that the row a member of staff just acted on says what
+        // happened where it was, instead of vanishing with its confirmation.
+        changes: await tx.planChangeRequest.findMany({
+            where: {
+                OR: [
+                    { status: "PENDING" },
+                    { status: { in: ["APPROVED", "DECLINED"] }, decidedAt: { gte: decidedSince } },
+                ],
+            },
+            orderBy: { requestedAt: "asc" },
+            select: {
+                id: true,
+                tenantId: true,
+                status: true,
+                declineReason: true,
+                decidedAt: true,
+                decidedBy: { select: { firstName: true, lastName: true } },
+                fromPlanId: true,
+                fromPlanName: true,
+                toPlanId: true,
+                toPlanName: true,
+                amountInclVat: true,
+                requestedAt: true,
+                tenant: { select: { name: true } },
+                subscription: { select: { reference: true } },
+                requestedBy: { select: { firstName: true, lastName: true } },
+            },
+        }),
         activity: await tx.platformAuditEvent.findMany({
             orderBy: { createdAt: "desc" },
             take: 15,
@@ -105,6 +140,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     const live = workshops.filter((w) => w.status === "ACTIVE" && !due.includes(w)).reverse();
     const off = workshops.filter((w) => w.status === "SUSPENDED" || w.status === "CANCELLED").reverse();
     const bank = bankDetails();
+    const openChanges = changes.filter((c) => c.status === "PENDING").length;
 
     return (
         <div className="space-y-8">
@@ -112,6 +148,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <div>
                     <h1 className="text-[24px] font-semibold tracking-tight text-slate-900">Workshops</h1>
                     <p className="mt-1 text-[14px] text-slate-600">
+                        {openChanges > 0 && `${openChanges} plan ${openChanges === 1 ? "change" : "changes"} requested. `}
                         {awaiting.length + due.length === 0
                             ? "Nothing is waiting on a payment."
                             : [
@@ -145,6 +182,67 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     No bank details are configured on this server, so new customers are not being told where to pay. Set the
                     BILLING_BANK_* values in the server&apos;s environment.
                 </p>
+            )}
+
+            {changes.length > 0 && (
+                <section className="rounded-lg border border-slate-200 bg-white">
+                    <div className="border-b border-slate-200 px-4 py-3">
+                        <h2 className="text-[14px] font-semibold text-slate-900">Plan changes</h2>
+                        <p className="mt-0.5 text-[13px] text-slate-600">
+                            Oldest first. A move up is approved once its payment is on the statement: the plan changes, the date restarts from
+                            today and the owner gets the tax invoice. A move down needs no payment.
+                        </p>
+                    </div>
+                    <ul className="divide-y divide-slate-100">
+                        {changes.map((c) => {
+                            const up = changeKind(asPlanId(c.fromPlanId), asPlanId(c.toPlanId) ?? "workshop") === "upgrade";
+                            const amount = Number(c.amountInclVat);
+                            return (
+                                <li key={c.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                                    <div className="min-w-0 text-[13px]">
+                                        <Link href={`/admin/workshops/${c.tenantId}`} className="text-[14px] font-medium text-slate-900 hover:text-teal-700">
+                                            {c.tenant.name}
+                                        </Link>
+                                        <p className="text-slate-700">
+                                            {c.fromPlanName} to {c.toPlanName} · {up ? `pays ${money(amount)} under ${c.subscription.reference}` : "move down, no payment"}
+                                        </p>
+                                        <p className="text-slate-500">
+                                            Asked {dateShort(c.requestedAt)}
+                                            {c.requestedBy ? ` by ${c.requestedBy.firstName} ${c.requestedBy.lastName}` : ""}
+                                        </p>
+                                    </div>
+                                    {c.status !== "PENDING" ? (
+                                        <p role="status" className="max-w-xs text-right text-[13px] leading-snug text-slate-600">
+                                            <span className={`font-medium ${c.status === "APPROVED" ? "text-teal-800" : "text-slate-900"}`}>
+                                                {c.status === "APPROVED" ? "Approved" : "Declined"}
+                                            </span>
+                                            {c.decidedBy ? ` by ${c.decidedBy.firstName} ${c.decidedBy.lastName}` : ""}
+                                            {c.decidedAt ? `, ${dateShort(c.decidedAt)}` : ""}
+                                            {c.status === "DECLINED" && c.declineReason ? `. ${c.declineReason}` : "."}
+                                        </p>
+                                    ) : (
+                                    <div className="flex flex-wrap items-start gap-2">
+                                        <ConfirmAction
+                                            action={approvePlanChangeAction}
+                                            tenantId={c.tenantId}
+                                            fields={{ requestId: c.id }}
+                                            tone="primary"
+                                            label={up ? "Payment received" : "Approve"}
+                                            question={
+                                                up
+                                                    ? `Has ${money(amount)} arrived under ${c.subscription.reference}? ${c.tenant.name} moves to ${c.toPlanName} now, paid up to a period from today, and the owner is emailed the tax invoice.`
+                                                    : `Move ${c.tenant.name} down to ${c.toPlanName} now? Its higher-plan features are locked straight away, and the owner is emailed.`
+                                            }
+                                            confirmLabel={up ? "Yes, switch it on" : "Approve the change"}
+                                        />
+                                        <DeclinePlanChange action={declinePlanChangeAction} tenantId={c.tenantId} requestId={c.id} />
+                                    </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
             )}
 
             <Section
