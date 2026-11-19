@@ -250,6 +250,13 @@ enum StockMovementKind {
   ISSUE
 }
 
+enum RequisitionKind {
+  /// Issued from stores.
+  STORES
+  /// Bought from a supplier, against a chosen quotation.
+  PURCHASE
+}
+
 enum RequisitionState {
   /// Being written, or returned by an approver for changes. Not numbered until first submitted.
   DRAFT
@@ -257,15 +264,17 @@ enum RequisitionState {
   AWAITING_HEAD
   /// Only when the value is at or above the council's limit.
   AWAITING_OVER_LIMIT
-  /// Signed off; stores issues it from the shelf or orders it. What has been met is read from the lines, never stored.
+  /// Signed off; stores issues it, or it is ordered. What has been met is read from the lines, never stored.
   APPROVED
-  /// Everything on it issued, or the rest written off.
+  /// Everything issued or received; waiting on the finalising signatures.
+  AWAITING_FINALISE
+  /// Finalised by the foreman, the fleet coordinator and the division head.
   CLOSED
   REJECTED
   CANCELLED
 }
 
-/// The sign-offs on a requisition, in the order the paper form has them.
+/// The boxes a signature goes in, in the order the paper form and the job flow have them.
 enum RequisitionStep {
   /// The requester submitting it — the form's "Requisitioned by".
   REQUESTED
@@ -275,17 +284,62 @@ enum RequisitionStep {
   DIVISIONAL_HEAD
   /// Above the council's value limit.
   OVER_LIMIT
+  /// The fleet coordinator of the division that pays: approves against its vote, or witnesses. Never holds it up.
+  PAYER
+  FINAL_FOREMAN
+  FINAL_FLEET_COORDINATOR
+  FINAL_DIVISIONAL_HEAD
+  /// The mechanic, artisan or intern who fitted it. Optional.
+  FINAL_FITTER
 }
 
 enum RequisitionDecision {
   SUBMITTED
   APPROVED
-  /// Sent back for changes: the requisition returns to Draft and every approval is cleared.
+  /// Sent back for changes: the requisition returns to Draft and a new round of approval starts.
   RETURNED
   REJECTED
-  /// The foreman step when the requester is the department's only foreman: recorded, not skipped silently.
+  /// The foreman step when the requester is the workshop's only foreman: recorded, not skipped silently.
   RAISED_BY_FOREMAN
   CANCELLED
+  /// The paying division's fleet coordinator saw the cost against the vote without approving it.
+  WITNESSED
+  /// A finalising signature.
+  SIGNED
+}
+
+/// A job title a signature is given under. Separate from the role, which decides what somebody can do.
+enum Designation {
+  RECEPTION
+  FOREMAN
+  FLEET_COORDINATOR
+  MECHANIC
+  ARTISAN
+  INTERN
+  PARTS_DRIVER
+  STOREMAN
+  DIVISION_HEAD
+}
+
+enum WorkshopKind {
+  RECEPTION
+  CHECK_BAY
+  /// Light vehicles, light and medium, heavy duty, manufacturing and engineering.
+  WORKSHOP
+  /// Service bay, tyre bay, carwash.
+  BAY
+}
+
+/// What a person is appointed to sign, and for what.
+enum AuthorityKind {
+  /// For a workshop or bay.
+  FOREMAN
+  /// For a division of the organisation.
+  DIVISION_HEAD
+  /// For a division: signs for the vehicles and votes it owns.
+  FLEET_COORDINATOR
+  /// Council-wide, above the value limit.
+  OVER_LIMIT
 }
 
 enum CampaignState {
@@ -455,9 +509,11 @@ model Tenant {
   subscriptionCreditNotes    SubscriptionCreditNote[]
   planChangeRequests         PlanChangeRequest[]
   platformAuditEvents        PlatformAuditEvent[]
-  departments                Department[]
+  orgUnits                   OrgUnit[]
+  workshops                  Workshop[]
   votes                      Vote[]
-  requisitionApprovers       RequisitionApprover[]
+  signingAuthorities         SigningAuthority[]
+  requisitionQuotes          RequisitionQuote[]
   requisitions               Requisition[]
   requisitionLines           RequisitionLine[]
   requisitionSignoffs        RequisitionSignoff[]
@@ -807,6 +863,8 @@ model Membership {
   showOnDiary         Boolean          @default(false)
   /// The employer's number for this person, as councils write it beside a signature ("Name & Pay No.").
   payNumber           String?
+  /// Job titles signatures are given under; any number of them.
+  designations        Designation[]    @default([])
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -835,7 +893,8 @@ model Membership {
   loansGiven         Loan[]
   apiKeys            ApiKey[]
   requisitionsRaised Requisition[]         @relation("RequisitionRequestedBy")
-  requisitionRoles   RequisitionApprover[]
+  authorities        SigningAuthority[]
+  quotesObtained     RequisitionQuote[]
   requisitionSigns   RequisitionSignoff[]
   requisitionIssues  RequisitionIssue[]    @relation("RequisitionIssuedBy")
   requisitionsTaken  RequisitionIssue[]    @relation("RequisitionReceivedBy")
@@ -1075,11 +1134,12 @@ model Supplier {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
   contacts         Contact[]
   products         Product[]
   purchaseOrders   PurchaseOrder[]
   supplierInvoices SupplierInvoice[]
+  quotes           RequisitionQuote[]
 
   @@index([tenantId, companyName])
 }
@@ -2148,27 +2208,36 @@ model SupplierPaymentAllocation {
 
 // ───────────────────────── requisitions (council) ─────────────────────────
 
-/// A section of the council that asks for supplies — the paper form's "Dept.".
-model Department {
+/// The organisation that owns the vehicles and pays for them: one or two
+/// levels, named by the council. One council runs Divisions with Departments
+/// under them, the City of Windhoek runs Departments with Divisions under them,
+/// so MOTION names neither — the levels' names are a setting.
+model OrgUnit {
   id         String    @id @default(cuid())
   tenantId   String
+  parentId   String?
   name       String
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  tenant       Tenant                @relation(fields: [tenantId], references: [id])
-  approvers    RequisitionApprover[]
-  requisitions Requisition[]
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  parent      OrgUnit?           @relation("OrgTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    OrgUnit[]          @relation("OrgTree")
+  votes       Vote[]
+  workshops   Workshop[]
+  authorities SigningAuthority[]
 
-  @@unique([tenantId, name])
+  @@unique([tenantId, parentId, name])
+  @@index([tenantId, parentId])
 }
 
-/// A budget line a requisition can be charged to — the paper form's "Vote No.".
-/// Kept as the council's ERP writes it, so the nightly journal posts to the same code.
+/// A cost centre — the paper form's "Vote No." — kept exactly as the council's
+/// finance system writes it, so the nightly journal posts to the same code.
 model Vote {
   id         String    @id @default(cuid())
   tenantId   String
+  orgUnitId  String
   code       String
   name       String
   archivedAt DateTime?
@@ -2176,72 +2245,133 @@ model Vote {
   updatedAt  DateTime  @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  orgUnit      OrgUnit       @relation(fields: [orgUnitId], references: [id], onDelete: Restrict)
   requisitions Requisition[]
 
   @@unique([tenantId, code])
+  @@index([tenantId, orgUnitId])
 }
 
-/// Who may sign a step. Approval is by assignment rather than by role: the
-/// foreman of Parks does not approve the workshop's requisitions, and the
-/// person who signs above the value limit may have no other duties in MOTION.
-/// `departmentId` is null only for OVER_LIMIT, which is council-wide.
-model RequisitionApprover {
-  id           String          @id @default(cuid())
+/// Where a vehicle is: a workshop or bay the council has, run by one unit of
+/// its organisation. That unit's division head approves the workshop's
+/// requisitions.
+model Workshop {
+  id         String       @id @default(cuid())
+  tenantId   String
+  name       String
+  kind       WorkshopKind
+  orgUnitId  String
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  orgUnit      OrgUnit            @relation(fields: [orgUnitId], references: [id], onDelete: Restrict)
+  authorities  SigningAuthority[]
+  requisitions Requisition[]
+
+  @@unique([tenantId, name])
+}
+
+/// Who may sign, and for what. Approval is by appointment rather than by role:
+/// the foreman of the tyre bay does not sign for heavy duty, and the person
+/// who signs above the value limit may have no other duties in MOTION.
+/// A foreman is appointed to a workshop; a division head and a fleet
+/// coordinator to a unit of the organisation, and so to everything under it;
+/// the over-limit approver to the whole council.
+model SigningAuthority {
+  id           String        @id @default(cuid())
   tenantId     String
-  step         RequisitionStep
-  departmentId String?
+  kind         AuthorityKind
+  workshopId   String?
+  orgUnitId    String?
   membershipId String
   /// Signs in the principal's place — leave, or the requester being the foreman — and the signature records it.
-  deputy       Boolean         @default(false)
-  createdAt    DateTime        @default(now())
+  deputy       Boolean       @default(false)
+  createdAt    DateTime      @default(now())
 
-  tenant     Tenant      @relation(fields: [tenantId], references: [id])
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  membership Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  workshop   Workshop?  @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  orgUnit    OrgUnit?   @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, step, departmentId, membershipId])
+  @@unique([tenantId, kind, workshopId, orgUnitId, membershipId])
   @@index([tenantId, membershipId])
 }
 
 /// A request for supplies, approved before anything leaves the shelf or is
-/// ordered. Mirrors the council's paper "Requisition for Supplies".
+/// ordered. Mirrors the council's paper "Requisition for Supplies". A stores
+/// requisition stores cannot fully meet gives rise to a purchase requisition,
+/// which names it.
 model Requisition {
-  id               String           @id @default(cuid())
-  tenantId         String
+  id                  String           @id @default(cuid())
+  tenantId            String
   /// Issued on first submission and never reused; a cancelled requisition keeps it.
-  number           String?
-  state            RequisitionState @default(DRAFT)
-  departmentId     String?
+  number              String?
+  kind                RequisitionKind  @default(STORES)
+  state               RequisitionState @default(DRAFT)
+  /// The workshop asking — the form's "Dept.".
+  workshopId          String?
   /// The form's "Room No.": where it is wanted.
-  location         String?
-  requestedById    String
-  requiredBy       DateTime?        @db.Date
-  purpose          String?
+  location            String?
+  requestedById       String
+  requiredBy          DateTime?        @db.Date
+  purpose             String?
   /// What it is charged to: a job card, or a vote. Exactly one once submitted.
-  chargeDocumentId String?
-  chargeVoteId     String?
-  /// Excluding VAT, recalculated whenever the lines are saved. Approvals record the value they approved.
-  value            Decimal          @default(0) @db.Decimal(12, 2)
-  submittedAt      DateTime?
-  approvedAt       DateTime?
-  closedAt         DateTime?
-  cancelledAt      DateTime?
-  cancelReason     String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  chargeDocumentId    String?
+  chargeVoteId        String?
+  /// The stores requisition a purchase requisition was split from.
+  sourceRequisitionId String?
+  /// Excluding VAT. A stores requisition's lines at their rates; a purchase requisition's chosen quotation.
+  value               Decimal          @default(0) @db.Decimal(12, 2)
+  submittedAt         DateTime?
+  approvedAt          DateTime?
+  closedAt            DateTime?
+  cancelledAt         DateTime?
+  cancelReason        String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   tenant         Tenant               @relation(fields: [tenantId], references: [id])
-  department     Department?          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  workshop       Workshop?            @relation(fields: [workshopId], references: [id], onDelete: Restrict)
   requestedBy    Membership           @relation("RequisitionRequestedBy", fields: [requestedById], references: [id])
   chargeDocument Document?            @relation(fields: [chargeDocumentId], references: [id], onDelete: Restrict)
   chargeVote     Vote?                @relation(fields: [chargeVoteId], references: [id], onDelete: Restrict)
+  source         Requisition?         @relation("RequisitionSplit", fields: [sourceRequisitionId], references: [id], onDelete: Restrict)
+  splits         Requisition[]        @relation("RequisitionSplit")
   lines          RequisitionLine[]
   signoffs       RequisitionSignoff[]
   issues         RequisitionIssue[]
+  quotes         RequisitionQuote[]
 
   @@unique([tenantId, number])
   @@index([tenantId, state, createdAt])
   @@index([tenantId, requestedById])
+}
+
+/// A supplier's price for a purchase requisition, usually brought back by a
+/// parts driver. The approvers approve the chosen one, and its supplier and
+/// amount become the purchase order. The scan is an Attachment owned by it.
+model RequisitionQuote {
+  id            String    @id @default(cuid())
+  tenantId      String
+  requisitionId String
+  supplierId    String
+  /// Excluding VAT.
+  amount        Decimal   @db.Decimal(12, 2)
+  reference     String?
+  validUntil    DateTime? @db.Date
+  obtainedById  String
+  chosen        Boolean   @default(false)
+  note          String?
+  createdAt     DateTime  @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  requisition Requisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  supplier    Supplier    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  obtainedBy  Membership  @relation(fields: [obtainedById], references: [id])
+
+  @@index([requisitionId])
 }
 
 model RequisitionLine {

@@ -2,6 +2,8 @@
 
 Shaped on 19 November 2026. The benchmark is a council's paper form, "Requisition for Supplies" (Prime Press 042021, serial 1367550). Nothing here is built yet, and this document is the brief to confirm before any code.
 
+> **Revised the same day by the owner's job flow brief.** See `fleet-job-flow-plan.md` §5. That plan's build order (§7) replaces §7 below. Where the two documents differ, the decisions in §3 here are the current ones.
+
 ## 1. What a requisition is
 
 A requisition is an internal, approved request for goods. It is not an order. It settles "may we have this, and who pays?" before anyone takes an item off a shelf or contacts a supplier. The purchase order comes later, and it is the commitment to a supplier.
@@ -35,8 +37,20 @@ In Namibia, councils fall under the Public Procurement Act 15 of 2015. Each coun
 ## 3. Decisions made
 
 - **Councils, required.** Requisitions are a Council-plan feature, shown locked (not hidden) on other plans, as with every plan feature. On a council, a purchase order can only be raised from an approved requisition.
-- **One requisition covers stock issue and purchase,** as the paper form does.
-- **Sign-offs recorded, in this order:** the Foreman, then the Divisional Head (who is the manager), then a further approval above a value limit, then stores verification of the issue, then the receiver with a pay number.
+- **Two kinds of requisition, linked** (revised 19 Nov 2026; this replaces "one requisition covers both"):
+  - a *stores requisition* is issued from stock;
+  - a *purchase requisition* is bought from a supplier.
+
+  When stores cannot meet a stores requisition in full, the missing lines become a new, numbered purchase requisition that names the one it came from.
+- **Approval, in this order:** the Foreman, then the Divisional Head (who is the manager), then a further approval above the council's value limit. The order is the same for both kinds.
+- **Quotations before approval (purchase only).**
+  - Parts drivers obtain quotations, and MOTION can email suppliers a request for quotation.
+  - The number of quotations required depends on value, by a rule each council sets.
+  - The approvers approve one chosen quotation.
+- **Handover and finalising.**
+  - Stores verifies each issue, and the receiver is recorded with a pay number.
+  - Once received, the requisition is finalised by the **Foreman, Fleet Coordinator and Division Head, always**.
+  - The mechanic, artisan or intern who fitted the part signs if present.
 - **One charge code per requisition,** a job card or a vote, as on the paper.
 - **The receiver signs on paper.** Stores records their name and pay number, and the printout carries the line for the wet signature.
 
@@ -176,7 +190,7 @@ Any open state ──cancel (reason)──► Cancelled (number kept)
    - Spend by vote.
    - Issues by department.
 
-## 7. Building it (proposed pull requests)
+## 7. Building it (superseded by `fleet-job-flow-plan.md` §7)
 
 1. **Foundations.**
    - The data model:
