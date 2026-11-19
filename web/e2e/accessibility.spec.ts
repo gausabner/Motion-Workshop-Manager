@@ -62,6 +62,9 @@ test.describe("accessibility", () => {
         "/dashboard/settings/company",
         "/dashboard/settings/users",
         "/dashboard/settings/billing",
+        "/dashboard/settings/organisation",
+        "/dashboard/settings/workshops",
+        "/dashboard/settings/requisitions",
     ];
 
     test("signed-in screens", async ({ page, workshop }) => {
