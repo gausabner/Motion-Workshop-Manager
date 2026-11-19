@@ -34,7 +34,7 @@ export default async function InspectionTemplatesPage({ params }: { params: Prom
                 {templates.map((t) => (
                     <li key={t.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${t.active ? "" : "bg-slate-50"}`}>
                         <div className="min-w-0 flex-1">
-                            <Link href={`/${slug}/dashboard/settings/inspections/${t.id}`} className={`font-medium hover:underline ${t.active ? "text-slate-800" : "text-slate-400"}`}>{t.name}</Link>
+                            <Link href={`/${slug}/dashboard/settings/inspections/${t.id}`} className={`font-medium hover:underline ${t.active ? "text-slate-800" : "text-slate-500"}`}>{t.name}</Link>
                             <p className="text-xs text-slate-500">
                                 {t.checks} check{t.checks === 1 ? "" : "s"} · {t.used === 0 ? "not used yet" : `used on ${t.used} inspection${t.used === 1 ? "" : "s"}`}{!t.active && " · switched off"}
                             </p>
@@ -43,7 +43,7 @@ export default async function InspectionTemplatesPage({ params }: { params: Prom
                     </li>
                 ))}
             </ul>
-            <p className="text-xs text-slate-400">When more than one template is switched on, whoever starts an inspection picks which one.</p>
+            <p className="text-xs text-slate-500">When more than one template is switched on, whoever starts an inspection picks which one.</p>
         </div>
     );
 }

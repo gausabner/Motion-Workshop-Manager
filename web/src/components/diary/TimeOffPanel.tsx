@@ -36,9 +36,9 @@ export function TimeOffPanel({ tenant, mechanics, entries, canEdit }: { tenant: 
                 <ul className="divide-y divide-slate-100">
                     {entries.map((e) => (
                         <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
-                            <span><strong className="font-medium text-slate-700">{e.name}</strong> <span className="text-slate-500">{e.from} → {e.to}</span>{e.reason && <span className="text-slate-400"> · {e.reason}</span>}</span>
+                            <span><strong className="font-medium text-slate-700">{e.name}</strong> <span className="text-slate-500">{e.from} → {e.to}</span>{e.reason && <span className="text-slate-500"> · {e.reason}</span>}</span>
                             {canEdit && (
-                                <button type="button" disabled={removing} onClick={() => start(() => removeTimeOff(tenant, e.id))} className="text-slate-400 hover:text-red-600" aria-label="Remove">
+                                <button type="button" disabled={removing} onClick={() => start(() => removeTimeOff(tenant, e.id))} className="relative hit-area text-slate-500 hover:text-red-600" aria-label="Remove">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             )}

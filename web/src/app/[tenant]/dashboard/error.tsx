@@ -38,7 +38,7 @@ export default function DashboardError({
                 <Button onClick={reset} className="h-11 bg-teal-700 px-5 hover:bg-teal-800">Try again</Button>
             </div>
             {error.digest && (
-                <p className="mt-6 font-mono text-[11px] text-slate-400">
+                <p className="mt-6 font-mono text-[11px] text-slate-500">
                     Reference {error.digest}. Quote this if you contact support.
                 </p>
             )}

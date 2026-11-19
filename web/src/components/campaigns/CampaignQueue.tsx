@@ -87,7 +87,7 @@ export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: 
                         {done.map((row) => (
                             <li key={row.id} className="flex flex-wrap items-center gap-x-3 px-4 py-2">
                                 <span className="text-slate-700">{row.customer.firstName} {row.customer.lastName}</span>
-                                <span className={`text-xs ${row.state === "SENT" ? "text-teal-700" : row.state === "FAILED" ? "text-red-600" : "text-slate-400"}`}>
+                                <span className={`text-xs ${row.state === "SENT" ? "text-teal-700" : row.state === "FAILED" ? "text-red-600" : "text-slate-500"}`}>
                                     {row.state === "SENT" ? (row.message?.status === "HANDED_OFF" ? `Handed to ${row.message.channel === "EMAIL" ? "mail app" : "WhatsApp"}` : "Sent") : row.state === "FAILED" ? "Failed" : "Left out"}
                                     {row.note ? ` — ${row.note}` : ""}
                                 </span>

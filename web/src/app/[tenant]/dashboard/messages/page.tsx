@@ -57,7 +57,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ tenan
                                 <span className="text-xs tabular-nums text-slate-600">
                                     {c.counts.sent} sent{c.counts.pending > 0 && `, ${c.counts.pending} to go`}{c.counts.skipped > 0 && `, ${c.counts.skipped} left out`}{c.counts.failed > 0 && `, ${c.counts.failed} failed`}
                                 </span>
-                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${c.state === "DONE" ? "text-slate-400" : "text-teal-700"}`}>{STATE[c.state]}</span>
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${c.state === "DONE" ? "text-slate-500" : "text-teal-700"}`}>{STATE[c.state]}</span>
                             </li>
                         ))}
                     </ul>

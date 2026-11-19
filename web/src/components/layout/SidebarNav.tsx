@@ -127,7 +127,7 @@ export function SidebarNav({
         <nav className="grid items-start gap-px px-2 text-[11px] font-medium">
             {visible.map((group) => (
                 <div key={group.label} className="pb-1">
-                    <p className="px-3 pb-1 pt-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    <p className="px-3 pb-1 pt-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         {group.label}
                     </p>
                     {group.items.map((item) => {

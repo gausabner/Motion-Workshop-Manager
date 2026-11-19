@@ -40,7 +40,7 @@ export function CustomerListControls({ q, archived }: { q: string; archived: boo
                     className="pl-8 pr-8 py-1 h-8 rounded-sm bg-white border-slate-300 shadow-sm text-base sm:text-sm focus-visible:ring-1 focus-visible:ring-teal-500"
                 />
                 {value && (
-                    <button type="button" onClick={() => { setValue(""); push({ q: "" }); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Clear search">
+                    <button type="button" onClick={() => { setValue(""); push({ q: "" }); }} className="hit-area absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600" aria-label="Clear search">
                         <X className="w-4 h-4" />
                     </button>
                 )}

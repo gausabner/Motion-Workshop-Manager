@@ -43,9 +43,9 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
         <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-4">
                 {[
-                    { label: "To count", value: `${summary.uncounted}`, tone: summary.uncounted > 0 ? "text-amber-700" : "text-slate-400" },
+                    { label: "To count", value: `${summary.uncounted}`, tone: summary.uncounted > 0 ? "text-amber-700" : "text-slate-500" },
                     { label: "Agreeing", value: `${summary.agreeing}`, tone: "text-slate-700" },
-                    { label: "Short / over", value: `${summary.short} / ${summary.over}`, tone: summary.short + summary.over > 0 ? "text-slate-900" : "text-slate-400" },
+                    { label: "Short / over", value: `${summary.short} / ${summary.over}`, tone: summary.short + summary.over > 0 ? "text-slate-900" : "text-slate-500" },
                     { label: take.blind && editable ? "Counted" : "Difference at cost", value: take.blind && editable ? `${summary.counted}` : money(summary.value, currency), tone: summary.value < 0 ? "text-red-700" : "text-teal-700" },
                 ].map((tile) => (
                     <div key={tile.label} className="rounded-sm border border-slate-200 bg-white px-4 py-2">
@@ -74,7 +74,7 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                         ))}
                     </span>
                 </div>
-                <div className="grid grid-cols-12 gap-2 border-b bg-slate-50 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="grid grid-cols-12 gap-2 border-b bg-slate-50 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     <span className="col-span-3">Code</span><span className="col-span-4">Description</span><span className="col-span-1">Shelf</span>
                     <span className="col-span-2 text-right">{take.blind && editable ? "" : "Expected"}</span><span className="col-span-2 text-right">Counted</span>
                 </div>
@@ -86,9 +86,9 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                             <li key={line.id} className="grid grid-cols-12 items-center gap-2 px-4 py-1.5 text-sm">
                                 <span className="col-span-3 font-medium text-slate-800">{line.itemCode}</span>
                                 <span className="col-span-4 truncate text-slate-600">{line.description}</span>
-                                <span className="col-span-1 text-xs text-slate-400">{line.location ?? ""}</span>
+                                <span className="col-span-1 text-xs text-slate-500">{line.location ?? ""}</span>
                                 <span className="col-span-2 text-right tabular-nums text-slate-500">
-                                    {take.blind && editable ? <span className="text-slate-300">hidden</span> : line.expected}
+                                    {take.blind && editable ? <span className="text-slate-500">hidden</span> : line.expected}
                                     {!editable && line.onHand !== line.expected && <span className="block text-[10px] text-amber-700">now {line.onHand}</span>}
                                 </span>
                                 <span className="col-span-2 flex items-center justify-end gap-2">

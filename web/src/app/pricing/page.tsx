@@ -86,7 +86,7 @@ export default async function PricingPage() {
                                     <span className="grid h-11 w-11 place-items-center rounded-xl bg-teal-600/10 text-teal-700">
                                         <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                                     </span>
-                                    <p className="max-w-[30ch] text-[0.975rem] text-slate-500">
+                                    <p className="max-w-[30ch] text-[0.975rem] text-slate-600">
                                         {/* Stripped first, so a line with no break in it cannot end ".." again. */}
                                         <strong className="mb-1 block text-[1.0625rem] font-semibold text-slate-900">{head.replace(/\.$/, "")}.</strong>
                                         {rest.join(". ")}
@@ -109,8 +109,8 @@ export default async function PricingPage() {
                             <p className="max-w-[34ch] text-[1.25rem] font-medium leading-[1.4] tracking-[-0.01em] text-slate-900">
                                 {CARE.pitch}
                             </p>
-                            <p className="max-w-[52ch] text-[1.0625rem] text-slate-500">{CARE.note}</p>
-                            <p className="mt-2 max-w-[52ch] rounded-2xl border border-slate-200 px-5 py-4 text-[0.875rem] text-slate-500">
+                            <p className="max-w-[52ch] text-[1.0625rem] text-slate-600">{CARE.note}</p>
+                            <p className="mt-2 max-w-[52ch] rounded-2xl border border-slate-200 px-5 py-4 text-[0.875rem] text-slate-600">
                                 Prices exclude VAT and are per workshop, not per user. Branches that keep separate books need separate
                                 subscriptions; each is an isolated set of books.
                             </p>
@@ -140,7 +140,7 @@ export default async function PricingPage() {
                         {QUESTIONS.map(({ q, a }) => (
                             <div key={q}>
                                 <dt className="text-[1.0625rem] font-semibold text-slate-900">{q}</dt>
-                                <dd className="mt-2 max-w-[52ch] text-[0.975rem] leading-relaxed text-slate-500">{a}</dd>
+                                <dd className="mt-2 max-w-[52ch] text-[0.975rem] leading-relaxed text-slate-600">{a}</dd>
                             </div>
                         ))}
                     </dl>
@@ -207,12 +207,12 @@ function Tiers() {
                                 <span className="text-[clamp(2.25rem,3.4vw,2.75rem)] font-medium leading-none tracking-[-0.03em] tabular-nums">
                                     {plan.price === null ? "By quote" : money(plan.price)}
                                 </span>
-                                <span className={`text-[0.9rem] ${dark ? "text-white/[0.78]" : "text-slate-500"}`}>{plan.priceNote}</span>
+                                <span className={`text-[0.9rem] ${dark ? "text-white/[0.78]" : "text-slate-600"}`}>{plan.priceNote}</span>
                                 {/* What actually leaves the bank account. Derived
                                     from the figure above rather than written
                                     beside it, so the two cannot drift apart. */}
                                 {plan.price !== null && (
-                                    <span className="text-[0.9rem] text-slate-500">
+                                    <span className="text-[0.9rem] text-slate-600">
                                         {money(withVat(plan.price))} including VAT at {VAT_RATE}%
                                     </span>
                                 )}
@@ -242,7 +242,7 @@ function Tiers() {
                                     </li>
                                 ))}
                                 {plan.excludes?.map((line) => (
-                                    <li key={line} className="flex items-start gap-2.5 text-slate-500">
+                                    <li key={line} className="flex items-start gap-2.5 text-slate-600">
                                         <Minus aria-hidden className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
                                         <span>
                                             <span className="sr-only">Not included: </span>

@@ -11,8 +11,7 @@ import { whatsappLink } from "@/lib/format";
 type Data = Awaited<ReturnType<typeof listCustomers>>;
 
 const iconBtn = "inline-flex items-center justify-center w-8 h-7 rounded-sm border shadow-sm transition-colors";
-const teal = `${iconBtn} border-teal-500 text-teal-700 bg-white hover:bg-teal-50`;
-const amber = `${iconBtn} border-amber-500 text-white bg-amber-500 hover:bg-amber-600`;
+const teal = `${iconBtn} relative hit-area border-teal-500 text-teal-700 bg-white hover:bg-teal-50`;
 const disabled = `${iconBtn} border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed`;
 
 export function CustomerList({ tenant, data, q, archived }: { tenant: string; data: Data; q: string; archived: boolean }) {
@@ -39,7 +38,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                     <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <CustomerListControls q={q} archived={archived} />
                         <DownloadIcon tenant={tenant} report="customers" params={{ archived: archived ? "1" : undefined }} title="Download every customer as a spreadsheet" />
-                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add customer">
+                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add customer" aria-label="Add customer">
                             <Link href={`${base}/new`}><Plus className="w-5 h-5" /></Link>
                         </Button>
                     </div>
@@ -68,7 +67,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                                     <TableRow key={c.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none transition-colors group`}>
                                         <TableCell data-mobile="primary" className="text-slate-700 py-2 pl-4 text-sm font-medium">
                                             <Link href={`${base}/${c.id}`} className="hover:text-teal-700">{c.firstName} {c.lastName}</Link>
-                                            {c.isBusiness && <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-400 border border-slate-300 rounded px-1">Business</span>}
+                                            {c.isBusiness && <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-500 border border-slate-300 rounded px-1">Business</span>}
                                         </TableCell>
                                         <TableCell data-label="Mobile" className="text-slate-600 py-2 text-sm tabular-nums">{c.mobile}</TableCell>
                                         <TableCell data-label="Phone" className="text-slate-600 py-2 text-sm tabular-nums">{c.phone}</TableCell>
@@ -87,8 +86,8 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                                                     <span className={disabled} title="Booking — coming with the diary"><Calendar className="w-4 h-4" /></span>
                                                     <span className={disabled} title="Invoice — coming with documents"><FileText className="w-4 h-4" /></span>
                                                 </span>
-                                                {wa ? <a href={wa} target="_blank" rel="noreferrer" className={amber} title="WhatsApp"><MessageCircle className="w-4 h-4" /></a> : <span className={disabled} title="No mobile number"><MessageCircle className="w-4 h-4" /></span>}
-                                                {c.email ? <a href={`mailto:${c.email}`} className={amber} title="Email"><Mail className="w-4 h-4" /></a> : <span className={disabled} title="No email address"><Mail className="w-4 h-4" /></span>}
+                                                {wa ? <a href={wa} target="_blank" rel="noreferrer" className={teal} title="WhatsApp"><MessageCircle className="w-4 h-4" /></a> : <span className={disabled} title="No mobile number"><MessageCircle className="w-4 h-4" /></span>}
+                                                {c.email ? <a href={`mailto:${c.email}`} className={teal} title="Email"><Mail className="w-4 h-4" /></a> : <span className={disabled} title="No email address"><Mail className="w-4 h-4" /></span>}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -100,11 +99,11 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
+                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
                         <Link aria-disabled={data.page <= 1} href={pageHref(1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>First</Link>
-                        <Link aria-disabled={data.page <= 1} href={pageHref(data.page - 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
+                        <Link aria-label="Previous page" aria-disabled={data.page <= 1} href={pageHref(data.page - 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
                         <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-disabled={data.page >= data.pages} href={pageHref(data.page + 1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
+                        <Link aria-label="Next page" aria-disabled={data.page >= data.pages} href={pageHref(data.page + 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                         <Link aria-disabled={data.page >= data.pages} href={pageHref(data.pages)} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>Last</Link>
                     </div>
                 </div>

@@ -107,7 +107,7 @@ export function CampaignComposer({ tenant, sources, currency, portalOn }: { tena
                     <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">What it says</h2>
                     <div className="space-y-3 px-4 py-3">
                         <label className="block space-y-1 text-sm">
-                            <span className="text-slate-600">Campaign name <span className="text-slate-400">(for your own list)</span></span>
+                            <span className="text-slate-600">Campaign name <span className="text-slate-500">(for your own list)</span></span>
                             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="e.g. Licence discs expiring in October" className={`${field} w-full`} />
                         </label>
                         <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -154,7 +154,7 @@ export function CampaignComposer({ tenant, sources, currency, portalOn }: { tena
                 <section className="rounded-sm border border-slate-200 bg-white">
                     <h2 className="flex items-center gap-2 border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><Users className="h-3.5 w-3.5" />Audience</h2>
                     <div className="px-4 py-3">
-                        {loading && !preview ? <p className="text-sm text-slate-400">Counting…</p> : preview && (
+                        {loading && !preview ? <p className="text-sm text-slate-500">Counting…</p> : preview && (
                             <>
                                 <p className="text-2xl font-bold tabular-nums text-slate-900">{preview.reachable}</p>
                                 <p className="text-sm text-slate-500">
@@ -171,7 +171,7 @@ export function CampaignComposer({ tenant, sources, currency, portalOn }: { tena
                                         {preview.sample.map((s) => (
                                             <li key={s.name} className="truncate">{s.name}{s.owing > 0 ? ` · ${money(s.owing, currency)}` : s.vehicle ? ` · ${s.vehicle}` : ""}</li>
                                         ))}
-                                        {preview.total > preview.sample.length && <li className="text-slate-400">and {preview.total - preview.sample.length} more…</li>}
+                                        {preview.total > preview.sample.length && <li className="text-slate-500">and {preview.total - preview.sample.length} more…</li>}
                                     </ul>
                                 )}
                             </>

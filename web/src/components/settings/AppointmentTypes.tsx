@@ -20,14 +20,14 @@ export function AppointmentTypes({ tenant, types }: { tenant: string; types: Typ
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Services</h3>
                 {!adding && <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => setAdding(true)}><Plus className="w-3.5 h-3.5 mr-1" />Add</Button>}
             </div>
-            <div className="grid grid-cols-12 gap-2 px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <div className="grid grid-cols-12 gap-2 px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                 <span className="col-span-6">Service</span><span className="col-span-2">Hours</span><span className="col-span-2">Bookable</span>
             </div>
             <ul className="divide-y divide-slate-100">
                 {types.map((t) => <Row key={t.id} tenant={tenant} type={t} />)}
                 {adding && <Row tenant={tenant} type={null} onDone={() => setAdding(false)} />}
             </ul>
-            <p className="px-4 py-2 border-t text-[11px] text-slate-400">The hours are how long the diary blocks out, and what the public page books against. Untick to stop offering a service online.</p>
+            <p className="px-4 py-2 border-t text-[11px] text-slate-500">The hours are how long the diary blocks out, and what the public page books against. Untick to stop offering a service online.</p>
         </section>
     );
 }

@@ -95,7 +95,7 @@ export default async function BusinessReportsPage({ params, searchParams }: { pa
                 return (
                     <section key={group.heading} className="space-y-2">
                         <h2 className="text-sm font-semibold text-slate-700">
-                            {group.heading} <span className="font-normal text-slate-400">· {group.blurb}</span>
+                            {group.heading} <span className="font-normal text-slate-500">· {group.blurb}</span>
                         </h2>
                         <ul className="space-y-2">
                             {cards.map((card) => (

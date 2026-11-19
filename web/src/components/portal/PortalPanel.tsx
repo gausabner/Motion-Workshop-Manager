@@ -41,7 +41,7 @@ export function PortalPanel({ tenant, timezone, customerId, enabled, canSend, ca
                                 <span className="text-slate-500">
                                     {l.openCount > 0 ? `opened ${l.openCount} time${l.openCount === 1 ? "" : "s"}, last ${dateShortIn(l.lastOpenedAt, timezone)}` : "not opened yet"}
                                 </span>
-                                <span className={`ml-auto text-xs ${live ? "text-slate-400" : "text-slate-400 line-through"}`}>
+                                <span className={`ml-auto text-xs ${live ? "text-slate-500" : "text-slate-500 line-through"}`}>
                                     {l.revokedAt ? `withdrawn ${dateShortIn(l.revokedAt, timezone)}` : l.expiresAt > now ? `works until ${dateShortIn(l.expiresAt, timezone)}` : `expired ${dateShortIn(l.expiresAt, timezone)}`}
                                 </span>
                                 {live && canSend && <RevokeLinkButton tenant={tenant} shareLinkId={l.id} />}

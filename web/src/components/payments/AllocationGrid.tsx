@@ -60,7 +60,7 @@ export function AllocationGrid({ items, allocations, onChange, tendered, directi
             </div>
 
             {loading ? (
-                <p className="px-4 py-6 text-sm text-slate-400">Looking up the account…</p>
+                <p className="px-4 py-6 text-sm text-slate-500">Looking up the account…</p>
             ) : ordered.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-slate-500">
                     {isRefund

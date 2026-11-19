@@ -66,7 +66,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
                 </div>
                 <div className="border-t border-slate-100 px-4 py-3">
                     <label className="block space-y-1 text-sm">
-                        <span className="text-slate-600">Or paste it here {fileName && <span className="text-slate-400">· {fileName}</span>}</span>
+                        <span className="text-slate-600">Or paste it here {fileName && <span className="text-slate-500">· {fileName}</span>}</span>
                         <textarea
                             value={text} onChange={(e) => setText(e.target.value)} rows={4} spellCheck={false}
                             placeholder="First Name,Last Name,Mobile,Email&#10;Anna,Shilongo,081 234 5678,anna@example.com"
@@ -139,7 +139,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
                                     <tbody className="divide-y divide-slate-100">
                                         {preview.sample.map((row) => (
                                             <tr key={row.line}>
-                                                <td className="px-3 py-1 text-slate-400">{row.line}</td>
+                                                <td className="px-3 py-1 text-slate-500">{row.line}</td>
                                                 {row.cells.map((cell, i) => <td key={i} className="px-3 py-1 text-slate-700">{cell}</td>)}
                                             </tr>
                                         ))}
@@ -153,7 +153,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
                                 {preview.duplicates.map((d) => <li key={`d${d.line}`} className="text-slate-500">Line {d.line}: {d.message}</li>)}
                             </ul>
                         )}
-                        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">
+                        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
                             Rows that cannot be used are skipped, not guessed at. Bring them in later by fixing the file and importing it again — anything already here is updated, never duplicated.
                         </p>
                     </section>

@@ -32,13 +32,13 @@ export function TeamManager({
             )}
             <section className="border border-slate-200 rounded-sm bg-white">
                 <h3 className={`${heading} px-4 py-2 border-b bg-slate-50`}>Team</h3>
-                <div className="grid grid-cols-12 gap-2 px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="grid grid-cols-12 gap-2 px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     <span className="col-span-4">Person</span><span className="col-span-3">Role</span><span className="col-span-4">Works as</span>
                 </div>
                 <ul className="divide-y divide-slate-100">
                     {members.map((m) => <MemberRow key={m.id} tenant={tenant} member={m} groups={groups} isSelf={m.id === selfId} />)}
                 </ul>
-                <p className="px-4 py-2 border-t text-[11px] text-slate-400">
+                <p className="px-4 py-2 border-t text-[11px] text-slate-500">
                     Mechanics clock on from their phones and can be given jobs. &ldquo;On diary&rdquo; gives someone a lane in the booking diary. Switching someone off keeps everything they did, but they can no longer sign in to this workshop.
                 </p>
             </section>
@@ -64,7 +64,7 @@ function Invite({ tenant, groups }: { tenant: string; groups: UserGroup[] }) {
                         key={m}
                         type="button"
                         onClick={() => setMode(m)}
-                        className={`rounded-t-sm border-b-2 px-3 py-1.5 text-xs font-medium ${
+                        className={`-mb-px border-b px-3 py-1.5 text-xs font-medium ${
                             mode === m ? "border-teal-700 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-700"
                         }`}
                     >
@@ -119,7 +119,7 @@ function InvitationRow({ tenant, invitation }: { tenant: string; invitation: Pen
         <li className="flex items-center justify-between px-4 py-2 text-sm">
             <span>
                 <span className="font-medium text-slate-700">{invitation.email}</span>
-                <span className="text-slate-400"> · {GROUP_LABELS[invitation.group]} · invited by {invitation.invitedBy.firstName}, link valid until {invitation.expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                <span className="text-slate-500"> · {GROUP_LABELS[invitation.group]} · invited by {invitation.invitedBy.firstName}, link valid until {invitation.expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
             </span>
             <Button type="button" size="sm" variant="outline" className="h-7" disabled={pending} onClick={() => start(() => revokeInvitationAction(tenant, invitation.id))}>Cancel invite</Button>
         </li>
@@ -151,8 +151,8 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                 })}
             >
                 <div className="col-span-4 min-w-0">
-                    <p className={`text-sm font-medium truncate ${inactive ? "text-slate-400" : "text-slate-800"}`}>{member.user.firstName} {member.user.lastName}{isSelf && <span className="text-slate-400 font-normal"> (you)</span>}</p>
-                    <p className="text-xs text-slate-400 truncate">{member.user.email}</p>
+                    <p className={`text-sm font-medium truncate ${inactive ? "text-slate-500" : "text-slate-800"}`}>{member.user.firstName} {member.user.lastName}{isSelf && <span className="text-slate-500 font-normal"> (you)</span>}</p>
+                    <p className="text-xs text-slate-500 truncate">{member.user.email}</p>
                 </div>
                 <select name="group" defaultValue={member.group} disabled={isSelf} className={`${field} col-span-3`} aria-label="Role">
                     {editableGroups.map((g) => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
@@ -179,7 +179,7 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
 
                 {grantsOnOffer.length > 0 && (
                     <div className="col-span-12 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-dashed border-slate-200 pt-2 text-xs text-slate-600">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Also allow</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Also allow</span>
                         {grantsOnOffer.map((g) => (
                             <label key={g.permission} className="flex items-center gap-1" title={g.caution}>
                                 <input
@@ -189,7 +189,7 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                                     className="accent-teal-700"
                                 />
                                 {g.label}
-                                <span className="text-slate-400">— {g.caution}</span>
+                                <span className="text-slate-500">— {g.caution}</span>
                             </label>
                         ))}
                     </div>
@@ -324,7 +324,7 @@ function CreateMember({ tenant, groups }: { tenant: string; groups: UserGroup[] 
                 <label className="space-y-1 text-xs text-slate-500 sm:col-span-8">
                     <span>First password</span>
                     <input name="password" type="text" minLength={8} required className={`${field} w-full`} />
-                    <span className="block text-[11px] text-slate-400">
+                    <span className="block text-[11px] text-slate-500">
                         They must change it the first time they sign in, so this one stops working immediately.
                     </span>
                 </label>

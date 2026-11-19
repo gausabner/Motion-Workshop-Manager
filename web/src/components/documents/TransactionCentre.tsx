@@ -103,8 +103,8 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                                             {DOCUMENT_TYPE_LABELS[d.type]} <StatePill state={d.state} type={d.type} />
                                         </TableCell>
                                         <TableCell data-label="Customer" className="py-2 text-slate-600">
-                                            {d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-400">Cash sale</span>}
-                                            {d.description && <span className="block text-[11px] text-slate-400 truncate max-w-[220px]" title={d.description}>{d.description}</span>}
+                                            {d.customer ? `${d.customer.firstName} ${d.customer.lastName}` : <span className="text-slate-500">Cash sale</span>}
+                                            {d.description && <span className="block text-[11px] text-slate-500 truncate max-w-[220px]" title={d.description}>{d.description}</span>}
                                         </TableCell>
                                         <TableCell data-label="Vehicle" className="py-2 text-slate-600 whitespace-nowrap">
                                             {d.vehicle ? <span className="inline-block bg-yellow-100 border border-yellow-400 text-yellow-800 text-[11px] font-bold px-1.5 py-0.5 rounded">{d.vehicle.plate}</span> : ""}
@@ -125,10 +125,10 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center border rounded border-slate-200 overflow-hidden bg-white shadow-sm h-8 text-xs">
-                        <Link href={href({ page: data.page - 1 })} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
+                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
+                        <Link aria-label="Previous page" href={href({ page: data.page - 1 })} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
                         <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link href={href({ page: data.page + 1 })} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
+                        <Link aria-label="Next page" href={href({ page: data.page + 1 })} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
                     </div>
                 </div>
             </Card>

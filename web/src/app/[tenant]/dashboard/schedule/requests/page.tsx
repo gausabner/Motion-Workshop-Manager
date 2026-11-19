@@ -41,7 +41,7 @@ export default async function RequestsPage({ params }: { params: Promise<{ tenan
                                 <span>
                                     <span className={d.status === "APPROVED" ? "font-medium text-teal-700" : "font-medium text-slate-500"}>{d.status === "APPROVED" ? "Approved" : "Declined"}</span>
                                     {" "}{d.firstName} {d.lastName} · {d.service} · {formatLocalDateTime(d.requestedAt, tenant.timezone).replace("T", " ")}
-                                    {d.declineReason && <span className="text-slate-400"> — {d.declineReason}</span>}
+                                    {d.declineReason && <span className="text-slate-500"> — {d.declineReason}</span>}
                                 </span>
                                 {d.documentId && <Link href={`/${slug}/dashboard/documents/${d.documentId}`} className="text-xs text-teal-700 hover:underline">Booking</Link>}
                             </li>

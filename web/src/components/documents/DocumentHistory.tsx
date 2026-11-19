@@ -44,7 +44,7 @@ export function DocumentHistory({ rows, timezone }: { rows: AuditRow[]; timezone
                                     </p>
                                     {extra && <p className="truncate text-xs text-slate-500">{extra}</p>}
                                 </div>
-                                <time className="shrink-0 text-xs tabular-nums text-slate-400">{when(row.at, timezone)}</time>
+                                <time className="shrink-0 text-xs tabular-nums text-slate-500">{when(row.at, timezone)}</time>
                             </li>
                         );
                     })}

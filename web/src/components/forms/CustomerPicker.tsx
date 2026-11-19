@@ -72,7 +72,7 @@ function QuickCustomer({ tenant, query, done, cancel }: { tenant: string; query:
             </div>
             {message && !Object.keys(errors).length && <p className="text-xs text-red-600" role="alert">{message}</p>}
             <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-slate-400">Address, pricing and terms can be added on the customer page later.</p>
+                <p className="text-[11px] text-slate-500">Address, pricing and terms can be added on the customer page later.</p>
                 <div className="flex shrink-0 gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
                     <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" onClick={submit} disabled={pending}>

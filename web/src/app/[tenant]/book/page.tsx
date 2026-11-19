@@ -131,8 +131,8 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                             </li>
                         ) : (
                             <li key={d.day} className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2.5 text-center">
-                                <span className="block text-sm text-slate-400">{dayHeading(d.day, "short")}</span>
-                                <span className="block text-xs text-slate-400">{d.full ? "Full" : "No time left"}</span>
+                                <span className="block text-sm text-slate-500">{dayHeading(d.day, "short")}</span>
+                                <span className="block text-xs text-slate-500">{d.full ? "Full" : "No time left"}</span>
                             </li>
                         ),
                     )}

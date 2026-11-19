@@ -100,7 +100,7 @@ export default async function HandoffPage({ params, searchParams }: { params: Pr
                     <div className="flex gap-2"><dt className="text-slate-500">Copies kept</dt><dd className="text-slate-800">{settings.keepYears} years</dd></div>
                 </dl>
                 <p className="mt-2 text-xs text-slate-500">{SHAPE_NOTES[shape]}</p>
-                <p className="mt-1 text-xs text-slate-400">Columns: {shapeHeaders(shape).join(" · ")}</p>
+                <p className="mt-1 text-xs text-slate-500">Columns: {shapeHeaders(shape).join(" · ")}</p>
             </section>
 
             <section className={`${card} px-4 py-3`}>
@@ -149,7 +149,7 @@ export default async function HandoffPage({ params, searchParams }: { params: Pr
                                                     : run.state === "DELIVERED" ? "Sent"
                                                         : run.state === "PENDING" ? "Started, never finished" : "Failed"}
                                             </span>
-                                            {run.error && <span className="block text-[11px] text-slate-400">{run.error}</span>}
+                                            {run.error && <span className="block text-[11px] text-slate-500">{run.error}</span>}
                                         </td>
                                         <td className="px-2 py-1.5 text-right tabular-nums text-slate-500">{run.rows ?? ""}</td>
                                         <td className="px-2 py-1.5 font-mono text-[11px] text-slate-500">{run.fileName ?? (run.rows === 0 ? "nothing to send" : "")}</td>

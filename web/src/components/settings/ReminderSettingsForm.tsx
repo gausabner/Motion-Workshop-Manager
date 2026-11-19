@@ -34,7 +34,7 @@ export function ReminderSettingsForm({ tenant, settings }: { tenant: string; set
                 ))}
             </ul>
             <div className="flex items-center justify-between gap-3 border-t px-4 py-2">
-                <p className="text-[11px] text-slate-400">Nothing is sent by itself: due reminders wait on the Reminders list, each ready to send in one tap. Overdue ones stay for 30 days.</p>
+                <p className="text-[11px] text-slate-500">Nothing is sent by itself: due reminders wait on the Reminders list, each ready to send in one tap. Overdue ones stay for 30 days.</p>
                 <div className="flex items-center gap-2">
                     {state.message && <span className={`text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</span>}
                     <Button type="submit" size="sm" variant="outline" className="h-7" disabled={saving}>{saving ? "…" : "Save"}</Button>

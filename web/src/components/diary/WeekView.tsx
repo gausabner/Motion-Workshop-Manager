@@ -100,7 +100,7 @@ export function WeekView({ tenant, days, mechanics, settings, today, hrefForDay,
                                             else if (done.day) drop(b, done.day);
                                         }}
                                         onPointerCancel={() => setDrag(null)}
-                                        className={`select-none touch-none rounded border-l-4 border px-1.5 py-1 text-[11px] leading-tight ${blockTone(b.jobStatus, false)} ${canEdit ? "cursor-grab" : "cursor-pointer"} ${drag?.id === b.id && drag.moved ? "opacity-40" : ""}`}
+                                        className={`select-none touch-none rounded border px-1.5 py-1 text-[11px] leading-tight ${blockTone(b.jobStatus, false)} ${canEdit ? "cursor-grab" : "cursor-pointer"} ${drag?.id === b.id && drag.moved ? "opacity-40" : ""}`}
                                     >
                                         <p className="flex items-center justify-between gap-1 font-semibold tabular-nums">
                                             <span>{minuteLabel(b.start)}</span>
@@ -110,7 +110,7 @@ export function WeekView({ tenant, days, mechanics, settings, today, hrefForDay,
                                         <p className="truncate">{b.customer ?? "No customer"}</p>
                                     </li>
                                 ))}
-                                {mine.length === 0 && d.open && <li className="px-1 py-2 text-[11px] text-slate-400">Nothing booked</li>}
+                                {mine.length === 0 && d.open && <li className="px-1 py-2 text-[11px] text-slate-500">Nothing booked</li>}
                             </ul>
                         </div>
                     );

@@ -46,16 +46,16 @@ export function AccountSummary({ tenant, customerId, account, canTakePayment }: 
             <dl className="grid grid-cols-2 md:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-slate-100 border-b border-slate-100">
                 {AGEING_BUCKETS.map((bucket) => (
                     <div key={bucket} className="px-4 py-3">
-                        <dt className="text-[10px] uppercase tracking-wider text-slate-400">{AGEING_LABELS[bucket]}</dt>
+                        <dt className="text-[10px] uppercase tracking-wider text-slate-500">{AGEING_LABELS[bucket]}</dt>
                         <dd className={`text-sm tabular-nums font-medium ${bucket === "d90" && ageing[bucket] > 0 ? "text-red-700" : "text-slate-700"}`}>{money(ageing[bucket])}</dd>
                     </div>
                 ))}
                 <div className="px-4 py-3">
-                    <dt className="text-[10px] uppercase tracking-wider text-slate-400">Unapplied credit</dt>
-                    <dd className={`text-sm tabular-nums font-medium ${unapplied > 0 ? "text-amber-700" : "text-slate-400"}`}>{money(unapplied)}</dd>
+                    <dt className="text-[10px] uppercase tracking-wider text-slate-500">Unapplied credit</dt>
+                    <dd className={`text-sm tabular-nums font-medium ${unapplied > 0 ? "text-amber-700" : "text-slate-500"}`}>{money(unapplied)}</dd>
                 </div>
                 <div className="px-4 py-3 bg-slate-50">
-                    <dt className="text-[10px] uppercase tracking-wider text-slate-400">Net owing</dt>
+                    <dt className="text-[10px] uppercase tracking-wider text-slate-500">Net owing</dt>
                     <dd className="text-sm tabular-nums font-bold text-slate-800">{money(netOwing)}</dd>
                 </div>
             </dl>

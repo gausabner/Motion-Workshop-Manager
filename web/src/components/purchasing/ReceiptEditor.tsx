@@ -149,7 +149,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
                                     {costRose && <span className="block text-[10px] text-amber-700">cost up</span>}
                                 </span>
                                 {editable && (
-                                    <button type="button" onClick={() => setLines((ls) => (ls.length === 1 ? ls : ls.filter((_, n) => n !== i)))} className="col-span-1 justify-self-end p-1 text-slate-400 hover:text-red-700" aria-label="Remove line">
+                                    <button type="button" onClick={() => setLines((ls) => (ls.length === 1 ? ls : ls.filter((_, n) => n !== i)))} className="relative hit-area col-span-1 justify-self-end p-1 text-slate-500 hover:text-red-700" aria-label="Remove line">
                                         <Trash2 className="h-4 w-4" />
                                     </button>
                                 )}

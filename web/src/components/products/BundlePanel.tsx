@@ -63,7 +63,7 @@ export function BundlePanel({ tenant, product, products, currency }: { tenant: s
                                 return option ? `${money(option.cost * row.quantity, currency)} cost` : "";
                             })()}
                         </span>
-                        <button type="button" onClick={() => setRows((rs) => rs.filter((_, n) => n !== i))} className="p-1 text-slate-400 hover:text-red-700" aria-label="Remove component"><Trash2 className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => setRows((rs) => rs.filter((_, n) => n !== i))} className="relative hit-area p-1 text-slate-500 hover:text-red-700" aria-label="Remove component"><Trash2 className="h-4 w-4" /></button>
                     </li>
                 ))}
             </ul>
@@ -73,7 +73,7 @@ export function BundlePanel({ tenant, product, products, currency }: { tenant: s
                 </Button>
                 <span className="ml-auto text-sm text-slate-600">
                     Sells for <strong className="tabular-nums">{money(sells, currency)}</strong>, costs <span className="tabular-nums">{money(costs, currency)}</span>
-                    {sells > 0 && <span className="text-slate-400"> · {Math.round(((sells - costs) / sells) * 100)}% margin</span>}
+                    {sells > 0 && <span className="text-slate-500"> · {Math.round(((sells - costs) / sells) * 100)}% margin</span>}
                 </span>
                 <Button type="button" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={busy}
                     onClick={() => start(async () => {

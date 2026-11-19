@@ -33,11 +33,11 @@ export function AddTimeForm({ tenant, documentId, mechanics }: { tenant: string;
 export function DeleteTimeButton({ tenant, entryId }: { tenant: string; entryId: string }) {
     const [confirming, setConfirming] = useState(false);
     const [pending, start] = useTransition();
-    if (!confirming) return <button type="button" onClick={() => setConfirming(true)} className="text-slate-400 hover:text-red-600" aria-label="Remove this time"><Trash2 className="w-4 h-4" /></button>;
+    if (!confirming) return <button type="button" onClick={() => setConfirming(true)} className="relative hit-area text-slate-500 hover:text-red-600" aria-label="Remove this time"><Trash2 className="w-4 h-4" /></button>;
     return (
         <span className="inline-flex items-center gap-2 text-xs">
             <button type="button" disabled={pending} onClick={() => start(() => deleteTimeEntry(tenant, entryId))} className="font-medium text-red-700 hover:underline">Remove</button>
-            <button type="button" onClick={() => setConfirming(false)} className="text-slate-400">Keep</button>
+            <button type="button" onClick={() => setConfirming(false)} className="text-slate-500">Keep</button>
         </span>
     );
 }

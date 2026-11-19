@@ -5,7 +5,7 @@ import type { Load } from "@/lib/diary/capacity";
 export const PX_PER_MINUTE = 1.2;
 
 export function loadTone(load: Load, fullAt: number): { bar: string; text: string; label: string } {
-    if (load.available === 0 && load.booked === 0) return { bar: "bg-slate-200", text: "text-slate-400", label: "Closed" };
+    if (load.available === 0 && load.booked === 0) return { bar: "bg-slate-200", text: "text-slate-500", label: "Closed" };
     if (load.percent >= fullAt) return { bar: "bg-red-500", text: "text-red-700", label: "Full" };
     if (load.percent >= 70) return { bar: "bg-amber-500", text: "text-amber-700", label: "Busy" };
     return { bar: "bg-teal-500", text: "text-teal-700", label: "Room" };

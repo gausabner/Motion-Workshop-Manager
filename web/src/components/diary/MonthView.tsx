@@ -22,7 +22,7 @@ export function MonthView({ days, month, settings, today, hrefForDay }: { days: 
                         <Link
                             key={d.day}
                             href={hrefForDay(d.day)}
-                            className={`min-h-[76px] px-2 py-1.5 hover:bg-teal-50 ${inMonth ? "bg-white" : "bg-slate-50 text-slate-400"} ${d.day === today ? "outline outline-2 -outline-offset-2 outline-teal-500" : ""}`}
+                            className={`min-h-[76px] px-2 py-1.5 hover:bg-teal-50 ${inMonth ? "bg-white" : "bg-slate-50 text-slate-500"} ${d.day === today ? "outline outline-2 -outline-offset-2 outline-teal-500" : ""}`}
                         >
                             <div className="flex items-center justify-between">
                                 <span className={`text-xs font-semibold ${inMonth ? "text-slate-700" : ""}`}>{Number(d.day.slice(8))}</span>
@@ -38,7 +38,7 @@ export function MonthView({ days, month, settings, today, hrefForDay }: { days: 
                                     </p>
                                 </>
                             ) : (
-                                <p className="mt-2 text-[10px] text-slate-400">{d.bookings.length ? `${d.bookings.length} booked` : "Closed"}</p>
+                                <p className="mt-2 text-[10px] text-slate-500">{d.bookings.length ? `${d.bookings.length} booked` : "Closed"}</p>
                             )}
                         </Link>
                     );

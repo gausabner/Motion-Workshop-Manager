@@ -257,7 +257,7 @@ export default async function BillingPage({
                                                 <tr key={p.id}>
                                                     <td className="px-3 py-2 text-slate-700">{billingDay(p.confirmedAt)}</td>
                                                     <td className="px-3 py-2 text-slate-700">
-                                                        <span className={p.reversedAt ? "text-slate-400 line-through" : undefined}>
+                                                        <span className={p.reversedAt ? "text-slate-500 line-through" : undefined}>
                                                             {billingDay(p.periodFrom)} – {billingDay(p.periodTo)}
                                                         </span>
                                                         {p.reversedAt && <span className="block text-xs text-slate-500">Recorded in error and reversed</span>}
@@ -274,7 +274,7 @@ export default async function BillingPage({
                                                                 {p.invoice.number}
                                                             </a>
                                                         ) : (
-                                                            <span className="text-slate-400">—</span>
+                                                            <span className="text-slate-500">—</span>
                                                         )}
                                                         {p.invoice?.creditNote && (
                                                             <span className="block text-xs text-slate-500">

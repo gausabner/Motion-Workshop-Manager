@@ -30,8 +30,15 @@ export function JobBoard({ tenant, jobs, showCost }: { tenant: string; jobs: Job
         start(async () => { await setJobStatus(tenant, id, status); });
     }
 
+    // Focusable and named, so the columns past the edge of the screen can be
+    // scrolled to with the arrow keys and a screen reader says what this is.
     return (
-        <div className={`flex h-[calc(100vh-190px)] snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 md:snap-none ${pending ? "opacity-70" : ""}`}>
+        <div
+            role="region"
+            aria-label="Job board"
+            tabIndex={0}
+            className={`flex h-[calc(100vh-190px)] snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 md:snap-none ${pending ? "opacity-70" : ""}`}
+        >
             {BOARD_COLUMNS.map((column) => {
                 const columnJobs = jobs.filter((j) => j.jobStatus === column);
                 const style = COLUMN_STYLE[column];
@@ -79,7 +86,7 @@ export function JobBoard({ tenant, jobs, showCost }: { tenant: string; jobs: Job
                                             {job.mechanic ? (
                                                 <Avatar className="h-6 w-6"><AvatarFallback className="text-[10px] bg-slate-200">{initials(`${job.mechanic.user.firstName} ${job.mechanic.user.lastName}`)}</AvatarFallback></Avatar>
                                             ) : (
-                                                <div className="h-6 w-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400" title="No mechanic assigned">+</div>
+                                                <div className="h-6 w-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-500" title="No mechanic assigned">+</div>
                                             )}
                                         </div>
                                     </Link>
@@ -98,7 +105,7 @@ export function JobBoard({ tenant, jobs, showCost }: { tenant: string; jobs: Job
                             ))}
 
                             {columnJobs.length === 0 && (
-                                <div className="h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400">Empty</div>
+                                <div className="h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-500">Empty</div>
                             )}
                         </div>
                     </div>

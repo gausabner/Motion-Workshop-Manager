@@ -156,7 +156,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                         <Button type="button" size="sm" variant="ghost" onClick={() => setDeleting(false)}>Cancel</Button>
                     </form>
                 ) : (
-                    <Button type="button" size="sm" variant="ghost" className="text-slate-400 hover:text-red-700" onClick={() => setDeleting(true)}>
+                    <Button type="button" size="sm" variant="ghost" className="text-slate-500 hover:text-red-700" onClick={() => setDeleting(true)}>
                         <Trash2 className="mr-1 h-4 w-4" />Delete
                     </Button>
                 )

@@ -113,7 +113,7 @@ function LogoPanel({ tenant, logoAttachmentId }: { tenant: string; logoAttachmen
                 {logo ? (
                     <Image src={`/${tenant}/attachments/${logo}`} alt="Workshop logo" width={160} height={64} unoptimized className="h-16 w-auto max-w-[160px] object-contain border border-slate-200 rounded-sm bg-white p-1" />
                 ) : (
-                    <div className="h-16 w-40 border border-dashed border-slate-300 rounded-sm grid place-items-center text-[11px] text-slate-400">No logo</div>
+                    <div className="h-16 w-40 border border-dashed border-slate-300 rounded-sm grid place-items-center text-[11px] text-slate-500">No logo</div>
                 )}
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ function LogoPanel({ tenant, logoAttachmentId }: { tenant: string; logoAttachmen
                             </Button>
                         )}
                     </div>
-                    <p className="text-[11px] text-slate-400">PNG or JPEG, landscape. It is printed at about 40 mm wide.</p>
+                    <p className="text-[11px] text-slate-500">PNG or JPEG, landscape. It is printed at about 40 mm wide.</p>
                     {state.message && <p className={`text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</p>}
                 </div>
             </div>

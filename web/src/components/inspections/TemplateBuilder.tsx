@@ -118,10 +118,10 @@ export function TemplateBuilder({ tenant, id, initial, products, currencySymbol 
                 <section key={g.key} className="rounded-sm border border-slate-200 bg-white">
                     <div className="flex flex-wrap items-center gap-2 border-b bg-slate-50 px-3 py-2">
                         <input value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} maxLength={60} aria-label="Group name" className={`${field} flex-1 min-w-40 font-semibold`} placeholder="Group, e.g. Brakes" />
-                        <span className="text-xs text-slate-400">{g.items.length} check{g.items.length === 1 ? "" : "s"}</span>
+                        <span className="text-xs text-slate-500">{g.items.length} check{g.items.length === 1 ? "" : "s"}</span>
                         <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={gi === 0} onClick={() => setGroups((gs) => move(gs, gi, -1))} aria-label="Move group up"><ArrowUp className="h-4 w-4" /></Button>
                         <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={gi === groups.length - 1} onClick={() => setGroups((gs) => move(gs, gi, 1))} aria-label="Move group down"><ArrowDown className="h-4 w-4" /></Button>
-                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-red-700" disabled={groups.length === 1}
+                        <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-red-700" disabled={groups.length === 1}
                             onClick={() => { if (g.items.every((it) => !it.description.trim()) || window.confirm(`Remove "${g.name || "this group"}" and its ${g.items.length} checks?`)) setGroups((gs) => gs.filter((_, i) => i !== gi)); }}
                             aria-label="Remove group"><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -130,9 +130,9 @@ export function TemplateBuilder({ tenant, id, initial, products, currencySymbol 
                             <li key={it.key} className="space-y-1.5 px-3 py-2.5">
                                 <div className="flex items-center gap-2">
                                     <input value={it.description} onChange={(e) => setItem(gi, ii, { description: e.target.value })} maxLength={160} placeholder="Check, e.g. Front brake pads" aria-label="Check" className={`${field} flex-1 font-medium`} />
-                                    <button type="button" className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30" disabled={ii === 0} onClick={() => setGroup(gi, { items: move(g.items, ii, -1) })} aria-label="Move check up"><ArrowUp className="h-4 w-4" /></button>
-                                    <button type="button" className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30" disabled={ii === g.items.length - 1} onClick={() => setGroup(gi, { items: move(g.items, ii, 1) })} aria-label="Move check down"><ArrowDown className="h-4 w-4" /></button>
-                                    <button type="button" className="p-1 text-slate-400 hover:text-red-700 disabled:opacity-30" disabled={g.items.length === 1} onClick={() => setGroup(gi, { items: g.items.filter((_, j) => j !== ii) })} aria-label="Remove check"><Trash2 className="h-4 w-4" /></button>
+                                    <button type="button" className="relative hit-area p-1 text-slate-500 hover:text-slate-700 disabled:opacity-30" disabled={ii === 0} onClick={() => setGroup(gi, { items: move(g.items, ii, -1) })} aria-label="Move check up"><ArrowUp className="h-4 w-4" /></button>
+                                    <button type="button" className="relative hit-area p-1 text-slate-500 hover:text-slate-700 disabled:opacity-30" disabled={ii === g.items.length - 1} onClick={() => setGroup(gi, { items: move(g.items, ii, 1) })} aria-label="Move check down"><ArrowDown className="h-4 w-4" /></button>
+                                    <button type="button" className="relative hit-area p-1 text-slate-500 hover:text-red-700 disabled:opacity-30" disabled={g.items.length === 1} onClick={() => setGroup(gi, { items: g.items.filter((_, j) => j !== ii) })} aria-label="Remove check"><Trash2 className="h-4 w-4" /></button>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
                                     <input value={it.readings} onChange={(e) => setItem(gi, ii, { readings: e.target.value })} placeholder="Readings, e.g. Left mm, Right mm" aria-label="Readings, up to four, separated by commas" className={`${field} min-w-44 flex-1 text-xs`} />
