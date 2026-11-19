@@ -1,8 +1,9 @@
 import "server-only";
-import type { JobSignRole, JobSignStage, Tenant, VisitPurpose } from "@prisma/client";
+import type { JobSignDecision, JobSignRole, JobSignStage, Tenant, VisitPurpose } from "@prisma/client";
 import type { TenantTx } from "@/lib/tenant-db";
-import { fullName } from "@/lib/format";
 import { jobFlowSettings } from "@/lib/settings/schema";
+import { audit, lockJob, personOf, routeOf, signaturesOf, text, type Actor } from "@/lib/fleet/route-db";
+import { checkSignature } from "@/lib/fleet/check-bay";
 import {
     collected,
     currentVisit,
@@ -16,8 +17,6 @@ import {
     qualityOutcome,
     ROLE_LABEL,
     signError,
-    type Person,
-    type Visit,
 } from "@/lib/fleet/route-rules";
 
 /**
@@ -29,51 +28,7 @@ import {
  * Errors are thrown as sentences for the person at the screen.
  */
 
-export type Actor = { membershipId: string; userId: string };
-
-const text = (s: string | null | undefined) => (s?.trim() ? s.trim() : null);
-
-async function lockJob(tx: TenantTx, documentId: string): Promise<void> {
-    await tx.$queryRaw`SELECT 1 FROM "Document" WHERE "id" = ${documentId} FOR UPDATE`;
-    const job = await tx.document.findFirst({ where: { id: documentId, jobNumber: { not: null }, state: { not: "VOID" } }, select: { id: true } });
-    if (!job) throw new Error("That job card is no longer open. Refresh the page.");
-}
-
-async function personOf(tx: TenantTx, membershipId: string): Promise<Person & { name: string; payNumber: string | null }> {
-    const m = await tx.membership.findFirst({
-        where: { id: membershipId, status: "ACTIVE" },
-        select: { designations: true, payNumber: true, user: { select: { firstName: true, lastName: true } }, authorities: { where: { kind: "FOREMAN" }, select: { workshopId: true } } },
-    });
-    if (!m) throw new Error("Your place in this workshop could not be found. Sign in again.");
-    return {
-        membershipId,
-        designations: m.designations,
-        foremanOf: m.authorities.map((a) => a.workshopId).filter((x): x is string => !!x),
-        name: fullName(m.user),
-        payNumber: m.payNumber,
-    };
-}
-
-async function routeOf(tx: TenantTx, documentId: string) {
-    const rows = await tx.jobVisit.findMany({
-        where: { documentId },
-        orderBy: { sentAt: "asc" },
-        select: { id: true, workshopId: true, purpose: true, receivedAt: true, leftAt: true, workshop: { select: { kind: true, name: true } } },
-    });
-    const visits: (Visit & { kind: (typeof rows)[number]["workshop"]["kind"]; name: string; receivedAt: Date | null })[] = rows.map((r) => ({
-        id: r.id, workshopId: r.workshopId, purpose: r.purpose, received: !!r.receivedAt, left: !!r.leftAt,
-        kind: r.workshop.kind, name: r.workshop.name, receivedAt: r.receivedAt,
-    }));
-    return visits;
-}
-
-async function signaturesOf(tx: TenantTx, documentId: string) {
-    return tx.jobSignoff.findMany({ where: { documentId }, orderBy: { at: "asc" }, select: { stage: true, role: true, decision: true, membershipId: true, at: true } });
-}
-
-async function audit(tx: TenantTx, tenant: Tenant, actor: Actor, documentId: string, action: string, diff: object) {
-    await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: actor.userId, entityType: "JobRoute", entityId: documentId, action, diff } });
-}
+export type { Actor } from "@/lib/fleet/route-db";
 
 /** Reception books the vehicle in: the route's first stay, received there on arrival. */
 export async function bookIn(tx: TenantTx, tenant: Tenant, actor: Actor, documentId: string, receptionId: string, note?: string | null): Promise<void> {
@@ -157,7 +112,15 @@ export async function signJob(
     tenant: Tenant,
     actor: Actor,
     documentId: string,
-    input: { stage: JobSignStage; role: JobSignRole; decision?: "PASSED" | "FAILED"; driver?: { name: string; payNumber: string | null } | null; comment?: string | null },
+    input: {
+        stage: JobSignStage;
+        role: JobSignRole;
+        decision?: "PASSED" | "FAILED";
+        driver?: { name: string; payNumber: string | null } | null;
+        comment?: string | null;
+        /** A failed quality check, and the vehicle sent straight back to the workshop that did the work. */
+        returnToWork?: boolean;
+    },
 ): Promise<{ collected: boolean }> {
     await lockJob(tx, documentId);
     const [visits, signatures, person, checkBays] = await Promise.all([
@@ -172,9 +135,19 @@ export async function signJob(
     if (!maySign(person, input.role, checkBays.map((c) => c.id))) {
         throw new Error(input.role === "DRIVER" ? "Reception records the driver's signature." : `You cannot sign as ${ROLE_LABEL[input.role].toLowerCase()}.`);
     }
-    const decision = input.stage === "QUALITY_CHECK" ? input.decision : "SIGNED";
+    let decision: JobSignDecision | undefined = input.stage === "QUALITY_CHECK" ? input.decision : "SIGNED";
+    let comment = text(input.comment);
+    // When the check bay's check is an inspection, the inspection decides: its outcome, and a summary of what it found.
+    if ((input.stage === "ASSESSMENT" || input.stage === "QUALITY_CHECK") && current) {
+        const check = await checkSignature(tx, tenant, current, input.stage, person.name);
+        if (check) {
+            decision = check.decision;
+            comment = comment ? `${check.summary}. ${comment}`.slice(0, 300) : check.summary;
+        }
+    }
     if (!decision) throw new Error("Pass or fail the quality check.");
-    if (decision === "FAILED" && !text(input.comment)) throw new Error("Say what failed, so the workshop knows what to put right.");
+    if (decision === "FAILED" && !comment) throw new Error("Say what failed, so the workshop knows what to put right.");
+    if (input.returnToWork && decision !== "FAILED") throw new Error("It passed, so it goes on to reception, not back to the workshop.");
 
     let name = person.name;
     let payNumber = person.payNumber;
@@ -187,7 +160,7 @@ export async function signJob(
     }
     const now = new Date();
     await tx.jobSignoff.create({
-        data: { tenantId: tenant.id, documentId, stage: input.stage, role: input.role, decision, membershipId, name, payNumber, comment: text(input.comment), at: now },
+        data: { tenantId: tenant.id, documentId, stage: input.stage, role: input.role, decision, membershipId, name, payNumber, comment, at: now },
     });
     let done = false;
     if (input.stage === "COLLECTION" && collected([...signatures, { stage: "COLLECTION", role: input.role, decision }]) && current) {
@@ -195,6 +168,11 @@ export async function signJob(
         done = true;
     }
     await audit(tx, tenant, actor, documentId, done ? "COLLECTED" : "SIGNED", { stage: input.stage, role: input.role, decision, recordedFor: membershipId ? undefined : name });
+    if (input.returnToWork) {
+        const back = lastWorkshop(visits);
+        if (!back) throw new Error("No workshop has worked on it yet, so there is nowhere to send it back to.");
+        await sendOn(tx, tenant, actor, documentId, { purpose: "WORK", workshopId: back, note: comment ? `Failed: ${comment}`.slice(0, 200) : null });
+    }
     return { collected: done };
 }
 

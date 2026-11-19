@@ -41,6 +41,7 @@ export async function getInspection(db: TenantDb, id: string) {
         id: inspection.id,
         number: inspection.number,
         state: inspection.state,
+        purpose: inspection.purpose,
         description: inspection.description,
         odometer: inspection.odometer,
         requestedAt: inspection.requestedAt,

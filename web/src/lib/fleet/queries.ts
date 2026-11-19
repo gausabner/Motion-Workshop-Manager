@@ -4,6 +4,7 @@ import type { TenantDb } from "@/lib/tenant-db";
 import { fullName } from "@/lib/format";
 import { jobFlowSettings } from "@/lib/settings/schema";
 import type { ActionState } from "@/lib/forms";
+import { checkProgress, type CheckPurpose } from "@/lib/fleet/check-rules";
 import {
     currentVisit,
     issueMissing,
@@ -44,6 +45,17 @@ export type RouteView = {
         blocked: string | null;
         sign: { stage: JobSignStage; role: JobSignRole }[];
     };
+    /**
+     * The check bay's check for the stay it is on, while it is unsigned:
+     * whether it must be an inspection (a template is chosen), the inspection
+     * if started, and where a failed quality check would send it back to.
+     */
+    check: {
+        purpose: CheckPurpose;
+        required: boolean;
+        inspection: { id: string; number: string | null; total: number; left: number; red: number; amber: number; failed: string[] } | null;
+        returnTo: { id: string; name: string } | null;
+    } | null;
 };
 
 /** What a move answers with: the usual outcome, and the job's route as it now stands. */
@@ -111,6 +123,28 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
         }
     }
 
+    // The check bay's check for this stay, if it is there for one and has not signed it yet.
+    let check: RouteView["check"] = null;
+    if (here?.receivedAt && here.workshop.kind === "CHECK_BAY" && (here.purpose === "ASSESSMENT" || here.purpose === "QUALITY_CHECK")) {
+        const purpose: CheckPurpose = here.purpose;
+        if (!sinceArrival.some((s) => s.stage === purpose)) {
+            const settings = jobFlowSettings(tenant.settings);
+            const inspection = await db.inspection.findFirst({
+                where: { visitId: here.id },
+                select: { id: true, number: true, items: { orderBy: { ordering: "asc" }, select: { description: true, urgent: true, soon: true, checked: true, comment: true } } },
+            });
+            const back = lastWorkshop(visits);
+            check = {
+                purpose,
+                required: !!(purpose === "ASSESSMENT" ? settings.assessmentTemplateId : settings.qualityTemplateId),
+                inspection: inspection
+                    ? { id: inspection.id, number: inspection.number, ...checkProgress(inspection.items), failed: inspection.items.filter((i) => i.urgent).map((i) => i.description) }
+                    : null,
+                returnTo: back ? (places.find((p) => p.id === back) ?? null) : null,
+            };
+        }
+    }
+
     const name = (m: { user: { firstName: string; lastName: string | null } } | null) => (m ? fullName(m.user) : null);
     return {
         visits: rows.map((r) => ({
@@ -129,6 +163,7 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
             blocked,
             sign,
         },
+        check: check && check.returnTo ? { ...check, returnTo: { id: check.returnTo.id, name: check.returnTo.name } } : check,
     };
 }
 
@@ -140,6 +175,7 @@ export async function onSite(db: TenantDb, now = new Date()) {
         select: {
             id: true, purpose: true, sentAt: true, receivedAt: true, workshopId: true,
             workshop: { select: { name: true, kind: true } },
+            inspections: { select: { id: true, items: { select: { description: true, urgent: true, soon: true, checked: true, comment: true } } } },
             document: {
                 select: {
                     id: true, jobNumber: true, jobStatus: true,
@@ -157,6 +193,8 @@ export async function onSite(db: TenantDb, now = new Date()) {
         purpose: v.purpose,
         arriving: !v.receivedAt,
         minutes: minutesBetween(v.receivedAt ?? v.sentAt, now),
+        // The check bay's inspection for this stay, and how far through it is.
+        check: v.inspections[0] ? { id: v.inspections[0].id, ...checkProgress(v.inspections[0].items) } : null,
         documentId: v.document.id,
         jobNumber: v.document.jobNumber,
         jobStatus: v.document.jobStatus,
