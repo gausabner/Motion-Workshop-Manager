@@ -20,6 +20,7 @@ export const NUMBERED: { key: SequenceKey; label: string; hint: string }[] = [
     { key: "INSPECTION", label: "Inspections", hint: "Vehicle inspections." },
     { key: "PURCHASE_ORDER", label: "Purchase orders", hint: "Orders placed with suppliers." },
     { key: "SUPPLIER_PAYMENT", label: "Supplier payments", hint: "Money paid to suppliers." },
+    { key: "REQUISITION", label: "Requisitions", hint: "Requests for supplies, numbered when first submitted." },
 ];
 
 /** Where a series starts before anybody has changed it. */
@@ -38,6 +39,7 @@ export function defaultPrefix(key: SequenceKey): string {
         case "SUPPLIER_PAYMENT": return "SP-";
         // Reserved: a supplier invoice carries the supplier's own number.
         case "SUPPLIER_INVOICE": return "SI-";
+        case "REQUISITION": return "REQ-";
     }
 }
 

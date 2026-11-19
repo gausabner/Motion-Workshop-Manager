@@ -246,6 +246,46 @@ enum StockMovementKind {
   STOCKTAKE
   OPENING
   VOID_REVERSAL
+  /// Handed out of stores against a requisition, to a job or a vote.
+  ISSUE
+}
+
+enum RequisitionState {
+  /// Being written, or returned by an approver for changes. Not numbered until first submitted.
+  DRAFT
+  AWAITING_FOREMAN
+  AWAITING_HEAD
+  /// Only when the value is at or above the council's limit.
+  AWAITING_OVER_LIMIT
+  /// Signed off; stores issues it from the shelf or orders it. What has been met is read from the lines, never stored.
+  APPROVED
+  /// Everything on it issued, or the rest written off.
+  CLOSED
+  REJECTED
+  CANCELLED
+}
+
+/// The sign-offs on a requisition, in the order the paper form has them.
+enum RequisitionStep {
+  /// The requester submitting it — the form's "Requisitioned by".
+  REQUESTED
+  /// The form's "Approvals: PC".
+  FOREMAN
+  /// The manager.
+  DIVISIONAL_HEAD
+  /// Above the council's value limit.
+  OVER_LIMIT
+}
+
+enum RequisitionDecision {
+  SUBMITTED
+  APPROVED
+  /// Sent back for changes: the requisition returns to Draft and every approval is cleared.
+  RETURNED
+  REJECTED
+  /// The foreman step when the requester is the department's only foreman: recorded, not skipped silently.
+  RAISED_BY_FOREMAN
+  CANCELLED
 }
 
 enum CampaignState {
@@ -304,6 +344,8 @@ enum SequenceKey {
   SUPPLIER_PAYMENT
   /// Reserved: supplier invoices carry the supplier's own number, not ours.
   SUPPLIER_INVOICE
+  /// Issued when a requisition is first submitted, like the red serial printed on the paper form.
+  REQUISITION
 }
 
 // ───────────────────────── tenancy & people ─────────────────────────
@@ -413,6 +455,13 @@ model Tenant {
   subscriptionCreditNotes    SubscriptionCreditNote[]
   planChangeRequests         PlanChangeRequest[]
   platformAuditEvents        PlatformAuditEvent[]
+  departments                Department[]
+  votes                      Vote[]
+  requisitionApprovers       RequisitionApprover[]
+  requisitions               Requisition[]
+  requisitionLines           RequisitionLine[]
+  requisitionSignoffs        RequisitionSignoff[]
+  requisitionIssues          RequisitionIssue[]
 }
 
 /// Where a workshop stands with MOTION — distinct from anything about its own
@@ -756,6 +805,8 @@ model Membership {
   dashboardPrivileges Boolean          @default(false)
   limitCustomerInfo   Boolean          @default(false)
   showOnDiary         Boolean          @default(false)
+  /// The employer's number for this person, as councils write it beside a signature ("Name & Pay No.").
+  payNumber           String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -783,6 +834,11 @@ model Membership {
   stockTakesApplied  StockTake[]           @relation("StockTakeAppliedBy")
   loansGiven         Loan[]
   apiKeys            ApiKey[]
+  requisitionsRaised Requisition[]         @relation("RequisitionRequestedBy")
+  requisitionRoles   RequisitionApprover[]
+  requisitionSigns   RequisitionSignoff[]
+  requisitionIssues  RequisitionIssue[]    @relation("RequisitionIssuedBy")
+  requisitionsTaken  RequisitionIssue[]    @relation("RequisitionReceivedBy")
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -1100,6 +1156,7 @@ model Product {
   purchaseOrderLines      PurchaseOrderLine[]
   supplierInvoiceLines    SupplierInvoiceLine[]
   stockTakeLines          StockTakeLine[]
+  requisitionLines        RequisitionLine[]
   /// True when this product is a bundle of others.
   isBundle                Boolean                  @default(false)
   bundlePricing           BundlePricing            @default(FIXED)
@@ -1291,6 +1348,7 @@ model Document {
   stockMovements       StockMovement[]
   purchaseOrderLines   PurchaseOrderLine[]
   supplierInvoiceLines SupplierInvoiceLine[]
+  requisitions         Requisition[]
   loans                Loan[]
 
   @@index([tenantId, type, state])
@@ -1887,6 +1945,9 @@ model StockMovement {
   documentLineId        String?
   /// The same, for goods arriving on a supplier invoice.
   supplierInvoiceLineId String?           @unique
+  /// An issue from stores: which requisition line it meets, and which handover it was part of.
+  requisitionLineId     String?
+  requisitionIssueId    String?
   note                  String?
   byId                  String?
   createdAt             DateTime          @default(now())
@@ -1895,11 +1956,14 @@ model StockMovement {
   product             Product              @relation(fields: [productId], references: [id])
   document            Document?            @relation(fields: [documentId], references: [id])
   supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
+  requisitionLine     RequisitionLine?     @relation(fields: [requisitionLineId], references: [id])
+  requisitionIssue    RequisitionIssue?    @relation(fields: [requisitionIssueId], references: [id])
   by                  Membership?          @relation(fields: [byId], references: [id])
 
   @@unique([documentLineId, kind])
   @@index([tenantId, productId, at])
   @@index([tenantId, at])
+  @@index([requisitionLineId])
 }
 
 /// An order placed with a supplier. A commitment only: nothing moves on the
@@ -1936,28 +2000,32 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderLine {
-  id          String    @id @default(cuid())
-  tenantId    String
-  orderId     String
-  sortOrder   Int       @default(0)
-  productId   String?
+  id                String    @id @default(cuid())
+  tenantId          String
+  orderId           String
+  sortOrder         Int       @default(0)
+  productId         String?
   /// Copied when the line is written, so a renamed product does not rewrite the order.
-  itemCode    String?
-  description String
-  quantity    Decimal   @default(1) @db.Decimal(12, 2)
-  unitCost    Decimal   @default(0) @db.Decimal(12, 2)
+  itemCode          String?
+  description       String
+  quantity          Decimal   @default(1) @db.Decimal(12, 2)
+  unitCost          Decimal   @default(0) @db.Decimal(12, 2)
   /// The job these parts are for — what makes true job costing possible.
-  documentId  String?
-  dueDate     DateTime? @db.Date
-  note        String?
+  documentId        String?
+  dueDate           DateTime? @db.Date
+  note              String?
+  /// The approved requisition line this buys. On a council every order line traces to one.
+  requisitionLineId String?
 
   tenant               Tenant                @relation(fields: [tenantId], references: [id])
   order                PurchaseOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product              Product?              @relation(fields: [productId], references: [id])
   document             Document?             @relation(fields: [documentId], references: [id])
+  requisitionLine      RequisitionLine?      @relation(fields: [requisitionLineId], references: [id])
   supplierInvoiceLines SupplierInvoiceLine[]
 
   @@index([orderId, sortOrder])
+  @@index([requisitionLineId])
 }
 
 /// What the supplier billed, and what actually arrived. Processing one puts the
@@ -2076,6 +2144,175 @@ model SupplierPaymentAllocation {
 
   @@unique([paymentId, supplierInvoiceId])
   @@index([tenantId, supplierInvoiceId])
+}
+
+// ───────────────────────── requisitions (council) ─────────────────────────
+
+/// A section of the council that asks for supplies — the paper form's "Dept.".
+model Department {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id])
+  approvers    RequisitionApprover[]
+  requisitions Requisition[]
+
+  @@unique([tenantId, name])
+}
+
+/// A budget line a requisition can be charged to — the paper form's "Vote No.".
+/// Kept as the council's ERP writes it, so the nightly journal posts to the same code.
+model Vote {
+  id         String    @id @default(cuid())
+  tenantId   String
+  code       String
+  name       String
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  requisitions Requisition[]
+
+  @@unique([tenantId, code])
+}
+
+/// Who may sign a step. Approval is by assignment rather than by role: the
+/// foreman of Parks does not approve the workshop's requisitions, and the
+/// person who signs above the value limit may have no other duties in MOTION.
+/// `departmentId` is null only for OVER_LIMIT, which is council-wide.
+model RequisitionApprover {
+  id           String          @id @default(cuid())
+  tenantId     String
+  step         RequisitionStep
+  departmentId String?
+  membershipId String
+  /// Signs in the principal's place — leave, or the requester being the foreman — and the signature records it.
+  deputy       Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  membership Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, step, departmentId, membershipId])
+  @@index([tenantId, membershipId])
+}
+
+/// A request for supplies, approved before anything leaves the shelf or is
+/// ordered. Mirrors the council's paper "Requisition for Supplies".
+model Requisition {
+  id               String           @id @default(cuid())
+  tenantId         String
+  /// Issued on first submission and never reused; a cancelled requisition keeps it.
+  number           String?
+  state            RequisitionState @default(DRAFT)
+  departmentId     String?
+  /// The form's "Room No.": where it is wanted.
+  location         String?
+  requestedById    String
+  requiredBy       DateTime?        @db.Date
+  purpose          String?
+  /// What it is charged to: a job card, or a vote. Exactly one once submitted.
+  chargeDocumentId String?
+  chargeVoteId     String?
+  /// Excluding VAT, recalculated whenever the lines are saved. Approvals record the value they approved.
+  value            Decimal          @default(0) @db.Decimal(12, 2)
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  closedAt         DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  department     Department?          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  requestedBy    Membership           @relation("RequisitionRequestedBy", fields: [requestedById], references: [id])
+  chargeDocument Document?            @relation(fields: [chargeDocumentId], references: [id], onDelete: Restrict)
+  chargeVote     Vote?                @relation(fields: [chargeVoteId], references: [id], onDelete: Restrict)
+  lines          RequisitionLine[]
+  signoffs       RequisitionSignoff[]
+  issues         RequisitionIssue[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, state, createdAt])
+  @@index([tenantId, requestedById])
+}
+
+model RequisitionLine {
+  id            String  @id @default(cuid())
+  tenantId      String
+  requisitionId String
+  sortOrder     Int     @default(0)
+  productId     String?
+  /// Copied when the line is written, so a renamed product does not rewrite the request.
+  itemCode      String?
+  description   String
+  quantity      Decimal @db.Decimal(12, 2)
+  /// The form's "Rates": an estimate, excluding VAT. Stores and the supplier decide the real cost.
+  unitCost      Decimal @default(0) @db.Decimal(12, 2)
+  note          String?
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  requisition        Requisition         @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  product            Product?            @relation(fields: [productId], references: [id])
+  stockMovements     StockMovement[]
+  purchaseOrderLines PurchaseOrderLine[]
+
+  @@index([requisitionId, sortOrder])
+}
+
+/// One signature on the form. Name, role and pay number are copied at the
+/// moment of signing, so a person who later leaves or is renamed still signed
+/// as who they were.
+model RequisitionSignoff {
+  id            String              @id @default(cuid())
+  tenantId      String
+  requisitionId String
+  step          RequisitionStep
+  decision      RequisitionDecision
+  membershipId  String?
+  name          String
+  role          String
+  payNumber     String?
+  /// The value on the requisition when this was signed.
+  value         Decimal             @db.Decimal(12, 2)
+  comment       String?
+  at            DateTime            @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  requisition Requisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  membership  Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([requisitionId, at])
+}
+
+/// One handover from stores: the form's "Received the above". The storeman
+/// verifies it; the receiver is named with a pay number and signs the printout.
+model RequisitionIssue {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  requisitionId        String
+  issuedById           String
+  /// Set when the receiver has a MOTION login; the name and pay number are kept either way.
+  receiverMembershipId String?
+  receiverName         String
+  receiverPayNumber    String?
+  note                 String?
+  at                   DateTime @default(now())
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  requisition    Requisition     @relation(fields: [requisitionId], references: [id])
+  issuedBy       Membership      @relation("RequisitionIssuedBy", fields: [issuedById], references: [id])
+  receiver       Membership?     @relation("RequisitionReceivedBy", fields: [receiverMembershipId], references: [id])
+  stockMovements StockMovement[]
+
+  @@index([requisitionId, at])
 }
 
 /// A count of what is actually on the shelves. Nothing changes until it is

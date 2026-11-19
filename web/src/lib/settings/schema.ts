@@ -142,6 +142,25 @@ export function handoffSettings(value: unknown): HandoffSettings {
     return raw.success ? raw.data : handoffSettingsSchema.parse({});
 }
 
+/**
+ * Requisitions (council). The limit is the council's own figure, never the
+ * law's: procurement thresholds are amended (GN 259 of 2026 was the latest),
+ * and each council sets its own approvals below them.
+ */
+export const requisitionSettingsSchema = z.object({
+    /** At or above this value, excluding VAT, the over-limit approver signs too. Null: no such step. */
+    overLimitAt: z.number().positive().max(100_000_000).nullable().default(null),
+    /** How far, in percent, an order may exceed the value approved before it must be approved again. */
+    reapprovalTolerancePercent: z.number().min(0).max(100).default(10),
+});
+
+export type RequisitionSettings = z.infer<typeof requisitionSettingsSchema>;
+
+export function requisitionSettings(value: unknown): RequisitionSettings {
+    const raw = requisitionSettingsSchema.safeParse(parseSettings(value).requisitions ?? {});
+    return raw.success ? raw.data : requisitionSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
@@ -152,6 +171,7 @@ export const tenantSettingsSchema = z.object({
     portal: portalSettingsSchema.optional(),
     accounting: accountingSettingsSchema.optional(),
     handoff: handoffSettingsSchema.optional(),
+    requisitions: requisitionSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
