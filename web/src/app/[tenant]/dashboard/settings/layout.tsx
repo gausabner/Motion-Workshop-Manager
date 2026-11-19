@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireTenant } from "@/lib/auth/session";
 import { FEATURES, PLAN_NAMES, includes, type Feature } from "@/lib/plans/features";
-import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash, Lock } from "lucide-react";
+import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash, Lock, Network, Warehouse, FileSignature } from "lucide-react";
 import { TERM } from "@/lib/copy/terms";
 
 const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; feature?: Feature }[] = [
@@ -46,6 +46,24 @@ const sidebarNavItems: { title: string; href: string; icon: React.ReactNode; fea
         title: "Customer portal",
         href: "portal",
         icon: <Globe className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Organisation",
+        href: "organisation",
+        feature: "requisitions" as Feature,
+        icon: <Network className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Workshops and bays",
+        href: "workshops",
+        feature: "requisitions" as Feature,
+        icon: <Warehouse className="w-4 h-4 mr-2" />,
+    },
+    {
+        title: "Requisition rules",
+        href: "requisitions",
+        feature: "requisitions" as Feature,
+        icon: <FileSignature className="w-4 h-4 mr-2" />,
     },
     {
         title: TERM.accountingIntegration,

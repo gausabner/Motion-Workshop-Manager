@@ -153,6 +153,21 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         await tx.payment.deleteMany({ where });
         await tx.message.deleteMany({ where });
         await tx.shareLink.deleteMany({ where });
+        // Requisitions, and the organisation and workshops they answer to. Children
+        // first: lines, quotations and signatures, then the requisitions (a split
+        // names its source, so that link goes before the rows), then the
+        // appointments, votes and workshops, and the units from the bottom up.
+        await tx.requisitionSignoff.deleteMany({ where });
+        await tx.requisitionQuote.deleteMany({ where });
+        await tx.requisitionLine.deleteMany({ where });
+        await tx.requisitionIssue.deleteMany({ where });
+        await tx.requisition.updateMany({ where, data: { sourceRequisitionId: null } });
+        await tx.requisition.deleteMany({ where });
+        await tx.signingAuthority.deleteMany({ where });
+        await tx.vote.deleteMany({ where });
+        await tx.workshop.deleteMany({ where });
+        await tx.orgUnit.deleteMany({ where: { tenantId, parentId: { not: null } } });
+        await tx.orgUnit.deleteMany({ where });
         await tx.stockMovement.deleteMany({ where });
         await tx.timeEntry.deleteMany({ where });
         await tx.documentStatusEvent.deleteMany({ where });
