@@ -61,10 +61,11 @@ const LABEL: Record<string, string> = {
     QUOTE: "Quotes",
     PURCHASE_ORDER: "Purchase orders",
     SUPPLIER_PAYMENT: "Supplier payments",
+    REQUISITION: "Requisitions",
 };
 
 /** The money sequences, in the order an auditor asks about them. */
-export const AUDITED_SEQUENCES: SequenceKey[] = ["INVOICE", "CREDIT", "RECEIPT", "REFUND", "JOB", "PURCHASE_ORDER", "SUPPLIER_PAYMENT"];
+export const AUDITED_SEQUENCES: SequenceKey[] = ["INVOICE", "CREDIT", "RECEIPT", "REFUND", "JOB", "PURCHASE_ORDER", "SUPPLIER_PAYMENT", "REQUISITION"];
 
 /**
  * Split "INV-1042" into its prefix and 1042.
@@ -80,7 +81,7 @@ function split(value: string): { prefix: string; n: number } | null {
 }
 
 export async function sequenceAudit(db: TenantDb, from: Date, to: Date): Promise<SequenceAudit[]> {
-    const [documents, payments, orders, supplierPayments, sequences, deletions] = await Promise.all([
+    const [documents, payments, orders, supplierPayments, requisitions, sequences, deletions] = await Promise.all([
         // Deliberately not filtered by state. A number belongs to whatever
         // holds it, whatever state that thing is in: a booking sitting in the
         // diary as a draft has a job number, and a voided invoice keeps the
@@ -98,6 +99,10 @@ export async function sequenceAudit(db: TenantDb, from: Date, to: Date): Promise
         }),
         db.purchaseOrder.findMany({ where: { orderDate: { gte: from, lte: to }, number: { not: null } }, select: { number: true } }),
         db.supplierPayment.findMany({ where: { postDate: { gte: from, lte: to }, number: { not: null } }, select: { number: true } }),
+        // Cancelled and rejected ones included: a requisition keeps its number
+        // whatever came of it. `submittedAt` is a moment, not a date like the
+        // others, so the last day runs to its end rather than stopping at midnight.
+        db.requisition.findMany({ where: { submittedAt: { gte: from, lt: new Date(to.getTime() + 86_400_000) }, number: { not: null } }, select: { number: true } }),
         db.sequence.findMany({ select: { key: true, prefix: true, next: true } }),
         // Every deletion MOTION has ever recorded, so a gap can be explained by
         // one even when the deletion happened outside the period being audited.
@@ -114,6 +119,7 @@ export async function sequenceAudit(db: TenantDb, from: Date, to: Date): Promise
             case "REFUND": return payments.filter((p) => p.direction === "REFUND").map((p) => p.number!).filter(Boolean);
             case "PURCHASE_ORDER": return orders.map((o) => o.number!).filter(Boolean);
             case "SUPPLIER_PAYMENT": return supplierPayments.map((p) => p.number!).filter(Boolean);
+            case "REQUISITION": return requisitions.map((r) => r.number!).filter(Boolean);
             default: return [];
         }
     };

@@ -142,6 +142,54 @@ export function handoffSettings(value: unknown): HandoffSettings {
     return raw.success ? raw.data : handoffSettingsSchema.parse({});
 }
 
+/**
+ * Requisitions (council). The limit is the council's own figure, never the
+ * law's: procurement thresholds are amended (GN 259 of 2026 was the latest),
+ * and each council sets its own approvals below them.
+ */
+export const requisitionSettingsSchema = z.object({
+    /** At or above this value, excluding VAT, the over-limit approver signs too. Null: no such step. */
+    overLimitAt: z.number().positive().max(100_000_000).nullable().default(null),
+    /** How far, in percent, an order may exceed the value approved before it must be approved again. */
+    reapprovalTolerancePercent: z.number().min(0).max(100).default(10),
+    /**
+     * How many quotations a purchase requisition carries before it can be
+     * submitted, by value excluding VAT: each band applies from its `from`
+     * upwards. The council's procurement policy, not MOTION's — the default
+     * asks for one, because the owner's brief has every purchase "submitted
+     * with a quotation".
+     */
+    quoteBands: z
+        .array(z.object({ from: z.number().min(0), quotes: z.number().int().min(1).max(10) }))
+        .min(1)
+        .default([{ from: 0, quotes: 1 }]),
+});
+
+export type RequisitionSettings = z.infer<typeof requisitionSettingsSchema>;
+
+export function requisitionSettings(value: unknown): RequisitionSettings {
+    const raw = requisitionSettingsSchema.safeParse(parseSettings(value).requisitions ?? {});
+    return raw.success ? raw.data : requisitionSettingsSchema.parse({});
+}
+
+/**
+ * What the council calls the levels of its organisation. One council runs
+ * Divisions with Departments under them, the City of Windhoek runs Departments
+ * with Divisions under them, so MOTION names neither. Null second level: one
+ * level only.
+ */
+export const organisationSettingsSchema = z.object({
+    topLevel: z.string().trim().min(1).max(40).default("Division"),
+    secondLevel: z.string().trim().min(1).max(40).nullable().default("Department"),
+});
+
+export type OrganisationSettings = z.infer<typeof organisationSettingsSchema>;
+
+export function organisationSettings(value: unknown): OrganisationSettings {
+    const raw = organisationSettingsSchema.safeParse(parseSettings(value).organisation ?? {});
+    return raw.success ? raw.data : organisationSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
@@ -152,6 +200,8 @@ export const tenantSettingsSchema = z.object({
     portal: portalSettingsSchema.optional(),
     accounting: accountingSettingsSchema.optional(),
     handoff: handoffSettingsSchema.optional(),
+    requisitions: requisitionSettingsSchema.optional(),
+    organisation: organisationSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;

@@ -25,13 +25,17 @@ export type Permission =
     | "customers:view_contact"
     | "settings:manage"
     | "users:manage"
-    | "billing:manage";
+    | "billing:manage"
+    /** Ask for supplies. Approving is not a permission: it is an assignment to a department (see `RequisitionApprover`). */
+    | "requisitions:raise"
+    /** Hand goods out of stores against an approved requisition, and order what is not on the shelf. */
+    | "requisitions:issue";
 
 const ALL: Permission[] = [
     "customers:write", "vehicles:write", "products:write", "documents:write", "documents:process",
     "documents:void", "documents:see_cost", "payments:take", "messages:send", "reports:view",
     "customers:view_contact", "settings:manage",
-    "users:manage", "billing:manage",
+    "users:manage", "billing:manage", "requisitions:raise", "requisitions:issue",
 ];
 
 const MATRIX: Record<UserGroup, ReadonlySet<Permission>> = {
@@ -56,7 +60,7 @@ const MATRIX: Record<UserGroup, ReadonlySet<Permission>> = {
     FOREMAN: new Set<Permission>([
         "customers:write", "vehicles:write", "products:write", "documents:write",
         "documents:process", "documents:see_cost", "messages:send", "reports:view",
-        "customers:view_contact",
+        "customers:view_contact", "requisitions:raise",
     ]),
     /**
      * Parts and stock: products, pricing, suppliers, purchase orders, stock
@@ -71,16 +75,19 @@ const MATRIX: Record<UserGroup, ReadonlySet<Permission>> = {
      */
     PARTS_MANAGER: new Set<Permission>([
         "products:write", "documents:write", "documents:see_cost", "reports:view",
+        "requisitions:raise", "requisitions:issue",
     ]),
     SERVICE_ADVISOR: new Set([
         "customers:write", "vehicles:write", "documents:write", "documents:process",
         "documents:see_cost", "payments:take", "messages:send", "reports:view",
-        "customers:view_contact",
+        "customers:view_contact", "requisitions:raise",
     ]),
-    MECHANIC: new Set(["vehicles:write", "documents:write"]),
+    // A mechanic is who most often needs a part, so raising a requisition is
+    // theirs; issuing it is stores', so the hand that asks is not the hand that gives.
+    MECHANIC: new Set(["vehicles:write", "documents:write", "requisitions:raise"]),
     // Sends invoices and receipts to customers, so it needs to know where to
     // send them.
-    INVOICE_PAY: new Set(["documents:write", "documents:process", "payments:take", "messages:send", "customers:view_contact"]),
+    INVOICE_PAY: new Set(["documents:write", "documents:process", "payments:take", "messages:send", "customers:view_contact", "requisitions:raise"]),
     READ_ONLY: new Set(["reports:view"]),
 };
 

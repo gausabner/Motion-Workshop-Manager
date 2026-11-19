@@ -43,6 +43,7 @@ export async function highestIssued(tx: TenantTx, tenantId: string, prefix: stri
             UNION ALL SELECT substring("number" from ${from}::int) FROM "Inspection" WHERE "tenantId" = ${tenantId} AND "number" LIKE ${like}
             UNION ALL SELECT substring("number" from ${from}::int) FROM "PurchaseOrder" WHERE "tenantId" = ${tenantId} AND "number" LIKE ${like}
             UNION ALL SELECT substring("number" from ${from}::int) FROM "SupplierPayment" WHERE "tenantId" = ${tenantId} AND "number" LIKE ${like}
+            UNION ALL SELECT substring("number" from ${from}::int) FROM "Requisition" WHERE "tenantId" = ${tenantId} AND "number" LIKE ${like}
         ) issued`;
     return Number(rows[0]?.max ?? 0);
 }

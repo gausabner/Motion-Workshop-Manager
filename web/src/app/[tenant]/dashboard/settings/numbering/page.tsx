@@ -3,16 +3,18 @@ import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { AccessDenied } from "@/components/layout/AccessDenied";
 import { loadNumbering } from "@/lib/settings/numbering";
+import { includes } from "@/lib/plans/features";
 
 export const metadata = { title: "Document numbers | MOTION Workshop Manager" };
 
 export default async function NumberingSettingsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
-    const { tenant, membership, db } = await requireTenant(slug);
+    const { tenant, membership, db, plan } = await requireTenant(slug);
     if (!can(membership, "settings:manage"))
         return <AccessDenied tenant={slug} group={membership.group} needs="change workshop settings" />;
 
-    const rows = await loadNumbering(db, tenant.id);
+    // Requisitions are a council's; a workshop without them is not asked to number them.
+    const rows = (await loadNumbering(db, tenant.id)).filter((r) => r.key !== "REQUISITION" || includes(plan, "requisitions"));
 
     return (
         <div className="space-y-4">

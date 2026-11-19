@@ -13,12 +13,15 @@ import { StockPanel } from "@/components/products/StockPanel";
 import { BundlePanel } from "@/components/products/BundlePanel";
 import { ArchiveProductButton } from "@/components/products/ArchiveProductButton";
 import { dateShortIn, money } from "@/lib/format";
+import type { StockMovementKind } from "@prisma/client";
 
 export const metadata = { title: "Product | MOTION Workshop Manager" };
 
-const KIND_LABEL: Record<string, string> = {
+// Typed by the enum, so a new kind of movement cannot reach this list unnamed.
+const KIND_LABEL: Record<StockMovementKind, string> = {
     SALE: "Sold", CREDIT: "Credited back", PURCHASE: "Bought in", RETURN_TO_SUPPLIER: "Returned to supplier",
     ADJUSTMENT: "Correction", STOCKTAKE: "Counted", OPENING: "Opening stock", VOID_REVERSAL: "Void put back",
+    ISSUE: "Issued on a requisition",
 };
 
 /** Outside the component: reading the clock while rendering is impure. */

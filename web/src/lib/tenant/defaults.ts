@@ -18,6 +18,7 @@ export async function createTenantDefaults(tx: Tx, tenantId: string) {
             { tenantId, key: "REFUND", prefix: "RF-", next: 1001 },
             { tenantId, key: "PURCHASE_ORDER", prefix: "PO-", next: 1001 },
             { tenantId, key: "SUPPLIER_PAYMENT", prefix: "SP-", next: 1001 },
+            { tenantId, key: "REQUISITION", prefix: "REQ-", next: 1001 },
         ],
     });
 
