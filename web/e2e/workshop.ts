@@ -153,6 +153,8 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         await tx.payment.deleteMany({ where });
         await tx.message.deleteMany({ where });
         await tx.shareLink.deleteMany({ where });
+        await tx.jobSignoff.deleteMany({ where });
+        await tx.jobVisit.deleteMany({ where });
         // Requisitions, and the organisation and workshops they answer to. Children
         // first: lines, quotations and signatures, then the requisitions (a split
         // names its source, so that link goes before the rows), then the
@@ -200,6 +202,36 @@ export const test = base.extend<{ workshop: Workshop }>({
 });
 
 export { expect } from "@playwright/test";
+
+/**
+ * A council's workshop, made directly rather than through the settings
+ * screens (council-settings.spec.ts covers those): reception, a check bay and
+ * one workshop, run by one unit; the owner designated Reception and Foreman
+ * and appointed foreman of the check bay and the workshop; and a job card for
+ * the fixture's vehicle. The job card asks only for reception's and the
+ * driver's signatures, because the fixture has one person and nobody signs two
+ * boxes.
+ */
+export async function makeCouncil(workshop: Workshop): Promise<{ jobId: string; reception: string; checkBay: string; heavy: string }> {
+    return prisma.$transaction(async (tx) => {
+        await announceTenant(tx, workshop.tenantId);
+        const tenantId = workshop.tenantId;
+        const owner = await tx.membership.findFirstOrThrow({ where: { tenantId }, select: { id: true } });
+        await tx.membership.update({ where: { id: owner.id }, data: { designations: ["RECEPTION", "FOREMAN"], payNumber: "PN-10001" } });
+        await tx.tenant.update({ where: { id: tenantId }, data: { settings: { jobFlow: { issueRoles: ["RECEPTION", "DRIVER"] } } } });
+        const unit = await tx.orgUnit.create({ data: { tenantId, name: "Fleet Management" }, select: { id: true } });
+        const place = (name: string, kind: "RECEPTION" | "CHECK_BAY" | "WORKSHOP") => tx.workshop.create({ data: { tenantId, name, kind, orgUnitId: unit.id }, select: { id: true } }).then((w) => w.id);
+        const reception = await place("Reception", "RECEPTION");
+        const checkBay = await place("Check bay", "CHECK_BAY");
+        const heavy = await place("Heavy duty vehicles", "WORKSHOP");
+        for (const workshopId of [checkBay, heavy]) await tx.signingAuthority.create({ data: { tenantId, kind: "FOREMAN", workshopId, membershipId: owner.id } });
+        const job = await tx.document.create({
+            data: { tenantId, type: "JOB_CARD", jobNumber: `JC-${Date.now() % 100000}`, jobStatus: "BOOKED_IN", customerId: workshop.customer.id, vehicleId: workshop.vehicle.id },
+            select: { id: true },
+        });
+        return { jobId: job.id, reception, checkBay, heavy };
+    });
+}
 
 /** Sign in through the real form, because that is the path a person takes. */
 export async function signIn(page: Page, workshop: Workshop): Promise<void> {

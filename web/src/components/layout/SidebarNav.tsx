@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
     Bell, Building2, Car, CarFront, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
     ListChecks, Megaphone, Package, Receipt, Settings, Timer, TrendingUp, Truck,
-    Users, Wallet, Wrench, Lock,
+    Users, Wallet, Wrench, Lock, MapPin,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FEATURES, PLAN_NAMES, type Feature } from "@/lib/plans/features";
@@ -69,6 +69,7 @@ export function SidebarNav({
             label: "Work",
             items: [
                 { href: `${base}/dashboard/jobs`, label: "Job cards", icon: ClipboardList },
+                { href: `${base}/dashboard/flow`, label: "On site", icon: MapPin, feature: "jobFlow" },
                 { href: `${base}/dashboard/transactions`, label: TERM.transactions, icon: ListChecks },
                 { href: `${base}/dashboard/customers`, label: "Customers", icon: Users },
                 { href: `${base}/dashboard/vehicles`, label: "Vehicles", icon: Car },

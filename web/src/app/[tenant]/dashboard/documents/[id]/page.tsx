@@ -23,6 +23,8 @@ import { diaryMechanics } from "@/lib/diary/queries";
 import { DOCUMENT_TYPE_LABELS, JOB_STATUS_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 import { tabTitle } from "@/lib/copy/terms";
+import { routeView } from "@/lib/fleet/queries";
+import { JobRoutePanel } from "@/components/fleet/JobRoutePanel";
 
 /** The tab names the document and whose it is, so a row of open documents can be told apart. */
 export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
@@ -50,6 +52,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
     // Fetched after the document exists, so a bad id 404s rather than reading
     // an audit trail for something that is not there.
     const history = can(membership, "reports:view") ? await listAudit(db, "Document", id) : [];
+    // A council job's route through reception, the check bay and the workshops, and its signatures.
+    const route = includes(plan, "jobFlow") && doc.jobNumber ? await routeView(db, tenant, id, membership.id) : null;
 
     const showCost = can(membership, "documents:see_cost");
     const base = `/${slug}/dashboard`;
@@ -84,6 +88,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             </div>
 
             <DeliveryStrip messages={messages} />
+
+            {route && <JobRoutePanel tenant={slug} documentId={id} route={route} timezone={tenant.timezone} />}
 
             {processed && (
                 <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">

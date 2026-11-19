@@ -342,6 +342,48 @@ enum AuthorityKind {
   OVER_LIMIT
 }
 
+/// Why a vehicle is somewhere on its route through the workshop.
+enum VisitPurpose {
+  /// Booked in at reception.
+  INTAKE
+  /// The check bay's first look, from the driver's report or the service due.
+  ASSESSMENT
+  /// The work itself, in a workshop or bay.
+  WORK
+  /// The check bay's second look: nothing new damaged, the job card's work done.
+  QUALITY_CHECK
+  /// Back at reception, ready for the driver.
+  RELEASE
+}
+
+/// Whose signature a job card carries.
+enum JobSignRole {
+  RECEPTION
+  /// The council employee who brought the vehicle and collects it. Usually without a MOTION login: named, with a pay number.
+  DRIVER
+  FOREMAN
+  FLEET_COORDINATOR
+  /// The mechanic, artisan or intern who does the work.
+  MECHANIC
+  /// The check bay, assessing or checking the work.
+  INSPECTOR
+}
+
+enum JobSignStage {
+  ISSUE
+  ASSESSMENT
+  QUALITY_CHECK
+  COLLECTION
+}
+
+enum JobSignDecision {
+  SIGNED
+  /// A quality check the vehicle passed.
+  PASSED
+  /// A quality check it failed: it goes back to the workshop that did the work.
+  FAILED
+}
+
 enum CampaignState {
   DRAFT
   SENDING
@@ -514,6 +556,8 @@ model Tenant {
   votes                      Vote[]
   signingAuthorities         SigningAuthority[]
   requisitionQuotes          RequisitionQuote[]
+  jobVisits                  JobVisit[]
+  jobSignoffs                JobSignoff[]
   requisitions               Requisition[]
   requisitionLines           RequisitionLine[]
   requisitionSignoffs        RequisitionSignoff[]
@@ -895,6 +939,9 @@ model Membership {
   requisitionsRaised Requisition[]         @relation("RequisitionRequestedBy")
   authorities        SigningAuthority[]
   quotesObtained     RequisitionQuote[]
+  visitsSent         JobVisit[]            @relation("VisitSentBy")
+  visitsReceived     JobVisit[]            @relation("VisitReceivedBy")
+  jobSignoffs        JobSignoff[]
   requisitionSigns   RequisitionSignoff[]
   requisitionIssues  RequisitionIssue[]    @relation("RequisitionIssuedBy")
   requisitionsTaken  RequisitionIssue[]    @relation("RequisitionReceivedBy")
@@ -1410,6 +1457,8 @@ model Document {
   supplierInvoiceLines SupplierInvoiceLine[]
   requisitions         Requisition[]
   loans                Loan[]
+  visits               JobVisit[]
+  signoffs             JobSignoff[]
 
   @@index([tenantId, type, state])
   @@index([tenantId, number])
@@ -2269,6 +2318,7 @@ model Workshop {
   orgUnit      OrgUnit            @relation(fields: [orgUnitId], references: [id], onDelete: Restrict)
   authorities  SigningAuthority[]
   requisitions Requisition[]
+  visits       JobVisit[]
 
   @@unique([tenantId, name])
 }
@@ -2347,6 +2397,62 @@ model Requisition {
   @@unique([tenantId, number])
   @@index([tenantId, state, createdAt])
   @@index([tenantId, requestedById])
+}
+
+// ───────────────────────── the vehicle's route (council) ─────────────────────────
+
+/// One stay in one place on a job's route: reception, the check bay, a
+/// workshop or bay. Moving a vehicle is a handover — the place it leaves
+/// names the next and sends it; the next accepts it, which says who received
+/// it. Where the vehicle is now is the visit not yet left.
+model JobVisit {
+  id           String       @id @default(cuid())
+  tenantId     String
+  documentId   String
+  workshopId   String
+  purpose      VisitPurpose
+  /// When the place before handed it over, and who did.
+  sentAt       DateTime     @default(now())
+  sentById     String?
+  /// When this place accepted it, and who did. Null while it is on its way.
+  receivedAt   DateTime?
+  receivedById String?
+  /// When it moved on. Null for where the vehicle is now.
+  leftAt       DateTime?
+  note         String?
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  sentBy     Membership? @relation("VisitSentBy", fields: [sentById], references: [id], onDelete: SetNull)
+  receivedBy Membership? @relation("VisitReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  @@index([documentId, sentAt])
+  @@index([tenantId, workshopId, leftAt])
+}
+
+/// One signature on a job card. Name, pay number and the role it was given
+/// under are copied at the moment of signing, so a person who later leaves or
+/// changes title still signed as who they were.
+model JobSignoff {
+  id           String          @id @default(cuid())
+  tenantId     String
+  documentId   String
+  stage        JobSignStage
+  role         JobSignRole
+  decision     JobSignDecision @default(SIGNED)
+  /// Null for a driver without a MOTION login.
+  membershipId String?
+  name         String
+  payNumber    String?
+  comment      String?
+  at           DateTime        @default(now())
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, at])
 }
 
 /// A supplier's price for a purchase requisition, usually brought back by a
