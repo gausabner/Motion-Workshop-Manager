@@ -20,7 +20,17 @@ cd "$(dirname "$0")"
 E2E_DB_URL=${E2E_DB_URL:-postgresql://postgres:postgres@localhost:5432/motion_app}
 DB_CONTAINER=${DB_CONTAINER:-motionworkshopmanager-db-1}
 
-if command -v psql >/dev/null 2>&1 && psql -d "$E2E_DB_URL" -tAc 'select 1' >/dev/null 2>&1; then
+# E2E_CLIENT=docker asks for the container's own tools even where the host
+# has some, which is what CI does: the host's are whatever the runner image
+# ships, and production never uses them.
+if [ "${E2E_CLIENT:-}" = "docker" ]; then
+    if ! docker exec "$DB_CONTAINER" pg_isready -q 2>/dev/null; then
+        echo "e2e: E2E_CLIENT=docker, but container $DB_CONTAINER is not answering" >&2
+        exit 1
+    fi
+    MODE="docker exec $DB_CONTAINER"
+    CLIENT_PREFIX="docker exec -i $DB_CONTAINER "
+elif command -v psql >/dev/null 2>&1 && psql -d "$E2E_DB_URL" -tAc 'select 1' >/dev/null 2>&1; then
     MODE="local client tools"
     CLIENT_PREFIX=""
 elif docker exec "$DB_CONTAINER" pg_isready -q 2>/dev/null; then
@@ -31,6 +41,21 @@ else
     echo "     locally: make db"
     echo "     or set E2E_DB_URL to a database with the MOTION schema in it"
     exit 0
+fi
+
+# A pg_dump newer than the server writes settings the server does not know:
+# PostgreSQL 17's dump opens with SET transaction_timeout, which a 15 server
+# refuses on restore. Production never meets this, because it runs the
+# server's own tools. A test that met it would fail its restore checks for a
+# reason that has nothing to do with these scripts, so it stops here and
+# says so instead.
+client_major=$(${CLIENT_PREFIX}pg_restore --version | sed -E 's/[^0-9]*([0-9]+).*/\1/')
+server_major=$(${CLIENT_PREFIX}psql -d "${E2E_DB_URL%%\?*}" -tAc "select current_setting('server_version_num')::int / 10000")
+if [ -n "$client_major" ] && [ -n "$server_major" ] && [ "$client_major" -gt "$server_major" ]; then
+    echo "e2e: pg_restore $client_major is newer than the PostgreSQL $server_major server ($MODE)." >&2
+    echo "     Its dumps carry settings a $server_major server refuses. Use the server's own tools:" >&2
+    echo "     E2E_CLIENT=docker DB_CONTAINER=<the database container>" >&2
+    exit 1
 fi
 
 # The admin connection for creating and dropping the scratch database, and for

@@ -72,9 +72,16 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/motion_app?schema=public
       SESSION_SECRET: ci-only-secret-not-for-production-0123456789
-      # The end-to-end test finds PostgreSQL through this, and prefers the
-      # runner's own client tools over a container — ubuntu-latest ships them.
+      # The end-to-end test finds PostgreSQL through this.
       E2E_DB_URL: postgresql://postgres:postgres@localhost:5432/motion_app
+      # …and uses the server's own pg_dump and pg_restore, through `docker exec`
+      # into the service container, which is how production runs them. The
+      # runner's tools follow the runner image, not our server: when
+      # ubuntu-latest became 26.04 its pg_dump began writing settings that
+      # PostgreSQL 15 refuses on restore, and four checks failed for a reason
+      # that had nothing to do with the backup scripts.
+      E2E_CLIENT: docker
+      DB_CONTAINER: ${{ job.services.postgres.id }}
     steps:
       - uses: actions/checkout@v4
 
