@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { initialActionState, type ActionState } from "@/lib/forms";
 
@@ -39,6 +40,23 @@ export function Outcome({ state }: { state: ActionState }) {
 /** `useActionState` for a server action that takes the form as its last argument. */
 export function useAction(run: (prev: ActionState, formData: FormData) => Promise<ActionState>) {
     return useActionState(run, initialActionState);
+}
+
+/**
+ * `useAction` for an action that does not revalidate: once it has answered
+ * well, the page is refreshed outside the action's transition, so a refresh
+ * that is slow or dropped leaves the page a moment stale rather than the
+ * button stuck on its pending label. Used by the On site board; the job card's
+ * route panel goes further and shows what the move answers (`lib/fleet/actions.ts`).
+ */
+export function useMove(run: (prev: ActionState, formData: FormData) => Promise<ActionState>) {
+    const result = useActionState(run, initialActionState);
+    const router = useRouter();
+    const [state] = result;
+    useEffect(() => {
+        if (state.ok) router.refresh();
+    }, [state, router]);
+    return result;
 }
 
 export const field = "h-8 rounded-sm border border-slate-300 bg-white px-2 text-sm text-slate-900 focus:border-teal-700 focus:outline-none";

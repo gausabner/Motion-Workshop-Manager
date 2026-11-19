@@ -1,11 +1,12 @@
 "use client";
 
+import { createContext, useActionState, useCallback, useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { acceptAction, bookInAction, sendOnAction, signJobAction } from "@/lib/fleet/actions";
-import type { RouteView } from "@/lib/fleet/queries";
+import type { MoveState, RouteView } from "@/lib/fleet/queries";
 import { PURPOSE_LABEL, ROLE_LABEL } from "@/lib/fleet/route-rules";
 import { duration } from "@/lib/fleet/format";
-import { Outcome, Panel, field, useAction } from "@/components/settings/council/shared";
+import { Outcome, Panel, field } from "@/components/settings/council/shared";
 
 /**
  * The job's route and its signatures, on the job card. The route reads top to
@@ -14,7 +15,27 @@ import { Outcome, Panel, field, useAction } from "@/components/settings/council/
  * signatures the person looking may make are offered.
  */
 
-export function JobRoutePanel({ tenant, documentId, route, timezone }: { tenant: string; documentId: string; route: RouteView; timezone: string }) {
+/** Hands a move's answer — the route as it now stands — back to the panel. */
+const ShowRoute = createContext<(route: RouteView) => void>(() => {});
+
+/** `useActionState` for a move: when it answers with the route, the panel shows it. */
+function useRouteMove(run: (prev: MoveState, formData: FormData) => Promise<MoveState>) {
+    const show = useContext(ShowRoute);
+    const result = useActionState(run, {} as MoveState);
+    const [state] = result;
+    useEffect(() => {
+        if (state.route) show(state.route);
+    }, [state, show]);
+    return result;
+}
+
+export function JobRoutePanel({ tenant, documentId, route: given, timezone }: { tenant: string; documentId: string; route: RouteView; timezone: string }) {
+    // The route the page was rendered with, until a move answers with a newer
+    // one; a fresh render of the page replaces both.
+    const [shown, setShown] = useState({ given, route: given });
+    if (shown.given !== given) setShown({ given, route: given });
+    const route = shown.given === given ? shown.route : given;
+    const show = useCallback((next: RouteView) => setShown((s) => ({ ...s, route: next })), []);
     const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     const current = route.visits.find((v) => !v.leftAt) ?? null;
     const status = route.collected
@@ -26,79 +47,98 @@ export function JobRoutePanel({ tenant, documentId, route, timezone }: { tenant:
             : `On its way to ${current.place}`;
 
     return (
-        // Side by side on a wide screen, so the job card's own panels below keep their place.
-        <div className="grid items-start gap-4 xl:grid-cols-2">
-            <Panel wide title="Route" action={<span className="text-xs font-medium text-slate-700">{status}</span>}>
-                {route.visits.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-slate-500">Not booked in yet. Reception books the vehicle in when the driver brings it.</p>
-                ) : (
-                    <ol className="divide-y divide-slate-100">
-                        {route.visits.map((v) => (
-                            <li key={v.id} className="relative px-4 py-2.5 text-sm">
-                                {v === current && <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-teal-700" />}
-                                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                                    <p className="font-medium text-slate-900">
-                                        {v.place} <span className="font-normal text-slate-500">· {PURPOSE_LABEL[v.purpose]}</span>
+        <ShowRoute.Provider value={show}>
+            {/* Side by side on a wide screen, so the job card's own panels below keep their place. */}
+            <div className="grid items-start gap-4 xl:grid-cols-2">
+                <Panel wide title="Route" action={<span className="text-xs font-medium text-slate-700">{status}</span>}>
+                    {route.visits.length === 0 ? (
+                        <p className="px-4 py-4 text-sm text-slate-500">Not booked in yet. Reception books the vehicle in when the driver brings it.</p>
+                    ) : (
+                        <ol className="divide-y divide-slate-100">
+                            {route.visits.map((v) => (
+                                <li key={v.id} className="relative px-4 py-2.5 text-sm">
+                                    {v === current && <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-teal-700" />}
+                                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                                        <p className="font-medium text-slate-900">
+                                            {v.place} <span className="font-normal text-slate-500">· {PURPOSE_LABEL[v.purpose]}</span>
+                                        </p>
+                                        {v.minutes !== null && <span className="tabular-nums text-xs text-slate-500">{duration(v.minutes)}{v.leftAt ? "" : " so far"}</span>}
+                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        {v.purpose === "INTAKE" ? `Booked in by ${v.sentBy ?? "—"}, ${when(v.sentAt)}` : `Sent by ${v.sentBy ?? "—"}, ${when(v.sentAt)}`}
+                                        {v.purpose !== "INTAKE" && (v.receivedAt ? ` · received by ${v.receivedBy ?? "—"}, ${when(v.receivedAt)}` : " · on its way")}
                                     </p>
-                                    {v.minutes !== null && <span className="tabular-nums text-xs text-slate-500">{duration(v.minutes)}{v.leftAt ? "" : " so far"}</span>}
-                                </div>
-                                <p className="text-xs text-slate-500">
-                                    {v.purpose === "INTAKE" ? `Booked in by ${v.sentBy ?? "—"}, ${when(v.sentAt)}` : `Sent by ${v.sentBy ?? "—"}, ${when(v.sentAt)}`}
-                                    {v.purpose !== "INTAKE" && (v.receivedAt ? ` · received by ${v.receivedBy ?? "—"}, ${when(v.receivedAt)}` : " · on its way")}
-                                </p>
-                                {v.note && <p className="mt-0.5 text-xs text-slate-700">{v.note}</p>}
-                            </li>
-                        ))}
-                    </ol>
-                )}
-                <RouteActions tenant={tenant} documentId={documentId} route={route} current={current} />
-            </Panel>
-            <SignaturesPanel tenant={tenant} documentId={documentId} route={route} when={when} />
-        </div>
+                                    {v.note && <p className="mt-0.5 text-xs text-slate-700">{v.note}</p>}
+                                </li>
+                            ))}
+                        </ol>
+                    )}
+                    <RouteActions tenant={tenant} documentId={documentId} route={route} current={current} />
+                </Panel>
+                <SignaturesPanel tenant={tenant} documentId={documentId} route={route} when={when} />
+            </div>
+        </ShowRoute.Provider>
     );
 }
 
+/*
+ * Each move is its own component with its own action state, keyed by the stay
+ * it acts on, so a move that succeeds takes its form, its message and its
+ * pending state away with it and the next stay starts clean. Every move answers
+ * with the route as it now stands (`useRouteMove`).
+ */
 function RouteActions({ tenant, documentId, route, current }: { tenant: string; documentId: string; route: RouteView; current: RouteView["visits"][number] | null }) {
-    const [bookState, book, booking] = useAction(bookInAction.bind(null, tenant, documentId));
-    const [sendState, send, sending] = useAction(sendOnAction.bind(null, tenant, documentId));
-    const [acceptState, accept, accepting] = useAction((_prev, formData: FormData) => acceptAction(tenant, documentId, String(formData.get("visitId"))));
     const { can } = route;
     if (!can.bookIn.length && !can.accept && !can.send.length && !can.blocked) return null;
     return (
         <div className="space-y-2 border-t border-slate-200 px-4 py-3">
-            {can.bookIn.length > 0 && (
-                <form action={book} className="flex flex-wrap items-center gap-2">
-                    <select name="workshopId" defaultValue={can.bookIn[0].id} aria-label="Reception" className={field}>
-                        {can.bookIn.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={booking}>{booking ? "Booking in…" : "Book in"}</Button>
-                    <Outcome state={bookState} />
-                </form>
-            )}
-            {can.accept && current && (
-                <form action={accept} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="visitId" value={can.accept} />
-                    <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={accepting}>{accepting ? "Accepting…" : `Accept it at ${current.place}`}</Button>
-                    <Outcome state={acceptState} />
-                </form>
-            )}
-            {can.send.length > 0 && (
-                <form action={send} className="flex flex-wrap items-center gap-2">
-                    <select name="to" required defaultValue="" aria-label="Where it goes" className={`${field} min-w-0`}>
-                        <option value="" disabled>Send it to</option>
-                        {can.send.map((group) => (
-                            <optgroup key={group.purpose} label={PURPOSE_LABEL[group.purpose]}>
-                                {group.places.map((p) => <option key={p.id} value={`${group.purpose}:${p.id}`}>{p.name}</option>)}
-                            </optgroup>
-                        ))}
-                    </select>
-                    <input name="note" placeholder="Note for the next place (optional)" aria-label="Note" maxLength={200} className={`${field} w-64 min-w-0`} />
-                    <Button type="submit" size="sm" variant="outline" className="h-8" disabled={sending}>{sending ? "Sending…" : "Send it on"}</Button>
-                    <Outcome state={sendState} />
-                </form>
-            )}
+            {can.bookIn.length > 0 && <BookInForm tenant={tenant} documentId={documentId} places={can.bookIn} />}
+            {can.accept && current && <AcceptForm key={can.accept} tenant={tenant} documentId={documentId} visitId={can.accept} place={current.place} />}
+            {can.send.length > 0 && <SendForm key={current?.id ?? "none"} tenant={tenant} documentId={documentId} groups={can.send} />}
             {can.blocked && <p className="text-xs text-slate-600">{can.blocked}</p>}
         </div>
+    );
+}
+
+function BookInForm({ tenant, documentId, places }: { tenant: string; documentId: string; places: RouteView["can"]["bookIn"] }) {
+    const [state, action, pending] = useRouteMove(bookInAction.bind(null, tenant, documentId));
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-2">
+            <select name="workshopId" defaultValue={places[0].id} aria-label="Reception" className={field}>
+                {places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={pending}>{pending ? "Booking in…" : "Book in"}</Button>
+            <Outcome state={state} />
+        </form>
+    );
+}
+
+function AcceptForm({ tenant, documentId, visitId, place }: { tenant: string; documentId: string; visitId: string; place: string }) {
+    const [state, action, pending] = useRouteMove(() => acceptAction(tenant, documentId, visitId));
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-2">
+            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={pending}>{pending ? "Accepting…" : `Accept it at ${place}`}</Button>
+            <Outcome state={state} />
+        </form>
+    );
+}
+
+function SendForm({ tenant, documentId, groups }: { tenant: string; documentId: string; groups: RouteView["can"]["send"] }) {
+    const [state, action, pending] = useRouteMove(sendOnAction.bind(null, tenant, documentId));
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-2">
+            <select name="to" required defaultValue="" aria-label="Where it goes" className={`${field} min-w-0`}>
+                <option value="" disabled>Send it to</option>
+                {groups.map((group) => (
+                    <optgroup key={group.purpose} label={PURPOSE_LABEL[group.purpose]}>
+                        {group.places.map((p) => <option key={p.id} value={`${group.purpose}:${p.id}`}>{p.name}</option>)}
+                    </optgroup>
+                ))}
+            </select>
+            <input name="note" placeholder="Note for the next place (optional)" aria-label="Note" maxLength={200} className={`${field} w-64 min-w-0`} />
+            <Button type="submit" size="sm" variant="outline" className="h-8" disabled={pending}>{pending ? "Sending…" : "Send it on"}</Button>
+            <Outcome state={state} />
+        </form>
     );
 }
 
@@ -169,7 +209,7 @@ function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; 
 }
 
 function SignBox({ tenant, documentId, box }: { tenant: string; documentId: string; box: RouteView["can"]["sign"][number] }) {
-    const [state, action, signing] = useAction(signJobAction.bind(null, tenant, documentId));
+    const [state, action, signing] = useRouteMove(signJobAction.bind(null, tenant, documentId));
     const label = box.role === "DRIVER" ? "Record the driver's signature" : `Sign as ${ROLE_LABEL[box.role].toLowerCase()}`;
     return (
         <form action={action} className="flex flex-wrap items-center gap-2">

@@ -3,6 +3,7 @@ import type { JobSignRole, JobSignStage, Tenant, VisitPurpose, WorkshopKind } fr
 import type { TenantDb } from "@/lib/tenant-db";
 import { fullName } from "@/lib/format";
 import { jobFlowSettings } from "@/lib/settings/schema";
+import type { ActionState } from "@/lib/forms";
 import {
     currentVisit,
     issueMissing,
@@ -44,6 +45,9 @@ export type RouteView = {
         sign: { stage: JobSignStage; role: JobSignRole }[];
     };
 };
+
+/** What a move answers with: the usual outcome, and the job's route as it now stands. */
+export type MoveState = ActionState & { route?: RouteView };
 
 export async function viewer(db: TenantDb, membershipId: string): Promise<Person> {
     const m = await db.membership.findFirst({

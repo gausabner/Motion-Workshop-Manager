@@ -8,6 +8,7 @@ import { assertCan } from "@/lib/auth/permissions";
 import { str, type ActionState } from "@/lib/forms";
 import { JOB_SIGN_ROLES, jobFlowSettingsSchema, parseSettings } from "@/lib/settings/schema";
 import { acceptVisit, bookIn, sendOn, signJob } from "@/lib/fleet/route";
+import { routeView, type MoveState } from "@/lib/fleet/queries";
 
 /**
  * Moving a vehicle along its route, and signing its job card. Council plan
@@ -21,63 +22,59 @@ async function onSite(slug: string) {
     return { ...ctx, actor: { membershipId: ctx.membership.id, userId: ctx.user.id } };
 }
 
-function refresh(slug: string, documentId: string) {
-    revalidatePath(`/${slug}/dashboard/documents/${documentId}`);
-    revalidatePath(`/${slug}/dashboard/flow`);
-}
-
-async function attempt(fn: () => Promise<unknown>, done: string): Promise<ActionState> {
+/*
+ * Each move answers with the job's route as it stands afterwards, and the
+ * panel shows that, rather than waiting for the page to be fetched again. In
+ * a production build of Next 16.1 a document page that links to a customer
+ * ignores `router.refresh()` and the navigation a revalidating action
+ * starts: the fresh page arrives and is never shown, so the button sat on
+ * "Booking in…" with the work saved. Answering with the route sidesteps that,
+ * keeps the job card's unsaved edits, and is one round trip instead of two.
+ */
+async function move(slug: string, documentId: string, done: string, run: (ctx: Awaited<ReturnType<typeof onSite>>) => Promise<unknown>): Promise<MoveState> {
+    const ctx = await onSite(slug);
     try {
-        await fn();
-        return { ok: true, message: done };
+        await run(ctx);
     } catch (error) {
         return { ok: false, message: error instanceof Error ? error.message : "Not done. Try again." };
     }
+    return { ok: true, message: done, route: await routeView(ctx.db, ctx.tenant, documentId, ctx.membership.id) };
 }
 
-export async function bookInAction(slug: string, documentId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, actor } = await onSite(slug);
-    const result = await attempt(() => db.$transaction((tx) => bookIn(tx, tenant, actor, documentId, str(formData, "workshopId") ?? "", str(formData, "note"))), "Booked in");
-    refresh(slug, documentId);
-    return result;
+export async function bookInAction(slug: string, documentId: string, _prev: MoveState, formData: FormData): Promise<MoveState> {
+    return move(slug, documentId, "Booked in", ({ db, tenant, actor }) =>
+        db.$transaction((tx) => bookIn(tx, tenant, actor, documentId, str(formData, "workshopId") ?? "", str(formData, "note"))),
+    );
 }
 
-export async function sendOnAction(slug: string, documentId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, actor } = await onSite(slug);
+export async function sendOnAction(slug: string, documentId: string, _prev: MoveState, formData: FormData): Promise<MoveState> {
     // The destination is chosen as "PURPOSE:workshopId", so one list can offer the tyre bay for work and the check bay for its quality check.
     const [purpose, workshopId] = (str(formData, "to") ?? "").split(":");
     const parsed = z.enum(VisitPurpose).safeParse(purpose);
     if (!parsed.success || !workshopId) return { ok: false, message: "Choose where it goes." };
-    const result = await attempt(() => db.$transaction((tx) => sendOn(tx, tenant, actor, documentId, { purpose: parsed.data, workshopId, note: str(formData, "note") })), "Sent");
-    refresh(slug, documentId);
-    return result;
+    return move(slug, documentId, "Sent", ({ db, tenant, actor }) =>
+        db.$transaction((tx) => sendOn(tx, tenant, actor, documentId, { purpose: parsed.data, workshopId, note: str(formData, "note") })),
+    );
 }
 
-export async function acceptAction(slug: string, documentId: string, visitId: string): Promise<ActionState> {
-    const { db, tenant, actor } = await onSite(slug);
-    const result = await attempt(() => db.$transaction((tx) => acceptVisit(tx, tenant, actor, visitId)), "Accepted");
-    refresh(slug, documentId);
-    return result;
+export async function acceptAction(slug: string, documentId: string, visitId: string): Promise<MoveState> {
+    return move(slug, documentId, "Accepted", ({ db, tenant, actor }) => db.$transaction((tx) => acceptVisit(tx, tenant, actor, visitId)));
 }
 
-export async function signJobAction(slug: string, documentId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-    const { db, tenant, actor } = await onSite(slug);
+export async function signJobAction(slug: string, documentId: string, _prev: MoveState, formData: FormData): Promise<MoveState> {
     const stage = z.enum(JobSignStage).safeParse(str(formData, "stage"));
     const role = z.enum(JobSignRole).safeParse(str(formData, "role"));
     if (!stage.success || !role.success) return { ok: false, message: "Choose what you are signing." };
     const decision = str(formData, "decision");
-    const result = await attempt(
-        () => db.$transaction((tx) => signJob(tx, tenant, actor, documentId, {
+    return move(slug, documentId, "Signed", ({ db, tenant, actor }) =>
+        db.$transaction((tx) => signJob(tx, tenant, actor, documentId, {
             stage: stage.data,
             role: role.data,
             decision: decision === "PASSED" || decision === "FAILED" ? decision : undefined,
             driver: role.data === "DRIVER" ? { name: str(formData, "driverName") ?? "", payNumber: str(formData, "driverPayNumber") ?? null } : null,
             comment: str(formData, "comment"),
         })),
-        "Signed",
     );
-    refresh(slug, documentId);
-    return result;
 }
 
 /** Which signatures the council's paper job card asks for at issue. Settings work, so the settings permission. */
