@@ -190,6 +190,24 @@ export function organisationSettings(value: unknown): OrganisationSettings {
     return raw.success ? raw.data : organisationSettingsSchema.parse({});
 }
 
+/**
+ * The council's job card: which signatures it asks for when it is issued.
+ * The owner's reading of the paper card is all five; a council whose card
+ * differs says so here rather than in code.
+ */
+export const JOB_SIGN_ROLES = ["RECEPTION", "DRIVER", "FOREMAN", "FLEET_COORDINATOR", "MECHANIC"] as const;
+
+export const jobFlowSettingsSchema = z.object({
+    issueRoles: z.array(z.enum(JOB_SIGN_ROLES)).min(1).default([...JOB_SIGN_ROLES]),
+});
+
+export type JobFlowSettings = z.infer<typeof jobFlowSettingsSchema>;
+
+export function jobFlowSettings(value: unknown): JobFlowSettings {
+    const raw = jobFlowSettingsSchema.safeParse(parseSettings(value).jobFlow ?? {});
+    return raw.success ? raw.data : jobFlowSettingsSchema.parse({});
+}
+
 export const tenantSettingsSchema = z.object({
     /** Printed under the invoice footer. Free text, because every bank lays it out differently. */
     bankDetails: z.string().trim().max(600).optional(),
@@ -202,6 +220,7 @@ export const tenantSettingsSchema = z.object({
     handoff: handoffSettingsSchema.optional(),
     requisitions: requisitionSettingsSchema.optional(),
     organisation: organisationSettingsSchema.optional(),
+    jobFlow: jobFlowSettingsSchema.optional(),
 });
 
 export type TenantSettings = z.infer<typeof tenantSettingsSchema>;

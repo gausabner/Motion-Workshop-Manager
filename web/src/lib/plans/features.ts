@@ -17,7 +17,7 @@ import { TERM } from "@/lib/copy/terms";
 
 export type PlanId = "workshop" | "full" | "council";
 
-export type Feature = "stock" | "purchasing" | "requisitions" | "inspections" | "reminders" | "loanCars" | "ownerReports" | "auditPack" | "handoff" | "api";
+export type Feature = "stock" | "purchasing" | "requisitions" | "jobFlow" | "inspections" | "reminders" | "loanCars" | "ownerReports" | "auditPack" | "handoff" | "api";
 
 export const PLAN_NAMES: Record<PlanId, string> = { workshop: "Workshop", full: "Full workshop", council: "Council and multi-site" };
 
@@ -36,6 +36,11 @@ export const FEATURES: Record<Feature, { name: string; plan: PlanId; what: strin
         name: "Requisitions",
         plan: "council",
         what: "Requests for stock and purchases, signed off by the foreman and the divisional head before anything is issued or ordered.",
+    },
+    jobFlow: {
+        name: "The vehicle's route",
+        plan: "council",
+        what: "Reception, the check bay and the workshops: where each vehicle is, who handed it over, and the job card's signatures.",
     },
     inspections: { name: "Inspections", plan: "full", what: "Vehicle inspections the customer approves on their phone." },
     reminders: {
@@ -98,6 +103,7 @@ export const FEATURE_MODELS: Partial<Record<Feature, string[]>> = {
     stock: ["StockTake", "StockTakeLine", "PriceMatrix", "PriceMatrixBand", "BundleItem"],
     purchasing: ["Supplier", "PurchaseOrder", "PurchaseOrderLine", "SupplierInvoice", "SupplierInvoiceLine", "SupplierPayment", "SupplierPaymentAllocation"],
     requisitions: ["OrgUnit", "Vote", "Workshop", "SigningAuthority", "Requisition", "RequisitionLine", "RequisitionQuote", "RequisitionSignoff", "RequisitionIssue"],
+    jobFlow: ["JobVisit", "JobSignoff"],
     inspections: ["InspectionTemplate", "InspectionTemplateItem", "Inspection", "InspectionItem"],
     reminders: ["Campaign", "CampaignRecipient"],
     loanCars: ["LoanVehicle", "Loan"],

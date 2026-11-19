@@ -211,24 +211,24 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                             {totals.discountApplied > 0 && <div className="flex justify-between text-amber-700"><dt>Discount</dt><dd className="tabular-nums">− {money(totals.discountApplied)}</dd></div>}
                             <div className="flex justify-between"><dt className="text-slate-500">{doc.taxName} ({taxRate}%)</dt><dd className="tabular-nums">{money(totals.vatTotal)}</dd></div>
                             <div className="flex justify-between pt-1.5 border-t border-slate-200 text-base font-bold"><dt>Total</dt><dd className="tabular-nums">{money(totals.total)}</dd></div>
-                            {showCost && (
-                                <div className="pt-2 mt-2 border-t border-dashed border-slate-200 space-y-1 text-xs">
-                                    <div className="flex justify-between text-slate-500"><dt>Cost</dt><dd className="tabular-nums">{money(totals.totalCost)}</dd></div>
-                                    <div className={`flex justify-between font-semibold ${totals.grossProfit < 0 ? "text-red-600" : "text-green-700"}`}>
-                                        <dt>Gross profit</dt><dd className="tabular-nums">{money(totals.grossProfit)} · {totals.grossMarginPercent}%</dd>
-                                    </div>
-                                </div>
-                            )}
-                            {doc.amountPaid > 0 && (
-                                <div className="pt-2 mt-2 border-t border-slate-200 space-y-1">
-                                    <div className="flex justify-between text-slate-500"><dt>Paid</dt><dd className="tabular-nums">{money(doc.amountPaid)}</dd></div>
-                                    <div className="flex justify-between font-semibold"><dt>Due</dt><dd className="tabular-nums">{money(doc.amountDue)}</dd></div>
-                                </div>
-                            )}
-                            <p className="pt-2 text-[11px] text-slate-500">
-                                Prices {pricesIncludeTax ? "include" : "exclude"} {doc.taxName} at {taxRate}% — fixed when this document was raised.
-                            </p>
                         </dl>
+                        {showCost && (
+                            <dl className="pt-2 border-t border-dashed border-slate-200 space-y-1 text-xs">
+                                <div className="flex justify-between text-slate-500"><dt>Cost</dt><dd className="tabular-nums">{money(totals.totalCost)}</dd></div>
+                                <div className={`flex justify-between font-semibold ${totals.grossProfit < 0 ? "text-red-600" : "text-green-700"}`}>
+                                    <dt>Gross profit</dt><dd className="tabular-nums">{money(totals.grossProfit)} · {totals.grossMarginPercent}%</dd>
+                                </div>
+                            </dl>
+                        )}
+                        {doc.amountPaid > 0 && (
+                            <dl className="pt-2 border-t border-slate-200 space-y-1">
+                                <div className="flex justify-between text-slate-500"><dt>Paid</dt><dd className="tabular-nums">{money(doc.amountPaid)}</dd></div>
+                                <div className="flex justify-between font-semibold"><dt>Due</dt><dd className="tabular-nums">{money(doc.amountDue)}</dd></div>
+                            </dl>
+                        )}
+                        <p className="pt-1 text-[11px] text-slate-500">
+                            Prices {pricesIncludeTax ? "include" : "exclude"} {doc.taxName} at {taxRate}% — fixed when this document was raised.
+                        </p>
                     </div>
                 </section>
             </div>
