@@ -13,7 +13,7 @@ export function AcceptButton({ tenant, documentId, visitId }: { tenant: string; 
             <p role="status" className="text-xs font-medium text-teal-700">Accepted</p>
         ) : (
             <form action={accept} className="flex items-center gap-2">
-                <Button type="submit" size="sm" variant="outline" className="h-7" disabled={pending}>{pending ? "Accepting…" : "Accept"}</Button>
+                <Button type="submit" size="sm" variant="outline" className="h-7 pointer-coarse:min-h-11" disabled={pending}>{pending ? "Accepting…" : "Accept"}</Button>
                 <Outcome state={state} />
             </form>
         )

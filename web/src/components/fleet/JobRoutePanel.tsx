@@ -51,7 +51,7 @@ export function JobRoutePanel({ tenant, documentId, route: given, timezone }: { 
         <ShowRoute.Provider value={show}>
             {/* Side by side on a wide screen, so the job card's own panels below keep their place. */}
             <div className="grid items-start gap-4 xl:grid-cols-2">
-                <Panel wide title="Route" action={<span className="text-xs font-medium text-slate-700">{status}</span>}>
+                <Panel wide level={2} title="Route" action={<span role="status" className="text-xs font-medium text-slate-700">{status}</span>}>
                     {route.visits.length === 0 ? (
                         <p className="px-4 py-4 text-sm text-slate-500">Not booked in yet. Reception books the vehicle in when the driver brings it.</p>
                     ) : (
@@ -108,7 +108,7 @@ function BookInForm({ tenant, documentId, places }: { tenant: string; documentId
             <select name="workshopId" defaultValue={places[0].id} aria-label="Reception" className={field}>
                 {places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={pending}>{pending ? "Booking in…" : "Book in"}</Button>
+            <Button type="submit" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Booking in…" : "Book in"}</Button>
             <Outcome state={state} />
         </form>
     );
@@ -118,7 +118,7 @@ function AcceptForm({ tenant, documentId, visitId, place }: { tenant: string; do
     const [state, action, pending] = useRouteMove(() => acceptAction(tenant, documentId, visitId));
     return (
         <form action={action} className="flex flex-wrap items-center gap-2">
-            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={pending}>{pending ? "Accepting…" : `Accept it at ${place}`}</Button>
+            <Button type="submit" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Accepting…" : `Accept it at ${place}`}</Button>
             <Outcome state={state} />
         </form>
     );
@@ -128,7 +128,7 @@ function SendForm({ tenant, documentId, groups }: { tenant: string; documentId: 
     const [state, action, pending] = useRouteMove(sendOnAction.bind(null, tenant, documentId));
     return (
         <form action={action} className="flex flex-wrap items-center gap-2">
-            <select name="to" required defaultValue="" aria-label="Where it goes" className={`${field} min-w-0`}>
+            <select name="to" required defaultValue="" aria-label="Where it goes" className={`${field} min-w-0 ${touch}`}>
                 <option value="" disabled>Send it to</option>
                 {groups.map((group) => (
                     <optgroup key={group.purpose} label={PURPOSE_LABEL[group.purpose]}>
@@ -137,79 +137,90 @@ function SendForm({ tenant, documentId, groups }: { tenant: string; documentId: 
                 ))}
             </select>
             <input name="note" placeholder="Note for the next place (optional)" aria-label="Note" maxLength={200} className={`${field} w-64 min-w-0`} />
-            <Button type="submit" size="sm" variant="outline" className="h-8" disabled={pending}>{pending ? "Sending…" : "Send it on"}</Button>
+            <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={pending}>{pending ? "Sending…" : "Send it on"}</Button>
             <Outcome state={state} />
         </form>
     );
 }
 
+const STAGES = ["ISSUE", "ASSESSMENT", "QUALITY_CHECK", "COLLECTION"] as const;
+const STAGE_LABEL: Record<(typeof STAGES)[number], string> = { ISSUE: "At issue", ASSESSMENT: "Assessment", QUALITY_CHECK: "Quality check", COLLECTION: "Collection" };
+/** Touch-sized on a coarse pointer: a foreman at a shared tablet, gloves off or not. */
+const touch = "pointer-coarse:min-h-11";
+
+/**
+ * The job card's signatures, laid out like the paper card: each stage's
+ * boxes, signed or waiting. A box this person may sign carries its own
+ * button, named for whose signature it records. One person signs one box at
+ * issue (reception also records the driver), and the rule refuses a second.
+ */
 function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; documentId: string; route: RouteView; when: (iso: string) => string }) {
-    const at = (stage: string) => route.signatures.filter((s) => s.stage === stage);
-    const cols = (
-        <colgroup>
-            <col className="w-28" />
-            <col />
-            <col className="w-24" />
-            <col className="w-24" />
-        </colgroup>
-    );
-    const issue = at("ISSUE");
-    const rows = (list: RouteView["signatures"]) =>
-        list.map((s) => (
-            <tr key={s.id} className="border-t border-slate-100 align-baseline">
-                <td className="py-1.5 pr-3 text-slate-500">{ROLE_LABEL[s.role]}</td>
-                <td className="py-1.5 pr-3 font-medium text-slate-900">
-                    {s.name}
-                    {(s.decision !== "SIGNED" || s.comment) && (
-                        <span className="block text-xs font-normal text-slate-600">
-                            {s.decision === "PASSED" && <span className="font-semibold text-teal-700">Passed</span>}
-                            {s.decision === "FAILED" && <span className="font-semibold text-red-700">Failed</span>}
-                            {s.decision !== "SIGNED" && s.comment && " · "}
-                            {s.comment}
-                        </span>
-                    )}
-                </td>
-                <td className="py-1.5 pr-3 tabular-nums text-slate-600">{s.payNumber ?? "—"}</td>
-                <td className="py-1.5 text-right tabular-nums text-xs text-slate-500">{when(s.at)}</td>
-            </tr>
-        ));
+    const mine = (stage: string, role: string) => route.can.sign.some((b) => b.stage === stage && b.role === role);
+    const issueOffered = route.can.sign.filter((b) => b.stage === "ISSUE" && b.role !== "DRIVER").length;
     return (
-        <Panel wide title="Job card signatures" footer="Each signature keeps the name and pay number as they stood when it was given. A driver without a login is recorded by reception and signs the printed card.">
+        <Panel wide level={2} title="Job card signatures" footer="Each signature keeps the name and pay number as they stood when it was given. A driver without a login is recorded by reception and signs the printed card.">
             <div className="space-y-4 px-4 py-3">
-                <section>
-                    <h4 className="text-xs font-semibold text-slate-900">At issue</h4>
-                    <table className="mt-1 w-full table-fixed text-sm">
-                        {cols}
-                        <tbody>
-                            {rows(issue)}
-                            {route.issueMissing.map((role) => (
-                                <tr key={role} className="border-t border-slate-100">
-                                    <td className="py-1.5 pr-3 text-slate-500">{ROLE_LABEL[role]}</td>
-                                    <td colSpan={3} className="py-1.5 text-slate-500">Waiting</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </section>
-                {(["ASSESSMENT", "QUALITY_CHECK", "COLLECTION"] as const).map((stage) =>
-                    at(stage).length > 0 ? (
-                        <section key={stage}>
-                            <h4 className="text-xs font-semibold text-slate-900">{stage === "ASSESSMENT" ? "Assessment" : stage === "QUALITY_CHECK" ? "Quality check" : "Collection"}</h4>
-                            <table className="mt-1 w-full table-fixed text-sm">{cols}<tbody>{rows(at(stage))}</tbody></table>
+                {STAGES.filter((stage) => route.signatures.some((s) => s.stage === stage) || route.waiting.some((w) => w.stage === stage)).map((stage, n) => {
+                    const signed = route.signatures.filter((s) => s.stage === stage);
+                    const waiting = route.waiting.filter((w) => w.stage === stage);
+                    return (
+                        <section key={stage} aria-labelledby={`sign-${stage}`}>
+                            <h3 id={`sign-${stage}`} className="text-xs font-semibold text-slate-900">{STAGE_LABEL[stage]}</h3>
+                            {stage === "ISSUE" && issueOffered > 1 && <p className="mt-0.5 text-xs text-slate-600">You can sign one of these boxes; each is a different person on the paper card.</p>}
+                            <table data-mobile="cards" className="mt-1 w-full text-sm md:table-fixed">
+                                <colgroup>
+                                    <col className="md:w-28" />
+                                    <col />
+                                    <col className="md:w-24" />
+                                    <col className="md:w-24" />
+                                </colgroup>
+                                {/* The columns are named once, over the first stage; the later tables keep their headers for a screen reader. */}
+                                <thead className={n === 0 ? undefined : "sr-only"}>
+                                    <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                                        <th scope="col" className="pb-1 pr-3 font-semibold">Role</th>
+                                        <th scope="col" className="pb-1 pr-3 font-semibold">Name</th>
+                                        <th scope="col" className="pb-1 pr-3 font-semibold">Pay No.</th>
+                                        <th scope="col" className="pb-1 text-right font-semibold">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {signed.map((s) => (
+                                        <tr key={s.id} className="border-t border-slate-100 align-baseline">
+                                            <td className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[s.role]}</td>
+                                            <td data-mobile="primary" className="py-1.5 pr-3 font-medium text-slate-900">
+                                                {s.name}
+                                                {(s.decision !== "SIGNED" || s.comment) && (
+                                                    <span className="block text-xs font-normal text-slate-600">
+                                                        {s.decision === "PASSED" && <span className="font-semibold text-teal-700">Passed</span>}
+                                                        {s.decision === "FAILED" && <span className="font-semibold text-red-700">Failed</span>}
+                                                        {s.decision !== "SIGNED" && s.comment && " · "}
+                                                        {s.comment}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td data-label="Pay No." className="py-1.5 pr-3 tabular-nums text-slate-600">{s.payNumber ?? "—"}</td>
+                                            <td data-label="Signed" className="py-1.5 tabular-nums text-xs text-slate-500 md:text-right">{when(s.at)}</td>
+                                        </tr>
+                                    ))}
+                                    {waiting.map((w) => (
+                                        <tr key={`${w.stage}-${w.role}`} className="border-t border-slate-100 align-middle">
+                                            <td className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[w.role]}</td>
+                                            <td colSpan={3} className="py-1.5">
+                                                {!mine(w.stage, w.role) ? (
+                                                    <span className="text-slate-500">Waiting</span>
+                                                ) : w.role === "INSPECTOR" && route.check && (route.check.required || route.check.inspection) ? (
+                                                    <CheckBox tenant={tenant} documentId={documentId} check={route.check} />
+                                                ) : (
+                                                    <SignBox tenant={tenant} documentId={documentId} box={w} me={route.me} driver={w.stage === "COLLECTION" ? route.driver : null} />
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </section>
-                    ) : null,
-                )}
-                {route.can.sign.length > 0 && (
-                    <div className="space-y-2 border-t border-slate-200 pt-3">
-                        {route.can.sign.map((box) =>
-                            box.role === "INSPECTOR" && route.check && (route.check.required || route.check.inspection) ? (
-                                <CheckBox key={`${box.stage}-${box.role}`} tenant={tenant} documentId={documentId} check={route.check} />
-                            ) : (
-                                <SignBox key={`${box.stage}-${box.role}`} tenant={tenant} documentId={documentId} box={box} />
-                            ),
-                        )}
-                    </div>
-                )}
+                    );
+                })}
             </div>
         </Panel>
     );
@@ -229,10 +240,9 @@ function CheckBox({ tenant, documentId, check }: { tenant: string; documentId: s
     const failed = check.purpose === "QUALITY_CHECK" && !!i && i.red > 0;
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <span className="w-28 shrink-0 text-xs text-slate-500">{check.purpose === "ASSESSMENT" ? "Assessment" : "Quality check"}</span>
             {!i ? (
                 <form action={start} className="flex flex-wrap items-center gap-2">
-                    <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={starting}>{starting ? "Starting…" : `Start the ${what}`}</Button>
+                    <Button type="submit" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={starting}>{starting ? "Starting…" : `Start the ${what}`}</Button>
                     <Outcome state={startState} />
                 </form>
             ) : i.left > 0 ? (
@@ -256,7 +266,7 @@ function CheckBox({ tenant, documentId, check }: { tenant: string; documentId: s
                         <Link href={`/${tenant}/dashboard/inspections/${i.id}`} className="text-teal-700 hover:underline">Open {i.number ?? `the ${what}`}</Link>
                     </p>
                     <input name="comment" placeholder="Note (optional)" aria-label={`Note on the ${what}`} maxLength={200} className={`${field} w-64 min-w-0`} />
-                    <Button type="submit" size="sm" variant="outline" className="h-8" disabled={signing}>
+                    <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={signing}>
                         {signing ? "Signing…" : failed ? `Fail it and send it back to ${check.returnTo?.name ?? "the workshop"}` : check.purpose === "QUALITY_CHECK" ? "Pass it" : "Sign the assessment"}
                     </Button>
                     <Outcome state={state} />
@@ -266,31 +276,32 @@ function CheckBox({ tenant, documentId, check }: { tenant: string; documentId: s
     );
 }
 
-function SignBox({ tenant, documentId, box }: { tenant: string; documentId: string; box: RouteView["can"]["sign"][number] }) {
+function SignBox({ tenant, documentId, box, me, driver }: { tenant: string; documentId: string; box: RouteView["waiting"][number]; me: RouteView["me"]; driver: RouteView["driver"] }) {
     const [state, action, signing] = useRouteMove(signJobAction.bind(null, tenant, documentId));
     const label = box.role === "DRIVER" ? "Record the driver's signature" : `Sign as ${ROLE_LABEL[box.role].toLowerCase()}`;
     return (
         <form action={action} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="stage" value={box.stage} />
             <input type="hidden" name="role" value={box.role} />
-            <span className="w-28 shrink-0 text-xs text-slate-500">{box.stage === "ISSUE" ? "At issue" : box.stage === "ASSESSMENT" ? "Assessment" : box.stage === "QUALITY_CHECK" ? "Quality check" : "Collection"}</span>
             {box.role === "DRIVER" && (
                 <>
-                    <input name="driverName" required placeholder="Driver's name" aria-label="Driver's name" className={`${field} w-48`} />
-                    <input name="driverPayNumber" placeholder="Pay No." aria-label="Driver's pay number" className={`${field} w-28 tabular-nums`} />
+                    <input name="driverName" required defaultValue={driver?.name ?? ""} placeholder="Driver's name" aria-label="Driver's name" className={`${field} w-48 min-w-0 ${touch}`} />
+                    <input name="driverPayNumber" defaultValue={driver?.payNumber ?? ""} placeholder="Pay No." aria-label="Driver's pay number" className={`${field} w-28 tabular-nums ${touch}`} />
                 </>
             )}
             {box.stage === "QUALITY_CHECK" && (
                 <fieldset className="flex items-center gap-3 text-sm text-slate-700">
                     <legend className="sr-only">Outcome</legend>
-                    <label className="inline-flex items-center gap-1.5"><input type="radio" name="decision" value="PASSED" required className="accent-teal-700" />Passed</label>
-                    <label className="inline-flex items-center gap-1.5"><input type="radio" name="decision" value="FAILED" className="accent-teal-700" />Failed</label>
+                    <label className={`inline-flex items-center gap-1.5 ${touch}`}><input type="radio" name="decision" value="PASSED" required className="accent-teal-700 pointer-coarse:size-5" />Passed</label>
+                    <label className={`inline-flex items-center gap-1.5 ${touch}`}><input type="radio" name="decision" value="FAILED" className="accent-teal-700 pointer-coarse:size-5" />Failed</label>
                 </fieldset>
             )}
             {(box.stage === "ASSESSMENT" || box.stage === "QUALITY_CHECK") && (
-                <input name="comment" placeholder={box.stage === "ASSESSMENT" ? "What it needs" : "What failed, if it did"} aria-label={box.stage === "ASSESSMENT" ? "Assessment findings" : "Quality check findings"} maxLength={300} className={`${field} w-64 min-w-0`} />
+                <input name="comment" placeholder={box.stage === "ASSESSMENT" ? "What it needs" : "What failed, if it did"} aria-label={box.stage === "ASSESSMENT" ? "Assessment findings" : "Quality check findings"} maxLength={300} className={`${field} w-64 min-w-0 ${touch}`} />
             )}
-            <Button type="submit" size="sm" variant="outline" className="h-8" disabled={signing}>{signing ? "Signing…" : label}</Button>
+            <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={signing}>{signing ? "Signing…" : label}</Button>
+            {/* Whose signature this records, so nobody signs for the wrong box by mistake. */}
+            {box.role !== "DRIVER" && <span className="text-xs text-slate-600">{me.name}{me.payNumber ? ` · ${me.payNumber}` : ""}</span>}
             <Outcome state={state} />
         </form>
     );

@@ -36,6 +36,12 @@ export type RouteView = {
     signatures: { id: string; stage: JobSignStage; role: JobSignRole; decision: string; name: string; payNumber: string | null; comment: string | null; at: string }[];
     issueRoles: JobSignRole[];
     issueMissing: JobSignRole[];
+    /** The signatures the stage it is at still waits for, so each shows as a row to be filled. */
+    waiting: { stage: JobSignStage; role: JobSignRole }[];
+    /** Who is looking, as their signature would read. */
+    me: { name: string; payNumber: string | null };
+    /** The driver who signed at issue, so collection need not type them again. */
+    driver: { name: string; payNumber: string | null } | null;
     collected: boolean;
     /** What the person looking can do. */
     can: {
@@ -70,7 +76,7 @@ export async function viewer(db: TenantDb, membershipId: string): Promise<Person
 }
 
 export async function routeView(db: TenantDb, tenant: Tenant, documentId: string, membershipId: string, now = new Date()): Promise<RouteView> {
-    const [rows, signoffs, places, person] = await Promise.all([
+    const [rows, signoffs, places, person, me] = await Promise.all([
         db.jobVisit.findMany({
             where: { documentId },
             orderBy: { sentAt: "asc" },
@@ -84,6 +90,7 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
         db.jobSignoff.findMany({ where: { documentId }, orderBy: { at: "asc" }, select: { id: true, stage: true, role: true, decision: true, membershipId: true, name: true, payNumber: true, comment: true, at: true } }),
         db.workshop.findMany({ where: { archivedAt: null }, orderBy: { name: "asc" }, select: { id: true, name: true, kind: true } }),
         viewer(db, membershipId),
+        db.membership.findFirst({ where: { id: membershipId }, select: { payNumber: true, user: { select: { firstName: true, lastName: true } } } }),
     ]);
     const visits = rows.map((r) => ({ id: r.id, workshopId: r.workshopId, purpose: r.purpose, received: !!r.receivedAt, left: !!r.leftAt }));
     const current = currentVisit(visits);
@@ -123,6 +130,16 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
         }
     }
 
+    // What the stage the vehicle is at still waits for.
+    const waiting: RouteView["waiting"] = missing.map((role) => ({ stage: "ISSUE" as const, role }));
+    if (here?.receivedAt && here.workshop.kind === "CHECK_BAY" && (here.purpose === "ASSESSMENT" || here.purpose === "QUALITY_CHECK") && !sinceArrival.some((s) => s.stage === here.purpose)) {
+        waiting.push({ stage: here.purpose, role: "INSPECTOR" });
+    }
+    if (here?.receivedAt && here.purpose === "RELEASE") {
+        for (const role of ["DRIVER", "RECEPTION"] as const) if (!sinceArrival.some((s) => s.stage === "COLLECTION" && s.role === role)) waiting.push({ stage: "COLLECTION", role });
+    }
+    const issueDriver = signoffs.find((s) => s.stage === "ISSUE" && s.role === "DRIVER");
+
     // The check bay's check for this stay, if it is there for one and has not signed it yet.
     let check: RouteView["check"] = null;
     if (here?.receivedAt && here.workshop.kind === "CHECK_BAY" && (here.purpose === "ASSESSMENT" || here.purpose === "QUALITY_CHECK")) {
@@ -155,6 +172,9 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
         signatures: signoffs.map((s) => ({ id: s.id, stage: s.stage, role: s.role, decision: s.decision, name: s.name, payNumber: s.payNumber, comment: s.comment, at: s.at.toISOString() })),
         issueRoles: required,
         issueMissing: missing,
+        waiting,
+        me: { name: me ? fullName(me.user) : "", payNumber: me?.payNumber ?? null },
+        driver: issueDriver ? { name: issueDriver.name, payNumber: issueDriver.payNumber } : null,
         collected: collectedNow,
         can: {
             bookIn: rows.length === 0 ? places.filter((p) => p.kind === "RECEPTION" && maySend(person, null, p, "INTAKE")).map((p) => ({ id: p.id, name: p.name })) : [],

@@ -15,11 +15,13 @@ export type Person = { id: string; name: string; designations: string[] };
 export type Appointment = { id: string; membershipId: string; name: string; deputy: boolean };
 
 /** A titled panel. Settings read at a measure; `wide` lets a panel fill its column, as on the job card. */
-export function Panel({ title, action, children, footer, wide = false }: { title: string; action?: ReactNode; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+export function Panel({ title, action, children, footer, wide = false, level = 3 }: { title: string; action?: ReactNode; children: ReactNode; footer?: ReactNode; wide?: boolean; level?: 2 | 3 }) {
+    // A settings page's panels sit under its h3 heading; the job card's sit straight under its h1.
+    const Heading = level === 2 ? "h2" : "h3";
     return (
         <section className={`${wide ? "" : "max-w-4xl "}border border-slate-200 bg-white`}>
             <div className="flex min-h-10 items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+                <Heading className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</Heading>
                 {action}
             </div>
             {children}
