@@ -43,6 +43,9 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const editable = inspection.state === "DRAFT";
     const totals = estimates(items);
+    // A council check bay's own check: nobody outside approves it; it is signed on the job card.
+    const check = inspection.purpose === "GENERAL" ? null : inspection.purpose === "ASSESSMENT" ? "assessment" : "quality check";
+    const jobHref = inspection.document ? `/${tenant}/dashboard/documents/${inspection.document.id}` : null;
 
     function flush() {
         if (timer.current) clearTimeout(timer.current);
@@ -106,6 +109,7 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                         {inspection.vehicle && <span className="mr-2 rounded bg-yellow-100 px-1.5 text-yellow-900">{inspection.vehicle.plate}</span>}
                         {inspection.description ?? "Inspection"} {inspection.number}
                     </h1>
+                    {check && <p className="text-sm font-medium text-slate-700">The check bay&rsquo;s {check}</p>}
                     <p className="text-sm text-slate-500">
                         {inspection.customer ? `${inspection.customer.firstName} ${inspection.customer.lastName}` : "No customer"}
                         {inspection.vehicle ? ` · ${[inspection.vehicle.year, inspection.vehicle.make, inspection.vehicle.model].filter(Boolean).join(" ")}` : ""}
@@ -115,11 +119,11 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                 <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-600">{STATE_LABEL[inspection.state]}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {check !== "quality check" && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-red-700">Urgent</p><p className="font-semibold tabular-nums text-red-800">{money(totals.urgent)}</p></div>
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-amber-700">Soon</p><p className="font-semibold tabular-nums text-amber-800">{money(totals.soon)}</p></div>
                 <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-teal-700">Approved</p><p className="font-semibold tabular-nums text-teal-800">{money(totals.approved)}</p></div>
-            </div>
+            </div>}
 
             {inspection.customerComments && (
                 <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><span className="text-xs font-semibold uppercase tracking-wider text-slate-500">The customer wrote</span><br />&ldquo;{inspection.customerComments}&rdquo;</p>
@@ -167,11 +171,11 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                                 {(flagged || item.comment) && (
                                     <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-4">
                                         <input
-                                            value={item.comment ?? ""} disabled={!editable} placeholder="What you found — the customer reads this"
+                                            value={item.comment ?? ""} disabled={!editable} placeholder={check === "quality check" ? "What failed, so the workshop can put it right" : check ? "What you found" : "What you found — the customer reads this"}
                                             onChange={(e) => change(item.id, { comment: e.target.value })}
                                             className="h-10 rounded-md border border-slate-300 bg-white px-2 text-base sm:col-span-3 disabled:bg-slate-50"
                                         />
-                                        {flagged && (
+                                        {flagged && check !== "quality check" && (
                                             <input
                                                 value={item.estimate ?? ""} disabled={!editable} inputMode="decimal" placeholder="Cost to fix"
                                                 onChange={(e) => change(item.id, { estimate: e.target.value === "" ? null : Number(e.target.value) })}
@@ -216,7 +220,16 @@ export function InspectionEditor({ tenant, inspection, canSend }: { tenant: stri
                         {saving === "saving" ? <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span> : saving === "saved" ? "All changes saved" : saving === "error" ? <span className="text-red-600">Not saved</span> : null}
                         {message && <span className="ml-2 text-slate-700">{message}</span>}
                     </span>
-                    {editable && confirmUnrated && unrated.length > 0 ? (
+                    {check && editable ? (
+                        <span className="flex items-center gap-3">
+                            <span className="tabular-nums text-sm text-slate-700">{unrated.length ? `${unrated.length} of ${items.length} not checked yet` : "Every item checked"}</span>
+                            {jobHref && (
+                                <Link href={jobHref} onClick={() => void flush()} className={`inline-flex h-9 items-center rounded-sm px-3 text-sm font-medium ${unrated.length ? "border border-slate-300 text-slate-700" : "bg-teal-700 text-white hover:bg-teal-800"}`}>
+                                    {unrated.length ? "Back to the job card" : `Sign the ${check} on the job card`}
+                                </Link>
+                            )}
+                        </span>
+                    ) : editable && confirmUnrated && unrated.length > 0 ? (
                         <span className="flex w-full flex-wrap items-center justify-end gap-2" role="alert">
                             <span className="mr-auto text-sm text-amber-800">
                                 {unrated.length === 1 ? "1 item has" : `${unrated.length} items have`} not been checked: {unrated.slice(0, 3).map((i) => i.description).join(", ")}{unrated.length > 3 ? "…" : ""}. The customer will not see them.

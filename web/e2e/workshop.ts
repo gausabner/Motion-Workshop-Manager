@@ -153,6 +153,8 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         await tx.payment.deleteMany({ where });
         await tx.message.deleteMany({ where });
         await tx.shareLink.deleteMany({ where });
+        await tx.inspectionItem.deleteMany({ where });
+        await tx.inspection.deleteMany({ where });
         await tx.jobSignoff.deleteMany({ where });
         await tx.jobVisit.deleteMany({ where });
         // Requisitions, and the organisation and workshops they answer to. Children
@@ -170,6 +172,8 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         await tx.workshop.deleteMany({ where });
         await tx.orgUnit.deleteMany({ where: { tenantId, parentId: { not: null } } });
         await tx.orgUnit.deleteMany({ where });
+        await tx.inspectionTemplateItem.deleteMany({ where });
+        await tx.inspectionTemplate.deleteMany({ where });
         await tx.stockMovement.deleteMany({ where });
         await tx.timeEntry.deleteMany({ where });
         await tx.documentStatusEvent.deleteMany({ where });
@@ -230,6 +234,25 @@ export async function makeCouncil(workshop: Workshop): Promise<{ jobId: string; 
             select: { id: true },
         });
         return { jobId: job.id, reception, checkBay, heavy };
+    });
+}
+
+/**
+ * The check bay's two inspection templates on a council made by
+ * `makeCouncil`, chosen in its settings, so its assessment and quality check
+ * are inspections rather than a signature with a note.
+ */
+export async function makeCheckBay(workshop: Workshop): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+        await announceTenant(tx, workshop.tenantId);
+        const tenantId = workshop.tenantId;
+        const template = (name: string, items: string[]) =>
+            tx.inspectionTemplate
+                .create({ data: { tenantId, name, items: { create: items.map((description, ordering) => ({ tenantId, group: "Vehicle", description, ordering })) } }, select: { id: true } })
+                .then((t) => t.id);
+        const assessmentTemplateId = await template("Fleet assessment", ["Brakes", "Hydraulics"]);
+        const qualityTemplateId = await template("Fleet quality check", ["Wheel nuts torqued", "No new damage"]);
+        await tx.tenant.update({ where: { id: tenantId }, data: { settings: { jobFlow: { issueRoles: ["RECEPTION", "DRIVER"], assessmentTemplateId, qualityTemplateId } } } });
     });
 }
 

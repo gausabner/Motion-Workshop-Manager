@@ -71,7 +71,18 @@ export default async function OnSitePage({ params, searchParams }: { params: Pro
                                         <Link href={`${base}/documents/${v.documentId}`} className="min-w-24 font-medium text-slate-900 hover:text-teal-700">{v.jobNumber}</Link>
                                         <span className="min-w-28 font-medium tabular-nums text-slate-800">{v.plate ?? "—"}{v.fleetCode && <span className="ml-1 font-normal text-slate-500">({v.fleetCode})</span>}</span>
                                         <span className="min-w-0 flex-1 truncate text-slate-600">{[v.vehicle, v.owner].filter(Boolean).join(" · ") || "—"}</span>
-                                        <span className="text-xs text-slate-500">{PURPOSE_LABEL[v.purpose]}</span>
+                                        <span className="text-xs text-slate-500">
+                                            {PURPOSE_LABEL[v.purpose]}
+                                            {place.kind === "CHECK_BAY" && !v.arriving && (v.purpose === "ASSESSMENT" || v.purpose === "QUALITY_CHECK") && (
+                                                v.check ? (
+                                                    <Link href={`${base}/inspections/${v.check.id}`} className="ml-1 text-teal-700 hover:underline">
+                                                        {v.check.left ? `· ${v.check.left} of ${v.check.total} to check` : "· checked, to sign"}
+                                                    </Link>
+                                                ) : (
+                                                    " · not started"
+                                                )
+                                            )}
+                                        </span>
                                         {v.jobStatus && <JobStatusPill status={v.jobStatus} />}
                                         <span className="w-24 text-right tabular-nums text-xs text-slate-500">{v.arriving ? `on the way ${duration(v.minutes)}` : duration(v.minutes)}</span>
                                         {v.arriving && mayAccept(person, place) && <AcceptButton tenant={slug} documentId={v.documentId} visitId={v.visitId} />}

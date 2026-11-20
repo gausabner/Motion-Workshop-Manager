@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { JobSignRole, JobSignStage, VisitPurpose } from "@prisma/client";
 import { requireFeature } from "@/lib/auth/session";
 import { assertCan } from "@/lib/auth/permissions";
 import { str, type ActionState } from "@/lib/forms";
-import { JOB_SIGN_ROLES, jobFlowSettingsSchema, parseSettings } from "@/lib/settings/schema";
+import { JOB_SIGN_ROLES, jobFlowSettings, jobFlowSettingsSchema, parseSettings, type JobFlowSettings } from "@/lib/settings/schema";
 import { acceptVisit, bookIn, sendOn, signJob } from "@/lib/fleet/route";
 import { routeView, type MoveState } from "@/lib/fleet/queries";
+import { startCheck } from "@/lib/fleet/check-bay";
 
 /**
  * Moving a vehicle along its route, and signing its job card. Council plan
@@ -73,8 +75,21 @@ export async function signJobAction(slug: string, documentId: string, _prev: Mov
             decision: decision === "PASSED" || decision === "FAILED" ? decision : undefined,
             driver: role.data === "DRIVER" ? { name: str(formData, "driverName") ?? "", payNumber: str(formData, "driverPayNumber") ?? null } : null,
             comment: str(formData, "comment"),
+            returnToWork: str(formData, "returnToWork") === "1",
         })),
     );
+}
+
+/** The check bay starts its assessment or quality check, and goes straight to the inspection screen to work through it. */
+export async function startCheckAction(slug: string, documentId: string): Promise<MoveState> {
+    const { db, tenant, actor } = await onSite(slug);
+    let id: string;
+    try {
+        id = (await db.$transaction((tx) => startCheck(tx, tenant, actor, documentId))).id;
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "Not started. Try again." };
+    }
+    redirect(`/${slug}/dashboard/inspections/${id}`);
 }
 
 /** Which signatures the council's paper job card asks for at issue. Settings work, so the settings permission. */
@@ -82,11 +97,35 @@ export async function saveJobCardSignatures(slug: string, _prev: ActionState, fo
     const { db, tenant, user, membership } = await requireFeature(slug, "jobFlow");
     assertCan(membership, "settings:manage");
     const chosen = formData.getAll("issueRoles").map(String).filter((r): r is (typeof JOB_SIGN_ROLES)[number] => (JOB_SIGN_ROLES as readonly string[]).includes(r));
-    const parsed = jobFlowSettingsSchema.safeParse({ issueRoles: chosen });
-    if (!parsed.success) return { ok: false, message: "Tick at least one signature." };
+    if (!chosen.length) return { ok: false, message: "Tick at least one signature." };
+    return saveJobFlow(slug, { db, tenant, user }, { issueRoles: chosen });
+}
+
+/** The inspection templates the check bay's assessment and quality check use, or none. */
+export async function saveCheckBayTemplates(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const { db, tenant, user, membership } = await requireFeature(slug, "jobFlow");
+    assertCan(membership, "settings:manage");
+    const pick = async (name: string) => {
+        const id = str(formData, name);
+        if (!id) return null;
+        const template = await db.inspectionTemplate.findFirst({ where: { id, active: true }, select: { id: true } });
+        return template?.id ?? undefined;
+    };
+    const [assessmentTemplateId, qualityTemplateId] = await Promise.all([pick("assessmentTemplateId"), pick("qualityTemplateId")]);
+    if (assessmentTemplateId === undefined || qualityTemplateId === undefined) return { ok: false, message: "That template is no longer in use. Refresh the page." };
+    return saveJobFlow(slug, { db, tenant, user }, { assessmentTemplateId, qualityTemplateId });
+}
+
+async function saveJobFlow(
+    slug: string,
+    { db, tenant, user }: Pick<Awaited<ReturnType<typeof requireFeature>>, "db" | "tenant" | "user">,
+    change: Partial<JobFlowSettings>,
+): Promise<ActionState> {
     const settings = parseSettings(tenant.settings);
+    const parsed = jobFlowSettingsSchema.safeParse({ ...jobFlowSettings(tenant.settings), ...change });
+    if (!parsed.success) return { ok: false, message: "Not saved. Check the choices and try again." };
     await db.tenant.update({ where: { id: tenant.id }, data: { settings: { ...settings, jobFlow: parsed.data } } });
-    await db.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Tenant", entityId: tenant.id, action: "UPDATED", diff: { section: "jobFlow", ...parsed.data } } });
+    await db.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Tenant", entityId: tenant.id, action: "UPDATED", diff: { section: "jobFlow", ...change } } });
     revalidatePath(`/${slug}/dashboard/settings/workshops`);
     return { ok: true, message: "Saved" };
 }

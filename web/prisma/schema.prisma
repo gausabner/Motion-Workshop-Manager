@@ -1602,6 +1602,15 @@ model BookingRequest {
 
 /// D → RA → A / R → F in the benchmark. Approved and Refused are derived from
 /// the items' decisions, never set by hand.
+enum InspectionPurpose {
+  /// A workshop's own inspection, put to the customer for approval.
+  GENERAL
+  /// The check bay's assessment of a council vehicle on arrival; its findings become the job card's work.
+  ASSESSMENT
+  /// The check bay's check before a council vehicle is released; a failed item sends it back.
+  QUALITY_CHECK
+}
+
 enum InspectionState {
   DRAFT
   REQUESTED
@@ -1647,10 +1656,10 @@ model InspectionTemplateItem {
 }
 
 model Inspection {
-  id               String          @id @default(cuid())
+  id               String            @id @default(cuid())
   tenantId         String
   number           String?
-  state            InspectionState @default(DRAFT)
+  state            InspectionState   @default(DRAFT)
   /// The job card approved findings are added to.
   documentId       String?
   customerId       String?
@@ -1663,10 +1672,17 @@ model Inspection {
   customerViewedAt DateTime?
   customerComments String?
   finalisedAt      DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  /// What the inspection is for. A council's check bay runs two of its own on
+  /// every vehicle: the assessment when it arrives and the quality check before
+  /// it is released. Neither goes to a customer for approval.
+  purpose          InspectionPurpose @default(GENERAL)
+  /// The check bay stay an assessment or quality check belongs to; one each.
+  visitId          String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   tenant   Tenant              @relation(fields: [tenantId], references: [id])
+  visit    JobVisit?           @relation(fields: [visitId], references: [id], onDelete: SetNull)
   document Document?           @relation(fields: [documentId], references: [id])
   customer Customer?           @relation(fields: [customerId], references: [id])
   vehicle  Vehicle?            @relation(fields: [vehicleId], references: [id])
@@ -2426,6 +2442,9 @@ model JobVisit {
   workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
   sentBy     Membership? @relation("VisitSentBy", fields: [sentById], references: [id], onDelete: SetNull)
   receivedBy Membership? @relation("VisitReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  /// The check bay's assessment or quality check made during this stay.
+  inspections Inspection[]
 
   @@index([documentId, sentAt])
   @@index([tenantId, workshopId, leftAt])

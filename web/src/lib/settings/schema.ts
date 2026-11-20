@@ -199,6 +199,13 @@ export const JOB_SIGN_ROLES = ["RECEPTION", "DRIVER", "FOREMAN", "FLEET_COORDINA
 
 export const jobFlowSettingsSchema = z.object({
     issueRoles: z.array(z.enum(JOB_SIGN_ROLES)).min(1).default([...JOB_SIGN_ROLES]),
+    /**
+     * The inspection templates the check bay works through. With one chosen,
+     * that check is an inspection and its signature waits for every item;
+     * without, the check bay signs with a note.
+     */
+    assessmentTemplateId: z.string().trim().min(1).max(40).nullable().default(null),
+    qualityTemplateId: z.string().trim().min(1).max(40).nullable().default(null),
 });
 
 export type JobFlowSettings = z.infer<typeof jobFlowSettingsSchema>;

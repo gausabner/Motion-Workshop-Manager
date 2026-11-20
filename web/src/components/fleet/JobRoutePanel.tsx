@@ -2,7 +2,8 @@
 
 import { createContext, useActionState, useCallback, useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { acceptAction, bookInAction, sendOnAction, signJobAction } from "@/lib/fleet/actions";
+import Link from "next/link";
+import { acceptAction, bookInAction, sendOnAction, signJobAction, startCheckAction } from "@/lib/fleet/actions";
 import type { MoveState, RouteView } from "@/lib/fleet/queries";
 import { PURPOSE_LABEL, ROLE_LABEL } from "@/lib/fleet/route-rules";
 import { duration } from "@/lib/fleet/format";
@@ -200,11 +201,68 @@ function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; 
                 )}
                 {route.can.sign.length > 0 && (
                     <div className="space-y-2 border-t border-slate-200 pt-3">
-                        {route.can.sign.map((box) => <SignBox key={`${box.stage}-${box.role}`} tenant={tenant} documentId={documentId} box={box} />)}
+                        {route.can.sign.map((box) =>
+                            box.role === "INSPECTOR" && route.check && (route.check.required || route.check.inspection) ? (
+                                <CheckBox key={`${box.stage}-${box.role}`} tenant={tenant} documentId={documentId} check={route.check} />
+                            ) : (
+                                <SignBox key={`${box.stage}-${box.role}`} tenant={tenant} documentId={documentId} box={box} />
+                            ),
+                        )}
                     </div>
                 )}
             </div>
         </Panel>
+    );
+}
+
+/**
+ * The check bay's signature when its check is an inspection: start it, work
+ * through it on the inspection screen, then sign here with what it found. A
+ * quality check with a red item is failed and sent back to the workshop in
+ * one press; the inspection decides, not a radio button.
+ */
+function CheckBox({ tenant, documentId, check }: { tenant: string; documentId: string; check: NonNullable<RouteView["check"]> }) {
+    const what = check.purpose === "ASSESSMENT" ? "assessment" : "quality check";
+    const [startState, start, starting] = useActionState(startCheckAction.bind(null, tenant, documentId), {} as MoveState);
+    const [state, action, signing] = useRouteMove(signJobAction.bind(null, tenant, documentId));
+    const i = check.inspection;
+    const failed = check.purpose === "QUALITY_CHECK" && !!i && i.red > 0;
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <span className="w-28 shrink-0 text-xs text-slate-500">{check.purpose === "ASSESSMENT" ? "Assessment" : "Quality check"}</span>
+            {!i ? (
+                <form action={start} className="flex flex-wrap items-center gap-2">
+                    <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800" disabled={starting}>{starting ? "Starting…" : `Start the ${what}`}</Button>
+                    <Outcome state={startState} />
+                </form>
+            ) : i.left > 0 ? (
+                <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <Link href={`/${tenant}/dashboard/inspections/${i.id}`} className="font-medium text-teal-700 hover:underline">Continue the {what}</Link>
+                    <span className="tabular-nums text-xs text-slate-500">{i.left} of {i.total} items not checked yet</span>
+                </p>
+            ) : (
+                <form action={action} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <input type="hidden" name="stage" value={check.purpose} />
+                    <input type="hidden" name="role" value="INSPECTOR" />
+                    {failed && <input type="hidden" name="returnToWork" value="1" />}
+                    <p className="w-full text-sm text-slate-700">
+                        {check.purpose === "QUALITY_CHECK" ? (
+                            failed ? <><span className="font-semibold text-red-700">Failed:</span> {i.failed.join(", ")}</> : "Every item passed."
+                        ) : i.red + i.amber > 0 ? (
+                            `${i.red + i.amber} ${i.red + i.amber === 1 ? "finding goes" : "findings go"} onto the job card as its work.`
+                        ) : (
+                            "Nothing found."
+                        )}{" "}
+                        <Link href={`/${tenant}/dashboard/inspections/${i.id}`} className="text-teal-700 hover:underline">Open {i.number ?? `the ${what}`}</Link>
+                    </p>
+                    <input name="comment" placeholder="Note (optional)" aria-label={`Note on the ${what}`} maxLength={200} className={`${field} w-64 min-w-0`} />
+                    <Button type="submit" size="sm" variant="outline" className="h-8" disabled={signing}>
+                        {signing ? "Signing…" : failed ? `Fail it and send it back to ${check.returnTo?.name ?? "the workshop"}` : check.purpose === "QUALITY_CHECK" ? "Pass it" : "Sign the assessment"}
+                    </Button>
+                    <Outcome state={state} />
+                </form>
+            )}
+        </div>
     );
 }
 
