@@ -2560,6 +2560,9 @@ model RequisitionIssue {
   tenantId             String
   requisitionId        String
   issuedById           String
+  /// The storeman's "verified by", kept as it stood when they signed, like every other box on the form.
+  issuedByName         String?
+  issuedByPayNumber    String?
   /// Set when the receiver has a MOTION login; the name and pay number are kept either way.
   receiverMembershipId String?
   receiverName         String

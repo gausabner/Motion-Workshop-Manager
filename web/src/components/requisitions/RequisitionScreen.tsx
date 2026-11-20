@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { Outcome, Panel, field } from "@/components/settings/council/shared";
+import { Ledger, type Person } from "@/components/requisitions/Ledger";
 import {
     cancelRequisitionAction,
-    decideRequisitionAction,
     discardRequisitionAction,
-    finaliseRequisitionAction,
-    issueRequisitionAction,
     saveRequisitionAction,
     submitRequisitionAction,
     withdrawRequisitionAction,
@@ -18,95 +17,104 @@ import {
 import type { RequisitionAnswer, RequisitionView } from "@/lib/requisitions/view";
 
 /**
- * One requisition: what it asks for, where it is, and the one thing the
- * person looking may do next — write and submit it, approve it, issue it, or
- * sign it off. Laid out like the paper form: header, lines, then the
- * signatures. Every action answers with the requisition as it now stands, and
- * this shows that.
+ * One requisition, laid out like the paper form: the header, what it asks
+ * for, then the sign-off ledger, where the person whose turn it is signs in
+ * the box that is theirs. Every action answers with the requisition as it now
+ * stands; when the box just signed closes, the page says what happened and
+ * who it waits on next, and the cursor goes there.
  */
 
 export type Options = {
     products: { id: string; itemCode: string; description: string; costExTax: number; onHand: number }[];
     workshops: { id: string; name: string }[];
     votes: { id: string; label: string }[];
-    people: { id: string; name: string; payNumber: string | null }[];
+    people: Person[];
 };
 
 const money = (n: number) => n.toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const touch = "pointer-coarse:min-h-11";
+const label = "text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500";
+const day = (ymd: string) => new Date(`${ymd}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
 
 export function RequisitionScreen({ tenant, view: given, options, currency, timezone, me }: { tenant: string; view: RequisitionView; options: Options; currency: string; timezone: string; me: string }) {
     // The requisition the page was rendered with, until an action answers with a newer one.
-    const [shown, setShown] = useState({ given, view: given });
-    if (shown.given !== given) setShown({ given, view: given });
-    const view = shown.given === given ? shown.view : given;
-    const show = (next: RequisitionAnswer) => next.view && setShown((s) => ({ ...s, view: next.view! }));
+    const [shown, setShown] = useState({ given, view: given, said: null as string | null, n: 0 });
+    if (shown.given !== given) setShown({ given, view: given, said: null, n: 0 });
+    const view = shown.view;
     const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: timezone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    const title = view.number ? `Requisition ${view.number}` : "New requisition";
+
+    // An answer replaces the requisition. One that closes the box it came from is also said at the top, where the cursor goes.
+    const show = (next: RequisitionAnswer, announce = true) => {
+        if (!next.view) return;
+        const said = announce ? [next.message, next.view.waiting].filter(Boolean).join(". ") + "." : null;
+        setShown((s) => ({ ...s, view: next.view!, said: said ?? s.said, n: s.n + (said ? 1 : 0) }));
+    };
+    const status = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (shown.n) status.current?.focus();
+    }, [shown.n]);
+
+    const title = view.number ? `Requisition ${view.number}` : "Draft requisition";
+    const { stopped } = view.ledger;
 
     return (
         <div className="mx-auto max-w-5xl space-y-4 pb-24">
-            <Link href={`/${tenant}/dashboard/requisitions`} className="text-sm font-medium text-teal-700 hover:underline">Requisitions</Link>
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-                    <p className="text-sm text-slate-600">
-                        {view.kind === "STORES" ? "From stores" : "To be bought"} · raised by {view.requestedBy} · {when(view.createdAt)}
-                    </p>
-                </div>
-                <p className="text-sm font-medium text-slate-800">
-                    {stateLabel(view)}
-                    {view.waitingOn.length > 0 && <span className="block text-xs font-normal text-slate-600">Waiting on {view.waitingOn.join(", ")}</span>}
+            <Link href={`/${tenant}/dashboard/requisitions`} className={`hit-area relative inline-flex items-center text-sm font-medium text-teal-700 hover:underline ${touch}`}>Requisitions</Link>
+            <div>
+                <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+                <p className="text-sm text-slate-600">
+                    {view.kind === "STORES" ? "From stores" : "To be bought"} · raised by {view.requestedBy} · {when(view.createdAt)}
+                </p>
+                <p className="mt-1.5 text-sm">
+                    <span className="font-semibold text-slate-900">{view.stateLabel}</span>
+                    {view.waiting && <span className="text-slate-700"> · {view.waiting}</span>}
                 </p>
             </div>
 
-            {view.can.edit ? <DraftEditor key={view.state} tenant={tenant} view={view} options={options} currency={currency} onAnswer={show} /> : <Details view={view} currency={currency} />}
+            {shown.said && (
+                <div ref={status} role="status" tabIndex={-1} className="outline-none">
+                    <Notice>{shown.said}</Notice>
+                </div>
+            )}
+            {stopped && (
+                <Notice title={stopped.title}>{stopped.comment && <p>“{stopped.comment}”</p>}</Notice>
+            )}
 
-            {view.can.decide && <Decide tenant={tenant} view={view} onAnswer={show} />}
-            {view.can.issue && <Issue tenant={tenant} view={view} people={options.people} me={me} onAnswer={show} />}
-            {view.can.finalise.length > 0 && <Finalise tenant={tenant} view={view} onAnswer={show} />}
+            {view.can.edit ? (
+                <DraftEditor key={view.state} tenant={tenant} view={view} options={options} currency={currency} onAnswer={show} />
+            ) : (
+                <Details view={view} currency={currency} />
+            )}
 
-            <Trail view={view} when={when} />
+            <Ledger tenant={tenant} view={view} people={options.people} me={me} when={when} onAnswer={show} />
             <Housekeeping tenant={tenant} view={view} onAnswer={show} />
         </div>
     );
-}
-
-function stateLabel(view: RequisitionView): string {
-    const labels: Record<string, string> = {
-        DRAFT: view.number ? "Returned for changes" : "Draft",
-        AWAITING_FOREMAN: "Waiting for the foreman",
-        AWAITING_HEAD: "Waiting for the divisional head",
-        AWAITING_OVER_LIMIT: "Waiting for the over-limit approver",
-        APPROVED: view.lines.some((l) => l.issued > 0) ? "Approved, partly issued" : "Approved, to be issued",
-        AWAITING_FINALISE: "Issued, to be finalised",
-        CLOSED: "Closed",
-        REJECTED: "Rejected",
-        CANCELLED: "Cancelled",
-    };
-    return labels[view.state];
 }
 
 // ───────────────────────── the request itself ─────────────────────────
 
 function Details({ view, currency }: { view: RequisitionView; currency: string }) {
     const issuing = view.kind === "STORES" && (view.state === "APPROVED" || view.state === "AWAITING_FINALISE" || view.state === "CLOSED");
+    // Approvers and stores see what the shelf holds; once it is closed, the count of the day is beside the point.
+    const shelf = view.kind === "STORES" && view.state !== "CLOSED" && view.state !== "CANCELLED" && view.state !== "REJECTED";
     return (
         <Panel wide level={2} title="What it asks for">
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 text-sm sm:grid-cols-2">
                 <Fact label="Charged to" value={view.charge ? `${view.charge.kind === "JOB" ? "Job" : "Vote"} ${view.charge.label}` : "Nothing yet"} />
                 <Fact label="Workshop" value={view.workshop?.name ?? "—"} />
                 <Fact label="Where it is wanted" value={view.location ?? "—"} />
-                <Fact label="Needed by" value={view.requiredBy ?? "—"} />
+                <Fact label="Needed by" value={view.requiredBy ? day(view.requiredBy) : "—"} />
                 {view.purpose && <Fact label="What it is for" value={view.purpose} wide />}
             </dl>
             <table data-mobile="cards" className="w-full border-t border-slate-200 text-sm">
                 <thead>
-                    <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                    <tr className={`text-left ${label}`}>
                         <th scope="col" className="px-4 py-2 font-semibold">Item</th>
                         <th scope="col" className="py-2 pr-3 text-right font-semibold">Qty</th>
                         <th scope="col" className="py-2 pr-3 text-right font-semibold">Rate</th>
                         <th scope="col" className="py-2 pr-3 text-right font-semibold">Value</th>
+                        {shelf && <th scope="col" className="py-2 pr-3 text-right font-semibold">On hand</th>}
                         {issuing && <th scope="col" className="py-2 pr-4 text-right font-semibold">Issued</th>}
                     </tr>
                 </thead>
@@ -114,14 +122,16 @@ function Details({ view, currency }: { view: RequisitionView; currency: string }
                     {view.lines.map((l) => (
                         <tr key={l.id} className="border-t border-slate-100 align-baseline">
                             <td data-mobile="primary" className="px-4 py-2 text-slate-900">
-                                {l.itemCode && <span className="mr-2 tabular-nums text-xs text-slate-500">{l.itemCode}</span>}
+                                {l.itemCode && <span className="mr-2 tabular-nums text-xs font-normal text-slate-600">{l.itemCode}</span>}
                                 {l.description}
-                                {l.note && <span className="block text-xs text-slate-600">{l.note}</span>}
+                                {!l.stocked && <span className="block text-xs font-normal text-slate-600">Not a stock item: it has to be bought.</span>}
+                                {l.note && <span className="block text-xs font-normal text-slate-600">{l.note}</span>}
                             </td>
                             <td data-label="Qty" className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
                             <td data-label="Rate" className="py-2 pr-3 text-right tabular-nums text-slate-600">{money(l.unitCost)}</td>
                             <td data-label="Value" className="py-2 pr-3 text-right tabular-nums">{money(l.quantity * l.unitCost)}</td>
-                            {issuing && <td data-label="Issued" className="py-2 pr-4 text-right tabular-nums">{l.issued} of {l.quantity}</td>}
+                            {shelf && <td data-label="On hand" className={`py-2 pr-3 text-right tabular-nums ${l.onHand !== null && l.onHand < l.outstanding ? "font-semibold text-amber-700" : "text-slate-600"}`}>{l.onHand ?? "—"}</td>}
+                            {issuing && <td data-label="Issued" className="py-2 pr-4 text-right tabular-nums">{l.stocked ? `${l.issued} of ${l.quantity}` : "To be bought"}</td>}
                         </tr>
                     ))}
                 </tbody>
@@ -133,10 +143,10 @@ function Details({ view, currency }: { view: RequisitionView; currency: string }
     );
 }
 
-function Fact({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function Fact({ label: name, value, wide = false }: { label: string; value: string; wide?: boolean }) {
     return (
         <div className={wide ? "sm:col-span-2" : undefined}>
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">{label}</dt>
+            <dt className={label}>{name}</dt>
             <dd className="text-slate-900">{value}</dd>
         </div>
     );
@@ -144,21 +154,22 @@ function Fact({ label, value, wide = false }: { label: string; value: string; wi
 
 type DraftLine = { key: string; productId: string | null; itemCode: string; description: string; quantity: string; unitCost: string; note: string };
 
-function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: string; view: RequisitionView; options: Options; currency: string; onAnswer: (a: RequisitionAnswer) => void }) {
+/** A figure as typed: a decimal comma is a decimal point; blank is nothing yet. */
+const figure = (s: string) => {
+    const t = s.trim().replace(",", ".");
+    return t === "" ? NaN : Number(t);
+};
+
+function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: string; view: RequisitionView; options: Options; currency: string; onAnswer: (a: RequisitionAnswer, announce?: boolean) => void }) {
+    const blankLine = (n: number): DraftLine => ({ key: `new-${n}-${Date.now()}`, productId: null, itemCode: "", description: "", quantity: "1", unitCost: "", note: "" });
     const [lines, setLines] = useState<DraftLine[]>(() =>
         view.lines.length
             ? view.lines.map((l) => ({ key: l.id, productId: l.productId, itemCode: l.itemCode ?? "", description: l.description, quantity: String(l.quantity), unitCost: String(l.unitCost), note: l.note ?? "" }))
-            : [{ key: "new-0", productId: null, itemCode: "", description: "", quantity: "1", unitCost: "0", note: "" }],
+            : [blankLine(0)],
     );
     const [dirty, setDirty] = useState(false);
-    const [saved, save, saving] = useActionState(async (prev: RequisitionAnswer, formData: FormData) => {
-        const result = await saveRequisitionAction(tenant, view.id, prev, formData);
-        if (result.ok) setDirty(false);
-        return result;
-    }, {} as RequisitionAnswer);
-    const [submitted, submit, submitting] = useActionState(() => submitRequisitionAction(tenant, view.id), {} as RequisitionAnswer);
-    useEffect(() => onAnswer(saved), [saved]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => onAnswer(submitted), [submitted]); // eslint-disable-line react-hooks/exhaustive-deps
+    const [checked, setChecked] = useState(false);
+    const form = useRef<HTMLFormElement>(null);
 
     const byCode = useMemo(() => new Map(options.products.map((p) => [p.itemCode.toLowerCase(), p])), [options.products]);
     const change = (key: string, patch: Partial<DraftLine>) => {
@@ -169,18 +180,60 @@ function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: st
         const p = byCode.get(code.trim().toLowerCase());
         change(key, p ? { itemCode: p.itemCode, productId: p.id, description: p.description, unitCost: String(p.costExTax) } : { itemCode: code, productId: null });
     };
-    const total = lines.reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0), 0);
-    const payload = JSON.stringify(
-        lines.filter((l) => l.description.trim()).map((l) => ({ productId: l.productId, description: l.description, quantity: Number(l.quantity) || 0, unitCost: Number(l.unitCost) || 0, note: l.note || null })),
-    );
+
+    // What is wrong with each line, said beside it. A figure that is not a number shows at once; a missing estimate once somebody tries to submit.
+    const wanted = lines.filter((l) => l.description.trim());
+    type LineError = { quantity?: string; unitCost?: string; estimate?: string };
+    const errors = new Map<string, LineError>();
+    for (const l of wanted) {
+        const q = figure(l.quantity);
+        const r = l.unitCost.trim() === "" ? 0 : figure(l.unitCost);
+        const e: LineError = {};
+        if (!Number.isFinite(q) || q <= 0) e.quantity = "Enter a quantity above nothing, as a number.";
+        if (!Number.isFinite(r) || r < 0) e.unitCost = "Enter the rate as a number.";
+        else if (!l.productId && r === 0) e.estimate = "Give an estimated rate. It is not a stock item, so the approvers need to see what it will cost.";
+        if (e.quantity || e.unitCost || e.estimate) errors.set(l.key, e);
+    }
+    // A missing estimate stops the submission, not the saving of a draft.
+    const blocksSave = [...errors.values()].some((e) => e.quantity || e.unitCost);
+    const total = wanted.reduce((sum, l) => sum + (figure(l.quantity) || 0) * (figure(l.unitCost) || 0), 0);
+    const payload = JSON.stringify(wanted.map((l) => ({ productId: l.productId, description: l.description, quantity: figure(l.quantity) || 0, unitCost: figure(l.unitCost) || 0, note: l.note || null })));
     const chargeValue = view.charge ? `${view.charge.kind}:${view.charge.id}` : "";
+    const toBuy = wanted.filter((l) => !l.productId);
+
+    const [saved, save, saving] = useActionState(async (prev: RequisitionAnswer, formData: FormData) => {
+        const result = await saveRequisitionAction(tenant, view.id, prev, formData);
+        if (result.ok) setDirty(false);
+        onAnswer(result, false);
+        return result;
+    }, {} as RequisitionAnswer);
+    // Submitting saves first when there is anything unsaved, so it is one press either way.
+    const [submitted, submit, submitting] = useActionState(async () => {
+        if (dirty) {
+            const result = await saveRequisitionAction(tenant, view.id, {}, new FormData(form.current!));
+            if (!result.ok) return result;
+            setDirty(false);
+        }
+        const result = await submitRequisitionAction(tenant, view.id);
+        onAnswer(result);
+        return result;
+    }, {} as RequisitionAnswer);
 
     return (
         <Panel wide level={2} title="What it asks for">
-            <form action={save} onChange={() => setDirty(true)} className="space-y-3 px-4 py-3">
+            <form
+                ref={form}
+                action={save}
+                onChange={() => setDirty(true)}
+                onSubmit={(e) => {
+                    setChecked(true);
+                    if (blocksSave) e.preventDefault();
+                }}
+                className="space-y-3 px-4 py-3"
+            >
                 <input type="hidden" name="lines" value={payload} />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700">
                         Charged to
                         <select name="charge" defaultValue={chargeValue} className={`${field} font-normal ${touch}`}>
                             <option value="">Choose a job or a vote</option>
@@ -188,224 +241,149 @@ function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: st
                             {options.votes.map((v) => <option key={v.id} value={`VOTE:${v.id}`}>Vote {v.label}</option>)}
                         </select>
                     </label>
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700">
                         Workshop asking
                         <select name="workshopId" defaultValue={view.workshop?.id ?? ""} className={`${field} font-normal ${touch}`}>
                             <option value="">Choose the workshop</option>
                             {options.workshops.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                         </select>
                     </label>
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700">
                         Where it is wanted
                         <input name="location" defaultValue={view.location ?? ""} maxLength={80} placeholder="Bay 2" className={`${field} font-normal ${touch}`} />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700">
                         Needed by
                         <input type="date" name="requiredBy" defaultValue={view.requiredBy ?? ""} className={`${field} font-normal ${touch}`} />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-700 sm:col-span-2">
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700 sm:col-span-2">
                         What it is for
                         <input name="purpose" defaultValue={view.purpose ?? ""} maxLength={200} className={`${field} font-normal ${touch}`} />
                     </label>
                 </div>
 
-                <fieldset className="space-y-2 border-t border-slate-200 pt-3">
+                <fieldset className="min-w-0 space-y-2 border-t border-slate-200 pt-3">
                     <legend className="text-xs font-semibold text-slate-900">Items</legend>
+                    {/* Wide: one row per line under its column names. A phone: the item on top, then its quantity and rate, each named. */}
+                    <div aria-hidden className={`hidden gap-2 sm:grid sm:grid-cols-[8rem_minmax(0,1fr)_5rem_7rem_2rem] ${label}`}>
+                        <span>Item code</span>
+                        <span>Description</span>
+                        <span className="text-right">Qty</span>
+                        <span className="text-right">Rate, {currency}</span>
+                        <span />
+                    </div>
                     {lines.map((l, n) => {
                         const product = l.productId ? options.products.find((p) => p.id === l.productId) : null;
+                        const found = errors.get(l.key);
+                        const e = found && { quantity: found.quantity, unitCost: found.unitCost ?? (checked ? found.estimate : undefined) };
+                        const wrong = e?.quantity ?? e?.unitCost;
+                        const hint = `line-${l.key}-hint`;
+                        const say = wrong ?? (product ? `${product.onHand} on hand in stores` : l.description ? "Not a stock item: it has to be bought, so stores cannot issue it." : "");
                         return (
-                            <div key={l.key} className="grid grid-cols-[1fr_auto] gap-2 border-b border-slate-100 pb-2 sm:grid-cols-[8rem_1fr_5rem_7rem_auto]">
-                                <input list="requisition-items" value={l.itemCode} onChange={(e) => change(l.key, { itemCode: e.target.value })} onBlur={(e) => pick(l.key, e.target.value)} placeholder="Item code" aria-label={`Item code, line ${n + 1}`} className={`${field} tabular-nums ${touch}`} />
-                                <input value={l.description} onChange={(e) => change(l.key, { description: e.target.value })} placeholder="What is needed" aria-label={`Description, line ${n + 1}`} className={`${field} col-span-2 sm:col-span-1 ${touch}`} />
-                                <input value={l.quantity} onChange={(e) => change(l.key, { quantity: e.target.value })} inputMode="decimal" aria-label={`Quantity, line ${n + 1}`} className={`${field} text-right tabular-nums ${touch}`} />
-                                <input value={l.unitCost} onChange={(e) => change(l.key, { unitCost: e.target.value })} inputMode="decimal" aria-label={`Rate, line ${n + 1}`} className={`${field} text-right tabular-nums ${touch}`} />
-                                <button type="button" onClick={() => { setDirty(true); setLines((all) => all.filter((x) => x.key !== l.key)); }} aria-label={`Remove line ${n + 1}`} className={`hit-area relative inline-flex size-8 items-center justify-center rounded-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800 ${touch}`}>
+                            <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 border-b border-slate-100 pb-2 sm:grid-cols-[8rem_minmax(0,1fr)_5rem_7rem_2rem]">
+                                <input list="requisition-items" value={l.itemCode} onChange={(ev) => change(l.key, { itemCode: ev.target.value })} onBlur={(ev) => pick(l.key, ev.target.value)} placeholder="Item code" aria-label={`Item code, line ${n + 1}`} aria-describedby={hint} className={`${field} col-span-2 w-full min-w-0 tabular-nums sm:col-span-1 ${touch}`} />
+                                <input value={l.description} onChange={(ev) => change(l.key, { description: ev.target.value })} placeholder="What is needed" aria-label={`Description, line ${n + 1}`} className={`${field} col-span-3 w-full min-w-0 max-sm:row-start-2 sm:col-span-1 ${touch}`} />
+                                <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700 max-sm:row-start-3">
+                                    <span aria-hidden className="sm:sr-only">Qty</span>
+                                    <input value={l.quantity} onChange={(ev) => change(l.key, { quantity: ev.target.value })} inputMode="decimal" aria-label={`Quantity, line ${n + 1}`} aria-invalid={!!e?.quantity} aria-describedby={hint} className={`${field} w-full min-w-0 text-right font-normal tabular-nums aria-invalid:border-red-700 ${touch}`} />
+                                </label>
+                                <label className="col-span-2 flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-700 max-sm:row-start-3 sm:col-span-1">
+                                    <span aria-hidden className="sm:sr-only">Rate, {currency}</span>
+                                    <input value={l.unitCost} onChange={(ev) => change(l.key, { unitCost: ev.target.value })} inputMode="decimal" placeholder="0.00" aria-label={`Rate, line ${n + 1}`} aria-invalid={!!e?.unitCost} aria-describedby={hint} className={`${field} w-full min-w-0 text-right font-normal tabular-nums aria-invalid:border-red-700 ${touch}`} />
+                                </label>
+                                <button type="button" onClick={() => { setDirty(true); setLines((all) => all.filter((x) => x.key !== l.key)); }} aria-label={`Remove line ${n + 1}`} className={`hit-area relative inline-flex size-8 items-center justify-center justify-self-end rounded-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800 max-sm:col-start-3 max-sm:row-start-1 ${touch}`}>
                                     <Trash2 className="h-4 w-4" aria-hidden />
                                 </button>
-                                <p className="col-span-full text-xs text-slate-600">
-                                    {product ? `${product.onHand} on hand in stores` : l.description ? "Not a stock item: stores cannot issue it, so it will be bought." : ""}
-                                </p>
+                                <p id={hint} className={`col-span-full text-xs ${wrong ? "text-red-700" : "text-slate-600"}`}>{say}</p>
                             </div>
                         );
                     })}
                     <datalist id="requisition-items">
                         {options.products.map((p) => <option key={p.id} value={p.itemCode}>{p.description}</option>)}
                     </datalist>
-                    <Button type="button" size="sm" variant="ghost" className={`h-8 ${touch}`} onClick={() => { setDirty(true); setLines((all) => [...all, { key: `new-${all.length}-${Date.now()}`, productId: null, itemCode: "", description: "", quantity: "1", unitCost: "0", note: "" }]); }}>
+                    <Button type="button" size="sm" variant="ghost" className={`h-9 ${touch}`} onClick={() => { setDirty(true); setLines((all) => [...all, blankLine(all.length)]); }}>
                         <Plus className="mr-1 h-4 w-4" aria-hidden />Add an item
                     </Button>
                 </fieldset>
 
                 <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-3">
-                    <span className="mr-auto text-sm font-semibold tabular-nums text-slate-900">{currency} {money(total)} <span className="font-normal text-slate-600">excl. VAT</span></span>
+                    <p className="mr-auto text-sm">
+                        <span className="font-semibold tabular-nums text-slate-900">{currency} {money(total)}</span> <span className="text-slate-600">excl. VAT</span>
+                        {view.overLimitAt !== null && (
+                            <span className="block text-xs text-slate-600">
+                                {total >= view.overLimitAt ? "At this value the over-limit approver signs too." : `From ${currency} ${money(view.overLimitAt)} the over-limit approver signs too.`}
+                            </span>
+                        )}
+                    </p>
                     <Outcome state={saved} />
-                    <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                    <Button type="submit" size="sm" variant="outline" className={`h-9 ${touch}`} disabled={saving || submitting}>{saving ? "Saving…" : "Save draft"}</Button>
                 </div>
             </form>
             {view.can.submit && (
-                <form action={submit} className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-4 py-3">
-                    {dirty && <span className="mr-auto text-xs text-slate-600">Save your changes before submitting.</span>}
-                    <Outcome state={submitted} />
-                    <Button type="submit" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={submitting || dirty}>{submitting ? "Submitting…" : "Submit for approval"}</Button>
+                <form
+                    action={submit}
+                    onSubmit={(e) => {
+                        setChecked(true);
+                        if (errors.size) e.preventDefault();
+                    }}
+                    className="space-y-2 border-t border-slate-200 px-4 py-3"
+                >
+                    {toBuy.length > 0 && (
+                        <p className="text-xs text-slate-700">
+                            {toBuy.length === 1 ? `“${toBuy[0].description}” is not a stock item.` : `${toBuy.length} lines are not stock items.`} Stores issues the rest; this requisition stays open until {toBuy.length === 1 ? "that line is" : "they are"} bought.
+                        </p>
+                    )}
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        {checked && errors.size > 0 && <p role="alert" className="mr-auto text-xs text-red-700">Correct the marked lines first.</p>}
+                        <Outcome state={submitted} />
+                        <Button type="submit" size="sm" className={`h-9 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={submitting || saving}>{submitting ? "Submitting…" : dirty ? "Save and submit" : "Submit for approval"}</Button>
+                    </div>
                 </form>
             )}
         </Panel>
     );
 }
 
-// ───────────────────────── the next move ─────────────────────────
-
-function Decide({ tenant, view, onAnswer }: { tenant: string; view: RequisitionView; onAnswer: (a: RequisitionAnswer) => void }) {
-    const [state, action, pending] = useActionState(decideRequisitionAction.bind(null, tenant, view.id), {} as RequisitionAnswer);
-    useEffect(() => onAnswer(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
-    return (
-        <Panel wide level={2} title={`Your signature: ${view.can.decide!.step}`}>
-            <form action={action} className="space-y-3 px-4 py-3">
-                <input name="comment" placeholder="Comment (needed to return or reject it)" aria-label="Comment" maxLength={300} className={`${field} w-full ${touch}`} />
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button type="submit" name="decision" value="APPROVED" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>Approve</Button>
-                    <Button type="submit" name="decision" value="RETURNED" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={pending}>Return for changes</Button>
-                    <Button type="submit" name="decision" value="REJECTED" size="sm" variant="ghost" className={`h-8 text-slate-600 hover:text-red-700 ${touch}`} disabled={pending}>Reject</Button>
-                    <Outcome state={state} />
-                </div>
-            </form>
-        </Panel>
-    );
-}
-
-function Issue({ tenant, view, people, me, onAnswer }: { tenant: string; view: RequisitionView; people: Options["people"]; me: string; onAnswer: (a: RequisitionAnswer) => void }) {
-    const [state, action, pending] = useActionState(issueRequisitionAction.bind(null, tenant, view.id), {} as RequisitionAnswer);
-    const [someoneElse, setSomeoneElse] = useState(false);
-    useEffect(() => onAnswer(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
-    const open = view.lines.filter((l) => l.outstanding > 0);
-    return (
-        <Panel wide level={2} title="Issue from stores" footer={view.charge?.kind === "JOB" ? `What is issued goes onto job ${view.charge.label} at cost, and comes off the shelf once.` : "What is issued comes off the shelf, charged to the vote."}>
-            <form action={action} className="space-y-3 px-4 py-3">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
-                            <th scope="col" className="pb-1 font-semibold">Item</th>
-                            <th scope="col" className="pb-1 text-right font-semibold">On hand</th>
-                            <th scope="col" className="pb-1 text-right font-semibold">Still to issue</th>
-                            <th scope="col" className="pb-1 text-right font-semibold">Issue now</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {open.map((l) => (
-                            <tr key={l.id} className="border-t border-slate-100 align-middle">
-                                <td className="py-1.5 pr-3 text-slate-900">{l.description}{!l.stocked && <span className="block text-xs text-slate-600">Not a stock item: to be bought.</span>}</td>
-                                <td className={`py-1.5 pr-3 text-right tabular-nums ${l.onHand !== null && l.onHand < l.outstanding ? "font-semibold text-amber-700" : "text-slate-600"}`}>{l.onHand ?? "—"}</td>
-                                <td className="py-1.5 pr-3 text-right tabular-nums">{l.outstanding}</td>
-                                <td className="py-1.5 text-right">
-                                    <input name={`issue:${l.id}`} defaultValue={l.stocked ? String(l.outstanding) : "0"} disabled={!l.stocked} inputMode="decimal" aria-label={`Issue now: ${l.description}`} className={`${field} w-20 text-right tabular-nums ${touch}`} />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div className="flex flex-wrap items-end gap-3 border-t border-slate-200 pt-3">
-                    {someoneElse ? (
-                        <>
-                            <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">Receiver&rsquo;s name<input name="receiverName" required className={`${field} w-56 font-normal ${touch}`} /></label>
-                            <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">Pay No.<input name="receiverPayNumber" className={`${field} w-28 font-normal tabular-nums ${touch}`} /></label>
-                        </>
-                    ) : (
-                        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
-                            Received by
-                            <select name="receiverId" required defaultValue="" className={`${field} w-64 font-normal ${touch}`}>
-                                <option value="" disabled>Choose who takes the parts</option>
-                                {people.filter((p) => p.id !== me).map((p) => <option key={p.id} value={p.id}>{p.name}{p.payNumber ? ` · ${p.payNumber}` : ""}</option>)}
-                            </select>
-                        </label>
-                    )}
-                    <button type="button" onClick={() => setSomeoneElse((v) => !v)} className={`text-sm font-medium text-teal-700 hover:underline ${touch}`}>{someoneElse ? "Choose from the team" : "Someone without a login"}</button>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <Button type="submit" size="sm" className={`h-8 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Issuing…" : "Issue"}</Button>
-                    <Outcome state={state} />
-                </div>
-            </form>
-        </Panel>
-    );
-}
-
-function Finalise({ tenant, view, onAnswer }: { tenant: string; view: RequisitionView; onAnswer: (a: RequisitionAnswer) => void }) {
-    const [state, action, pending] = useActionState(finaliseRequisitionAction.bind(null, tenant, view.id), {} as RequisitionAnswer);
-    useEffect(() => onAnswer(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
-    return (
-        <Panel wide level={2} title="Finalise" footer="The foreman, the fleet coordinator and the divisional head sign to close it; whoever fitted the parts may sign too. One person signs one box.">
-            <form action={action} className="flex flex-wrap items-center gap-2 px-4 py-3">
-                <input name="comment" placeholder="Comment (optional)" aria-label="Comment" maxLength={300} className={`${field} w-64 min-w-0 ${touch}`} />
-                {view.can.finalise.map((f) => (
-                    <Button key={f.step} type="submit" name="step" value={f.step} size="sm" variant="outline" className={`h-8 ${touch}`} disabled={pending}>Sign as {f.label.toLowerCase()}</Button>
-                ))}
-                <Outcome state={state} />
-            </form>
-        </Panel>
-    );
-}
-
-// ───────────────────────── the record ─────────────────────────
-
-function Trail({ view, when }: { view: RequisitionView; when: (iso: string) => string }) {
-    if (!view.signoffs.length && !view.issues.length) return null;
-    const said: Record<string, string> = { SUBMITTED: "Submitted", APPROVED: "Approved", RETURNED: "Returned", REJECTED: "Rejected", CANCELLED: "Cancelled", SIGNED: "Signed", WITNESSED: "Witnessed", RAISED_BY_FOREMAN: "Raised by the foreman" };
-    return (
-        <Panel wide level={2} title="Signatures and handovers" footer="Each signature keeps the name and pay number as they stood when it was given.">
-            <table data-mobile="cards" className="w-full text-sm">
-                <thead>
-                    <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
-                        <th scope="col" className="px-4 py-2 font-semibold">Box</th>
-                        <th scope="col" className="py-2 pr-3 font-semibold">Name</th>
-                        <th scope="col" className="py-2 pr-3 font-semibold">Pay No.</th>
-                        <th scope="col" className="py-2 pr-4 text-right font-semibold">Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {[
-                        ...view.signoffs.map((s) => ({ at: s.at, key: s.id, box: s.role, name: s.name, payNumber: s.payNumber, note: [said[s.decision] ?? s.decision, s.comment].filter(Boolean).join(" · ") })),
-                        ...view.issues.map((i) => ({ at: i.at, key: i.id, box: "Received from stores", name: i.receiverName, payNumber: i.receiverPayNumber, note: `${i.lines.map((l) => `${l.quantity} × ${l.description}`).join("; ")} · issued by ${i.issuedBy}` })),
-                    ]
-                        .sort((a, b) => a.at.localeCompare(b.at))
-                        .map((r) => (
-                            <tr key={r.key} className="border-t border-slate-100 align-baseline">
-                                <td className="px-4 py-1.5 text-slate-600 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{r.box}</td>
-                                <td data-mobile="primary" className="py-1.5 pr-3 font-medium text-slate-900">{r.name}<span className="block text-xs font-normal text-slate-600">{r.note}</span></td>
-                                <td data-label="Pay No." className="py-1.5 pr-3 tabular-nums text-slate-600">{r.payNumber ?? "—"}</td>
-                                <td data-label="Signed" className="py-1.5 pr-4 tabular-nums text-xs text-slate-500 md:text-right">{when(r.at)}</td>
-                            </tr>
-                        ))}
-                </tbody>
-            </table>
-        </Panel>
-    );
-}
+// ───────────────────────── withdrawing, cancelling, discarding ─────────────────────────
 
 function Housekeeping({ tenant, view, onAnswer }: { tenant: string; view: RequisitionView; onAnswer: (a: RequisitionAnswer) => void }) {
-    const [withdrawn, withdraw, withdrawing] = useActionState(() => withdrawRequisitionAction(tenant, view.id), {} as RequisitionAnswer);
-    const [cancelled, cancel, cancelling] = useActionState(cancelRequisitionAction.bind(null, tenant, view.id), {} as RequisitionAnswer);
+    const [withdrawn, withdraw, withdrawing] = useActionState(async () => {
+        const r = await withdrawRequisitionAction(tenant, view.id);
+        onAnswer(r);
+        return r;
+    }, {} as RequisitionAnswer);
+    const [cancelled, cancel, cancelling] = useActionState(async (prev: RequisitionAnswer, formData: FormData) => {
+        const r = await cancelRequisitionAction(tenant, view.id, prev, formData);
+        onAnswer(r);
+        return r;
+    }, {} as RequisitionAnswer);
     const [discarded, discard, discarding] = useActionState(() => discardRequisitionAction(tenant, view.id), {} as RequisitionAnswer);
-    const [cancelOpen, setCancelOpen] = useState(false);
-    useEffect(() => onAnswer(withdrawn), [withdrawn]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => onAnswer(cancelled), [cancelled]); // eslint-disable-line react-hooks/exhaustive-deps
+    const [open, setOpen] = useState<"cancel" | "discard" | null>(null);
     if (!view.can.withdraw && !view.can.cancel && !view.can.discard) return null;
     return (
         <div className="flex flex-wrap items-center gap-2">
             {view.can.withdraw && (
-                <form action={withdraw}><Button type="submit" size="sm" variant="ghost" className={`h-8 ${touch}`} disabled={withdrawing}>Withdraw to change it</Button></form>
+                <form action={withdraw}><Button type="submit" size="sm" variant="ghost" className={`h-9 ${touch}`} disabled={withdrawing}>Withdraw to change it</Button></form>
             )}
-            {view.can.discard && (
-                <form action={discard}><Button type="submit" size="sm" variant="ghost" className={`h-8 text-slate-600 ${touch}`} disabled={discarding}>Discard this draft</Button></form>
-            )}
-            {view.can.cancel &&
-                (cancelOpen ? (
-                    <form action={cancel} className="flex flex-wrap items-center gap-2">
-                        <input name="reason" required placeholder="Why it is cancelled" aria-label="Reason for cancelling" maxLength={200} className={`${field} w-64 ${touch}`} />
-                        <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={cancelling}>Cancel the requisition</Button>
-                        <Button type="button" size="sm" variant="ghost" className={`h-8 ${touch}`} onClick={() => setCancelOpen(false)}>Keep it</Button>
+            {view.can.discard &&
+                (open === "discard" ? (
+                    <form action={discard} className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-slate-700">Discard this draft? It has no number yet, so nothing leaves the register.</span>
+                        <Button type="submit" size="sm" variant="outline" className={`h-9 ${touch}`} disabled={discarding}>Discard it</Button>
+                        <Button type="button" size="sm" variant="ghost" className={`h-9 ${touch}`} onClick={() => setOpen(null)}>Keep it</Button>
                     </form>
                 ) : (
-                    <Button type="button" size="sm" variant="ghost" className={`h-8 text-slate-600 ${touch}`} onClick={() => setCancelOpen(true)}>Cancel…</Button>
+                    <Button type="button" size="sm" variant="ghost" className={`h-9 text-slate-700 ${touch}`} onClick={() => setOpen("discard")}>Discard this draft…</Button>
+                ))}
+            {view.can.cancel &&
+                (open === "cancel" ? (
+                    <form action={cancel} className="flex flex-wrap items-center gap-2">
+                        <input name="reason" required placeholder="Why it is cancelled" aria-label="Reason for cancelling" maxLength={200} className={`${field} w-64 max-w-full ${touch}`} />
+                        <Button type="submit" size="sm" variant="outline" className={`h-9 ${touch}`} disabled={cancelling}>Cancel the requisition</Button>
+                        <Button type="button" size="sm" variant="ghost" className={`h-9 ${touch}`} onClick={() => setOpen(null)}>Keep it</Button>
+                    </form>
+                ) : (
+                    <Button type="button" size="sm" variant="ghost" className={`h-9 text-slate-700 ${touch}`} onClick={() => setOpen("cancel")}>Cancel…</Button>
                 ))}
             <Outcome state={withdrawn} />
             <Outcome state={cancelled} />

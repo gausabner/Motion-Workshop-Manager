@@ -61,7 +61,12 @@ export function useMove(run: (prev: ActionState, formData: FormData) => Promise<
     return result;
 }
 
-export const field = "h-8 rounded-sm border border-slate-300 bg-white px-2 text-sm text-slate-900 focus:border-teal-700 focus:outline-none";
+/**
+ * A form field on the council screens. Placeholders in slate-500 (4.8:1 on white), never the browser's faded half-tone;
+ * a disabled field reads as one, on the sunken ground, so nobody types into a box that will not take it.
+ */
+export const field =
+    "h-8 rounded-sm border border-slate-300 bg-white px-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-teal-700 focus:outline-none disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-500";
 
 export function PersonSelect({ people, name = "membershipId", label }: { people: Person[]; name?: string; label: string }) {
     return (

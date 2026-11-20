@@ -321,13 +321,14 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
         where: { id },
         select: {
             state: true, kind: true, number: true, requestedById: true, workshopId: true, chargeDocumentId: true, chargeVoteId: true, value: true, submittedAt: true,
-            lines: { select: { description: true, quantity: true } },
+            lines: { select: { description: true, quantity: true, productId: true, unitCost: true } },
             quotes: { select: { amount: true, chosen: true, validUntil: true } },
         },
     });
     if (!req) throw new Error(MISSING);
     if (req.requestedById !== actor.membershipId) throw new Error("Only the person who raised it can submit it.");
-    const problem = submitError({ ...req, lines: req.lines.map((l) => ({ description: l.description, quantity: l.quantity.toNumber() })) });
+    // A purchase requisition is priced by its chosen quotation, so only a stores requisition's hand-typed lines need an estimate.
+    const problem = submitError({ ...req, lines: req.lines.map((l) => ({ description: l.description, quantity: l.quantity.toNumber(), productId: l.productId, unitCost: req.kind === "STORES" ? l.unitCost.toNumber() : undefined })) });
     if (problem) throw new Error(problem);
 
     const settings = requisitionSettings(tenant.settings);

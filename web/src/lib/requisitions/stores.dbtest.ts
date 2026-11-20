@@ -104,6 +104,8 @@ test("stores issues it in two handovers to a named receiver, once off the shelf 
     await assert.rejects(issue("storeman", 1, { membershipId: people.storeman.membershipId }), /cannot also be the one receiving/);
     await assert.rejects(issue("storeman", 4, { membershipId: people.mechanic.membershipId }), /Only 3 of/);
     await assert.rejects(issue("storeman", 1, { name: " " }), /Name the person receiving/);
+    await assert.rejects(issue("storeman", 1, { name: "Storeman ZZTEST", payNumber: "PN-00000" }), /cannot also be the one receiving/, "the storeman's own name typed in");
+    await assert.rejects(issue("storeman", 1, { name: "Petrus Amukoto" }), /pay number/);
 
     assert.equal((await issue("storeman", 2, { membershipId: people.mechanic.membershipId })).state, "APPROVED");
     assert.equal(await onHand(), 8);
@@ -112,11 +114,12 @@ test("stores issues it in two handovers to a named receiver, once off the shelf 
     assert.equal(await onHand(), 7);
     await assert.rejects(issue("storeman", 1, { name: "Petrus Amukoto" }), /Everything on it has been issued/);
 
-    const handovers = await prisma.requisitionIssue.findMany({ where: { requisitionId: req }, orderBy: { at: "asc" }, select: { receiverName: true, receiverPayNumber: true, receiverMembershipId: true } });
+    const handovers = await prisma.requisitionIssue.findMany({ where: { requisitionId: req }, orderBy: { at: "asc" }, select: { receiverName: true, receiverPayNumber: true, receiverMembershipId: true, issuedByName: true, issuedByPayNumber: true } });
+    const verified = { issuedByName: "storeman ZZTEST", issuedByPayNumber: "PN-storeman" };
     assert.deepEqual(handovers, [
-        { receiverName: "mechanic ZZTEST", receiverPayNumber: "PN-mechanic", receiverMembershipId: people.mechanic.membershipId },
-        { receiverName: "Petrus Amukoto", receiverPayNumber: "PN-77120", receiverMembershipId: null },
-    ]);
+        { receiverName: "mechanic ZZTEST", receiverPayNumber: "PN-mechanic", receiverMembershipId: people.mechanic.membershipId, ...verified },
+        { receiverName: "Petrus Amukoto", receiverPayNumber: "PN-77120", receiverMembershipId: null, ...verified },
+    ], "the storeman's verification is kept as it stood, like every other box");
     const lines = await prisma.documentLine.findMany({ where: { documentId: job }, orderBy: { sortOrder: "asc" }, select: { quantity: true, unitPrice: true, requisitionLineId: true } });
     assert.deepEqual(lines.map((l) => [l.quantity.toNumber(), l.unitPrice.toNumber(), !!l.requisitionLineId]), [[2, 1200, true], [1, 1200, true]], "at cost, marked as issued");
     assert.equal(await jobStatus(), "WORK_IN_PROGRESS", "the parts are in hand, so the job is back in progress");
@@ -129,6 +132,25 @@ test("the job card's invoice does not take the issued parts off the shelf a seco
     await run((tx) => postDocumentStock(tx, tenant.id, { id: invoice.id, type: "INVOICE", postDate: invoice.postDate }, people.storeman.membershipId));
     assert.equal(await onHand(), 7, "still 7: the issue was the movement");
     assert.equal(await prisma.stockMovement.count({ where: { productId: product } }), 2, "two issues and nothing else");
+});
+
+test("stores cannot issue more than the shelf holds", async () => {
+    await prisma.product.update({ where: { id: product }, data: { qtyOnHand: 1 } });
+    const short = await run((tx) =>
+        saveRequisition(tx, tenant, people.mechanic, null, {
+            kind: "STORES", workshopId: workshop, chargeDocumentId: job, chargeVoteId: null,
+            lines: [{ productId: product, description: "Brake pads, heavy duty, axle set", quantity: 2, unitCost: 1200 }],
+        }),
+    );
+    await run((tx) => submitRequisition(tx, tenant, people.mechanic, short));
+    await run((tx) => decideRequisition(tx, tenant, people.foreman, short, "APPROVED"));
+    await run((tx) => decideRequisition(tx, tenant, people.head, short, "APPROVED"));
+    const line = await prisma.requisitionLine.findFirstOrThrow({ where: { requisitionId: short }, select: { id: true } });
+    const hand = (quantity: number) => run((tx) => issueStores(tx, tenant, { ...people.storeman, canIssue: true }, short, { lines: [{ lineId: line.id, quantity }], receiver: { membershipId: people.mechanic.membershipId } }));
+    await assert.rejects(hand(2), /Only 1 of “Brake pads, heavy duty, axle set” is on the shelf/);
+    assert.equal((await hand(1)).state, "APPROVED", "what is there goes; the rest can follow");
+    assert.equal(await onHand(), 0);
+    await prisma.product.update({ where: { id: product }, data: { qtyOnHand: 7 } });
 });
 
 test("it closes when the foreman, the fleet coordinator and the divisional head have signed", async () => {
