@@ -61,9 +61,15 @@ test.describe("purchase requisition", () => {
         const state = (page: Page, text: RegExp) => expect(page.getByRole("heading", { level: 1 }).locator("..")).toContainText(text);
         const said = (page: Page, text: RegExp) => expect(page.getByRole("status").filter({ hasText: text })).toBeFocused();
 
-        // Stores splits what it cannot meet: two gaskets short, and the bearing.
+        // Stores hands over the one gasket on the shelf, then splits what it cannot meet: two gaskets short, and the bearing.
         await signInAs(page, workshop, storeman);
         await page.goto(`${base}/${stores}`);
+        await expect(page.getByLabel("Issue now: Pump gearbox gasket set")).toHaveValue("1");
+        await page.getByRole("button", { name: "Issue", exact: true }).click();
+        await expect(page.getByText("Hand 1 × Pump gearbox gasket set to Tobias Kandjii (PN-15561).")).toBeVisible();
+        await page.getByRole("button", { name: "Confirm the issue" }).click();
+        await said(page, /^Issued\./);
+        await expect(page.getByRole("listitem").filter({ hasText: "Stores verified" }).filter({ hasText: "PN-16034" })).toBeVisible();
         await expect(page.getByRole("listitem").filter({ hasText: "To be bought" })).toContainText("2 × Pump gearbox gasket set; 2 × Output bearing, SKF 6310");
         await page.getByRole("button", { name: "Raise a purchase requisition for these" }).click();
         await page.waitForURL((url) => !url.pathname.endsWith(stores));
@@ -125,7 +131,9 @@ test.describe("purchase requisition", () => {
         await page.getByRole("button", { name: "Confirm the issue" }).click();
         await state(page, /Issued, to be finalised/);
         await page.goto(`/${workshop.slug}/dashboard/documents/${council.jobId}`);
+        // Both requisitions are met, so the job is back in work. A council job's heading shows where the vehicle is, not "Work in progress".
         await expect(page.getByRole("heading", { level: 1 })).not.toContainText("Waiting for parts");
+        await expect(page.getByRole("listitem").filter({ hasText: "Every requisition for parts has been met." })).toContainText("Waiting for parts → Work in progress");
         if (process.env.SHOTS_DIR) await page.screenshot({ path: `${process.env.SHOTS_DIR}/purchase.png`, fullPage: true });
     });
 });
