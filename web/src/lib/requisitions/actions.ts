@@ -63,6 +63,9 @@ export async function raiseForJobAction(slug: string, documentId: string): Promi
     let id: string;
     try {
         id = await c.db.$transaction(async (tx) => {
+            // A second tap opens the empty draft the first one made, rather than leaving a trail of them.
+            const empty = await tx.requisition.findFirst({ where: { chargeDocumentId: documentId, requestedById: c.membership.id, state: "DRAFT", number: null, lines: { none: {} } }, orderBy: { createdAt: "desc" }, select: { id: true } });
+            if (empty) return empty.id;
             const job = await tx.document.findFirst({ where: { id: documentId }, select: { jobNumber: true, number: true } });
             // Where the vehicle is now, if it is in a workshop: that is who is asking.
             const here = await tx.jobVisit.findFirst({ where: { documentId, leftAt: null }, select: { workshopId: true, workshop: { select: { kind: true } } } });

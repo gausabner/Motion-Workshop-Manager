@@ -32,7 +32,9 @@ test.describe("stores requisition", () => {
         });
         const job = `/${workshop.slug}/dashboard/documents/${council.jobId}`;
         const owner = { email: workshop.email, password: workshop.password };
-        const state = (page: Page, text: RegExp) => expect(page.getByRole("heading", { level: 1 }).locator("..").locator("..")).toContainText(text);
+        const state = (page: Page, text: RegExp) => expect(page.getByRole("heading", { level: 1 }).locator("..")).toContainText(text);
+        // After a box is signed the page says so, with who it waits on next, and the cursor goes there.
+        const said = (page: Page, text: RegExp) => expect(page.getByRole("status").filter({ hasText: text })).toBeFocused();
 
         // The mechanic asks for parts on the job card.
         await signInAs(page, workshop, mechanic);
@@ -44,16 +46,19 @@ test.describe("stores requisition", () => {
         await page.getByLabel("Item code, line 1").fill("BP-HD-01");
         await page.getByLabel("Quantity, line 1").click();
         await expect(page.getByLabel("Description, line 1")).toHaveValue("Brake pads, heavy duty, axle set");
+        // A quantity that is not a number is said beside it at once.
+        await page.getByLabel("Quantity, line 1").fill("two");
+        await expect(page.getByLabel("Quantity, line 1")).toHaveAttribute("aria-invalid", "true");
         await page.getByLabel("Quantity, line 1").fill("2");
         await expect(page.getByText("10 on hand in stores")).toBeVisible();
-        await page.getByRole("button", { name: "Save" }).click();
+        await page.getByRole("button", { name: "Save draft" }).click();
         await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
-        // Submit fades back in once the draft is saved; axe measures what is on screen, so let it finish.
         await expect(page.getByRole("button", { name: "Submit for approval" })).toBeEnabled();
         await page.waitForTimeout(400);
         expect(await violations(page, { settle: false })).toEqual([]);
         await page.getByRole("button", { name: "Submit for approval" }).click();
         await state(page, /Waiting for the foreman/);
+        await said(page, /^Submitted\. Waiting on /);
         await page.goto(job);
         await expect(page.getByRole("heading", { level: 1 })).toContainText("Waiting for parts");
 
@@ -61,8 +66,11 @@ test.describe("stores requisition", () => {
         await signInAs(page, workshop, owner);
         await page.goto(`/${workshop.slug}/dashboard/requisitions`);
         await page.getByRole("link", { name: /^REQ-/ }).click();
+        // The ledger shows every box to come; the foreman's is the one due, and is signed in its own row.
+        await expect(page.getByRole("listitem").filter({ hasText: "Divisional Head" }).first()).toContainText("Elago Mwandingi");
         await page.getByRole("button", { name: "Approve" }).click();
         await state(page, /Waiting for the divisional head/);
+        await said(page, /^Approved\. Waiting on Elago Mwandingi\.$/);
         await signInAs(page, workshop, head);
         await page.goto(requisition);
         await page.getByRole("button", { name: "Approve" }).click();
@@ -73,11 +81,19 @@ test.describe("stores requisition", () => {
         await page.goto(`/${workshop.slug}/dashboard/requisitions?show=issue`);
         await page.getByRole("link", { name: /^REQ-/ }).click();
         await expect(page.getByLabel(/Issue now: Brake pads/)).toHaveValue("2");
-        await page.getByLabel("Received by").selectOption({ label: "Tobias Kandjii · PN-15561" });
+        // The parts go to whoever asked unless stores says otherwise.
+        await expect(page.getByLabel("Received by")).toHaveValue(mechanic.membershipId);
         expect(await violations(page, { settle: false })).toEqual([]);
         await page.getByRole("button", { name: "Issue", exact: true }).click();
+        // Nothing leaves the shelf until stores has read back what goes to whom.
+        await expect(page.getByText("Hand 2 × Brake pads, heavy duty, axle set to Tobias Kandjii (PN-15561).")).toBeVisible();
+        expect(await violations(page, { settle: false })).toEqual([]);
+        await page.getByRole("button", { name: "Confirm the issue" }).click();
         await state(page, /Issued, to be finalised/);
-        await expect(page.getByText(/2 × Brake pads, heavy duty, axle set · issued by Hilma Nakale/)).toBeVisible();
+        await said(page, /^Issued\. Waiting on the foreman, the fleet coordinator and the divisional head to sign\.$/);
+        // The storeman's verification is a box with a pay number, like every other.
+        await expect(page.getByRole("listitem").filter({ hasText: "Stores verified" })).toContainText("PN-16034");
+        await expect(page.getByText("2 × Brake pads, heavy duty, axle set", { exact: true })).toBeVisible();
 
         // On the job card, at cost, and no longer waiting for parts.
         await page.goto(job);

@@ -119,6 +119,10 @@ test("a draft says what is missing before it can be submitted", () => {
     assert.match(submitError({ ...ok, lines: [{ description: "Pump", quantity: 0 }] })!, /more than zero/);
     assert.match(submitError({ ...ok, chargeDocumentId: null })!, /job card or to a vote\.$/);
     assert.match(submitError({ ...ok, chargeVoteId: "vote" })!, /not both/);
+    // An item typed in by hand carries an estimate, or its value would slip under the council's limit.
+    assert.match(submitError({ ...ok, lines: [{ description: "Output bearing, SKF 6310", quantity: 2, productId: null, unitCost: 0 }] })!, /estimated rate for “Output bearing, SKF 6310”/);
+    assert.equal(submitError({ ...ok, lines: [{ description: "Output bearing, SKF 6310", quantity: 2, productId: null, unitCost: 1280 }] }), null);
+    assert.equal(submitError({ ...ok, lines: [{ description: "Gear oil", quantity: 1, productId: "p1", unitCost: 0 }] }), null, "a stock item is priced by stores");
 });
 
 test("the council's quotation rule is read at the chosen quotation's value", () => {

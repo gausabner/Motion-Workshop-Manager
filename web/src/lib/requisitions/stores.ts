@@ -42,10 +42,21 @@ export async function issueStores(
         where: { id },
         select: {
             state: true, kind: true, number: true, chargeDocumentId: true,
-            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, product: { select: { id: true, type: true, isService: true, dontUpdateQty: true, costExTax: true, vatExempt: true } } } },
+            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, productId: true } },
         },
     });
     if (!req) throw new Error(MISSING);
+    // The shelf counts are read under lock, so two storemen issuing the last of an item cannot both hand it over.
+    const productIds = [...new Set(req.lines.map((l) => l.productId).filter((p): p is string => !!p))];
+    if (productIds.length) await tx.$queryRaw`SELECT 1 FROM "Product" WHERE "id" IN (${Prisma.join(productIds)}) FOR UPDATE`;
+    const products = new Map(
+        (await tx.product.findMany({ where: { id: { in: productIds } }, select: { id: true, type: true, isService: true, dontUpdateQty: true, costExTax: true, vatExempt: true, qtyOnHand: true } })).map((p) => [p.id, p]),
+    );
+    const productOf = (l: { productId: string | null }) => (l.productId ? (products.get(l.productId) ?? null) : null);
+
+    // The storeman's own name and pay number, kept on the handover as the form's "verified by".
+    const me = await tx.membership.findUniqueOrThrow({ where: { id: actor.membershipId }, select: { payNumber: true, user: { select: { firstName: true, lastName: true } } } });
+    const issuer = { membershipId: actor.membershipId, name: fullName(me.user), payNumber: me.payNumber };
 
     // The receiver: a team member, whose name and pay number are copied as they stand, or a name and pay number typed in.
     let receiver = { membershipId: null as string | null, name: text(input.receiver.name) ?? "", payNumber: text(input.receiver.payNumber) };
@@ -56,8 +67,11 @@ export async function issueStores(
     }
 
     const issued = await issuedByLine(tx, req.lines.map((l) => l.id));
-    const lines: IssueLine[] = req.lines.map((l) => ({ id: l.id, description: l.description, quantity: l.quantity.toNumber(), issued: issued.get(l.id) ?? 0, stocked: movesStock(l.product) }));
-    const problem = issueError({ state: req.state, kind: req.kind, lines, issue: input.lines, issuerId: actor.membershipId, receiver });
+    const lines: IssueLine[] = req.lines.map((l) => {
+        const product = productOf(l);
+        return { id: l.id, description: l.description, quantity: l.quantity.toNumber(), issued: issued.get(l.id) ?? 0, stocked: movesStock(product), onHand: product ? product.qtyOnHand.toNumber() : null };
+    });
+    const problem = issueError({ state: req.state, kind: req.kind, lines, issue: input.lines, issuer, receiver });
     if (problem) throw new Error(problem);
 
     const job = req.chargeDocumentId ? await tx.document.findUnique({ where: { id: req.chargeDocumentId }, select: { id: true, state: true, taxRate: true, _count: { select: { lines: true } } } }) : null;
@@ -65,13 +79,13 @@ export async function issueStores(
 
     const now = new Date();
     const handover = await tx.requisitionIssue.create({
-        data: { tenantId: tenant.id, requisitionId: id, issuedById: actor.membershipId, receiverMembershipId: receiver.membershipId, receiverName: receiver.name, receiverPayNumber: receiver.payNumber, note: text(input.note), at: now },
+        data: { tenantId: tenant.id, requisitionId: id, issuedById: actor.membershipId, issuedByName: issuer.name, issuedByPayNumber: issuer.payNumber, receiverMembershipId: receiver.membershipId, receiverName: receiver.name, receiverPayNumber: receiver.payNumber, note: text(input.note), at: now },
         select: { id: true },
     });
     let order = job?._count.lines ?? 0;
     for (const want of input.lines.filter((i) => i.quantity > 0)) {
         const line = req.lines.find((l) => l.id === want.lineId)!;
-        const product = line.product!;
+        const product = productOf(line)!;
         const quantity = new Prisma.Decimal(want.quantity);
         await tx.stockMovement.create({
             data: {

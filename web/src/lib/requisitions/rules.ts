@@ -186,7 +186,8 @@ export function foremanStepRaisedByForeman(foremen: Candidate[], requesterId: st
 export function submitError(input: {
     state: RequisitionState;
     workshopId: string | null;
-    lines: { description: string; quantity: number }[];
+    /** `productId` null is an item typed in by hand; `unitCost` is its estimate. Both are optional for callers that only check the basics. */
+    lines: { description: string; quantity: number; productId?: string | null; unitCost?: number }[];
     chargeDocumentId: string | null;
     chargeVoteId: string | null;
 }): string | null {
@@ -195,6 +196,9 @@ export function submitError(input: {
     if (input.lines.length === 0) return "Add at least one line.";
     if (input.lines.some((l) => !l.description.trim())) return "Every line needs a description.";
     if (input.lines.some((l) => !(l.quantity > 0))) return "Every line needs a quantity of more than zero.";
+    // Its value decides who must approve it, so an item without a price would slip under the council's limit.
+    const unpriced = input.lines.find((l) => l.productId === null && l.unitCost !== undefined && !(l.unitCost > 0));
+    if (unpriced) return `Give an estimated rate for “${unpriced.description}”. It is not a stock item, so the approvers need to see what it will cost.`;
     if (input.chargeDocumentId && input.chargeVoteId) return "Charge it to a job card or to a vote, not both.";
     if (!input.chargeDocumentId && !input.chargeVoteId) return "Charge it to a job card or to a vote.";
     return null;

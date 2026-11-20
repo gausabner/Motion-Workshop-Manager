@@ -26,6 +26,7 @@ import { tabTitle } from "@/lib/copy/terms";
 import { routeView } from "@/lib/fleet/queries";
 import { JobRoutePanel } from "@/components/fleet/JobRoutePanel";
 import { JobParts } from "@/components/requisitions/JobParts";
+import { jobRequisitions } from "@/lib/requisitions/view";
 
 /** The tab names the document and whose it is, so a row of open documents can be told apart. */
 export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
@@ -63,13 +64,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             : await listAudit(db, "Document", id)
         : [];
     // A job's requisitions for parts, on councils that requisition.
-    const parts = includes(plan, "requisitions") && doc.jobNumber
-        ? (await db.requisition.findMany({
-              where: { chargeDocumentId: id },
-              orderBy: { createdAt: "asc" },
-              select: { id: true, number: true, state: true, lines: { orderBy: { sortOrder: "asc" }, select: { description: true, quantity: true } } },
-          })).map((r) => ({ id: r.id, number: r.number, state: r.state, items: r.lines.map((l) => `${l.quantity.toNumber()} × ${l.description}`).join(", ") }))
-        : null;
+    const parts = includes(plan, "requisitions") && doc.jobNumber ? await jobRequisitions(db, id) : null;
     // Where the vehicle is, which on a council job is its status: the job status pill
     // would say "Booked in" all the way to collection.
     const here = route?.visits.find((v) => !v.leftAt) ?? null;
