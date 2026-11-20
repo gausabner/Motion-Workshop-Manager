@@ -1489,17 +1489,21 @@ model DocumentLine {
   lineTotal          Decimal  @default(0) @db.Decimal(12, 2)
   serialNumbers      String?
   isCustomerSupplied Boolean  @default(false)
+  /// Issued from stores against this requisition line: the stock has already
+  /// left the shelf, so processing the document never moves it again.
+  requisitionLineId  String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id])
-  document       Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  product        Product?        @relation(fields: [productId], references: [id])
-  inspectionItem InspectionItem?
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  requisitionLine RequisitionLine? @relation(fields: [requisitionLineId], references: [id], onDelete: Restrict)
+  document        Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  product         Product?         @relation(fields: [productId], references: [id])
+  inspectionItem  InspectionItem?
   /// Lines expanded from one bundle share this key; the parent carries the price, the components the cost and the stock.
-  bundleGroup    String?
-  bundleRole     BundleRole?
-  serialUnits    SerialUnit[]
+  bundleGroup     String?
+  bundleRole      BundleRole?
+  serialUnits     SerialUnit[]
 
   @@index([documentId, sortOrder])
   @@index([tenantId, productId])
@@ -2518,6 +2522,8 @@ model RequisitionLine {
   product            Product?            @relation(fields: [productId], references: [id])
   stockMovements     StockMovement[]
   purchaseOrderLines PurchaseOrderLine[]
+  /// The job card lines its issues became.
+  documentLines      DocumentLine[]
 
   @@index([requisitionId, sortOrder])
 }

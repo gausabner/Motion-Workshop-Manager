@@ -5,6 +5,7 @@ import { allocateNumber } from "@/lib/documents/numbering";
 import { fullName } from "@/lib/format";
 import { requisitionSettings } from "@/lib/settings/schema";
 import { businessToday } from "@/lib/tenant/today";
+import { syncPartsStatus } from "@/lib/requisitions/stores";
 import {
     approvalValue,
     awaiting,
@@ -239,7 +240,7 @@ export async function chooseQuote(tx: TenantTx, tenant: Tenant, actor: Actor, qu
 // ───────────────────────── who may sign ─────────────────────────
 
 /** The organisation, the appointments of people still in the workshop, and where this requisition sits. */
-async function signingContext(tx: TenantTx, req: { workshopId: string | null; chargeVoteId: string | null }): Promise<{ scope: Scope; authorities: Authority[]; units: { id: string; parentId: string | null }[] }> {
+export async function signingContext(tx: TenantTx, req: { workshopId: string | null; chargeVoteId: string | null }): Promise<{ scope: Scope; authorities: Authority[]; units: { id: string; parentId: string | null }[] }> {
     const [units, rows, workshop, vote] = await Promise.all([
         tx.orgUnit.findMany({ select: { id: true, parentId: true } }),
         // Somebody who has left the workshop can no longer sign, whatever they were appointed to.
@@ -296,7 +297,7 @@ const role = (step: RequisitionStep, c: Candidate | undefined) => (c?.deputy ? `
  * so every signature is stamped with the application's clock rather than the
  * transaction's start, which two signatures in one transaction would share.
  */
-async function signedThisRound(tx: TenantTx, requisitionId: string): Promise<string[]> {
+export async function signedThisRound(tx: TenantTx, requisitionId: string): Promise<string[]> {
     const opened = await tx.requisitionSignoff.findFirst({ where: { requisitionId, decision: "SUBMITTED" }, orderBy: { at: "desc" }, select: { at: true } });
     if (!opened) return [];
     const approvals = await tx.requisitionSignoff.findMany({
@@ -368,6 +369,7 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
     await tx.auditEvent.create({
         data: { tenantId: tenant.id, actorUserId: actor.userId, entityType: "Requisition", entityId: id, action: "SUBMITTED", diff: { number, value } },
     });
+    await syncPartsStatus(tx, tenant, actor, req.chargeDocumentId);
     return { number, state: awaiting(first) };
 }
 
@@ -377,7 +379,7 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
  * never somebody who has already approved another step of this round.
  */
 export async function decideRequisition(tx: TenantTx, tenant: Tenant, actor: Actor, id: string, decision: Decision, comment?: string | null): Promise<{ state: RequisitionState }> {
-    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, requestedById: true, workshopId: true, chargeVoteId: true, value: true } });
+    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, requestedById: true, workshopId: true, chargeVoteId: true, chargeDocumentId: true, value: true } });
     if (!req) throw new Error(MISSING);
     const step = stepOf(req.state);
     if (!step) throw new Error("This requisition is not waiting on an approval.");
@@ -408,12 +410,14 @@ export async function decideRequisition(tx: TenantTx, tenant: Tenant, actor: Act
     await tx.auditEvent.create({
         data: { tenantId: tenant.id, actorUserId: actor.userId, entityType: "Requisition", entityId: id, action: decision, diff: { step, state: next } },
     });
+    // Returned or rejected, it is no longer a request the job is waiting on.
+    await syncPartsStatus(tx, tenant, actor, req.chargeDocumentId);
     return { state: next };
 }
 
 /** The requester takes it back to change it, before it is approved. The new round it starts clears this round's approvals. */
 export async function withdrawRequisition(tx: TenantTx, tenant: Tenant, actor: Actor, id: string): Promise<void> {
-    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, requestedById: true, value: true } });
+    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, requestedById: true, value: true, chargeDocumentId: true } });
     if (!req) throw new Error(MISSING);
     if (req.requestedById !== actor.membershipId) throw new Error("Only the person who raised it can withdraw it.");
     if (!stepOf(req.state)) throw new Error("Only a requisition waiting on an approval can be withdrawn.");
@@ -424,11 +428,12 @@ export async function withdrawRequisition(tx: TenantTx, tenant: Tenant, actor: A
         value: req.value.toNumber(), comment: "Withdrawn by the requester to change it.", at: new Date(),
     });
     await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: actor.userId, entityType: "Requisition", entityId: id, action: "WITHDRAWN" } });
+    await syncPartsStatus(tx, tenant, actor, req.chargeDocumentId);
 }
 
 /** Cancelled, with the reason, and the number kept: a cancelled requisition is part of the sequence an auditor checks. */
 export async function cancelRequisition(tx: TenantTx, tenant: Tenant, actor: Actor, id: string, reason: string): Promise<void> {
-    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, number: true, requestedById: true, value: true } });
+    const req = await tx.requisition.findUnique({ where: { id }, select: { state: true, number: true, requestedById: true, value: true, chargeDocumentId: true } });
     if (!req) throw new Error(MISSING);
     if (!reason.trim()) throw new Error("Give the reason for cancelling it.");
     const [issued, ordered] = await Promise.all([
@@ -450,6 +455,7 @@ export async function cancelRequisition(tx: TenantTx, tenant: Tenant, actor: Act
     await tx.auditEvent.create({
         data: { tenantId: tenant.id, actorUserId: actor.userId, entityType: "Requisition", entityId: id, action: "CANCELLED", diff: { number: req.number, reason: reason.trim() } },
     });
+    await syncPartsStatus(tx, tenant, actor, req.chargeDocumentId);
 }
 
 // ───────────────────────── the paying division ─────────────────────────

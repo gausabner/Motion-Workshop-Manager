@@ -25,6 +25,7 @@ import { dateShort, money } from "@/lib/format";
 import { tabTitle } from "@/lib/copy/terms";
 import { routeView } from "@/lib/fleet/queries";
 import { JobRoutePanel } from "@/components/fleet/JobRoutePanel";
+import { JobParts } from "@/components/requisitions/JobParts";
 
 /** The tab names the document and whose it is, so a row of open documents can be told apart. */
 export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
@@ -61,6 +62,14 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                   .slice(0, 50)
             : await listAudit(db, "Document", id)
         : [];
+    // A job's requisitions for parts, on councils that requisition.
+    const parts = includes(plan, "requisitions") && doc.jobNumber
+        ? (await db.requisition.findMany({
+              where: { chargeDocumentId: id },
+              orderBy: { createdAt: "asc" },
+              select: { id: true, number: true, state: true, lines: { orderBy: { sortOrder: "asc" }, select: { description: true, quantity: true } } },
+          })).map((r) => ({ id: r.id, number: r.number, state: r.state, items: r.lines.map((l) => `${l.quantity.toNumber()} × ${l.description}`).join(", ") }))
+        : null;
     // Where the vehicle is, which on a council job is its status: the job status pill
     // would say "Booked in" all the way to collection.
     const here = route?.visits.find((v) => !v.leftAt) ?? null;
@@ -78,11 +87,9 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         <h1 className="text-xl font-bold text-slate-800 leading-tight flex items-center gap-3 flex-wrap">
                             {DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}
                             <StatePill state={doc.state} type={doc.type} />
-                            {place ? (
-                                <span className="text-sm font-medium text-slate-700">{place}</span>
-                            ) : (
-                                doc.jobStatus && <JobStatusPill status={doc.jobStatus} />
-                            )}
+                            {place && <span className="text-sm font-medium text-slate-700">{place}</span>}
+                            {/* On a council job the place says booked in, inspecting or in progress already; a status that adds something still shows. */}
+                            {doc.jobStatus && (!place || !["BOOKED_IN", "INSPECTION_IN_PROGRESS", "WORK_IN_PROGRESS"].includes(doc.jobStatus)) && <JobStatusPill status={doc.jobStatus} />}
                         </h1>
                         <p className="text-xs text-slate-500 flex items-center gap-3 flex-wrap mt-0.5">
                             {doc.customer ? (
@@ -105,6 +112,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             <DeliveryStrip messages={messages} />
 
             {route && <JobRoutePanel tenant={slug} documentId={id} route={route} timezone={tenant.timezone} />}
+
+            {parts && <JobParts tenant={slug} documentId={id} rows={parts} canRaise={can(membership, "requisitions:raise") && doc.state === "DRAFT"} />}
 
             {processed && (
                 <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">

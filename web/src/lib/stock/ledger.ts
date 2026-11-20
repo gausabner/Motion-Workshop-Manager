@@ -31,7 +31,8 @@ export async function postDocumentStock(
 ): Promise<StockWarning[]> {
     if (!postsStock(doc.type)) return [];
     const lines = await tx.documentLine.findMany({
-        where: { documentId: doc.id, productId: { not: null } },
+        // A line issued from stores against a requisition left the shelf at the issue.
+        where: { documentId: doc.id, productId: { not: null }, requisitionLineId: null },
         select: {
             id: true, quantity: true, unitCost: true,
             product: { select: { id: true, itemCode: true, description: true, type: true, isService: true, dontUpdateQty: true, qtyOnHand: true } },
