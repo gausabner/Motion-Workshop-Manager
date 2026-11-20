@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { requireFeature } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
-import { requisitionList, toIssueCount, waitingOnMe } from "@/lib/requisitions/view";
+import { requisitionList, storesCounts, waitingOnMe, type ListShow } from "@/lib/requisitions/view";
 import { RaiseButton } from "@/components/requisitions/RaiseButton";
 import { tabTitle } from "@/lib/copy/terms";
 
 export const metadata = { title: tabTitle("Requisitions") };
 
-const TABS = [
+const TABS: { show: ListShow; label: string }[] = [
     { show: "waiting", label: "Waiting on you" },
     { show: "mine", label: "Mine" },
     { show: "issue", label: "To issue" },
+    { show: "quotes", label: "Quotations" },
     { show: "open", label: "Open" },
     { show: "closed", label: "Closed" },
-] as const;
-type Show = (typeof TABS)[number]["show"];
+];
+type Show = ListShow;
 
 /**
  * The requisitions: what waits on the person looking, their own, what
@@ -27,10 +28,11 @@ export default async function RequisitionsPage({ params, searchParams }: { param
     const { db, tenant, membership } = await requireFeature(slug, "requisitions");
     const waiting = await waitingOnMe(db, tenant, membership);
     const stores = can(membership, "requisitions:issue");
-    const fallback: Show = waiting.length ? "waiting" : stores ? "issue" : "mine";
+    const driver = membership.designations.includes("PARTS_DRIVER");
+    const fallback: Show = waiting.length ? "waiting" : stores ? "issue" : driver ? "quotes" : "mine";
     const show: Show = TABS.some((t) => t.show === asked) ? (asked as Show) : fallback;
-    const [rows, toIssue] = await Promise.all([requisitionList(db, { show, viewerId: membership.id, waitingIds: waiting }), stores ? toIssueCount(db) : Promise.resolve(0)]);
-    const count: Partial<Record<Show, number>> = { waiting: waiting.length, issue: toIssue };
+    const [rows, counts] = await Promise.all([requisitionList(db, tenant, { show, viewerId: membership.id, waitingIds: waiting }), stores || driver ? storesCounts(db) : Promise.resolve({ issue: 0, quotes: 0 })]);
+    const count: Partial<Record<Show, number>> = { waiting: waiting.length, issue: counts.issue, quotes: counts.quotes };
     const base = `/${slug}/dashboard/requisitions`;
     const money = (n: number) => n.toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const day = (d: Date | string, year = false) =>
@@ -41,9 +43,14 @@ export default async function RequisitionsPage({ params, searchParams }: { param
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900">Requisitions</h1>
-                    <p className="text-sm text-slate-600">Parts and supplies asked for, approved, and issued from stores.</p>
+                    <p className="text-sm text-slate-600">Parts and supplies asked for, approved, issued from stores, and bought.</p>
                 </div>
-                {can(membership, "requisitions:raise") && <RaiseButton tenant={slug} />}
+                {can(membership, "requisitions:raise") && (
+                    <div className="flex flex-wrap items-start gap-2">
+                        <RaiseButton tenant={slug} kind="PURCHASE" label="New purchase requisition" quiet />
+                        <RaiseButton tenant={slug} label="New stores requisition" />
+                    </div>
+                )}
             </div>
             <nav aria-label="Which requisitions" className="-mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 px-4 sm:mx-0 sm:px-0">
                 {TABS.map((t) => (
@@ -54,7 +61,8 @@ export default async function RequisitionsPage({ params, searchParams }: { param
                         className={`-mb-px whitespace-nowrap border-b px-3 py-2 text-sm pointer-coarse:min-h-11 ${t.show === show ? "border-teal-700 font-medium text-slate-900" : "border-transparent text-slate-600 hover:text-slate-900"}`}
                     >
                         {t.label}
-                        {!!count[t.show] && <span className="ml-1 tabular-nums text-slate-600">{count[t.show]}</span>}
+                        {/* A real space, so a screen reader says "Quotations 1", not "Quotations1". */}
+                        {!!count[t.show] && <> <span className="tabular-nums text-slate-600">{count[t.show]}</span></>}
                     </Link>
                 ))}
             </nav>
@@ -64,7 +72,9 @@ export default async function RequisitionsPage({ params, searchParams }: { param
                         ? "No requisitions are waiting on you."
                         : show === "issue"
                           ? "Nothing approved is waiting to be issued."
-                          : show === "mine"
+                          : show === "quotes"
+                            ? "No purchase requisition is waiting for quotations."
+                            : show === "mine"
                             ? "You have not raised a requisition yet."
                             : show === "open"
                               ? "No requisitions are open."
@@ -75,7 +85,7 @@ export default async function RequisitionsPage({ params, searchParams }: { param
                     <thead>
                         <tr className="border-b border-slate-200 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
                             <th scope="col" className="px-4 py-2 font-semibold">Number</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">{show === "issue" ? "Needed by" : "Raised"}</th>
+                            <th scope="col" className="py-2 pr-3 font-semibold">{show === "issue" || show === "quotes" ? "Needed by" : "Raised"}</th>
                             <th scope="col" className="py-2 pr-3 font-semibold">Workshop</th>
                             <th scope="col" className="py-2 pr-3 font-semibold">By</th>
                             <th scope="col" className="py-2 pr-3 font-semibold">Charged to</th>
@@ -90,8 +100,8 @@ export default async function RequisitionsPage({ params, searchParams }: { param
                                 <td data-mobile="primary" className="px-4 py-2 font-medium">
                                     <Link href={`${base}/${r.id}`} className="tabular-nums text-slate-900 after:absolute after:inset-0 hover:text-teal-700">{r.number ?? "Draft"}</Link>
                                 </td>
-                                <td data-label={show === "issue" ? "Needed by" : "Raised"} className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-600">
-                                    {show === "issue" ? (r.requiredBy ? day(r.requiredBy, true) : "—") : day(r.createdAt, true)}
+                                <td data-label={show === "issue" || show === "quotes" ? "Needed by" : "Raised"} className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-600">
+                                    {show === "issue" || show === "quotes" ? (r.requiredBy ? day(r.requiredBy, true) : "—") : day(r.createdAt, true)}
                                 </td>
                                 <td data-label="Workshop" className="py-2 pr-3 text-slate-700">{r.workshop ?? "—"}</td>
                                 <td data-label="By" className="py-2 pr-3 text-slate-700">{r.requestedBy}</td>

@@ -162,14 +162,22 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         // names its source, so that link goes before the rows), then the
         // appointments, votes and workshops, and the units from the bottom up.
         // What stores issued points at the requisition lines it met, so it goes first.
+        await tx.requisitionIssueLine.deleteMany({ where });
         await tx.stockMovement.deleteMany({ where });
+        // What was bought for them: supplier invoices receive order lines, which point at requisition lines.
+        await tx.supplierInvoiceLine.deleteMany({ where });
+        await tx.supplierInvoice.deleteMany({ where });
+        await tx.purchaseOrderLine.deleteMany({ where });
+        await tx.purchaseOrder.deleteMany({ where });
         await tx.documentLine.updateMany({ where: { tenantId, requisitionLineId: { not: null } }, data: { requisitionLineId: null } });
         await tx.requisitionSignoff.deleteMany({ where });
         await tx.requisitionQuote.deleteMany({ where });
         await tx.requisitionIssue.deleteMany({ where });
+        await tx.requisitionLine.updateMany({ where: { tenantId, sourceLineId: { not: null } }, data: { sourceLineId: null } });
         await tx.requisitionLine.deleteMany({ where });
         await tx.requisition.updateMany({ where, data: { sourceRequisitionId: null } });
         await tx.requisition.deleteMany({ where });
+        await tx.supplier.deleteMany({ where });
         await tx.signingAuthority.deleteMany({ where });
         await tx.vote.deleteMany({ where });
         await tx.workshop.deleteMany({ where });

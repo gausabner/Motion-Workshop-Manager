@@ -6,11 +6,12 @@ import { can } from "@/lib/auth/permissions";
 import { fullName } from "@/lib/format";
 import { movesStock } from "@/lib/stock/rules";
 import { requisitionSettings } from "@/lib/settings/schema";
-import { candidatesFor, cancelError, editable, eligible, finaliseError, FITTER_DESIGNATIONS, STEP_LABEL, stepOf, stepsFor, type ApprovalStep, type FinalStep } from "@/lib/requisitions/rules";
-import { issueDefault, outstanding, OPEN_STATES } from "@/lib/requisitions/stores-rules";
-import { buildLedger, either, stateLabel, type Ledger } from "@/lib/requisitions/ledger";
+import { candidatesFor, cancelError, editable, eligible, finaliseError, FITTER_DESIGNATIONS, requiredQuotes, STEP_LABEL, stepOf, stepsFor, type ApprovalStep, type FinalStep } from "@/lib/requisitions/rules";
+import { arrivedLeft, issueDefault, outstanding, OPEN_STATES } from "@/lib/requisitions/stores-rules";
+import { shortfall } from "@/lib/requisitions/purchase-rules";
+import { buildLedger, either, stateLabel, type Ledger, type Progress } from "@/lib/requisitions/ledger";
 import { signedThisRound, signingContext } from "@/lib/requisitions/service";
-import { issuedByLine } from "@/lib/requisitions/stores";
+import { issuedByLine, movedByLine, orderedByLine, receivedByLine } from "@/lib/requisitions/counts";
 
 /**
  * A requisition as its screen shows it, and what the person looking may do
@@ -56,8 +57,19 @@ export type RequisitionView = {
     value: number;
     /** The council's value limit above which the over-limit approver signs too, or null when it has none. */
     overLimitAt: number | null;
-    lines: { id: string; productId: string | null; itemCode: string | null; description: string; quantity: number; unitCost: number; note: string | null; issued: number; outstanding: number; onHand: number | null; stocked: boolean; issueDefault: number }[];
+    lines: {
+        id: string; productId: string | null; itemCode: string | null; description: string; quantity: number; unitCost: number; note: string | null;
+        issued: number; outstanding: number; onHand: number | null; stocked: boolean; issueDefault: number;
+        /** On a stores requisition: moved to a purchase requisition. On a purchase requisition: ordered, and arrived. */
+        moved: number; ordered: number; received: number;
+    }[];
     ledger: Ledger;
+    /** The stores requisition a purchase one was split from. */
+    source: { id: string; number: string | null } | null;
+    /** A purchase requisition's quotations, the council's rule for how many, and the suppliers asked. */
+    quotes: { id: string; supplier: string; amount: number; reference: string | null; validUntil: string | null; chosen: boolean; obtainedBy: string; note: string | null; scan: { id: string; fileName: string } | null }[];
+    quotesRequired: number;
+    asked: { supplier: string; at: string; opened: number }[];
     can: {
         edit: boolean;
         submit: boolean;
@@ -67,11 +79,17 @@ export type RequisitionView = {
         issue: boolean;
         finalise: { step: FinalStep; label: string }[];
         cancel: boolean;
+        /** Add, choose or remove quotations, and ask suppliers for them. */
+        quotes: boolean;
+        /** Stores: turn what the shelf cannot meet into a purchase requisition. */
+        split: boolean;
+        /** Stores: raise the purchase order from the chosen quotation. */
+        order: boolean;
     };
 };
 
 /** What a requisition action answers with: the outcome, and the requisition as it now stands. */
-export type RequisitionAnswer = ActionState & { view?: RequisitionView };
+export type RequisitionAnswer = ActionState & { view?: RequisitionView; emails?: { supplier: string; email: string; href: string }[] };
 
 type Viewer = { id: string; group: string; extraPermissions: string[]; designations: string[] };
 
@@ -80,7 +98,13 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
         where: { id },
         select: {
             id: true, number: true, kind: true, state: true, location: true, requiredBy: true, purpose: true, value: true, createdAt: true,
-            workshopId: true, chargeVoteId: true, chargeDocumentId: true, requestedById: true,
+            workshopId: true, chargeVoteId: true, chargeDocumentId: true, requestedById: true, submittedAt: true,
+            source: { select: { id: true, number: true } },
+            splits: { orderBy: { createdAt: "asc" }, select: { id: true, number: true, state: true, submittedAt: true, kind: true, lines: { select: { description: true, quantity: true } } } },
+            quotes: {
+                orderBy: { createdAt: "asc" },
+                select: { id: true, amount: true, reference: true, validUntil: true, chosen: true, note: true, createdAt: true, supplier: { select: { companyName: true } }, obtainedBy: { select: { user: { select: { firstName: true, lastName: true } } } } },
+            },
             workshop: { select: { id: true, name: true } },
             requestedBy: { select: { user: { select: { firstName: true, lastName: true } } } },
             chargeDocument: { select: { id: true, jobNumber: true, number: true, vehicle: { select: { plate: true } } } },
@@ -92,13 +116,20 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
                 select: {
                     id: true, at: true, receiverName: true, receiverPayNumber: true, issuedByName: true, issuedByPayNumber: true,
                     issuedBy: { select: { payNumber: true, user: { select: { firstName: true, lastName: true } } } },
-                    stockMovements: { select: { quantity: true, requisitionLine: { select: { description: true } } } },
+                    lines: { select: { quantity: true, requisitionLine: { select: { description: true } } } },
                 },
             },
         },
     });
     if (!req) return null;
-    const issued = await issuedByLine(db, req.lines.map((l) => l.id));
+    const ids = req.lines.map((l) => l.id);
+    const bought = req.kind === "PURCHASE";
+    const [issued, moved, ordered, received] = await Promise.all([
+        issuedByLine(db, ids),
+        bought ? new Map<string, number>() : movedByLine(db, ids),
+        bought ? orderedByLine(db, ids) : new Map<string, number>(),
+        bought ? receivedByLine(db, ids) : new Map<string, { quantity: number; unitCost: number }>(),
+    ]);
     const mine = req.requestedById === viewer.id;
     const member = viewer as Parameters<typeof can>[0];
     const settings = requisitionSettings(tenant.settings);
@@ -109,13 +140,17 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
         const quantity = l.quantity.toNumber();
         const line = {
             id: l.id, productId: l.productId, itemCode: l.itemCode, description: l.description, quantity, unitCost: l.unitCost.toNumber(), note: l.note,
-            issued: done, outstanding: outstanding({ quantity, issued: done }), onHand: l.product ? l.product.qtyOnHand.toNumber() : null, stocked: movesStock(l.product),
+            issued: done, moved: moved.get(l.id) ?? 0, ordered: ordered.get(l.id) ?? 0, received: received.get(l.id)?.quantity ?? 0,
+            onHand: l.product ? l.product.qtyOnHand.toNumber() : null, stocked: movesStock(l.product),
         };
-        return { ...line, issueDefault: issueDefault(line) };
+        return { ...line, outstanding: outstanding(line), issueDefault: issueDefault(line, req.kind) };
     });
-    const stockLeft = lines.filter((l) => l.stocked && l.outstanding > 0).length;
-    const toBuy = lines.filter((l) => !l.stocked && l.outstanding > 0);
+    // A stores requisition waits on the shelf; a purchase one on the supplier, then on stores to hand over what came.
+    const stockLeft = bought ? 0 : lines.filter((l) => l.stocked && l.outstanding > 0).length;
+    const toBuy = bought ? [] : lines.filter((l) => !l.stocked && l.outstanding > 0);
     const issuedAny = lines.some((l) => l.issued > 0);
+    const toHandOver = bought ? lines.filter((l) => Math.min(l.outstanding, arrivedLeft(l)) > 0).length : 0;
+    const short = bought ? [] : shortfall(lines).map((s) => ({ description: lines.find((l) => l.id === s.lineId)!.description, quantity: s.quantity }));
 
     // Who holds each box: the approvals its value needs, and the finalising ones. "you" for the person looking.
     const holders: Partial<Record<RequisitionStep, string[]>> = {};
@@ -155,7 +190,33 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
         if (missing.length) waiting = `Waiting on ${missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}`} to sign`;
     }
 
-    const canIssue = req.kind === "STORES" && req.state === "APPROVED" && stockLeft > 0 && can(member, "requisitions:issue");
+    const stores = can(member, "requisitions:issue");
+    const canIssue = req.state === "APPROVED" && (bought ? toHandOver > 0 : stockLeft > 0) && stores;
+    const canSplit = !bought && req.state === "APPROVED" && short.length > 0 && stores;
+    const orderedAny = lines.some((l) => l.ordered > 0);
+    const chosen = req.quotes.find((q) => q.chosen) ?? null;
+    const canOrder = bought && req.state === "APPROVED" && !!chosen && !orderedAny && stores;
+    // Who handles a draft purchase requisition's quotations: the requester, stores, or a parts driver.
+    const canQuote = bought && editable(req.state) && (mine || stores || viewer.designations.includes("PARTS_DRIVER"));
+    const money = (n: number) => `${tenant.currency} ${n.toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const orders = bought && orderedAny
+        ? await db.purchaseOrder.findMany({
+              where: { lines: { some: { requisitionLineId: { in: ids } } }, state: { not: "CANCELLED" } },
+              orderBy: { createdAt: "asc" },
+              select: { id: true, number: true, state: true, createdAt: true, supplier: { select: { companyName: true } } },
+          })
+        : [];
+    const asked = bought
+        ? await db.shareLink.findMany({ where: { kind: "QUOTATION_REQUEST", targetId: id }, orderBy: { createdAt: "asc" }, select: { params: true, createdAt: true, openCount: true } })
+        : [];
+    const askedSuppliers = asked.length
+        ? new Map((await db.supplier.findMany({ where: { id: { in: asked.map((a) => (a.params as Record<string, string>).supplierId).filter(Boolean) } }, select: { id: true, companyName: true } })).map((x) => [x.id, x.companyName]))
+        : new Map<string, string>();
+    const scans = req.quotes.length
+        ? await db.attachment.findMany({ where: { ownerType: "RequisitionQuote", ownerId: { in: req.quotes.map((q) => q.id) } }, orderBy: { createdAt: "desc" }, select: { id: true, ownerId: true, fileName: true } })
+        : [];
+    const quotesRequired = requiredQuotes(chosen ? chosen.amount.toNumber() : req.value.toNumber(), settings.quoteBands);
+    const splitLabel = (x: (typeof req.splits)[number]) => stateLabel({ state: x.state, number: x.number, kind: x.kind, submitted: !!x.submittedAt, issuedAny: false, stockLeft: 0, toBuy: 0 });
     const ledger = buildLedger({
         kind: req.kind,
         state: req.state,
@@ -165,14 +226,26 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
             id: i.id, at: i.at.toISOString(),
             issuedBy: i.issuedByName ?? fullName(i.issuedBy.user), issuedByPayNumber: i.issuedByName ? i.issuedByPayNumber : i.issuedBy.payNumber,
             receiverName: i.receiverName, receiverPayNumber: i.receiverPayNumber,
-            lines: i.stockMovements.map((m) => ({ description: m.requisitionLine?.description ?? "", quantity: -m.quantity.toNumber() })),
+            lines: i.lines.map((m) => ({ description: m.requisitionLine.description, quantity: m.quantity.toNumber() })),
         })),
         requestedBy: fullName(req.requestedBy.user),
         mine,
+        submitter: mine || (bought && !!req.source && (stores || viewer.designations.includes("PARTS_DRIVER"))),
         holders,
         stockLeft,
         toBuy: toBuy.map((l) => ({ description: l.description, quantity: l.outstanding })),
-        can: { decide: !!decide, issue: canIssue, finalise: finalise.map((f) => f.step) },
+        shortfall: short,
+        splits: req.splits.map((x) => ({ id: x.id, number: x.number ?? "Draft", label: splitLabel(x), items: x.lines.map((l) => `${l.quantity.toNumber()} × ${l.description}`).join("; ") })),
+        buying: bought
+            ? {
+                  quotes: { have: req.quotes.length, required: quotesRequired },
+                  chosen: chosen ? { supplier: chosen.supplier.companyName, amount: money(chosen.amount.toNumber()), obtainedBy: fullName(chosen.obtainedBy.user), at: chosen.createdAt.toISOString() } : null,
+                  orders: orders.map((o) => ({ id: o.id, number: o.number ?? "Order", supplier: o.supplier.companyName, sent: o.state !== "SUGGESTED", at: o.createdAt.toISOString() })),
+                  arrived: { quantity: lines.reduce((sum, l) => sum + Math.min(l.received, l.quantity), 0), of: lines.reduce((sum, l) => sum + l.quantity, 0) },
+                  toHandOver,
+              }
+            : undefined,
+        can: { decide: !!decide, issue: canIssue, finalise: finalise.map((f) => f.step), split: canSplit, order: canOrder },
     });
     const canManage = can(member, "settings:manage");
 
@@ -181,7 +254,7 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
         number: req.number,
         kind: req.kind,
         state: req.state,
-        stateLabel: stateLabel({ state: req.state, number: req.number, issuedAny, stockLeft, toBuy: toBuy.length }),
+        stateLabel: stateLabel({ state: req.state, number: req.number, kind: req.kind, submitted: !!req.submittedAt, issuedAny, stockLeft, toBuy: toBuy.length, ordered: orderedAny, receivedAny: lines.some((l) => l.received > 0), toHandOver }),
         waiting,
         workshop: req.workshop,
         location: req.location,
@@ -199,91 +272,131 @@ export async function requisitionView(db: TenantDb, tenant: Tenant, id: string, 
         overLimitAt: settings.overLimitAt,
         lines,
         ledger,
+        source: req.source,
+        quotes: req.quotes.map((q) => {
+            const scan = scans.find((a) => a.ownerId === q.id);
+            return {
+                id: q.id, supplier: q.supplier.companyName, amount: q.amount.toNumber(), reference: q.reference, validUntil: q.validUntil ? q.validUntil.toISOString().slice(0, 10) : null,
+                chosen: q.chosen, obtainedBy: fullName(q.obtainedBy.user), note: q.note, scan: scan ? { id: scan.id, fileName: scan.fileName } : null,
+            };
+        }),
+        quotesRequired,
+        asked: asked.map((a) => ({ supplier: askedSuppliers.get((a.params as Record<string, string>).supplierId) ?? "A supplier", at: a.createdAt.toISOString(), opened: a.openCount })),
         can: {
             edit: mine && editable(req.state) && can(member, "requisitions:raise"),
-            submit: mine && req.state === "DRAFT" && can(member, "requisitions:raise"),
+            // A split purchase requisition is sent on by whoever gathered its quotations.
+            submit: req.state === "DRAFT" && ((mine && can(member, "requisitions:raise")) || (bought && !!req.source && (stores || viewer.designations.includes("PARTS_DRIVER")))),
             discard: mine && req.state === "DRAFT" && !req.number,
             withdraw: mine && !!step,
             decide,
             issue: canIssue,
             finalise,
-            cancel: cancelError({ state: req.state, isRequester: mine, canManage, issuedOrOrdered: issuedAny }) === null && req.state !== "DRAFT",
+            cancel: cancelError({ state: req.state, isRequester: mine, canManage, issuedOrOrdered: issuedAny || orderedAny }) === null && req.state !== "DRAFT",
+            quotes: canQuote,
+            split: canSplit,
+            order: canOrder,
         },
     };
 }
 
 type ListLine = { id: string; quantity: { toNumber(): number }; description: string; product: Parameters<typeof movesStock>[0] };
+type ListRow = { kind: "STORES" | "PURCHASE"; state: RequisitionState; number: string | null; submittedAt: Date | null; lines: ListLine[] };
 
-/** What stores has done on each requisition, read from the movements: issued anything, stock still to hand over, lines to be bought. */
-async function progress(db: TenantDb, rows: { lines: ListLine[] }[]) {
-    const issued = await issuedByLine(db, rows.flatMap((r) => r.lines.map((l) => l.id)));
-    return (r: { lines: ListLine[] }) => {
+/**
+ * How far each requisition has got, read from the records: what stores has
+ * issued, what was moved to a purchase, what is on order and has arrived.
+ * Counted for a page of rows at once.
+ */
+async function progress(db: TenantDb, rows: ListRow[]) {
+    const all = rows.flatMap((r) => r.lines.map((l) => l.id));
+    const buying = rows.filter((r) => r.kind === "PURCHASE").flatMap((r) => r.lines.map((l) => l.id));
+    const [issued, moved, ordered, received] = await Promise.all([issuedByLine(db, all), movedByLine(db, all), orderedByLine(db, buying), receivedByLine(db, buying)]);
+    return (r: ListRow): Progress & { left: { description: string; left: number }[] } => {
+        const bought = r.kind === "PURCHASE";
         const lines = r.lines.map((l) => {
-            const done = issued.get(l.id) ?? 0;
-            return { description: l.description, issued: done, left: outstanding({ quantity: l.quantity.toNumber(), issued: done }), stocked: movesStock(l.product) };
+            const line = { quantity: l.quantity.toNumber(), issued: issued.get(l.id) ?? 0, moved: bought ? 0 : (moved.get(l.id) ?? 0), received: received.get(l.id)?.quantity ?? 0 };
+            return { description: l.description, ...line, ordered: ordered.get(l.id) ?? 0, left: outstanding(line), stocked: movesStock(l.product) };
         });
         return {
+            kind: r.kind,
+            submitted: !!r.submittedAt,
             issuedAny: lines.some((l) => l.issued > 0),
-            stockLeft: lines.filter((l) => l.stocked && l.left > 0).length,
-            toBuy: lines.filter((l) => !l.stocked && l.left > 0),
+            stockLeft: bought ? 0 : lines.filter((l) => l.stocked && l.left > 0).length,
+            toBuy: bought ? 0 : lines.filter((l) => !l.stocked && l.left > 0).length,
+            ordered: lines.some((l) => l.ordered > 0),
+            receivedAny: lines.some((l) => l.received > 0),
+            toHandOver: bought ? lines.filter((l) => Math.min(l.left, arrivedLeft(l)) > 0).length : 0,
             left: lines.filter((l) => l.left > 0),
         };
     };
 }
 
 const LIST_LINES = { orderBy: { sortOrder: "asc" as const }, select: { id: true, quantity: true, description: true, product: { select: { type: true, isService: true, dontUpdateQty: true } } } };
+const LIST_ROW = { kind: true, state: true, number: true, submittedAt: true, lines: LIST_LINES } as const;
+
+export type ListShow = "waiting" | "mine" | "issue" | "quotes" | "open" | "closed";
 
 /**
- * The requisitions list: each row, and where it is. Stores' own list is the
- * ones with something on the shelf to hand over, oldest needed first, the way
- * a counter works through a queue.
+ * The requisitions list: each row, and where it is. Stores' own list is what
+ * it has to hand over, oldest needed first, the way a counter works through a
+ * queue; the parts driver's is the purchases still gathering quotations.
  */
-export async function requisitionList(db: TenantDb, filter: { show: "waiting" | "mine" | "issue" | "open" | "closed"; viewerId: string; waitingIds?: string[] }) {
+export async function requisitionList(db: TenantDb, tenant: Tenant, filter: { show: ListShow; viewerId: string; waitingIds?: string[] }) {
     const where =
         filter.show === "mine"
             ? { requestedById: filter.viewerId }
             : filter.show === "issue"
-              ? { kind: "STORES" as const, state: "APPROVED" as const }
-              : filter.show === "open"
-                ? { state: { in: [...OPEN_STATES, "AWAITING_FINALISE" as const] } }
-                : filter.show === "closed"
-                  ? { state: { in: ["CLOSED" as const, "REJECTED" as const, "CANCELLED" as const] } }
-                  : { id: { in: filter.waitingIds ?? [] } };
+              ? { state: "APPROVED" as const }
+              : filter.show === "quotes"
+                ? { kind: "PURCHASE" as const, state: "DRAFT" as const, number: { not: null } }
+                : filter.show === "open"
+                  ? { state: { in: [...OPEN_STATES, "AWAITING_FINALISE" as const] } }
+                  : filter.show === "closed"
+                    ? { state: { in: ["CLOSED" as const, "REJECTED" as const, "CANCELLED" as const] } }
+                    : { id: { in: filter.waitingIds ?? [] } };
     const rows = await db.requisition.findMany({
         where,
-        orderBy: filter.show === "issue" ? [{ requiredBy: { sort: "asc", nulls: "last" } }, { submittedAt: "asc" }] : { createdAt: "desc" },
+        orderBy: filter.show === "issue" || filter.show === "quotes" ? [{ requiredBy: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }] : { createdAt: "desc" },
         take: 200,
         select: {
-            id: true, number: true, kind: true, state: true, value: true, createdAt: true, requiredBy: true,
+            id: true, value: true, createdAt: true, requiredBy: true, ...LIST_ROW,
             workshop: { select: { name: true } },
             requestedBy: { select: { user: { select: { firstName: true, lastName: true } } } },
             chargeDocument: { select: { jobNumber: true, number: true } },
             chargeVote: { select: { code: true } },
-            lines: LIST_LINES,
+            quotes: { select: { amount: true, chosen: true } },
         },
     });
     const of = await progress(db, rows);
+    const bands = requisitionSettings(tenant.settings).quoteBands;
     return rows
         .map((r) => {
             const p = of(r);
+            const chosen = r.quotes.find((q) => q.chosen);
+            const label = stateLabel({ ...p, state: r.state, number: r.number });
+            const gathering = r.kind === "PURCHASE" && r.state === "DRAFT";
             return {
                 id: r.id, number: r.number, kind: r.kind, state: r.state, value: r.value.toNumber(), createdAt: r.createdAt,
                 requiredBy: r.requiredBy ? r.requiredBy.toISOString().slice(0, 10) : null,
                 workshop: r.workshop?.name ?? null, requestedBy: fullName(r.requestedBy.user),
                 charge: r.chargeDocument ? (r.chargeDocument.jobNumber ?? r.chargeDocument.number) : (r.chargeVote?.code ?? null),
-                stateLabel: stateLabel({ state: r.state, number: r.number, ...p, toBuy: p.toBuy.length }),
-                stockLeft: p.stockLeft,
+                // A purchase gathering quotations says how many it has of how many it needs.
+                stateLabel: gathering ? `${label} · ${r.quotes.length} of ${requiredQuotes(chosen ? chosen.amount.toNumber() : r.value.toNumber(), bands)}` : label,
+                handOver: p.stockLeft + (p.toHandOver ?? 0),
             };
         })
-        // What waits only on a purchase is not stores' to issue.
-        .filter((r) => filter.show !== "issue" || r.stockLeft > 0);
+        // Stores' list is what it can hand over now: what waits only on a purchase, or on a supplier, is not.
+        .filter((r) => filter.show !== "issue" || r.handOver > 0);
 }
 
-/** How many requisitions stores has something to hand over on, for the tab's count. */
-export async function toIssueCount(db: TenantDb): Promise<number> {
-    const rows = await db.requisition.findMany({ where: { kind: "STORES", state: "APPROVED" }, take: 200, select: { lines: LIST_LINES } });
-    const of = await progress(db, rows);
-    return rows.filter((r) => of(r).stockLeft > 0).length;
+/** How many requisitions stores has something to hand over on, and how many purchases are gathering quotations, for the tabs' counts. */
+export async function storesCounts(db: TenantDb): Promise<{ issue: number; quotes: number }> {
+    const [approved, quotes] = await Promise.all([
+        db.requisition.findMany({ where: { state: "APPROVED" }, take: 200, select: LIST_ROW }),
+        db.requisition.count({ where: { kind: "PURCHASE", state: "DRAFT", number: { not: null } } }),
+    ]);
+    const of = await progress(db, approved);
+    return { issue: approved.filter((r) => { const p = of(r); return p.stockLeft + (p.toHandOver ?? 0) > 0; }).length, quotes };
 }
 
 /**
@@ -291,18 +404,18 @@ export async function toIssueCount(db: TenantDb): Promise<number> {
  * one is open, what the job is still waiting for, by name.
  */
 export async function jobRequisitions(db: TenantDb, documentId: string) {
-    const rows = await db.requisition.findMany({ where: { chargeDocumentId: documentId }, orderBy: { createdAt: "asc" }, select: { id: true, number: true, state: true, lines: LIST_LINES } });
+    const rows = await db.requisition.findMany({ where: { chargeDocumentId: documentId }, orderBy: { createdAt: "asc" }, select: { id: true, sourceRequisitionId: true, ...LIST_ROW } });
     const of = await progress(db, rows);
     return rows.map((r) => {
         const p = of(r);
-        const open = (OPEN_STATES as RequisitionState[]).includes(r.state);
+        const open = (OPEN_STATES as RequisitionState[]).includes(r.state) || (r.state === "DRAFT" && !!r.sourceRequisitionId);
         return {
             id: r.id,
             number: r.number,
             state: r.state,
-            stateLabel: stateLabel({ state: r.state, number: r.number, ...p, toBuy: p.toBuy.length }),
+            stateLabel: stateLabel({ ...p, state: r.state, number: r.number }),
             items: r.lines.map((l) => `${l.quantity.toNumber()} × ${l.description}`).join(", "),
-            waitingFor: open ? p.left.map((l) => `${l.left} × ${l.description}`).join(", ") : null,
+            waitingFor: open ? p.left.map((l) => `${l.left} × ${l.description}`).join(", ") || null : null,
         };
     });
 }

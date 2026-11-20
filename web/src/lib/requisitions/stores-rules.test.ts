@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fullyIssued, issueDefault, issueError, outstanding, partsStatus, type IssueLine } from "@/lib/requisitions/stores-rules";
+import { arrivedLeft, fullyIssued, issueDefault, issueError, outstanding, partsStatus, type IssueLine } from "@/lib/requisitions/stores-rules";
 
 /** What may leave the shelf against a requisition, and what the job card says while it waits. */
 
@@ -20,7 +20,7 @@ test("what a line still needs is what it asked for less what has been issued", (
 test("stores issues only what is approved, still needed, and in stock, to somebody else", () => {
     assert.equal(issueError({ ...base, issue: [{ lineId: "a", quantity: 2 }] }), null);
     assert.match(issueError({ ...base, state: "AWAITING_HEAD", issue: [{ lineId: "a", quantity: 1 }] }) ?? "", /not been approved/);
-    assert.match(issueError({ ...base, kind: "PURCHASE", issue: [{ lineId: "a", quantity: 1 }] }) ?? "", /Only a stores requisition/);
+    assert.match(issueError({ ...base, kind: "PURCHASE", issue: [{ lineId: "a", quantity: 1 }] }) ?? "", /has not arrived from the supplier yet/, "bought goods are handed over once they arrive");
     assert.match(issueError({ ...base, issue: [{ lineId: "a", quantity: 3 }] }) ?? "", /Only 2 of “Brake pads” are still/);
     assert.match(issueError({ ...base, issue: [{ lineId: "b", quantity: 1 }] }) ?? "", /not a stock item/);
     assert.match(issueError({ ...base, issue: [{ lineId: "a", quantity: 0 }] }) ?? "", /at least one item/);
@@ -54,4 +54,21 @@ test("the job waits for parts while a requisition is open, and goes back to work
     assert.equal(partsStatus("WAITING_FOR_PARTS", 0), "WORK_IN_PROGRESS");
     assert.equal(partsStatus("JOB_COMPLETE", 1), null, "a job marked complete is left alone");
     assert.equal(partsStatus("WORK_IN_PROGRESS", 0), null);
+});
+
+test("a line moved to a purchase requisition no longer waits on stores", () => {
+    assert.equal(outstanding({ quantity: 3, issued: 1, moved: 2 }), 0);
+    assert.equal(fullyIssued([{ quantity: 3, issued: 1, moved: 2 }]), true);
+});
+
+test("a purchase requisition hands over what has arrived for it, stocked or not", () => {
+    const bearing: IssueLine = { id: "c", description: "Output bearing", quantity: 2, issued: 0, stocked: false, received: 1 };
+    const purchase = { ...base, kind: "PURCHASE" as const, lines: [bearing] };
+    assert.equal(issueError({ ...purchase, issue: [{ lineId: "c", quantity: 1 }] }), null, "an item bought for the job goes straight to the fitter");
+    assert.match(issueError({ ...purchase, issue: [{ lineId: "c", quantity: 2 }] }) ?? "", /Only 1 of “Output bearing” has arrived/);
+    assert.equal(arrivedLeft(bearing), 1);
+    assert.equal(issueDefault(bearing, "PURCHASE"), 1, "what has arrived");
+    assert.equal(issueDefault({ ...bearing, received: 0 }, "PURCHASE"), 0, "nothing before it arrives");
+    assert.equal(issueDefault({ ...pads, issued: 0, received: 2 }, "PURCHASE"), 2, "a stock item: what arrived, still on the shelf");
+    assert.equal(issueDefault({ ...pads, received: 2 }, "PURCHASE"), 1, "less what was handed over already");
 });

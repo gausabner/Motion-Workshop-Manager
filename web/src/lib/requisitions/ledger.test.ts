@@ -99,3 +99,54 @@ test("where it is, in one phrase, the same everywhere", () => {
     assert.equal(at({ state: "DRAFT", number: null }), "Draft");
     assert.equal(either(["you", "Martha Iipinge", "Frans van Wyk"]), "you, Martha Iipinge or Frans van Wyk");
 });
+
+test("a purchase requisition's ledger: the quotation chosen, the order, what arrived, then the handover", () => {
+    const signed = [sign(1, "REQUESTED", "SUBMITTED", "Hilma Nakale"), sign(2, "FOREMAN", "APPROVED", "Frans van Wyk"), sign(3, "DIVISIONAL_HEAD", "APPROVED", "Elago Mwandingi")];
+    const buying = {
+        quotes: { have: 2, required: 2 },
+        chosen: { supplier: "Windhoek Bearings", amount: "NAD 2,560.00", obtainedBy: "Petrus Haufiku", at: "2026-11-20T09:00:00.000Z" },
+        orders: [] as { id: string; number: string; supplier: string; sent: boolean; at: string }[],
+        arrived: { quantity: 0, of: 2 },
+        toHandOver: 0,
+    };
+    const approved = buildLedger({ ...base, kind: "PURCHASE", state: "APPROVED", stockLeft: 0, signoffs: signed, buying, can: { ...base.can, order: true } });
+    const buy = approved.groups.find((g) => g.title === "Buying")!.rows;
+    assert.deepEqual(buy.map((r) => `${r.box}:${r.status}`), ["Quotation chosen:signed", "Purchase order:due"]);
+    assert.deepEqual(buy[1].action, { kind: "order" });
+    assert.deepEqual(approved.groups.find((g) => g.title === "Stores")!.rows.map((r) => `${r.box}:${r.status}`), ["Stores verified:later", "Received:later"]);
+
+    const arrived = buildLedger({
+        ...base, kind: "PURCHASE", state: "APPROVED", stockLeft: 0, signoffs: signed, can: { ...base.can, issue: true },
+        buying: { ...buying, orders: [{ id: "po1", number: "PO-0007", supplier: "Windhoek Bearings", sent: true, at: "2026-11-20T10:00:00.000Z" }], arrived: { quantity: 2, of: 2 }, toHandOver: 1 },
+    });
+    const rows = arrived.groups.find((g) => g.title === "Buying")!.rows;
+    assert.deepEqual(rows.map((r) => `${r.box}:${r.status}`), ["Quotation chosen:signed", "Purchase order:signed", "Arrived:signed"]);
+    assert.deepEqual(rows[1].link, { kind: "order", id: "po1", label: "Open PO-0007" });
+    const handover = arrived.groups.find((g) => g.title === "Stores")!.rows[0];
+    assert.equal(handover.status, "due");
+    assert.deepEqual(handover.action, { kind: "issue" });
+});
+
+test("stores sees what it cannot meet, and splits it off; the split stays on the record", () => {
+    const l = buildLedger({
+        ...base, state: "APPROVED", stockLeft: 1,
+        signoffs: [sign(1, "REQUESTED", "SUBMITTED", "Tobias Kandjii"), sign(2, "FOREMAN", "APPROVED", "Frans van Wyk"), sign(3, "DIVISIONAL_HEAD", "APPROVED", "Elago Mwandingi")],
+        shortfall: [{ description: "Output bearing", quantity: 2 }],
+        splits: [{ id: "r9", number: "REQ-1009", label: "Waiting for quotations", items: "1 × Seal kit" }],
+        can: { ...base.can, issue: true, split: true },
+    });
+    const stores = l.groups.find((g) => g.title === "Stores")!.rows;
+    assert.deepEqual(stores.map((r) => `${r.box}:${r.status}`), ["Stores verified:due", "Bought instead:later", "To be bought:due"]);
+    assert.equal(stores[1].waiting, "REQ-1009: Waiting for quotations");
+    assert.deepEqual(stores[2].action, { kind: "split" });
+});
+
+test("a purchase in words, from quotations to handover", () => {
+    const p = (x: Partial<Parameters<typeof stateLabel>[0]>) => stateLabel({ state: "APPROVED", number: "REQ-9", kind: "PURCHASE", submitted: true, issuedAny: false, stockLeft: 0, toBuy: 0, ...x });
+    assert.equal(p({ state: "DRAFT", submitted: false }), "Waiting for quotations");
+    assert.equal(p({ state: "DRAFT", submitted: true }), "Returned for changes");
+    assert.equal(p({ ordered: false }), "Approved, to be ordered");
+    assert.equal(p({ ordered: true }), "On order");
+    assert.equal(p({ ordered: true, receivedAny: true }), "On order, part arrived");
+    assert.equal(p({ ordered: true, receivedAny: true, toHandOver: 1 }), "Arrived, to be handed over");
+});
