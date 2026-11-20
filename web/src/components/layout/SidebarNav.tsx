@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
     Bell, Building2, Car, CarFront, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
     ListChecks, Megaphone, Package, Receipt, Settings, Timer, TrendingUp, Truck,
-    Users, Wallet, Wrench, Lock, MapPin,
+    Users, Wallet, Wrench, Lock, MapPin, PackageCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FEATURES, PLAN_NAMES, type Feature } from "@/lib/plans/features";
@@ -90,6 +90,7 @@ export function SidebarNav({
             label: "Parts and purchasing",
             items: [
                 { href: `${base}/dashboard/products`, label: "Products", icon: Package, show: cost, feature: "stock" },
+                { href: `${base}/dashboard/requisitions`, label: "Requisitions", icon: PackageCheck, feature: "requisitions" },
                 { href: `${base}/dashboard/purchasing`, label: TERM.purchasing, icon: Truck, show: cost, feature: "purchasing" },
                 { href: `${base}/dashboard/suppliers`, label: "Suppliers", icon: Building2, show: cost, feature: "purchasing" },
             ],

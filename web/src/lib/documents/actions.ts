@@ -38,6 +38,10 @@ async function loadEditable(ctx: TenantContext, id: string) {
 
 // ───────────────────────── create ─────────────────────────
 
+
+/** A save refused for a reason the person at the screen can act on. */
+class Refusal extends Error {}
+
 export async function createDocument(
     slug: string,
     type: DocumentType,
@@ -143,74 +147,88 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
 
     const statusChanged = d.jobStatus && d.jobStatus !== existing.jobStatus;
 
-    await db.$transaction(async (tx) => {
-        await tx.document.update({
-            where: { id },
-            data: {
-                customerId: d.customerId || null,
-                isCashSale: d.isCashSale,
-                vehicleId: d.vehicleId || null,
-                serviceAdvisorId: d.serviceAdvisorId || null,
-                mechanicId: d.mechanicId || null,
-                reference: d.reference ?? null,
-                customerOrderNumber: d.customerOrderNumber ?? null,
-                postDate: d.postDate ?? undefined,
-                dueDate: d.dueDate ?? null,
-                followUpDate: d.followUpDate ?? null,
-                scheduledAt: d.scheduledAt ? parseLocalDateTime(d.scheduledAt, tenant.timezone) : null,
-                estimatedHours: d.estimatedHours ?? null,
-                odometer: d.odometer ?? null,
-                nextServiceKm: d.nextServiceKm ?? null,
-                nextServiceDate: d.nextServiceDate ?? null,
-                jobStatus: d.jobStatus ?? existing.jobStatus,
-                statusComment: d.statusComment ?? null,
-                isInternal: d.isInternal,
-                paymentTermsDays: d.paymentTermsDays ?? null,
-                discountPercent: d.discountPercent ?? null,
-                discountAmount: d.discountAmount ?? 0,
-                freight: d.freight ?? 0,
-                eventNotes: d.eventNotes ?? null,
-                jobCardNotes: d.jobCardNotes ?? null,
-                invoiceNotes: d.invoiceNotes ?? null,
-                ...(d.description ? { description: d.description } : {}),
-            },
-        });
-
-        // Replace the line set: delete what the editor dropped, update the rest, insert new rows.
-        const keptIds = d.lines.map((l) => l.id).filter((v): v is string => !!v);
-        await tx.documentLine.deleteMany({ where: { documentId: id, ...(keptIds.length ? { id: { notIn: keptIds } } : {}) } });
-        for (const [index, line] of d.lines.entries()) {
-            const data = {
-                sortOrder: index,
-                productId: line.productId || null,
-                lineType: line.lineType,
-                description: line.description,
-                quantity: line.quantity,
-                hours: line.hours ?? null,
-                unitPrice: line.unitPrice,
-                unitCost: line.unitCost,
-                vatRate: line.vatRate,
-                discountPercent: line.discountPercent,
-                serialNumbers: line.serialNumbers || null,
-                isCustomerSupplied: line.isCustomerSupplied,
-                bundleGroup: line.bundleGroup || null,
-                bundleRole: line.bundleRole || null,
-            };
-            if (line.id) {
-                await tx.documentLine.update({ where: { id: line.id }, data });
-            } else {
-                await tx.documentLine.create({ data: { ...data, tenantId: tenant.id, documentId: id } });
-            }
-        }
-
-        if (statusChanged && d.jobStatus) {
-            await tx.documentStatusEvent.create({
-                data: { tenantId: tenant.id, documentId: id, fromStatus: existing.jobStatus, toStatus: d.jobStatus, comment: d.statusComment ?? null, byId: membership.id },
+    try {
+        await db.$transaction(async (tx) => {
+            await tx.document.update({
+                where: { id },
+                data: {
+                    customerId: d.customerId || null,
+                    isCashSale: d.isCashSale,
+                    vehicleId: d.vehicleId || null,
+                    serviceAdvisorId: d.serviceAdvisorId || null,
+                    mechanicId: d.mechanicId || null,
+                    reference: d.reference ?? null,
+                    customerOrderNumber: d.customerOrderNumber ?? null,
+                    postDate: d.postDate ?? undefined,
+                    dueDate: d.dueDate ?? null,
+                    followUpDate: d.followUpDate ?? null,
+                    scheduledAt: d.scheduledAt ? parseLocalDateTime(d.scheduledAt, tenant.timezone) : null,
+                    estimatedHours: d.estimatedHours ?? null,
+                    odometer: d.odometer ?? null,
+                    nextServiceKm: d.nextServiceKm ?? null,
+                    nextServiceDate: d.nextServiceDate ?? null,
+                    jobStatus: d.jobStatus ?? existing.jobStatus,
+                    statusComment: d.statusComment ?? null,
+                    isInternal: d.isInternal,
+                    paymentTermsDays: d.paymentTermsDays ?? null,
+                    discountPercent: d.discountPercent ?? null,
+                    discountAmount: d.discountAmount ?? 0,
+                    freight: d.freight ?? 0,
+                    eventNotes: d.eventNotes ?? null,
+                    jobCardNotes: d.jobCardNotes ?? null,
+                    invoiceNotes: d.invoiceNotes ?? null,
+                    ...(d.description ? { description: d.description } : {}),
+                },
             });
-        }
-        await recalculate(tx, id);
-        await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "UPDATED" } });
-    });
+
+            // Replace the line set: delete what the editor dropped, update the rest, insert new rows.
+            const keptIds = d.lines.map((l) => l.id).filter((v): v is string => !!v);
+            // Parts issued from stores stay as issued: the stock has left the shelf against a signed requisition.
+            const issued = await tx.documentLine.findMany({ where: { documentId: id, requisitionLineId: { not: null } }, select: { id: true, productId: true, quantity: true, description: true } });
+            const droppedIssued = issued.find((l) => !keptIds.includes(l.id));
+            if (droppedIssued) throw new Refusal(`“${droppedIssued.description}” was issued from stores against a requisition, so it stays on the job card. Return it to stores to take it off.`);
+            const issuedById = new Map(issued.map((l) => [l.id, l]));
+            await tx.documentLine.deleteMany({ where: { documentId: id, ...(keptIds.length ? { id: { notIn: keptIds } } : {}) } });
+            for (const [index, line] of d.lines.entries()) {
+                const data = {
+                    sortOrder: index,
+                    productId: line.productId || null,
+                    lineType: line.lineType,
+                    description: line.description,
+                    quantity: line.quantity,
+                    hours: line.hours ?? null,
+                    unitPrice: line.unitPrice,
+                    unitCost: line.unitCost,
+                    vatRate: line.vatRate,
+                    discountPercent: line.discountPercent,
+                    serialNumbers: line.serialNumbers || null,
+                    isCustomerSupplied: line.isCustomerSupplied,
+                    bundleGroup: line.bundleGroup || null,
+                    bundleRole: line.bundleRole || null,
+                };
+                const wasIssued = line.id ? issuedById.get(line.id) : undefined;
+                // An issued part keeps the item and quantity stores handed over; its price and text may still be edited.
+                if (wasIssued) Object.assign(data, { productId: wasIssued.productId, quantity: wasIssued.quantity });
+                if (line.id) {
+                    await tx.documentLine.update({ where: { id: line.id }, data });
+                } else {
+                    await tx.documentLine.create({ data: { ...data, tenantId: tenant.id, documentId: id } });
+                }
+            }
+
+            if (statusChanged && d.jobStatus) {
+                await tx.documentStatusEvent.create({
+                    data: { tenantId: tenant.id, documentId: id, fromStatus: existing.jobStatus, toStatus: d.jobStatus, comment: d.statusComment ?? null, byId: membership.id },
+                });
+            }
+            await recalculate(tx, id);
+            await tx.auditEvent.create({ data: { tenantId: tenant.id, actorUserId: user.id, entityType: "Document", entityId: id, action: "UPDATED" } });
+        });
+    } catch (error) {
+        // A refusal written for the person at the screen (an issued part removed, say) is shown; anything else is a fault.
+        if (error instanceof Refusal) return { ok: false, message: error.message };
+        throw error;
+    }
 
     revalidatePath(editorPath(slug, id));
     revalidatePath(`/${slug}/dashboard/transactions`);
@@ -395,6 +413,9 @@ async function cloneInto(ctx: TenantContext, sourceId: string, toType: DocumentT
                     bundleGroup: l.bundleGroup,
                     bundleRole: l.bundleRole,
                     isCustomerSupplied: l.isCustomerSupplied,
+                    // A job card becoming its invoice keeps the mark on parts issued from stores, so the
+                    // invoice does not take them off the shelf again. A copy is a new job, with nothing issued.
+                    requisitionLineId: opts.link && !opts.negate ? l.requisitionLineId : null,
                 },
             });
         }

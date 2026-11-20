@@ -161,10 +161,13 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         // first: lines, quotations and signatures, then the requisitions (a split
         // names its source, so that link goes before the rows), then the
         // appointments, votes and workshops, and the units from the bottom up.
+        // What stores issued points at the requisition lines it met, so it goes first.
+        await tx.stockMovement.deleteMany({ where });
+        await tx.documentLine.updateMany({ where: { tenantId, requisitionLineId: { not: null } }, data: { requisitionLineId: null } });
         await tx.requisitionSignoff.deleteMany({ where });
         await tx.requisitionQuote.deleteMany({ where });
-        await tx.requisitionLine.deleteMany({ where });
         await tx.requisitionIssue.deleteMany({ where });
+        await tx.requisitionLine.deleteMany({ where });
         await tx.requisition.updateMany({ where, data: { sourceRequisitionId: null } });
         await tx.requisition.deleteMany({ where });
         await tx.signingAuthority.deleteMany({ where });
@@ -191,7 +194,8 @@ async function removeWorkshop(tenantId: string, email: string): Promise<void> {
         await tx.membership.deleteMany({ where });
         await tx.tenant.delete({ where: { id: tenantId } });
     });
-    await prisma.user.deleteMany({ where: { email } });
+    // The owner, and anyone `addPerson` brought in for this workshop.
+    await prisma.user.deleteMany({ where: { OR: [{ email }, { email: { startsWith: `${email.replace("@example.invalid", "")}-` } }] } });
 }
 
 export const test = base.extend<{ workshop: Workshop }>({
@@ -254,6 +258,43 @@ export async function makeCheckBay(workshop: Workshop): Promise<void> {
         const qualityTemplateId = await template("Fleet quality check", ["Wheel nuts torqued", "No new damage"]);
         await tx.tenant.update({ where: { id: tenantId }, data: { settings: { jobFlow: { issueRoles: ["RECEPTION", "DRIVER"], assessmentTemplateId, qualityTemplateId } } } });
     });
+}
+
+/**
+ * Another person in the workshop, with a login of their own, for a test that
+ * needs more than one pair of hands: a requisition is never approved by the
+ * person who raised it. The password is invented here and seen nowhere else.
+ */
+export async function addPerson(
+    workshop: Workshop,
+    key: string,
+    person: { firstName: string; lastName: string; group: "OWNER" | "ADMIN" | "FOREMAN" | "PARTS_MANAGER" | "SERVICE_ADVISOR" | "MECHANIC"; designations?: ("RECEPTION" | "FOREMAN" | "FLEET_COORDINATOR" | "MECHANIC" | "ARTISAN" | "INTERN" | "PARTS_DRIVER" | "STOREMAN" | "DIVISION_HEAD")[]; payNumber?: string },
+): Promise<{ membershipId: string; email: string; password: string }> {
+    const email = `${workshop.slug}-${key}@example.invalid`;
+    const password = `zz-${randomBytes(12).toString("base64url")}`;
+    const user = await prisma.user.create({ data: { email, passwordHash: await bcrypt.hash(password, 10), firstName: person.firstName, lastName: person.lastName }, select: { id: true } });
+    const membership = await prisma.$transaction(async (tx) => {
+        await announceTenant(tx, workshop.tenantId);
+        return tx.membership.create({
+            data: { tenantId: workshop.tenantId, userId: user.id, group: person.group, status: "ACTIVE", designations: person.designations ?? [], payNumber: person.payNumber ?? null },
+            select: { id: true },
+        });
+    });
+    return { membershipId: membership.id, email, password };
+}
+
+/** Set up something a spec needs inside its workshop, under the same tenant rules the application keeps. */
+export async function inWorkshop<T>(workshop: Workshop, fn: (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => Promise<T>): Promise<T> {
+    return prisma.$transaction(async (tx) => {
+        await announceTenant(tx, workshop.tenantId);
+        return fn(tx);
+    });
+}
+
+/** Sign out whoever is signed in, and sign in as somebody else in the same workshop. */
+export async function signInAs(page: Page, workshop: Workshop, who: { email: string; password: string }): Promise<void> {
+    await page.context().clearCookies();
+    await signIn(page, { ...workshop, email: who.email, password: who.password });
 }
 
 /** Sign in through the real form, because that is the path a person takes. */
