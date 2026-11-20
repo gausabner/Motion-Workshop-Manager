@@ -16,6 +16,11 @@ import {
     type FinalStep,
 } from "@/lib/requisitions/service";
 import { issueStores } from "@/lib/requisitions/stores";
+import { orderFromRequisition, requestQuotes, splitToPurchase } from "@/lib/requisitions/purchase";
+import { addQuote, chooseQuote, removeQuote } from "@/lib/requisitions/service";
+import { storeUpload } from "@/lib/attachments/service";
+import { requestOrigin } from "@/lib/http/origin";
+import { shareUrl } from "@/lib/sharing/links";
 import { requisitionView, type RequisitionAnswer } from "@/lib/requisitions/view";
 
 /**
@@ -82,10 +87,11 @@ export async function raiseForJobAction(slug: string, documentId: string): Promi
 }
 
 /** A stores requisition not tied to a job: protective clothing, workshop consumables, charged to a vote. */
-export async function raiseAction(slug: string): Promise<RequisitionAnswer> {
+/** From the list: a stores requisition, or a purchase requisition for something stores does not keep. */
+export async function raiseAction(slug: string, kind: "STORES" | "PURCHASE" = "STORES"): Promise<RequisitionAnswer> {
     const c = await ctx(slug);
     assertCan(c.membership, "requisitions:raise");
-    const id = await c.db.$transaction((tx) => saveRequisition(tx, c.tenant, c.actor, null, { kind: "STORES", workshopId: null, chargeDocumentId: null, chargeVoteId: null, lines: [] }));
+    const id = await c.db.$transaction((tx) => saveRequisition(tx, c.tenant, c.actor, null, { kind: kind === "PURCHASE" ? "PURCHASE" : "STORES", workshopId: null, chargeDocumentId: null, chargeVoteId: null, lines: [] }));
     redirect(`${LIST(slug)}/${id}`);
 }
 
@@ -177,4 +183,91 @@ export async function finaliseRequisitionAction(slug: string, id: string, _prev:
     const step = FINAL.safeParse(str(formData, "step"));
     if (!step.success) return { ok: false, message: "Choose the box you are signing." };
     return answer(slug, id, "Signed", ({ db, tenant, actor }) => db.$transaction((tx) => finaliseRequisition(tx, tenant, actor, id, step.data as FinalStep, str(formData, "comment") ?? null)));
+}
+
+// ───────────────────────── buying ─────────────────────────
+
+/** Stores turns what the shelf cannot meet into a purchase requisition, and goes to it. */
+export async function splitRequisitionAction(slug: string, id: string): Promise<RequisitionAnswer> {
+    const c = await ctx(slug);
+    let made: { id: string };
+    try {
+        made = await c.db.$transaction((tx) => splitToPurchase(tx, c.tenant, c.actor, id));
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "Not split. Try again." };
+    }
+    redirect(`${LIST(slug)}/${made.id}`);
+}
+
+const quoteSchema = z.object({
+    supplierId: z.string().min(1, "Choose the supplier who quoted.").max(40),
+    amount: z.number({ message: "Enter the quotation's amount, excluding VAT." }).positive("Enter the quotation's amount, excluding VAT.").max(100_000_000),
+    reference: z.string().trim().max(60).nullable(),
+    validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    note: z.string().trim().max(200).nullable(),
+});
+
+/** A quotation brought back, with its scan if there is one. The scan is stored after the quotation, so a failed upload loses only the file. */
+export async function addQuoteAction(slug: string, id: string, _prev: RequisitionAnswer, formData: FormData): Promise<RequisitionAnswer> {
+    const amount = Number(String(formData.get("amount") ?? "").replace(/[\s,]/g, "").replace(/^N\$|^R/, ""));
+    const parsed = quoteSchema.safeParse({
+        supplierId: str(formData, "supplierId") ?? "", amount: Number.isFinite(amount) ? amount : NaN,
+        reference: str(formData, "reference") ?? null, validUntil: str(formData, "validUntil") ?? null, note: str(formData, "note") ?? null,
+    });
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the quotation." };
+    const file = formData.get("scan");
+    let scanProblem: string | null = null;
+    const answered = await answer(slug, id, "Quotation added", async (c) => {
+        const quoteId = await c.db.$transaction((tx) => addQuote(tx, c.tenant, c.actor, id, parsed.data));
+        if (file instanceof File && file.size > 0) {
+            const stored = await storeUpload(c, file, { ownerType: "RequisitionQuote", ownerId: quoteId });
+            if (!stored.ok) scanProblem = stored.message;
+        }
+    });
+    return scanProblem ? { ...answered, message: `Quotation added, but its scan was not: ${scanProblem}` } : answered;
+}
+
+export async function removeQuoteAction(slug: string, id: string, quoteId: string): Promise<RequisitionAnswer> {
+    return answer(slug, id, "Quotation removed", ({ db, tenant, actor }) => db.$transaction((tx) => removeQuote(tx, tenant, actor, quoteId)));
+}
+
+export async function chooseQuoteAction(slug: string, id: string, quoteId: string): Promise<RequisitionAnswer> {
+    return answer(slug, id, "Quotation chosen", ({ db, tenant, actor }) => db.$transaction((tx) => chooseQuote(tx, tenant, actor, quoteId)));
+}
+
+/**
+ * Ask suppliers for a price. Each gets a link to the request, without prices;
+ * the answer carries one email per supplier for the person to send from their
+ * own mail, as every MOTION message goes.
+ */
+export async function requestQuotesAction(slug: string, id: string, _prev: RequisitionAnswer, formData: FormData): Promise<RequisitionAnswer> {
+    const supplierIds = formData.getAll("supplierId").map(String).filter(Boolean);
+    let made: Awaited<ReturnType<typeof requestQuotes>> = [];
+    const answered = await answer(slug, id, "Requests ready to send", async ({ db, tenant, actor }) => {
+        made = await db.$transaction((tx) => requestQuotes(tx, tenant, actor, id, supplierIds));
+    });
+    if (!answered.ok || !answered.view) return answered;
+    const origin = await requestOrigin();
+    const view = answered.view;
+    const c = await ctx(slug);
+    const subject = `Request for quotation ${view.number ?? ""}`.trim();
+    const emails = made.map((m) => {
+        const body = [
+            `Good day,`,
+            ``,
+            `${c.tenant.name} asks for your quotation for the items on requisition ${view.number ?? ""}${view.requiredBy ? `, needed by ${new Date(`${view.requiredBy}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })}` : ""}:`,
+            shareUrl(origin, m.token, "QUOTATION_REQUEST"),
+            ``,
+            `Please reply to this email with your price excluding VAT, how long it is valid, and your reference.`,
+            ``,
+            `Kind regards`,
+        ].join("\n");
+        return { supplier: m.name, email: m.email, href: `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` };
+    });
+    return { ...answered, emails };
+}
+
+/** The approved purchase requisition becomes a purchase order, ready to send from the order's page. */
+export async function orderRequisitionAction(slug: string, id: string): Promise<RequisitionAnswer> {
+    return answer(slug, id, "Purchase order raised. Send it from the order's page", ({ db, tenant, actor }) => db.$transaction((tx) => orderFromRequisition(tx, tenant, actor, id)));
 }

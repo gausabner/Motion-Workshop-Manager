@@ -20,6 +20,10 @@ export type IssueLine = {
     stocked: boolean;
     /** What the shelf holds now, for a stock item. */
     onHand?: number | null;
+    /** On a stores requisition: what has been moved to a purchase requisition instead, and no longer waits on stores. */
+    moved?: number;
+    /** On a purchase requisition: what has arrived from the supplier. Nothing is handed over before it arrives. */
+    received?: number;
 };
 
 /** A person on the form: their name and pay number. */
@@ -32,12 +36,17 @@ const same = (a: string | null | undefined, b: string | null | undefined) => {
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-export function outstanding(line: Pick<IssueLine, "quantity" | "issued">): number {
-    return Math.max(0, round(line.quantity - line.issued));
+export function outstanding(line: Pick<IssueLine, "quantity" | "issued" | "moved">): number {
+    return Math.max(0, round(line.quantity - line.issued - (line.moved ?? 0)));
+}
+
+/** What has arrived from the supplier and is still to be handed over, on a purchase requisition's line. */
+export function arrivedLeft(line: Pick<IssueLine, "received" | "issued">): number {
+    return Math.max(0, round((line.received ?? 0) - line.issued));
 }
 
 /** Every line has had all it asked for. */
-export function fullyIssued(lines: Pick<IssueLine, "quantity" | "issued">[]): boolean {
+export function fullyIssued(lines: Pick<IssueLine, "quantity" | "issued" | "moved">[]): boolean {
     return lines.length > 0 && lines.every((l) => outstanding(l) === 0);
 }
 
@@ -51,7 +60,7 @@ export function issueError(input: {
     issuer: Signatory & { membershipId: string };
     receiver: Signatory;
 }): string | null {
-    if (input.kind !== "STORES") return "Only a stores requisition is issued from stock.";
+    const bought = input.kind === "PURCHASE";
     if (input.state !== "APPROVED") return input.state === "AWAITING_FINALISE" || input.state === "CLOSED" ? "Everything on it has been issued." : "It has not been approved yet, so nothing can leave the shelf against it.";
     const { issuer, receiver } = input;
     if (!receiver.name.trim()) return "Name the person receiving the parts.";
@@ -66,9 +75,14 @@ export function issueError(input: {
     for (const i of handing) {
         const line = input.lines.find((l) => l.id === i.lineId);
         if (!line) return "One of the lines is no longer on the requisition. Refresh the page.";
-        if (!line.stocked) return `“${line.description}” is not a stock item, so it is bought rather than issued.`;
+        // A stores requisition hands over what is on the shelf; a purchase requisition hands over what has arrived for it, stocked or not.
+        if (!line.stocked && !bought) return `“${line.description}” is not a stock item, so it is bought rather than issued.`;
         const left = outstanding(line);
         if (round(i.quantity) > left) return `Only ${left} of “${line.description}” ${left === 1 ? "is" : "are"} still to be issued.`;
+        if (bought) {
+            const arrived = arrivedLeft(line);
+            if (round(i.quantity) > arrived) return arrived === 0 ? `“${line.description}” has not arrived from the supplier yet.` : `Only ${arrived} of “${line.description}” ${arrived === 1 ? "has" : "have"} arrived and not been handed over.`;
+        }
         // What leaves the shelf must be on it. A count that says otherwise is wrong, and is put right by a stock take, not by issuing.
         if (line.onHand != null && round(i.quantity) > round(line.onHand)) {
             const have = Math.max(0, round(line.onHand));
@@ -79,10 +93,11 @@ export function issueError(input: {
 }
 
 /** What stores should hand over by default: what is still needed, but never more than the shelf holds. */
-export function issueDefault(line: Pick<IssueLine, "quantity" | "issued" | "stocked" | "onHand">): number {
-    if (!line.stocked) return 0;
-    const left = outstanding(line);
-    return line.onHand == null ? left : Math.max(0, Math.min(left, round(line.onHand)));
+export function issueDefault(line: Pick<IssueLine, "quantity" | "issued" | "stocked" | "onHand" | "moved" | "received">, kind: "STORES" | "PURCHASE" = "STORES"): number {
+    let left = outstanding(line);
+    if (kind === "PURCHASE") left = Math.min(left, arrivedLeft(line));
+    else if (!line.stocked) return 0;
+    return !line.stocked || line.onHand == null ? left : Math.max(0, Math.min(left, round(line.onHand)));
 }
 
 /** A requisition still to be met: submitted, and not yet issued in full, cancelled or rejected. */

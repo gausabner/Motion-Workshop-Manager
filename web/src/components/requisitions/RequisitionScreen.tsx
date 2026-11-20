@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Outcome, Panel, field } from "@/components/settings/council/shared";
 import { Ledger, type Person } from "@/components/requisitions/Ledger";
+import { Quotations, type SupplierOption } from "@/components/requisitions/Quotations";
 import {
     cancelRequisitionAction,
     discardRequisitionAction,
@@ -29,6 +30,7 @@ export type Options = {
     workshops: { id: string; name: string }[];
     votes: { id: string; label: string }[];
     people: Person[];
+    suppliers: SupplierOption[];
 };
 
 const money = (n: number) => n.toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -64,6 +66,12 @@ export function RequisitionScreen({ tenant, view: given, options, currency, time
                 <h1 className="text-xl font-bold text-slate-900">{title}</h1>
                 <p className="text-sm text-slate-600">
                     {view.kind === "STORES" ? "From stores" : "To be bought"} · raised by {view.requestedBy} · {when(view.createdAt)}
+                    {view.source && (
+                        <>
+                            {" · split from "}
+                            <Link href={`/${tenant}/dashboard/requisitions/${view.source.id}`} className="font-medium text-teal-700 hover:underline">{view.source.number ?? "its stores requisition"}</Link>
+                        </>
+                    )}
                 </p>
                 <p className="mt-1.5 text-sm">
                     <span className="font-semibold text-slate-900">{view.stateLabel}</span>
@@ -86,6 +94,10 @@ export function RequisitionScreen({ tenant, view: given, options, currency, time
                 <Details view={view} currency={currency} />
             )}
 
+            {view.kind === "PURCHASE" && (view.state === "DRAFT" || view.quotes.length > 0) && (
+                <Quotations tenant={tenant} view={view} suppliers={options.suppliers} currency={currency} when={when} onAnswer={show} />
+            )}
+
             <Ledger tenant={tenant} view={view} people={options.people} me={me} when={when} onAnswer={show} />
             <Housekeeping tenant={tenant} view={view} onAnswer={show} />
         </div>
@@ -95,9 +107,10 @@ export function RequisitionScreen({ tenant, view: given, options, currency, time
 // ───────────────────────── the request itself ─────────────────────────
 
 function Details({ view, currency }: { view: RequisitionView; currency: string }) {
-    const issuing = view.kind === "STORES" && (view.state === "APPROVED" || view.state === "AWAITING_FINALISE" || view.state === "CLOSED");
+    const bought = view.kind === "PURCHASE";
+    const issuing = view.state === "APPROVED" || view.state === "AWAITING_FINALISE" || view.state === "CLOSED";
     // Approvers and stores see what the shelf holds; once it is closed, the count of the day is beside the point.
-    const shelf = view.kind === "STORES" && view.state !== "CLOSED" && view.state !== "CANCELLED" && view.state !== "REJECTED";
+    const shelf = !bought && view.state !== "CLOSED" && view.state !== "CANCELLED" && view.state !== "REJECTED";
     return (
         <Panel wide level={2} title="What it asks for">
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 text-sm sm:grid-cols-2">
@@ -115,7 +128,8 @@ function Details({ view, currency }: { view: RequisitionView; currency: string }
                         <th scope="col" className="py-2 pr-3 text-right font-semibold">Rate</th>
                         <th scope="col" className="py-2 pr-3 text-right font-semibold">Value</th>
                         {shelf && <th scope="col" className="py-2 pr-3 text-right font-semibold">On hand</th>}
-                        {issuing && <th scope="col" className="py-2 pr-4 text-right font-semibold">Issued</th>}
+                        {issuing && bought && <th scope="col" className="py-2 pr-3 text-right font-semibold">Arrived</th>}
+                        {issuing && <th scope="col" className="py-2 pr-4 text-right font-semibold">{bought ? "Handed over" : "Issued"}</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -124,14 +138,20 @@ function Details({ view, currency }: { view: RequisitionView; currency: string }
                             <td data-mobile="primary" className="px-4 py-2 text-slate-900">
                                 {l.itemCode && <span className="mr-2 tabular-nums text-xs font-normal text-slate-600">{l.itemCode}</span>}
                                 {l.description}
-                                {!l.stocked && <span className="block text-xs font-normal text-slate-600">Not a stock item: it has to be bought.</span>}
+                                {!l.stocked && !bought && <span className="block text-xs font-normal text-slate-600">Not a stock item: it has to be bought.</span>}
+                                {l.moved > 0 && <span className="block text-xs font-normal text-slate-600">{l.moved} bought instead, on a purchase requisition.</span>}
                                 {l.note && <span className="block text-xs font-normal text-slate-600">{l.note}</span>}
                             </td>
                             <td data-label="Qty" className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
                             <td data-label="Rate" className="py-2 pr-3 text-right tabular-nums text-slate-600">{money(l.unitCost)}</td>
                             <td data-label="Value" className="py-2 pr-3 text-right tabular-nums">{money(l.quantity * l.unitCost)}</td>
                             {shelf && <td data-label="On hand" className={`py-2 pr-3 text-right tabular-nums ${l.onHand !== null && l.onHand < l.outstanding ? "font-semibold text-amber-700" : "text-slate-600"}`}>{l.onHand ?? "—"}</td>}
-                            {issuing && <td data-label="Issued" className="py-2 pr-4 text-right tabular-nums">{l.stocked ? `${l.issued} of ${l.quantity}` : "To be bought"}</td>}
+                            {issuing && bought && <td data-label="Arrived" className="py-2 pr-3 text-right tabular-nums">{l.received} of {l.quantity}</td>}
+                            {issuing && (
+                                <td data-label={bought ? "Handed over" : "Issued"} className="py-2 pr-4 text-right tabular-nums">
+                                    {bought || l.stocked ? `${l.issued} of ${l.quantity - l.moved}` : l.moved >= l.quantity ? "Bought instead" : "To be bought"}
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>
@@ -278,7 +298,7 @@ function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: st
                         const e = found && { quantity: found.quantity, unitCost: found.unitCost ?? (checked ? found.estimate : undefined) };
                         const wrong = e?.quantity ?? e?.unitCost;
                         const hint = `line-${l.key}-hint`;
-                        const say = wrong ?? (product ? `${product.onHand} on hand in stores` : l.description ? "Not a stock item: it has to be bought, so stores cannot issue it." : "");
+                        const say = wrong ?? (product ? `${product.onHand} on hand in stores` : l.description && view.kind === "STORES" ? "Not a stock item: it has to be bought, so stores cannot issue it." : "");
                         return (
                             <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 border-b border-slate-100 pb-2 sm:grid-cols-[8rem_minmax(0,1fr)_5rem_7rem_2rem]">
                                 <input list="requisition-items" value={l.itemCode} onChange={(ev) => change(l.key, { itemCode: ev.target.value })} onBlur={(ev) => pick(l.key, ev.target.value)} placeholder="Item code" aria-label={`Item code, line ${n + 1}`} aria-describedby={hint} className={`${field} col-span-2 w-full min-w-0 tabular-nums sm:col-span-1 ${touch}`} />
@@ -328,7 +348,7 @@ function DraftEditor({ tenant, view, options, currency, onAnswer }: { tenant: st
                     }}
                     className="space-y-2 border-t border-slate-200 px-4 py-3"
                 >
-                    {toBuy.length > 0 && (
+                    {toBuy.length > 0 && view.kind === "STORES" && (
                         <p className="text-xs text-slate-700">
                             {toBuy.length === 1 ? `“${toBuy[0].description}” is not a stock item.` : `${toBuy.length} lines are not stock items.`} Stores issues the rest; this requisition stays open until {toBuy.length === 1 ? "that line is" : "they are"} bought.
                         </p>

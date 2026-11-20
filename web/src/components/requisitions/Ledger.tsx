@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Outcome, Panel, field } from "@/components/settings/council/shared";
-import { decideRequisitionAction, finaliseRequisitionAction, issueRequisitionAction } from "@/lib/requisitions/actions";
+import { decideRequisitionAction, finaliseRequisitionAction, issueRequisitionAction, orderRequisitionAction, splitRequisitionAction } from "@/lib/requisitions/actions";
 import type { LedgerAction, LedgerRow } from "@/lib/requisitions/ledger";
 import type { RequisitionAnswer, RequisitionView } from "@/lib/requisitions/view";
 
@@ -38,7 +39,7 @@ export function Ledger({ tenant, view, people, me, when, onAnswer }: { tenant: s
                     <h3 id={`ledger-${g.title}`} className={`bg-slate-50 px-4 pb-1 pt-2 ${label}`}>{g.title}</h3>
                     <ol className="divide-y divide-slate-100">
                         {g.rows.map((r) => (
-                            <Row key={r.key} row={r} when={when}>
+                            <Row key={r.key} row={r} when={when} tenant={tenant}>
                                 {r.action && <RowAction action={r.action} tenant={tenant} view={view} people={people} me={me} onAnswer={onAnswer} />}
                             </Row>
                         ))}
@@ -51,7 +52,7 @@ export function Ledger({ tenant, view, people, me, when, onAnswer }: { tenant: s
                         Earlier rounds <span className="tabular-nums text-slate-600">({earlier.length})</span>
                     </summary>
                     <ol className="divide-y divide-slate-100 border-t border-slate-100">
-                        {earlier.map((r) => <Row key={r.key} row={r} when={when} />)}
+                        {earlier.map((r) => <Row key={r.key} row={r} when={when} tenant={tenant} />)}
                     </ol>
                 </details>
             )}
@@ -59,7 +60,8 @@ export function Ledger({ tenant, view, people, me, when, onAnswer }: { tenant: s
     );
 }
 
-function Row({ row, when, children }: { row: LedgerRow; when: (iso: string) => string; children?: ReactNode }) {
+function Row({ row, when, tenant, children }: { row: LedgerRow; when: (iso: string) => string; tenant: string; children?: ReactNode }) {
+    const href = row.link ? `/${tenant}/dashboard/${row.link.kind === "order" ? "purchasing/orders" : "requisitions"}/${row.link.id}` : null;
     const signed = row.status === "signed";
     const due = row.status === "due";
     return (
@@ -81,9 +83,12 @@ function Row({ row, when, children }: { row: LedgerRow; when: (iso: string) => s
                     )}
                     {row.items && <p className="text-xs text-slate-600">{row.items}</p>}
                     {row.comment && <p className="text-xs text-slate-700">“{row.comment}”</p>}
+                    {href && row.link && (
+                        <Link href={href} className={`hit-area relative inline-flex text-xs font-medium text-teal-700 hover:underline ${touch}`}>{row.link.label}</Link>
+                    )}
                 </div>
                 <p className="whitespace-nowrap text-right tabular-nums text-slate-600 sm:text-left">
-                    {signed && <><span className="sr-only">Pay No. </span>{row.payNumber ?? "—"}</>}
+                    {signed && row.payNumber !== undefined && <><span className="sr-only">Pay No. </span>{row.payNumber ?? "—"}</>}
                 </p>
                 <p className="col-span-2 tabular-nums text-xs text-slate-600 sm:col-span-1 sm:text-right sm:text-sm">
                     {row.at && <time dateTime={row.at}>{when(row.at)}</time>}
@@ -97,6 +102,8 @@ function Row({ row, when, children }: { row: LedgerRow; when: (iso: string) => s
 function RowAction({ action, tenant, view, people, me, onAnswer }: { action: LedgerAction; tenant: string; view: RequisitionView; people: Person[]; me: string; onAnswer: Answer }) {
     if (action.kind === "decide") return <Decide tenant={tenant} view={view} onAnswer={onAnswer} />;
     if (action.kind === "issue") return <Issue tenant={tenant} view={view} people={people} me={me} onAnswer={onAnswer} />;
+    if (action.kind === "split") return <Split tenant={tenant} view={view} />;
+    if (action.kind === "order") return <Order tenant={tenant} view={view} onAnswer={onAnswer} />;
     const box = view.can.finalise.find((f) => f.step === action.step);
     return box ? <Finalise tenant={tenant} view={view} step={box.step} label={box.label} onAnswer={onAnswer} /> : null;
 }
@@ -143,7 +150,9 @@ const num = (s: string) => {
 function Issue({ tenant, view, people, me, onAnswer }: { tenant: string; view: RequisitionView; people: Person[]; me: string; onAnswer: Answer }) {
     const [state, action, pending] = useActionState(issueRequisitionAction.bind(null, tenant, view.id), {} as RequisitionAnswer);
     useEffect(() => onAnswer(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
-    const open = view.lines.filter((l) => l.stocked && l.outstanding > 0);
+    // From stores: what is on the shelf. Bought in: whatever has arrived for it, stocked or not.
+    const bought = view.kind === "PURCHASE";
+    const open = view.lines.filter((l) => l.outstanding > 0 && (bought ? l.received - l.issued > 0 : l.stocked));
     const team = people.filter((p) => p.id !== me);
     const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries(open.map((l) => [l.id, String(l.issueDefault)])));
     const [receiver, setReceiver] = useState(() => ({ other: false, id: team.some((p) => p.id === view.requesterId) ? view.requesterId : "", name: "", payNumber: "" }));
@@ -163,13 +172,17 @@ function Issue({ tenant, view, people, me, onAnswer }: { tenant: string; view: R
         const bad = handing.find((h) => !Number.isFinite(h.quantity) || h.quantity < 0);
         const over = handing.find((h) => h.quantity > h.line.outstanding);
         const short = handing.find((h) => h.line.onHand !== null && h.quantity > h.line.onHand);
+        const early = bought ? handing.find((h) => h.quantity > h.line.received - h.line.issued) : undefined;
+        const arrived = early ? early.line.received - early.line.issued : 0;
         const error = bad
             ? `Enter how many of “${bad.line.description}” as a number.`
             : !handing.length
               ? "Enter how many of at least one item are being handed over."
               : over
                 ? `Only ${over.line.outstanding} of “${over.line.description}” ${over.line.outstanding === 1 ? "is" : "are"} still to be issued.`
-                : short
+                : early
+                  ? `Only ${arrived} of “${early.line.description}” ${arrived === 1 ? "has" : "have"} arrived and not been handed over.`
+                  : short
                   ? `Only ${Math.max(0, short.line.onHand ?? 0)} of “${short.line.description}” ${short.line.onHand === 1 ? "is" : "are"} on the shelf. Issue what is there; the rest can follow.`
                   : !who || !who.name
                     ? "Name the person receiving the parts."
@@ -216,6 +229,7 @@ function Issue({ tenant, view, people, me, onAnswer }: { tenant: string; view: R
                     <tr className={`text-left ${label}`}>
                         <th scope="col" className="pb-1 pr-3 font-semibold">Item</th>
                         <th scope="col" className="pb-1 pr-3 text-right font-semibold">On hand</th>
+                        {bought && <th scope="col" className="pb-1 pr-3 text-right font-semibold">Arrived</th>}
                         <th scope="col" className="pb-1 pr-3 text-right font-semibold">Still to issue</th>
                         <th scope="col" className="pb-1 text-right font-semibold">Issue now</th>
                     </tr>
@@ -233,6 +247,7 @@ function Issue({ tenant, view, people, me, onAnswer }: { tenant: string; view: R
                                     {l.onHand ?? "—"}
                                     {short && <span className="sr-only">, fewer than still to issue</span>}
                                 </td>
+                                {bought && <td className="py-1.5 pr-3 text-right tabular-nums">{l.received - l.issued}</td>}
                                 <td className="py-1.5 pr-3 text-right tabular-nums">{l.outstanding}</td>
                                 <td className="py-1.5 text-right">
                                     <input
@@ -304,6 +319,37 @@ function Finalise({ tenant, view, step, label: box, onAnswer }: { tenant: string
                 <input name="comment" maxLength={300} className={`${field} w-full font-normal ${touch}`} />
             </label>
             <Button type="submit" size="sm" className={`h-9 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Signing…" : `Sign as ${box.toLowerCase()}`}</Button>
+            <Outcome state={state} />
+        </form>
+    );
+}
+
+// ───────────────────────── buying ─────────────────────────
+
+/** Stores turns what it cannot meet into a purchase requisition, and goes to it to gather the quotations. */
+function Split({ tenant, view }: { tenant: string; view: RequisitionView }) {
+    const [state, action, pending] = useActionState(() => splitRequisitionAction(tenant, view.id), {} as RequisitionAnswer);
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="sm" className={`h-9 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Raising…" : "Raise a purchase requisition for these"}</Button>
+            <span className="text-xs text-slate-600">It is numbered now, charged as this one is, and goes for approval once its quotations are in.</span>
+            <Outcome state={state} />
+        </form>
+    );
+}
+
+/** The approved purchase becomes a purchase order to the chosen supplier, at their price. */
+function Order({ tenant, view, onAnswer }: { tenant: string; view: RequisitionView; onAnswer: Answer }) {
+    const [state, action, pending] = useActionState(async () => {
+        const r = await orderRequisitionAction(tenant, view.id);
+        onAnswer(r);
+        return r;
+    }, {} as RequisitionAnswer);
+    const chosen = view.quotes.find((q) => q.chosen);
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="sm" className={`h-9 bg-teal-700 hover:bg-teal-800 ${touch}`} disabled={pending}>{pending ? "Raising…" : "Raise the purchase order"}</Button>
+            {chosen && <span className="text-xs text-slate-600">To {chosen.supplier}, at the price they quoted{chosen.reference ? ` (their reference ${chosen.reference})` : ""}.</span>}
             <Outcome state={state} />
         </form>
     );
