@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, FileMinus, Ban, ArrowRight, MessageCircle, Printer, Trash2, Undo2, Wallet } from "lucide-react";
+import { Copy, FileMinus, Ban, ArrowRight, ChevronDown, MessageCircle, Printer, Trash2, Undo2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { convertDocument, copyDocument, createCreditNote, deleteDocumentAction, markContacted, voidDocument } from "@/lib/documents/actions";
 import { ProcessDialog } from "@/components/documents/ProcessDialog";
@@ -22,13 +22,19 @@ type Props = {
     canVoid: boolean;
     canTakePayment: boolean;
     canSend: boolean;
+    /**
+     * A council job on its route. The route and its signatures are the work
+     * there; invoicing and processing are the exception, so they wait under
+     * More rather than leading the card.
+     */
+    fleet?: boolean;
 };
 
 /**
  * Lifecycle buttons. They sit outside the editor's form because each posts to
  * its own server action, and forms cannot nest.
  */
-export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, canTakePayment, canSend }: Props) {
+export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, canTakePayment, canSend, fleet = false }: Props) {
     const [voiding, setVoiding] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [reworking, setReworking] = useState(false);
@@ -70,12 +76,32 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                     <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Start job</Button>
                 </form>
             )}
-            {isDraft && canInvoice && (
-                <form action={convertDocument.bind(null, tenant, doc.id, "INVOICE")}>
-                    <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
-                </form>
+            {fleet ? (
+                (isDraft && (canInvoice || canProcess)) && (
+                    <details className="group relative">
+                        <summary className="inline-flex h-8 cursor-pointer list-none items-center gap-1 rounded-sm border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+                            More<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
+                        </summary>
+                        <div className="absolute left-0 z-30 mt-1 flex w-max flex-col items-stretch gap-1 border border-slate-200 bg-white p-1 shadow-[0_10px_15px_-3px_rgb(15_23_42/0.05),0_4px_6px_-4px_rgb(15_23_42/0.05)]">
+                            {canInvoice && (
+                                <form action={convertDocument.bind(null, tenant, doc.id, "INVOICE")}>
+                                    <Button type="submit" size="sm" variant="ghost" className="w-full justify-start"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
+                                </form>
+                            )}
+                            {canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
+                        </div>
+                    </details>
+                )
+            ) : (
+                <>
+                    {isDraft && canInvoice && (
+                        <form action={convertDocument.bind(null, tenant, doc.id, "INVOICE")}>
+                            <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
+                        </form>
+                    )}
+                    {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
+                </>
             )}
-            {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
             {isProcessed && (
                 <form action={markContacted.bind(null, tenant, doc.id)}>
                     <Button type="submit" size="sm" variant="outline" title={doc.contactedAt ? "Record that it was sent again" : "Record that the document was sent to the customer outside MOTION"}>

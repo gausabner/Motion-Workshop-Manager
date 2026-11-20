@@ -16,6 +16,8 @@ const ORDER = { RECEPTION: 0, CHECK_BAY: 1, WORKSHOP: 2, BAY: 3 } as const;
  * workshop and bay. What is there, for how long, and what is on its way. A
  * foreman opens on their own workshop; reception on reception.
  */
+const PLACE_SAYS: string[] = ["BOOKED_IN", "INSPECTION_IN_PROGRESS", "WORK_IN_PROGRESS"];
+
 export default async function OnSitePage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ at?: string }> }) {
     const [{ tenant: slug }, { at }] = await Promise.all([params, searchParams]);
     const { db, membership } = await requireFeature(slug, "jobFlow");
@@ -83,7 +85,8 @@ export default async function OnSitePage({ params, searchParams }: { params: Pro
                                                 )
                                             )}
                                         </span>
-                                        {v.jobStatus && <JobStatusPill status={v.jobStatus} />}
+                                        {/* Where it is says booked in, inspecting or in progress already; only a status that adds something shows. */}
+                                        {v.jobStatus && !PLACE_SAYS.includes(v.jobStatus) && <JobStatusPill status={v.jobStatus} />}
                                         <span className="w-24 text-right tabular-nums text-xs text-slate-500">{v.arriving ? `on the way ${duration(v.minutes)}` : duration(v.minutes)}</span>
                                         {v.arriving && mayAccept(person, place) && <AcceptButton tenant={slug} documentId={v.documentId} visitId={v.visitId} />}
                                     </li>

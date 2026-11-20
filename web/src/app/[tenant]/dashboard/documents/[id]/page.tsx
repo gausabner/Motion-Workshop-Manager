@@ -51,9 +51,20 @@ export default async function DocumentPage({ params, searchParams }: { params: P
 
     // Fetched after the document exists, so a bad id 404s rather than reading
     // an audit trail for something that is not there.
-    const history = can(membership, "reports:view") ? await listAudit(db, "Document", id) : [];
     // A council job's route through reception, the check bay and the workshops, and its signatures.
     const route = includes(plan, "jobFlow") && doc.jobNumber ? await routeView(db, tenant, id, membership.id) : null;
+    // A council job's history includes its route: every handover and signature, beside the edits.
+    const history = can(membership, "reports:view")
+        ? route
+            ? [...(await listAudit(db, "Document", id)), ...(await listAudit(db, "JobRoute", id)).map((r) => ({ ...r, action: `ROUTE_${r.action}` }))]
+                  .sort((a, b) => b.at.getTime() - a.at.getTime())
+                  .slice(0, 50)
+            : await listAudit(db, "Document", id)
+        : [];
+    // Where the vehicle is, which on a council job is its status: the job status pill
+    // would say "Booked in" all the way to collection.
+    const here = route?.visits.find((v) => !v.leftAt) ?? null;
+    const place = route ? (route.collected ? "Collected" : !here ? "Not booked in" : here.receivedAt ? `At ${here.place}` : `On its way to ${here.place}`) : null;
 
     const showCost = can(membership, "documents:see_cost");
     const base = `/${slug}/dashboard`;
@@ -67,7 +78,11 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         <h1 className="text-xl font-bold text-slate-800 leading-tight flex items-center gap-3 flex-wrap">
                             {DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}
                             <StatePill state={doc.state} type={doc.type} />
-                            {doc.jobStatus && <JobStatusPill status={doc.jobStatus} />}
+                            {place ? (
+                                <span className="text-sm font-medium text-slate-700">{place}</span>
+                            ) : (
+                                doc.jobStatus && <JobStatusPill status={doc.jobStatus} />
+                            )}
                         </h1>
                         <p className="text-xs text-slate-500 flex items-center gap-3 flex-wrap mt-0.5">
                             {doc.customer ? (
@@ -84,7 +99,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         </p>
                     </div>
                 </div>
-                <DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} />
+                <DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} fleet={!!route} />
             </div>
 
             <DeliveryStrip messages={messages} />
