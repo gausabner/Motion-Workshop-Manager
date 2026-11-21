@@ -1,19 +1,44 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useRef } from "react";
+import { Check } from "lucide-react";
+import { Checkbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
+import { Field as Base, FieldControl, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
+import { Input, fieldClass } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type Errors = Record<string, string[] | undefined> | undefined;
 
+/**
+ * When the server refuses a form, the first field it named takes focus, so a
+ * keyboard or screen-reader user lands on the problem instead of hunting for
+ * it. Each field checks whether it holds the form's first refusal.
+ */
+function useFocusWhenRefused(root: React.RefObject<HTMLDivElement | null>, err: string | undefined) {
+    useEffect(() => {
+        if (!err) return;
+        const here = root.current;
+        const first = (here?.closest("form") ?? document).querySelector<HTMLElement>('[aria-invalid="true"]');
+        if (first && here?.contains(first)) first.focus();
+    }, [root, err]);
+}
+
+/**
+ * A labelled control with its hint and the server's error. The child must be
+ * a ui-sdk control (`Input`, `Textarea`, `FieldControl`, `Checkbox`) so the
+ * label, hint and error attach to it.
+ */
 export function Field({ label, name, errors, hint, className, children }: { label: string; name: string; errors?: Errors; hint?: string; className?: string; children: React.ReactNode }) {
     const err = errors?.[name]?.[0];
+    const root = useRef<HTMLDivElement>(null);
+    useFocusWhenRefused(root, err);
     return (
-        <div className={cn("space-y-1", className)}>
-            <Label htmlFor={name} className="text-xs text-slate-600">{label}</Label>
+        <Base ref={root} invalid={err ? true : undefined} className={cn("space-y-1", className)}>
+            <FieldLabel className="block text-xs text-slate-600">{label}</FieldLabel>
             {children}
-            {err ? <p className="text-xs text-red-600">{err}</p> : hint ? <p className="text-[11px] text-slate-500">{hint}</p> : null}
-        </div>
+            {hint && <FieldDescription className="text-[11px] leading-snug text-slate-500">{hint}</FieldDescription>}
+            {err && <FieldError match className="text-xs text-red-700">{err}</FieldError>}
+        </Base>
     );
 }
 
@@ -26,49 +51,63 @@ export function TextField({ label, name, errors, defaultValue, type = "text", cl
     return (
         <Field label={label} name={name} errors={errors} className={className} hint={hint}>
             <Input
-                id={name} name={name} type={type} className="h-8 text-sm" aria-invalid={!!errors?.[name]}
-                {...(controlled ? {} : { defaultValue: defaultValue ?? "" })}
-                {...rest}
+                id={name} name={name} type={type} className="h-8 px-2 text-sm"
+                {...(controlled ? {} : { defaultValue: String(defaultValue ?? "") })}
+                {...(rest as Omit<React.ComponentProps<typeof Input>, "defaultValue">)}
             />
         </Field>
     );
 }
 
 type SelectFieldProps = {
-    label: string; name: string; errors?: Errors; options: { value: string; label: string }[]; allowEmpty?: string; className?: string; disabled?: boolean;
+    label: string; name: string; errors?: Errors; options: { value: string; label: string }[]; allowEmpty?: string; className?: string; disabled?: boolean; hint?: string;
 } & ({ defaultValue?: string | null; value?: never; onChange?: never } | { value: string; onChange: (value: string) => void; defaultValue?: never });
 
-export function SelectField({ label, name, errors, defaultValue, options, allowEmpty, className, disabled, value, onChange }: SelectFieldProps) {
+/** A native select: it opens the phone's own picker, which mechanics already know. */
+export function SelectField({ label, name, errors, defaultValue, options, allowEmpty, className, disabled, value, onChange, hint }: SelectFieldProps) {
     const controlled = value !== undefined;
     return (
-        <Field label={label} name={name} errors={errors} className={className}>
-            <select
+        <Field label={label} name={name} errors={errors} className={className} hint={hint}>
+            <FieldControl
+                render={<select />}
                 id={name}
                 name={name}
                 disabled={disabled}
-                {...(controlled ? { value, onChange: (e) => onChange?.(e.target.value) } : { defaultValue: defaultValue ?? "" })}
-                className="flex h-8 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                {...(controlled ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value) } : { defaultValue: defaultValue ?? "" })}
+                className={cn(fieldClass, "h-8 px-2 text-sm")}
             >
                 {allowEmpty !== undefined && <option value="">{allowEmpty}</option>}
                 {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </FieldControl>
         </Field>
     );
 }
 
 export function CheckField({ label, name, defaultChecked, hint }: { label: string; name: string; defaultChecked?: boolean; hint?: string }) {
     return (
-        <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
-            <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-4 w-4 accent-teal-700" />
-            <span>{label}{hint && <span className="block text-[11px] text-slate-500">{hint}</span>}</span>
-        </label>
+        <Base className="flex items-start gap-2 text-sm text-slate-700">
+            <Checkbox
+                name={name}
+                defaultChecked={defaultChecked}
+                className="relative hit-area mt-0.5 grid size-4 shrink-0 place-items-center border border-[var(--motion-field-edge)] bg-white text-white transition-colors duration-150 data-checked:border-teal-700 data-checked:bg-teal-700"
+            >
+                <CheckboxIndicator>
+                    <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+                </CheckboxIndicator>
+            </Checkbox>
+            <span>
+                <FieldLabel className="cursor-pointer">{label}</FieldLabel>
+                {hint && <FieldDescription className="block text-[11px] text-slate-500">{hint}</FieldDescription>}
+            </span>
+        </Base>
     );
 }
 
-export function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+export function Section({ title, children, className, level = 2 }: { title: string; children: React.ReactNode; className?: string; level?: 2 | 3 }) {
+    const Heading = level === 2 ? "h2" : "h3";
     return (
         <section className={cn("border border-slate-200 rounded-sm bg-white", className)}>
-            <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+            <Heading className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</Heading>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">{children}</div>
         </section>
     );

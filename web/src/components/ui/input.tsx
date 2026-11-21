@@ -1,21 +1,19 @@
-import * as React from "react"
+import * as React from "react";
+import { Input as Base } from "@ui-sdk/react/input";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
-    <input
-      type={type}
-      data-slot="input"
-      className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-        className
-      )}
-      {...props}
-    />
-  )
+/** The field look every text control shares: square, a 3:1 edge, teal when focused, red-700 when refused. */
+export const fieldClass =
+    "w-full min-w-0 rounded-none border border-[var(--motion-field-edge)] bg-white text-base text-slate-900 transition-colors duration-150 outline-none placeholder:text-slate-500 focus:border-teal-700 aria-invalid:border-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-600 md:text-sm";
+
+/**
+ * A line of text, on ui-sdk's Input: inside a Field it takes its label, hint
+ * and error from the field; outside one it is a plain input. Every native
+ * input prop passes through, `onChange` included.
+ */
+function Input({ className, ...props }: React.ComponentProps<typeof Base>) {
+    return <Base className={cn(fieldClass, "h-9 px-3 py-1 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium", className)} {...props} />;
 }
 
-export { Input }
+export { Input };

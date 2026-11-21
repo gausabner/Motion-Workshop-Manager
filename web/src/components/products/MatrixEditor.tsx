@@ -9,6 +9,7 @@ import { previewRepriceAction, repriceMatrixAction, saveMatrixAction, deleteMatr
 import type { MatrixRecord } from "@/lib/products/matrix-service";
 import type { RepriceRow } from "@/lib/products/matrix-service";
 import { money } from "@/lib/format";
+import { useConfirm } from "@/components/ui/confirm";
 
 type Row = Band & { key: string };
 const cell = "h-8 rounded-sm border border-slate-200 bg-white px-2 text-sm";
@@ -20,6 +21,7 @@ const SAMPLES = [15, 45, 120, 480, 1800, 6500];
 
 export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; matrix: MatrixRecord; currency: string }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const [name, setName] = useState(matrix.name);
     const [basis, setBasis] = useState(matrix.basis);
     const [rounding, setRounding] = useState(matrix.rounding);
@@ -126,7 +128,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                 </Button>
                 {matrix.products === 0 && (
                     <Button type="button" variant="ghost" className="text-slate-500" disabled={busy}
-                        onClick={() => { if (window.confirm("Delete this matrix?")) start(async () => { const r = await deleteMatrixAction(tenant, matrix.id); if (r && !r.ok) setStatus({ ok: false, text: r.message ?? "Not deleted" }); }); }}>
+                        onClick={async () => { if (await confirm({ title: "Delete this matrix?", confirm: "Delete the matrix", cancel: "Keep it" })) start(async () => { const r = await deleteMatrixAction(tenant, matrix.id); if (r && !r.ok) setStatus({ ok: false, text: r.message ?? "Not deleted" }); }); }}>
                         Delete
                     </Button>
                 )}

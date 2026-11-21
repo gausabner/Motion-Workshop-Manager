@@ -7,7 +7,7 @@ import { clashes, lanesWithin, snapMinute, type DiarySettings } from "@/lib/diar
 import { minuteLabel } from "@/lib/diary/time";
 import { bookSlotAction, moveBookingAction } from "@/lib/diary/actions";
 import type { DiaryBooking, DiaryDay, DiaryMechanic } from "@/lib/diary/queries";
-import { PX_PER_MINUTE, blockTone, capture, loadTone } from "@/components/diary/shared";
+import { PX_PER_MINUTE, blockStatus, blockTone, capture, loadTone } from "@/components/diary/shared";
 
 type Props = {
     tenant: string;
@@ -37,6 +37,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
     const [drag, setDrag] = useState<Drag | null>(null);
     const [slot, setSlot] = useState<{ lane: string; minute: number } | null>(null);
     const [error, setError] = useState<string>();
+    const [notice, setNotice] = useState<string>();
     const [pending, start] = useTransition();
     const laneRefs = useRef(new Map<string, HTMLDivElement>());
 
@@ -156,12 +157,42 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
         setSlot({ lane, minute: Math.floor(raw / settings.slotMinutes) * settings.slotMinutes });
     }
 
+    /**
+     * The keyboard's way into an empty slot: the first one in this lane that is
+     * inside the mechanic's hours, not taken, not time off and not already past.
+     */
+    function bookFirstFree(lane: string) {
+        const info = day.lanes.find((l) => l.mechanicId === lane);
+        const name = lanes.find((l) => l.id === lane)?.name ?? "This mechanic";
+        if (info && !info.working) {
+            setSlot(null);
+            setNotice(`${name} is not working on this day. Choose another mechanic or another day.`);
+            return;
+        }
+        const step = settings.slotMinutes;
+        const from = Math.max(range.start, info?.working?.start ?? range.start, nowMinute === null ? range.start : Math.ceil(nowMinute / step) * step);
+        const until = info?.working?.end ?? range.end;
+        const taken = (m: number) =>
+            bookings.some((b) => laneOf(b) === lane && b.start < m + step && m < b.start + b.minutes) ||
+            !!info?.off.some((o) => o.start < m + step && m < o.end);
+        for (let m = from; m + step <= until; m += step) {
+            if (!taken(m)) {
+                setNotice(undefined);
+                setSlot({ lane, minute: m });
+                return;
+            }
+        }
+        setSlot(null);
+        setNotice(`No free slot left on this day${lane === UNASSIGNED ? "" : ` for ${name}`}. Choose another day, or set Scheduled for on the job card.`);
+    }
+
     const slots: number[] = [];
     for (let m = range.start; m < range.end; m += settings.slotMinutes) slots.push(m);
 
     return (
         <div className="space-y-2">
             {error && <p className="rounded-sm border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{error} — it has been put back.</p>}
+            <p role="status" className={notice ? "text-sm text-slate-700" : "sr-only"}>{notice}</p>
             <div className="overflow-x-auto border border-slate-200 bg-white">
                 <div className="grid min-w-[640px]" style={{ gridTemplateColumns: `56px repeat(${lanes.length}, minmax(150px, 1fr))` }}>
                     {/* Lane headers */}
@@ -172,7 +203,18 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                         const count = bookings.filter((b) => laneOf(b) === lane.id).length;
                         return (
                             <div key={lane.id} className="sticky top-0 z-20 border-b border-l border-slate-200 bg-slate-50 px-2 py-1.5">
-                                <p className="truncate text-xs font-semibold text-slate-700">{lane.name}</p>
+                                <div className="flex items-center justify-between gap-1">
+                                    <p className="truncate text-xs font-semibold text-slate-700">{lane.name}</p>
+                                    {canEdit && (
+                                        <button
+                                            type="button"
+                                            onClick={() => bookFirstFree(lane.id)}
+                                            className="relative hit-area -my-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-sm px-1 py-0.5 text-[11px] font-medium text-teal-700 transition-colors duration-150 hover:bg-white"
+                                        >
+                                            <Plus className="h-3 w-3" aria-hidden="true" />Book<span className="sr-only">{lane.id === UNASSIGNED ? " unassigned" : ` with ${lane.name}`}</span>
+                                        </button>
+                                    )}
+                                </div>
                                 {info ? (
                                     <div className="mt-1 flex items-center gap-1.5">
                                         <div className="h-1.5 flex-1 rounded-full bg-slate-200 overflow-hidden">
@@ -238,7 +280,7 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                 ))}
                                 {/* Now */}
                                 {nowMinute !== null && nowMinute >= range.start && nowMinute <= range.end && (
-                                    <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: y(nowMinute) }} />
+                                    <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-teal-700" style={{ top: y(nowMinute) }} />
                                 )}
                                 {/* Where a dragged booking will land */}
                                 {target && dragged && (
@@ -249,12 +291,13 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                 {/* A clicked empty slot offers a booking there */}
                                 {slot?.lane === lane.id && (
                                     <button
-                                        type="button" disabled={pending}
+                                        type="button" disabled={pending} autoFocus
                                         onClick={() => start(() => bookSlotAction(tenant, { day: day.day, minute: slot.minute, mechanicId: lane.id === UNASSIGNED ? null : lane.id }))}
-                                        className="absolute inset-x-1 z-20 flex items-center gap-1 rounded border border-teal-700 bg-white px-2 text-xs font-medium text-teal-700 shadow-sm hover:bg-teal-50"
+                                        onKeyDown={(e) => { if (e.key === "Escape") setSlot(null); }}
+                                        className="absolute inset-x-1 z-20 flex items-center gap-1 rounded-sm border border-teal-700 bg-white px-2 text-xs font-medium text-teal-700 shadow-[0_4px_6px_-4px_rgb(15_23_42/0.10)] hover:bg-slate-50"
                                         style={{ top: y(slot.minute), height: settings.slotMinutes * PX_PER_MINUTE }}
                                     >
-                                        <Plus className="w-3.5 h-3.5" />Book {minuteLabel(slot.minute)}{lane.id === UNASSIGNED ? "" : ` with ${lane.name.split(" ")[0]}`}
+                                        <Plus className="w-3.5 h-3.5" aria-hidden="true" />Book {minuteLabel(slot.minute)}{lane.id === UNASSIGNED ? "" : ` with ${lane.name.split(" ")[0]}`}
                                     </button>
                                 )}
                                 {/* Bookings */}
@@ -264,33 +307,43 @@ export function DayView({ tenant, day, mechanics, settings, nowMinute, canEdit }
                                     const moving = drag?.kind === "move" && drag.id === b.id && drag.moved;
                                     const minutes = resizing ?? b.minutes;
                                     const width = 100 / place.columns;
+                                    const status = blockStatus(b.jobStatus);
+                                    const clash = clashing.has(b.id);
                                     return (
-                                        <div
+                                        <button
+                                            type="button"
                                             key={b.id}
                                             onPointerDown={(e) => onBlockPointerDown(e, b)}
                                             onPointerMove={onBlockPointerMove}
                                             onPointerUp={() => onBlockPointerUp(b)}
                                             onPointerCancel={() => setDrag(null)}
-                                            title={`${minuteLabel(b.start)}–${minuteLabel(b.start + minutes)} · ${b.plate ?? ""} ${b.customer ?? ""}${clashing.has(b.id) ? " · clashes with another booking" : ""}`}
-                                            className={`absolute z-10 select-none overflow-hidden rounded border px-1.5 py-0.5 text-[11px] leading-tight shadow-sm touch-none ${blockTone(b.jobStatus, clashing.has(b.id))} ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${moving ? "opacity-40" : ""}`}
+                                            // A pointer opens the job on release without moving; Enter and
+                                            // Space arrive as a click with no pointer behind it (detail 0).
+                                            onClick={(e) => { if (e.detail === 0) router.push(`/${tenant}/dashboard/documents/${b.id}`); }}
+                                            title={`${minuteLabel(b.start)}–${minuteLabel(b.start + minutes)} · ${b.plate ?? ""} ${b.customer ?? ""} · ${status.label}${clash ? " · clashes with another booking" : ""}`}
+                                            className={`absolute z-10 block select-none overflow-hidden rounded-sm border px-1.5 py-0.5 text-left text-[11px] leading-tight touch-none ${blockTone(b.jobStatus, clash)} ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${moving ? "opacity-40" : ""}`}
                                             style={{ top: y(b.start) + 1, height: Math.max(minutes * PX_PER_MINUTE - 2, 18), left: `calc(${place.column * width}% + 2px)`, width: `calc(${width}% - 4px)` }}
                                         >
-                                            <p className="font-semibold tabular-nums">
-                                                {minuteLabel(b.start)}{b.plate && <span className="ml-1 rounded-sm bg-yellow-100 px-1 text-yellow-900">{b.plate}</span>}
-                                            </p>
-                                            <p className="truncate">{b.customer ?? "No customer"}</p>
-                                            {minutes >= 60 && <p className="truncate opacity-80">{b.description ?? b.vehicle ?? ""}</p>}
-                                            {b.orphaned && <p className="truncate text-red-700">Mechanic no longer on diary</p>}
+                                            <span className="flex items-center gap-1 font-semibold tabular-nums">
+                                                <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                                {minuteLabel(b.start)}{b.plate && <span className="rounded-sm bg-yellow-100 px-1 text-yellow-900">{b.plate}</span>}
+                                                {clash && <span aria-hidden="true" className="ml-auto text-[10px] font-semibold text-red-700">Clash</span>}
+                                            </span>
+                                            <span className="block truncate">{b.customer ?? "No customer"}</span>
+                                            {minutes >= 45 && <span className="block truncate text-slate-600"><span className="sr-only">, </span>{status.label}</span>}
+                                            {minutes >= 75 && <span className="block truncate text-slate-600">{b.description ?? b.vehicle ?? ""}</span>}
+                                            {b.orphaned && <span className="block truncate text-red-700">Mechanic no longer on diary</span>}
+                                            <span className="sr-only">, until {minuteLabel(b.start + minutes)}{minutes < 45 ? `, ${status.label}` : ""}{clash ? ", clashes with another booking" : ""}</span>
                                             {canEdit && (
-                                                <div
+                                                <span
+                                                    aria-hidden="true"
                                                     onPointerDown={(e) => onResizeDown(e, b)}
                                                     onPointerMove={onResizeMove}
                                                     onPointerUp={onResizeUp}
-                                                    className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
-                                                    aria-label="Drag to change how long it takes"
+                                                    className="absolute inset-x-0 bottom-0 block h-2 cursor-ns-resize"
                                                 />
                                             )}
-                                        </div>
+                                        </button>
                                     );
                                 })}
                             </div>

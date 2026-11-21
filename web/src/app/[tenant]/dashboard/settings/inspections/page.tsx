@@ -22,7 +22,7 @@ export default async function InspectionTemplatesPage({ params }: { params: Prom
         <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h3 className="text-lg font-medium">Inspection templates</h3>
+                    <h2 className="text-lg font-medium">Inspection templates</h2>
                     <p className="text-sm text-slate-500">The checklists your mechanics work through. Changing a template never changes an inspection already done.</p>
                 </div>
                 <form action={newTemplateAction.bind(null, slug)}>

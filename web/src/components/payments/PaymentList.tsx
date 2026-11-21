@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Minus, Plus, Wallet } from "lucide-react";
 import type { PaymentState } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createPayment, createRefund } from "@/lib/payments/actions";
 import type { listPayments } from "@/lib/payments/queries";
@@ -50,7 +50,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                 <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <Wallet className="w-5 h-5 shrink-0 text-slate-600" />
-                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">Receipts &amp; refunds</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none whitespace-nowrap text-lg font-bold text-slate-800">Receipts &amp; refunds</h1>
                         <span className="whitespace-nowrap text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">

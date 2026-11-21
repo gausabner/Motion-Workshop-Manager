@@ -25,6 +25,10 @@ test("a wrong password does not get in, and does not say which half was wrong", 
 test("signing out ends it — the dashboard is not reachable afterwards", async ({ page, workshop }) => {
     await signIn(page, workshop);
     await page.getByRole("button", { name: "Sign out" }).click();
+    // It asks first: it sits one press from the work, beside the user's name.
+    const ask = page.getByRole("alertdialog", { name: "Sign out of MOTION?" });
+    await expect(ask.getByRole("button", { name: "Stay signed in" })).toBeFocused();
+    await ask.getByRole("button", { name: "Sign out" }).click();
     await page.waitForURL(/\/login/);
 
     await page.goto(`/${workshop.slug}/dashboard`);

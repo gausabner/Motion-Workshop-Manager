@@ -39,7 +39,7 @@ export function TaxSettingsForm({ tenant, tax }: { tenant: string; tax: TaxProfi
                 </div>
             </div>
 
-            <Section title="Tax">
+            <Section level={3} title="Tax">
                 <TextField label="Tax name" name="taxName" errors={errors} defaultValue={tax.taxName} hint="Printed on the document, e.g. VAT" />
                 <TextField label="Sales tax rate (%)" name="salesTaxRate" type="number" step="0.01" errors={errors} defaultValue={tax.salesTaxRate} />
                 <TextField label="Purchase tax rate (%)" name="purchaseTaxRate" type="number" step="0.01" errors={errors} defaultValue={tax.purchaseTaxRate} />

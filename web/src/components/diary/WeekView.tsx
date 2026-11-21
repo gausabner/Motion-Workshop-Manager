@@ -7,7 +7,7 @@ import type { DiarySettings } from "@/lib/diary/capacity";
 import { minuteLabel } from "@/lib/diary/time";
 import { moveBookingAction } from "@/lib/diary/actions";
 import type { DiaryBooking, DiaryDay, DiaryMechanic } from "@/lib/diary/queries";
-import { capture, blockTone, dayHeading, loadTone } from "@/components/diary/shared";
+import { capture, blockStatus, blockTone, dayHeading, loadTone } from "@/components/diary/shared";
 
 type Props = {
     tenant: string;
@@ -67,7 +67,7 @@ export function WeekView({ tenant, days, mechanics, settings, today, hrefForDay,
                         <div
                             key={d.day}
                             ref={(el) => { if (el) columns.current.set(d.day, el); else columns.current.delete(d.day); }}
-                            className={`min-h-[220px] rounded-sm border bg-white ${d.day === today ? "border-teal-500" : "border-slate-200"} ${hovered ? "ring-2 ring-teal-500" : ""} ${!d.open ? "bg-slate-50" : ""}`}
+                            className={`min-h-[220px] rounded-sm border bg-white ${d.day === today ? "border-teal-700" : "border-slate-200"} ${hovered ? "ring-2 ring-teal-700" : ""} ${!d.open ? "bg-slate-50" : ""}`}
                         >
                             <Link href={hrefForDay(d.day)} className="block border-b border-slate-100 px-2 py-1.5 hover:bg-slate-50">
                                 <p className={`text-xs font-semibold ${d.day === today ? "text-teal-700" : "text-slate-700"}`}>{dayHeading(d.day, "short")}</p>
@@ -79,37 +79,50 @@ export function WeekView({ tenant, days, mechanics, settings, today, hrefForDay,
                                 </div>
                             </Link>
                             <ul className="space-y-1 p-1.5">
-                                {mine.map((b) => (
-                                    <li
-                                        key={b.id}
-                                        onPointerDown={(e) => {
-                                            if (!canEdit || e.button !== 0) return;
-                                            capture(e);
-                                            setDrag({ id: b.id, x: e.clientX, y: e.clientY, moved: false, day: b.day });
-                                        }}
-                                        onPointerMove={(e) => {
-                                            if (drag?.id !== b.id) return;
-                                            const moved = drag.moved || Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 5;
-                                            setDrag({ ...drag, moved, day: moved ? dayAt(e.clientX) : drag.day });
-                                        }}
-                                        onPointerUp={() => {
-                                            if (drag?.id !== b.id) return;
-                                            const done = drag;
-                                            setDrag(null);
-                                            if (!done.moved) router.push(`/${tenant}/dashboard/documents/${b.id}`);
-                                            else if (done.day) drop(b, done.day);
-                                        }}
-                                        onPointerCancel={() => setDrag(null)}
-                                        className={`select-none touch-none rounded border px-1.5 py-1 text-[11px] leading-tight ${blockTone(b.jobStatus, false)} ${canEdit ? "cursor-grab" : "cursor-pointer"} ${drag?.id === b.id && drag.moved ? "opacity-40" : ""}`}
-                                    >
-                                        <p className="flex items-center justify-between gap-1 font-semibold tabular-nums">
-                                            <span>{minuteLabel(b.start)}</span>
-                                            <span className="text-[10px] font-normal opacity-70">{b.mechanicId ? initials.get(b.mechanicId) : "—"}</span>
-                                        </p>
-                                        {b.plate && <p className="truncate font-medium">{b.plate}</p>}
-                                        <p className="truncate">{b.customer ?? "No customer"}</p>
-                                    </li>
-                                ))}
+                                {mine.map((b) => {
+                                    const status = blockStatus(b.jobStatus);
+                                    return (
+                                        <li key={b.id}>
+                                            <button
+                                                type="button"
+                                                onPointerDown={(e) => {
+                                                    if (!canEdit || e.button !== 0) return;
+                                                    capture(e);
+                                                    setDrag({ id: b.id, x: e.clientX, y: e.clientY, moved: false, day: b.day });
+                                                }}
+                                                onPointerMove={(e) => {
+                                                    if (drag?.id !== b.id) return;
+                                                    const moved = drag.moved || Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 5;
+                                                    setDrag({ ...drag, moved, day: moved ? dayAt(e.clientX) : drag.day });
+                                                }}
+                                                onPointerUp={() => {
+                                                    if (drag?.id !== b.id) return;
+                                                    const done = drag;
+                                                    setDrag(null);
+                                                    if (!done.moved) router.push(`/${tenant}/dashboard/documents/${b.id}`);
+                                                    else if (done.day) drop(b, done.day);
+                                                }}
+                                                onPointerCancel={() => setDrag(null)}
+                                                // Enter and Space arrive as a click with no pointer behind it.
+                                                onClick={(e) => { if (e.detail === 0) router.push(`/${tenant}/dashboard/documents/${b.id}`); }}
+                                                className={`block w-full select-none touch-none rounded-sm border px-1.5 py-1 text-left text-[11px] leading-tight ${blockTone(b.jobStatus, false)} ${canEdit ? "cursor-grab" : "cursor-pointer"} ${drag?.id === b.id && drag.moved ? "opacity-40" : ""}`}
+                                            >
+                                                <span className="flex items-center justify-between gap-1 font-semibold tabular-nums">
+                                                    <span className="flex items-center gap-1">
+                                                        <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                                        {minuteLabel(b.start)}
+                                                    </span>
+                                                    <span className="text-[10px] font-normal text-slate-600">
+                                                        {b.mechanicId ? initials.get(b.mechanicId) : "—"}
+                                                    </span>
+                                                </span>
+                                                {b.plate && <span className="block truncate font-medium">{b.plate}</span>}
+                                                <span className="block truncate">{b.customer ?? "No customer"}</span>
+                                                <span className="block truncate text-slate-600">{status.label}</span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
                                 {mine.length === 0 && d.open && <li className="px-1 py-2 text-[11px] text-slate-500">Nothing booked</li>}
                             </ul>
                         </div>

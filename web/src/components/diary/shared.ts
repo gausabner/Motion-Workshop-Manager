@@ -1,5 +1,7 @@
 import type { JobStatus } from "@prisma/client";
+import { CalendarClock, CheckCircle2, ClipboardCheck, Hourglass, Package, Wrench, type LucideIcon } from "lucide-react";
 import type { Load } from "@/lib/diary/capacity";
+import { JOB_STATUS_LABELS } from "@/lib/documents/types";
 
 /** Vertical scale of the day view. 1.2px a minute makes a 30-minute slot 36px — room for a plate and a name. */
 export const PX_PER_MINUTE = 1.2;
@@ -11,17 +13,32 @@ export function loadTone(load: Load, fullAt: number): { bar: string; text: strin
     return { bar: "bg-teal-500", text: "text-teal-700", label: "Room" };
 }
 
-/** Finished work fades so the eye goes to what is still to do. */
+const DONE = new Set<JobStatus>(["JOB_COMPLETE", "CUSTOMER_NOTIFIED", "AWAITING_FINALISE", "FINALISED"]);
+
+/**
+ * Finished work fades so the eye goes to what is still to do. The rest reads
+ * by its icon and its words, not by a tint: colour alone tells nobody who
+ * cannot see it which job is waiting for parts. A clash is the one red, because
+ * it is wrong.
+ */
 export function blockTone(status: JobStatus | null, clash: boolean): string {
-    const done = status === "JOB_COMPLETE" || status === "CUSTOMER_NOTIFIED" || status === "AWAITING_FINALISE" || status === "FINALISED";
-    const base = done
-        ? "bg-slate-100 border-slate-300 text-slate-500"
-        : status === "WORK_IN_PROGRESS" || status === "INSPECTION_IN_PROGRESS"
-          ? "bg-blue-50 border-blue-400 text-blue-900"
-          : status === "WAITING_FOR_PARTS" || status === "WAITING_FOR_CUSTOMER_APPROVAL"
-            ? "bg-amber-50 border-amber-400 text-amber-900"
-            : "bg-teal-50 border-teal-500 text-teal-900";
-    return clash ? `${base} ring-2 ring-red-500 ring-offset-1` : base;
+    const done = !!status && DONE.has(status);
+    const ground = done ? "bg-slate-50 text-slate-600" : "bg-white text-slate-900";
+    const edge = clash ? "border-red-700 ring-1 ring-red-700" : done ? "border-slate-200" : "border-[var(--motion-field-edge)]";
+    return `${ground} ${edge}`;
+}
+
+const ICONS: Partial<Record<JobStatus, LucideIcon>> = {
+    WORK_IN_PROGRESS: Wrench,
+    INSPECTION_IN_PROGRESS: ClipboardCheck,
+    WAITING_FOR_PARTS: Package,
+    WAITING_FOR_CUSTOMER_APPROVAL: Hourglass,
+};
+
+/** What a booking's status is called and drawn as: an icon and its words, as SAP marks an object's status. */
+export function blockStatus(status: JobStatus | null): { label: string; Icon: LucideIcon } {
+    if (!status) return { label: "Booked", Icon: CalendarClock };
+    return { label: JOB_STATUS_LABELS[status], Icon: DONE.has(status) ? CheckCircle2 : (ICONS[status] ?? CalendarClock) };
 }
 
 export const WEEKDAY_SHORT = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

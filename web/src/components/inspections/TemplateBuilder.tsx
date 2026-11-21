@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { move, parseReadings, type TemplateDraft } from "@/lib/inspections/template-rules";
 import { saveTemplateAction } from "@/lib/inspections/template-actions";
+import { useConfirm } from "@/components/ui/confirm";
 
 type Product = { id: string; label: string; type: string; price: number };
 type Item = { key: string; id?: string; description: string; readings: string; productId: string; estimate: string };
@@ -52,6 +53,7 @@ function toDraft(name: string, groups: Group[]) {
  */
 export function TemplateBuilder({ tenant, id, initial, products, currencySymbol }: { tenant: string; id: string; initial: TemplateDraft; products: Product[]; currencySymbol: string }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const [name, setName] = useState(initial.name);
     const [groups, setGroups] = useState<Group[]>(() => fromDraft(initial));
     const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
@@ -122,7 +124,7 @@ export function TemplateBuilder({ tenant, id, initial, products, currencySymbol 
                         <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={gi === 0} onClick={() => setGroups((gs) => move(gs, gi, -1))} aria-label="Move group up"><ArrowUp className="h-4 w-4" /></Button>
                         <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={gi === groups.length - 1} onClick={() => setGroups((gs) => move(gs, gi, 1))} aria-label="Move group down"><ArrowDown className="h-4 w-4" /></Button>
                         <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-red-700" disabled={groups.length === 1}
-                            onClick={() => { if (g.items.every((it) => !it.description.trim()) || window.confirm(`Remove "${g.name || "this group"}" and its ${g.items.length} checks?`)) setGroups((gs) => gs.filter((_, i) => i !== gi)); }}
+                            onClick={async () => { if (g.items.every((it) => !it.description.trim()) || (await confirm({ title: `Remove "${g.name || "this group"}" and its ${g.items.length} checks?`, confirm: "Remove the group", cancel: "Keep it" }))) setGroups((gs) => gs.filter((_, i) => i !== gi)); }}
                             aria-label="Remove group"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                     <ul className="divide-y divide-slate-100">
