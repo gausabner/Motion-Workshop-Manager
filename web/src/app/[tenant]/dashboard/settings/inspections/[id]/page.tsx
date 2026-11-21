@@ -19,7 +19,7 @@ export default async function TemplateEditPage({ params }: { params: Promise<{ t
         <div className="space-y-4">
             <div>
                 <Link href={`/${slug}/dashboard/settings/inspections`} className="text-xs font-medium text-teal-700 hover:underline">← All templates</Link>
-                <h3 className="mt-1 text-lg font-medium">{template.draft.name}</h3>
+                <h2 className="mt-1 text-lg font-medium">{template.draft.name}</h2>
                 <p className="text-sm text-slate-500">
                     {template.used > 0 ? `Used on ${template.used} inspection${template.used === 1 ? "" : "s"}; those keep the checks they started with. ` : ""}
                     Readings are what the mechanic measures, such as tread depth on four corners. The product and usual price are what an approved finding becomes on the job card; the mechanic can still change the price per job.

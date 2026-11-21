@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { Search, Bell, LogOut } from "lucide-react";
+import { Search } from "lucide-react";
 import type { UserGroup } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { MotionLogo } from "@/components/brand/MotionLogo";
-import { logoutAction } from "@/lib/auth/actions";
 import { can } from "@/lib/auth/permissions";
 import { GROUP_LABELS } from "@/lib/auth/permissions";
 import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
 import { HelpButton } from "@/components/help/HelpButton";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { SignOutButton } from "@/components/layout/SignOutButton";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import type { Feature } from "@/lib/plans/features";
 
 export type ShellProps = {
@@ -55,19 +56,18 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
                 <MotionLogo className="h-[20px] w-auto" />
             </Link>
             <div className="flex flex-1 items-center gap-4 justify-end">
-                <Link href={`/${tenant}/dashboard/reports`} className="hidden md:block">
-                    <Button variant="outline" className="h-9 px-4 text-sm font-medium border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
-                        Reports
-                    </Button>
-                </Link>
-                <form action={`/${tenant}/dashboard/customers`} method="get" className="min-w-0 flex-1 sm:w-initial sm:flex-none">
+                <Button asChild variant="outline" className="hidden h-9 px-4 text-sm font-medium border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 md:inline-flex">
+                    <Link href={`/${tenant}/dashboard/reports`}>Reports</Link>
+                </Button>
+                <form role="search" action={`/${tenant}/dashboard/customers`} method="get" className="min-w-0 flex-1 sm:w-initial sm:flex-none">
                     <div className="relative">
-                        <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <Search className="pointer-events-none absolute left-3.5 top-2.5 h-4 w-4 text-slate-500" aria-hidden="true" />
                         <input
                             type="search"
                             name="q"
+                            aria-label="Search customers"
                             placeholder="Search customers…"
-                            className="w-full min-w-0 rounded-full border-none bg-slate-100 pl-10 pr-4 py-2 text-base outline-none focus:ring-2 focus:ring-teal-500/50 sm:w-[300px] sm:text-sm md:w-[200px] lg:w-[350px]"
+                            className="w-full min-w-0 rounded-full border-none bg-slate-100 pl-10 pr-4 py-2 text-base outline-none placeholder:text-slate-600 focus:ring-2 focus:ring-teal-700 sm:w-[300px] sm:text-sm md:w-[200px] lg:w-[350px]"
                         />
                     </div>
                 </form>
@@ -75,19 +75,12 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
             {/* Beside the work, not in a menu: help that takes three clicks
                 to reach is help nobody reaches. */}
             <HelpButton />
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Notifications">
-                <Bell className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3 border-slate-200 sm:border-l sm:pl-4">
                 <div className="hidden text-right leading-tight sm:block">
                     <p className="text-sm font-medium text-slate-800">{userName}</p>
                     <p className="text-[10px] uppercase tracking-wider text-slate-500">{GROUP_LABELS[group]}</p>
                 </div>
-                <form action={logoutAction}>
-                    <Button type="submit" variant="ghost" size="icon" className="rounded-full" aria-label="Sign out" title="Sign out">
-                        <LogOut className="h-4 w-4" />
-                    </Button>
-                </form>
+                <SignOutButton />
             </div>
         </header>
     );
@@ -96,7 +89,16 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
 export function DashboardLayout({ children, ...shell }: ShellProps & { children: React.ReactNode }) {
     const base = `/${shell.tenant}`;
     return (
+        <ConfirmProvider>
         <div className="flex h-dvh w-full overflow-hidden bg-background">
+            {/* First in the tab order, so a keyboard reaches the work without
+                passing the thirty links of the navigation first. */}
+            <a
+                href="#main"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:border focus:border-slate-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-teal-700 focus:shadow-[0_10px_15px_-3px_rgb(15_23_42/0.05),0_4px_6px_-4px_rgb(15_23_42/0.05)]"
+            >
+                Skip to content
+            </a>
             <Sidebar {...shell} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <TopNav {...shell} />
@@ -105,7 +107,7 @@ export function DashboardLayout({ children, ...shell }: ShellProps & { children:
                     whole app coming loose. The bottom padding clears the tab
                     bar and the home indicator, so the last row of a long list
                     is reachable rather than sitting under the navigation. */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-[calc(64px+env(safe-area-inset-bottom,0px))] sm:p-6 md:pb-6">
+                <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-[calc(64px+env(safe-area-inset-bottom,0px))] outline-none sm:p-6 md:pb-6">
                     {children}
                 </main>
             </div>
@@ -118,5 +120,6 @@ export function DashboardLayout({ children, ...shell }: ShellProps & { children:
                 features={shell.features}
             />
         </div>
+        </ConfirmProvider>
     );
 }

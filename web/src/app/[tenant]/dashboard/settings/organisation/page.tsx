@@ -18,7 +18,7 @@ export default async function OrganisationSettingsPage({ params }: { params: Pro
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Organisation</h3>
+                <h2 className="text-lg font-medium">Organisation</h2>
                 <p className="text-sm text-slate-500">The units that own the vehicles and pay for them, who signs for each, and their votes.</p>
             </div>
             <div className="border-t border-slate-200" />

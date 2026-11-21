@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, TextField, SelectField, CheckField, Section } from "@/components/forms/fields";
+import { Textarea } from "@/components/ui/textarea";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import type { PickerHit } from "@/lib/search/types";
 import { saveVehicle } from "@/lib/vehicles/actions";
@@ -96,7 +97,7 @@ export function VehicleForm({ tenant, vehicle, initialOwner }: Props) {
 
             <Section title="Notes">
                 <Field label="Vehicle note" name="note" errors={errors} className="lg:col-span-4">
-                    <textarea id="note" name="note" defaultValue={v?.note ?? ""} rows={3} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                    <Textarea id="note" name="note" defaultValue={v?.note ?? ""} rows={3} className="text-sm" />
                 </Field>
             </Section>
 

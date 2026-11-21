@@ -84,7 +84,8 @@ test.describe("on a phone", () => {
         // It floated 67px above the bar once, showing a strip of the scrolling
         // page between the two. Flush or touching is right; a gap is not.
         const gap = await page.evaluate(() => {
-            const nav = document.querySelector('nav[aria-label="Main"]');
+            // The desktop sidebar is also "Main" but is not displayed on a phone; the tab bar is the one showing.
+            const nav = [...document.querySelectorAll('nav[aria-label="Main"]')].find((n) => n.getClientRects().length > 0);
             const bar = [...document.querySelectorAll("div")].find(
                 (d) => getComputedStyle(d).position === "fixed" && /Save/.test(d.textContent ?? "") && d.className.includes("sm:hidden"),
             );

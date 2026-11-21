@@ -73,7 +73,7 @@ export default async function BillingPage({
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Billing</h3>
+                <h2 className="text-lg font-medium">Billing</h2>
                 <p className="text-sm text-slate-500">Your MOTION subscription: what it costs, when it is due, and how to pay.</p>
             </div>
             <div className="border-t border-slate-200" />
@@ -160,9 +160,9 @@ export default async function BillingPage({
                         (pending ? (
                             <section className="space-y-4 border border-slate-200 bg-white px-4 py-4">
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <h4 className="text-sm font-semibold text-slate-900">
+                                    <h3 className="text-sm font-semibold text-slate-900">
                                         Plan change requested: {pending.fromPlanName} to {pending.toPlanName}
-                                    </h4>
+                                    </h3>
                                     <Link href={changeHref} className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline">
                                         View request
                                         <ArrowRight aria-hidden className="h-3.5 w-3.5" />
@@ -196,7 +196,7 @@ export default async function BillingPage({
 
                     {manager && (
                         <section className="space-y-3">
-                            <h4 className="text-sm font-semibold text-slate-900">How to pay</h4>
+                            <h3 className="text-sm font-semibold text-slate-900">How to pay</h3>
                             {bank ? (
                                 <dl className="overflow-hidden border border-slate-200 bg-white text-sm">
                                     <Row label="Bank" value={bank.bankName} />
@@ -228,7 +228,7 @@ export default async function BillingPage({
 
                     {manager && (
                         <section className="space-y-3">
-                            <h4 className="text-sm font-semibold text-slate-900">Payments received</h4>
+                            <h3 className="text-sm font-semibold text-slate-900">Payments received</h3>
                             {gaps.length > 0 && (
                                 <p className="text-sm text-slate-600">
                                     Your tax invoices are addressed from your{" "}
@@ -336,7 +336,7 @@ function PlanSummary({ plan }: { plan: PlanId | null }) {
     return (
         <section className="grid gap-4 sm:grid-cols-2">
             <div className="border border-slate-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-slate-900">On {current.name}</h4>
+                <h3 className="text-sm font-semibold text-slate-900">On {current.name}</h3>
                 <ul className="mt-2 space-y-1 text-sm text-slate-600">
                     {current.includes.map((line) => (
                         <li key={line}>{line}</li>
@@ -345,9 +345,9 @@ function PlanSummary({ plan }: { plan: PlanId | null }) {
             </div>
             {next && (
                 <div className="border border-slate-200 bg-white p-4">
-                    <h4 className="text-sm font-semibold text-slate-900">
+                    <h3 className="text-sm font-semibold text-slate-900">
                         {next.name} adds{next.price ? ` — ${money(withVat(next.price))} a month incl. VAT` : ""}
-                    </h4>
+                    </h3>
                     <ul className="mt-2 space-y-1 text-sm text-slate-600">
                         {next.includes.filter((line) => !line.startsWith("Everything in")).map((line) => (
                             <li key={line}>{line}</li>

@@ -43,7 +43,7 @@ export function AllocationGrid({ items, allocations, onChange, tendered, directi
     return (
         <section className="border border-slate-200 rounded-sm bg-white">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund against" : "Apply to"}</h3>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund against" : "Apply to"}</h2>
                 {!readOnly && (
                     <div className="flex items-center gap-2">
                         <Button

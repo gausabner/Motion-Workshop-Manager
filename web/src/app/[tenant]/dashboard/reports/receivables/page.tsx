@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FileText, MessageCircle, Wallet } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -30,7 +30,7 @@ export default async function ReceivablesPage({ params }: { params: Promise<{ te
                 <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
                     <div className="flex items-center gap-3">
                         <Wallet className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">{TERM.debtors}</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">{TERM.debtors}</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-600">As at {dateShort(asAt)}</span>
