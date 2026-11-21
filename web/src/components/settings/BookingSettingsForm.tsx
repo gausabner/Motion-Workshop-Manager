@@ -42,7 +42,7 @@ export function BookingSettingsForm({ tenant, diary }: { tenant: string; diary: 
                 </div>
             </div>
 
-            <Section title="Opening hours">
+            <Section level={3} title="Opening hours">
                 <TextField label="Opens" name="opensAt" type="time" errors={errors} defaultValue={diary.opensAt} />
                 <TextField label="Closes" name="closesAt" type="time" errors={errors} defaultValue={diary.closesAt} />
                 <div className="lg:col-span-2 space-y-1">
@@ -59,14 +59,14 @@ export function BookingSettingsForm({ tenant, diary }: { tenant: string; diary: 
                 </div>
             </Section>
 
-            <Section title="The diary">
+            <Section level={3} title="The diary">
                 <SelectField label="Slot length" name="slotMinutes" errors={errors} defaultValue={String(diary.slotMinutes)} options={[{ value: "15", label: "15 minutes" }, { value: "30", label: "30 minutes" }, { value: "60", label: "1 hour" }]} />
                 <TextField label="New booking length (hours)" name="defaultBookingHours" type="number" step="0.25" min="0.25" errors={errors} defaultValue={diary.defaultBookingHours} hint="Used when a job has no estimate" />
                 <TextField label="Mechanics per page" name="lanesPerPage" type="number" min="1" max="8" errors={errors} defaultValue={diary.lanesPerPage} hint="Columns in the day view" />
                 <TextField label="Full at (%)" name="fullAtPercent" type="number" min="50" max="100" errors={errors} defaultValue={diary.fullAtPercent} hint="Above this a day shows as full, and online booking stops offering it" />
             </Section>
 
-            <Section title="Online booking">
+            <Section level={3} title="Online booking">
                 <div className="lg:col-span-4">
                     <CheckField
                         label="Let customers request bookings online"

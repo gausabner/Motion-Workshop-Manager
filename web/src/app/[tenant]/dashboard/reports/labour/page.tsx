@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, Timer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireTenant } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -43,7 +43,7 @@ export default async function LabourReportPage({ params, searchParams }: { param
                 <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                     <div className="flex items-center gap-3">
                         <Timer className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Mechanic time</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">Mechanic time</h1>
                     </div>
                     <form method="get" action={base} className="flex flex-wrap items-center gap-2 text-sm">
                         <Link href={week(-1)} className="rounded-sm border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50">Last week</Link>

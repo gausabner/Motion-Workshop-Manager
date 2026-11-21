@@ -1,18 +1,12 @@
-import * as React from "react"
+import * as React from "react";
+import { Textarea as Base } from "@ui-sdk/react/textarea";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
+import { fieldClass } from "@/components/ui/input";
 
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
-  return (
-    <textarea
-      data-slot="textarea"
-      className={cn(
-        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        className
-      )}
-      {...props}
-    />
-  )
+/** Several lines of text, on ui-sdk's Textarea, with the same field look as Input. */
+function Textarea({ className, ...props }: React.ComponentProps<typeof Base>) {
+    return <Base className={cn(fieldClass, "min-h-16 px-3 py-2 leading-relaxed", className)} {...props} />;
 }
 
-export { Textarea }
+export { Textarea };

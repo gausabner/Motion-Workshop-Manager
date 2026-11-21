@@ -17,7 +17,7 @@ export default async function RequisitionRulesPage({ params }: { params: Promise
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Requisition rules</h3>
+                <h2 className="text-lg font-medium">Requisition rules</h2>
                 <p className="text-sm text-slate-500">The value limit, the quotations a purchase needs, and who approves above the limit.</p>
             </div>
             <div className="border-t border-slate-200" />

@@ -14,7 +14,7 @@ export default async function TaxSettingsPage({ params }: { params: Promise<{ te
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Tax and terms</h3>
+                <h2 className="text-lg font-medium">Tax and terms</h2>
                 <p className="text-sm text-slate-500">What gets stamped onto the next document you raise.</p>
             </div>
             <div className="border-t border-slate-200" />

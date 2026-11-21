@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { initialActionState } from "@/lib/forms";
 import { processDocument } from "@/lib/documents/actions";
 import { promptFor, suggestNextService } from "@/lib/documents/process-prompt";
@@ -39,10 +39,10 @@ export function ProcessDialog({ tenant, doc }: { tenant: string; doc: DocumentRe
 
     return (
         <>
-            <Button type="button" size="sm" className="bg-slate-800 hover:bg-slate-900" onClick={() => setOpen(true)}>
-                <CheckCircle2 className="w-4 h-4 mr-1" />Process
-            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger render={<Button type="button" size="sm" className="bg-slate-800 hover:bg-slate-900" />}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" aria-hidden="true" />Process
+                </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Process this {label}</DialogTitle>

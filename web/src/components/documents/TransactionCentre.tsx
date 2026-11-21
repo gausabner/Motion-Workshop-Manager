@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ListChecks, MessageCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
 import { NewDocumentButtons } from "@/components/documents/NewDocumentButtons";
@@ -41,7 +41,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                 <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex items-center gap-3">
                         <ListChecks className="w-5 h-5 shrink-0 text-slate-600" />
-                        <CardTitle className="whitespace-nowrap text-lg font-bold text-slate-800">{TERM.transactions}</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none whitespace-nowrap text-lg font-bold text-slate-800">{TERM.transactions}</h1>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
                         <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto">

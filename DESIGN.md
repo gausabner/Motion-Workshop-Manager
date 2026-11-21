@@ -12,7 +12,7 @@ colors:
   accent-tint: "#f0fdfa"
   hairline: "#e2e8f0"
   hairline-faint: "#f1f5f9"
-  field-edge: "#cbd5e1"
+  field-edge: "#7a8699"
   surface: "#ffffff"
   surface-sunken: "#f8fafc"
   surface-band: "#e2e8f0"
@@ -195,7 +195,7 @@ A slate-and-white palette with one teal, and two warning hues that are allowed t
 - **Faint Ink** (`{colors.faint-ink}`): decorative icons beside a label, scrollbar thumb hover. Never text, and never the only mark of a control: at 2.6:1 on white it is under AA for both.
 - **Hairline** (`{colors.hairline}`): the workhorse. Every structural division in the product is this, 1px.
 - **Faint Hairline** (`{colors.hairline-faint}`): the lighter divider used between rows of a list where a full hairline would over-rule the stack.
-- **Field Edge** (`{colors.field-edge}`): the resting border of a text field, one step darker than a structural hairline so a field reads as a control.
+- **Field Edge** (`{colors.field-edge}`, `--motion-field-edge`): the resting border of anything you type into or tick: text fields, selects, checkboxes, the diary's booking blocks. 3.7:1 on white, because a control's edge must reach 3:1 (WCAG 1.4.11) to be found at all; it was slate-300 (1.5:1) until 21 November 2026. Still clearly quieter than ink.
 - **Paper** (`{colors.surface}`): the ground of every surface a reader looks at.
 - **Sunken Paper** (`{colors.surface-sunken}`): zebra rows, table heads, footer summaries, the note block's ground at 70% opacity.
 - **Band Slate** (`{colors.surface-band}`): the filled header band at the top of a report panel.
@@ -291,7 +291,8 @@ Silhouette is rectangular and edge-to-edge. Panels run to the full width of thei
 - **Internal Padding:** 0 on the panel (content owns its own), 16px horizontal inside strips, 8px vertical on table cells.
 
 ### Inputs / Fields
-- **Style:** white ground, 1px `field-edge` border, square, 40px tall, 12px side padding, with a 16px lucide glyph in faint ink leading the field.
+- **Style:** white ground, 1px `field-edge` border, square, 32–40px tall, 12px side padding, with a 16px lucide glyph in faint ink leading the field.
+- **Built on UI SDK:** `components/ui/input.tsx`, `textarea.tsx` and `forms/fields.tsx` sit on UI SDK's Input, Textarea, Field and Checkbox, so every label, hint and error is wired by `aria-describedby` and a refused field says `aria-invalid`. The first field the server refused takes focus. Styled with MOTION's classes; UI SDK's `web.css` is not used.
 - **Focus:** the border goes teal (`focus-within:border-teal-700`) and the native outline is suppressed on the input itself, so the whole field reads as focused rather than just the text box. Keyboard focus anywhere else in the product is the global 2px teal outline.
 - **Mobile:** 16px text on the input at coarse pointers, non-negotiable — anything smaller and iOS Safari zooms the page on tap and does not zoom back.
 - **Caret:** teal, product-wide.
@@ -311,6 +312,13 @@ Silhouette is rectangular and edge-to-edge. Panels run to the full width of thei
 
 ### The Screen-Keyed Drawer (signature)
 Help over the work, already on the right page. A right-anchored white panel at `max-w-md`, full height, square, with a hairline left edge and the Panel shadow, sliding in over a 20%-slate scrim in 200ms with `motion-safe:` guarding the animation. Three stacked regions divided by hairlines: a 56px header with a 10px uppercase panel label and a 32px close target; a search row; and the scrolling article at a step down in scale (13px/1.65 body, 17px title) rendered by the *same* component as the full page, never a second rendering of the same content. The work stays visible behind it — this is a panel beside the task, not a place you have gone instead. The trigger is a bare 32px icon button; the panel's code is loaded only on first press.
+
+### Status
+- **Icon and words, never colour alone.** A job's status is a lucide icon with its name ("Waiting for parts"), as SAP marks an object's status. Colour may only add to it, and only within the palette: finished work fades to slate, a clash is the one red because it is wrong. The diary's booking blocks follow this; tinted status fills do not come back.
+
+### Dialogs, drawers and confirms
+- **One behaviour, from UI SDK.** Dialog (`components/ui/dialog.tsx`), Drawer (the customer sheet, the phone menu) and the shared confirm (`components/ui/confirm.tsx`, `useConfirm()`) move focus in, keep Tab inside, close on Escape and return focus to what opened them. Open a dialog from its `DialogTrigger` so there is something to return to. Never `window.confirm`.
+- **Look:** square, white, 1px hairline, the Panel shadow, the 20% slate scrim; enter on opacity and a 0.97 scale over 200ms, leave in 150ms, motion-safe only. Top-layer content needs `fixed inset-0 m-auto h-fit` because Tailwind's reset removes the margin that centres it.
 
 ### Notes and Terms
 - **Note:** a hairline top-and-bottom band on `surface-sunken` at 70%, 12px side padding, with a 16px info glyph in faint ink. One tone only — three colours of callout teaches the reader to ignore two of them.

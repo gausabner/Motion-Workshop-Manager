@@ -8,6 +8,8 @@ import { DayView } from "@/components/diary/DayView";
 import { WeekView } from "@/components/diary/WeekView";
 import { MonthView } from "@/components/diary/MonthView";
 import { dayHeading, loadTone } from "@/components/diary/shared";
+import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 
 export type DiaryMode = "day" | "week" | "month";
 
@@ -64,7 +66,7 @@ export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page,
         <div className="max-w-[1400px] mx-auto space-y-3 pb-12">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <CalendarDays className="w-6 h-6 text-slate-400" />
+                    <CalendarDays className="w-6 h-6 text-slate-400" aria-hidden="true" />
                     <div>
                         <h1 className="text-xl font-bold leading-tight text-slate-800">{title}</h1>
                         <p className="text-xs text-slate-500">
@@ -76,44 +78,53 @@ export function DiaryView({ tenant, diary, mode, anchor, today, nowMinute, page,
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex overflow-hidden rounded-md border border-slate-300 bg-white text-sm">
+                    <nav aria-label="Diary view" className="flex overflow-hidden rounded-sm border border-[var(--motion-field-edge)] bg-white text-sm">
                         {(["day", "week", "month"] as const).map((m) => (
-                            <Link key={m} href={href({ mode: m })} className={`px-3 py-1.5 capitalize ${m === mode ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{m}</Link>
+                            <Link key={m} href={href({ mode: m })} aria-current={m === mode ? "page" : undefined} className={`px-3 py-1.5 capitalize transition-colors duration-150 ${m === mode ? "bg-slate-800 font-medium text-white" : "text-slate-700 hover:bg-slate-50"}`}>{m}</Link>
                         ))}
-                    </div>
+                    </nav>
                     <div className="flex items-center rounded-sm border border-slate-300 bg-white text-sm">
-                        <Link href={href({ day: prev })} aria-label="Previous" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronLeft className="w-4 h-4" /></Link>
+                        <Link href={href({ day: prev })} aria-label={`Previous ${mode}`} className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronLeft className="w-4 h-4" aria-hidden="true" /></Link>
                         <Link href={href({ day: today })} className="border-x border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">Today</Link>
-                        <Link href={href({ day: next })} aria-label="Next" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronRight className="w-4 h-4" /></Link>
+                        <Link href={href({ day: next })} aria-label={`Next ${mode}`} className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronRight className="w-4 h-4" aria-hidden="true" /></Link>
                     </div>
                     <form method="get" action={base} className="flex items-center">
                         <input type="hidden" name="view" value={mode} />
-                        <input type="date" name="date" defaultValue={anchor} aria-label="Go to date" onChange={(e) => e.currentTarget.form?.requestSubmit()} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm" />
+                        <Input type="date" name="date" defaultValue={anchor} aria-label="Go to date" onChange={(e) => e.currentTarget.form?.requestSubmit()} className="h-8 w-auto px-2 text-sm" />
                     </form>
                     {mode === "day" && pages > 1 && (
                         <div className="flex items-center rounded-sm border border-slate-300 bg-white text-xs">
-                            <Link href={href({ page: Math.max(0, shownPage - 1) })} aria-label="Previous mechanics" className={`relative hit-area px-2 py-1.5 ${shownPage === 0 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-4 h-4" /></Link>
+                            {shownPage === 0 ? (
+                                <span aria-disabled="true" className="px-2 py-1.5 text-slate-300"><ChevronLeft className="w-4 h-4" aria-hidden="true" /><span className="sr-only">Previous mechanics</span></span>
+                            ) : (
+                                <Link href={href({ page: shownPage - 1 })} aria-label="Previous mechanics" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronLeft className="w-4 h-4" aria-hidden="true" /></Link>
+                            )}
                             <span className="border-x border-slate-300 px-2 py-1.5 tabular-nums text-slate-600">Mechanics {shownPage * perPage + 1}–{Math.min(diary.mechanics.length, shownPage * perPage + perPage)} of {diary.mechanics.length}</span>
-                            <Link href={href({ page: Math.min(pages - 1, shownPage + 1) })} aria-label="Next mechanics" className={`relative hit-area px-2 py-1.5 ${shownPage >= pages - 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-4 h-4" /></Link>
+                            {shownPage >= pages - 1 ? (
+                                <span aria-disabled="true" className="px-2 py-1.5 text-slate-300"><ChevronRight className="w-4 h-4" aria-hidden="true" /><span className="sr-only">Next mechanics</span></span>
+                            ) : (
+                                <Link href={href({ page: shownPage + 1 })} aria-label="Next mechanics" className="relative hit-area px-2 py-1.5 text-slate-600 hover:bg-slate-50"><ChevronRight className="w-4 h-4" aria-hidden="true" /></Link>
+                            )}
                         </div>
                     )}
                     {canManageHours && (
-                        <Link href={`${base}/hours`} className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-600 hover:bg-slate-50"><Clock className="w-3.5 h-3.5" />Hours &amp; leave</Link>
+                        <Link href={`${base}/hours`} className="inline-flex h-8 items-center gap-1 rounded-sm border border-[var(--motion-field-edge)] bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"><Clock className="w-3.5 h-3.5" aria-hidden="true" />Hours &amp; leave</Link>
                     )}
                 </div>
             </div>
 
             {pendingRequests > 0 && (
-                <Link href={`${base}/requests`} className="flex items-center gap-2 rounded-sm border border-teal-300 bg-teal-50 px-4 py-2 text-sm text-teal-900 hover:bg-teal-100">
-                    <Inbox className="w-4 h-4" />
-                    <span><strong>{pendingRequests}</strong> online booking request{pendingRequests === 1 ? "" : "s"} waiting for approval</span>
-                </Link>
+                <Notice icon={Inbox}>
+                    <Link href={`${base}/requests`} className="text-teal-700 underline-offset-2 hover:underline">
+                        <strong>{pendingRequests}</strong> online booking request{pendingRequests === 1 ? "" : "s"} waiting for approval
+                    </Link>
+                </Notice>
             )}
 
             {diary.mechanics.length === 0 && (
-                <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                <Notice>
                     Nobody is set up as a mechanic yet, so every booking lands in Unassigned. Mark staff as mechanics under Admin → Mechanics.
-                </p>
+                </Notice>
             )}
 
             {mode === "day" && focus && (

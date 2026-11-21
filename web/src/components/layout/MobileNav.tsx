@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, ClipboardList, LayoutDashboard, Menu, X } from "lucide-react";
+import { Drawer, DrawerBackdrop, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "@ui-sdk/react/drawer";
 import { MotionLogo } from "@/components/brand/MotionLogo";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import type { Feature } from "@/lib/plans/features";
@@ -52,22 +53,6 @@ export function MobileNav({
     const pathname = usePathname();
     const [open, setOpen] = useState(false);
 
-    // Escape closes it, and the page behind must not scroll while it is open —
-    // otherwise dragging the drawer scrolls the list underneath instead.
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setOpen(false);
-        };
-        const previous = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-        window.addEventListener("keydown", onKey);
-        return () => {
-            document.body.style.overflow = previous;
-            window.removeEventListener("keydown", onKey);
-        };
-    }, [open]);
-
     const isActive = (href: string, exact?: boolean) => {
         const full = `${base}${href}`;
         return exact ? pathname === full : pathname === full || pathname.startsWith(`${full}/`);
@@ -76,8 +61,10 @@ export function MobileNav({
     // three tabs, so the bar always shows where you are rather than going blank.
     const onATab = TABS.some((t) => isActive(t.href, "exact" in t ? t.exact : false));
 
+    // The drawer is modal: the page behind is inert and does not scroll, so
+    // dragging the drawer never scrolls the list underneath instead.
     return (
-        <>
+        <Drawer open={open} onOpenChange={setOpen} side="left">
             {/* ── bottom bar ─────────────────────────────────────────── */}
             <nav
                 aria-label="Main"
@@ -100,60 +87,46 @@ export function MobileNav({
                         </Link>
                     );
                 })}
-                <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    aria-expanded={open}
-                    aria-haspopup="dialog"
+                <DrawerTrigger
                     className={`flex h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
                         onATab ? "text-slate-500" : "text-teal-700"
                     }`}
                 >
                     <Menu className="h-5 w-5" aria-hidden="true" />
                     More
-                </button>
+                </DrawerTrigger>
             </nav>
 
             {/* ── drawer ─────────────────────────────────────────────── */}
-            {open && (
-                <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="All screens">
-                    <button
-                        type="button"
+            <DrawerBackdrop className="fixed inset-0 bg-slate-900/40 md:hidden" />
+            <DrawerContent className="flex h-dvh w-[280px] max-w-[85vw] flex-col border-r border-slate-200 bg-white shadow-[0_25px_50px_-12px_rgb(15_23_42/0.10)] md:hidden">
+                <DrawerTitle className="sr-only">All screens</DrawerTitle>
+                <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4 pt-[env(safe-area-inset-top,0px)]">
+                    <MotionLogo className="h-[22px] w-auto" />
+                    <DrawerClose
                         aria-label="Close menu"
-                        onClick={() => setOpen(false)}
-                        className="absolute inset-0 h-full w-full bg-slate-900/40"
-                    />
-                    <div className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85%] flex-col bg-white shadow-xl">
-                        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4 pt-[env(safe-area-inset-top,0px)]">
-                            <MotionLogo className="h-[22px] w-auto" />
-                            <button
-                                type="button"
-                                onClick={() => setOpen(false)}
-                                aria-label="Close menu"
-                                className="relative hit-area -mr-2 grid h-10 w-10 place-items-center rounded-lg text-slate-500"
-                            >
-                                <X className="h-5 w-5" aria-hidden="true" />
-                            </button>
-                        </div>
-                        <div className="border-b px-4 py-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Workshop</p>
-                            <p className="truncate text-sm font-medium text-slate-800">{workshopName}</p>
-                        </div>
-                        {/* `contain` keeps this list's own bounce but stops the page
-                            behind it moving when the list reaches its end. */}
-                        {/* Closing on the click that navigates, rather than on the
-                            pathname changing afterwards: a drawer that survives
-                            navigation is a trap — you tap a link, the page changes
-                            underneath, and the drawer is still covering it. */}
-                        <div
-                            onClick={() => setOpen(false)}
-                            className="flex-1 overflow-y-auto overscroll-contain py-1 pb-[env(safe-area-inset-bottom,0px)]"
-                        >
-                            <SidebarNav base={base} reports={reports} cost={cost} manages={manages} features={features} />
-                        </div>
-                    </div>
+                        className="relative hit-area -mr-2 grid h-10 w-10 place-items-center rounded-sm text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900"
+                    >
+                        <X className="h-5 w-5" aria-hidden="true" />
+                    </DrawerClose>
                 </div>
-            )}
-        </>
+                <div className="border-b border-slate-200 px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Workshop</p>
+                    <p className="truncate text-sm font-medium text-slate-800">{workshopName}</p>
+                </div>
+                {/* `contain` keeps this list's own bounce but stops the page
+                    behind it moving when the list reaches its end. */}
+                {/* Closing on the click that navigates, rather than on the
+                    pathname changing afterwards: a drawer that survives
+                    navigation is a trap — you tap a link, the page changes
+                    underneath, and the drawer is still covering it. */}
+                <div
+                    onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setOpen(false); }}
+                    className="flex-1 overflow-y-auto overscroll-contain py-1 pb-[env(safe-area-inset-bottom,0px)]"
+                >
+                    <SidebarNav base={base} reports={reports} cost={cost} manages={manages} features={features} />
+                </div>
+            </DrawerContent>
+        </Drawer>
     );
 }

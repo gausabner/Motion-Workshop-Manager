@@ -17,6 +17,15 @@ import { businessToday } from "@/lib/tenant/today";
 import { dateShort } from "@/lib/format";
 import { PortalPanel } from "@/components/portal/PortalPanel";
 import { portalSettings } from "@/lib/settings/schema";
+import type { Metadata } from "next";
+import { tabTitle } from "@/lib/copy/terms";
+
+export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
+    const { tenant: slug, id } = await params;
+    const { db } = await requireTenant(slug);
+    const c = await db.customer.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+    return { title: tabTitle(c ? `${c.firstName} ${c.lastName}`.trim() : "Customer", "Customer") };
+}
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);

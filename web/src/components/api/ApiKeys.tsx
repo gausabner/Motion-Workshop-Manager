@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createApiKey, revokeApiKey, type NewKeyState } from "@/lib/api/key-actions";
 import type { KeyRow } from "@/lib/api/key-service";
 import { Notice } from "@/components/ui/notice";
+import { useConfirm } from "@/components/ui/confirm";
 
 const field = "h-9 rounded-sm border border-slate-300 bg-white px-2 text-sm";
 
@@ -16,6 +17,7 @@ const field = "h-9 rounded-sm border border-slate-300 bg-white px-2 text-sm";
  */
 export function ApiKeys({ tenant, keys, timezone }: { tenant: string; keys: KeyRow[]; timezone: string }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const [adding, setAdding] = useState(false);
     const [copied, setCopied] = useState(false);
     const [busy, start] = useTransition();
@@ -31,8 +33,8 @@ export function ApiKeys({ tenant, keys, timezone }: { tenant: string; keys: KeyR
     const when = (d: Date | string | null) =>
         d ? new Date(d).toLocaleString("en-GB", { timeZone: timezone, day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : null;
 
-    const revoke = (row: KeyRow) => {
-        if (!window.confirm(`Revoke “${row.name}”? Anything using it stops working straight away.`)) return;
+    const revoke = async (row: KeyRow) => {
+        if (!(await confirm({ title: `Revoke “${row.name}”?`, description: "Anything using it stops working straight away.", confirm: "Revoke the key", cancel: "Keep it" }))) return;
         start(async () => { await revokeApiKey(tenant, row.id); router.refresh(); });
     };
 

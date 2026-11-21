@@ -31,7 +31,7 @@ export default async function ApiSettingsPage({ params }: { params: Promise<{ te
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">API keys</h3>
+                <h2 className="text-lg font-medium">API keys</h2>
                 <p className="text-sm text-slate-500">
                     For letting something outside MOTION read your workshop&rsquo;s data — your own website, a reporting tool, whoever you ask to build you something.
                     A key stands for the whole workshop, so treat it like the keys to the building.
@@ -41,7 +41,7 @@ export default async function ApiSettingsPage({ params }: { params: Promise<{ te
             <ApiKeys tenant={slug} keys={keys} timezone={tenant.timezone} />
 
             <section className="rounded-sm border border-slate-200 bg-white">
-                <h4 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">What a key can call</h4>
+                <h3 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">What a key can call</h3>
                 <ul className="divide-y divide-slate-100 text-sm">
                     {ENDPOINTS.map((e) => (
                         <li key={e.call} className="flex flex-wrap items-baseline gap-x-3 px-4 py-2">

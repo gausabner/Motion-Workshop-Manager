@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavLink } from "@/components/layout/NavLink";
 import { requireTenant } from "@/lib/auth/session";
 import { FEATURES, PLAN_NAMES, includes, type Feature } from "@/lib/plans/features";
 import { Building2, FileText, Users, MessageSquare, Calendar, Globe, ClipboardCheck, Tags, Upload, KeyRound, Share2, CreditCard, Hash, Lock, Network, Warehouse, FileSignature } from "lucide-react";
@@ -113,7 +114,7 @@ export default async function SettingsLayout({
     return (
         <div className="flex flex-col space-y-6">
             <div className="flex flex-col space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+                <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
                 <p className="text-muted-foreground text-slate-500">
                     Your workshop&apos;s details, tax, document numbers, messages and team.
                 </p>
@@ -122,7 +123,7 @@ export default async function SettingsLayout({
                 {/* Below lg the thirteen items are one row that scrolls on its own,
                     rather than a row that widened the whole page past the screen. */}
                 <aside className="-mx-4 min-w-0 sm:-mx-6 lg:mx-0 lg:w-1/5">
-                    <nav className="flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:thin] sm:px-6 lg:flex-col lg:gap-0 lg:space-y-1 lg:overflow-visible lg:px-0 lg:pb-0">
+                    <nav aria-label="Settings" className="flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:thin] sm:px-6 lg:flex-col lg:gap-0 lg:space-y-1 lg:overflow-visible lg:px-0 lg:pb-0">
                         {items.map((item) =>
                             isLocked(item) ? (
                                 <div key={item.href} className="flex shrink-0 flex-col">
@@ -139,13 +140,14 @@ export default async function SettingsLayout({
                                 </div>
                             ) : (
                                 <div key={item.href} className="flex shrink-0 flex-col">
-                                    <Link
+                                    <NavLink
                                         href={`${basePath}/${item.href}`}
-                                        className="flex items-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium pointer-coarse:min-h-11 hover:bg-slate-100/50 hover:text-slate-900 transparent text-slate-600 transition-colors"
+                                        className="flex items-center whitespace-nowrap rounded-sm border-l border-transparent px-3 py-2 text-sm font-medium pointer-coarse:min-h-11 hover:bg-slate-100/50 hover:text-slate-900 text-slate-600 transition-colors"
+                                        currentClassName="border-teal-700 font-semibold text-slate-900"
                                     >
                                         {item.icon}
                                         {item.title}
-                                    </Link>
+                                    </NavLink>
                                 </div>
                             ),
                         )}

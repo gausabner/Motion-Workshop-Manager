@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useRef, useState, useTransition } from "react";
 import { Ban, CheckCircle2, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, TextField } from "@/components/forms/fields";
+import { TextField } from "@/components/forms/fields";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import { AllocationGrid } from "@/components/payments/AllocationGrid";
 import { TenderProof, type Proof } from "@/components/payments/TenderProof";
@@ -146,7 +146,7 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                 <input type="hidden" name="allocations" value={JSON.stringify(Object.entries(normalise(items, allocations)).map(([documentId, amount]) => ({ documentId, amount })))} />
 
                 <section className="border border-slate-200 rounded-sm bg-white">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund" : "Receipt"}</h3>
+                    <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "Refund" : "Receipt"}</h2>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                         <CustomerPicker
                             tenant={tenant}
@@ -156,20 +156,14 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                             error={errors?.customerId?.[0]}
                             className="lg:col-span-2"
                         />
-                        <Field label="Date" name="postDate" errors={errors}>
-                            <input
-                                id="postDate" name="postDate" type="date" value={postDate} disabled={readOnly}
-                                onChange={(e) => touch(setPostDate)(e.target.value)}
-                                className="flex h-8 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
-                            />
-                        </Field>
+                        <TextField label="Date" name="postDate" type="date" value={postDate} disabled={readOnly} onChange={(e) => touch(setPostDate)(e.target.value)} errors={errors} />
                         <TextField label="Note" name="note" errors={errors} value={note} disabled={readOnly} onChange={(e) => touch(setNote)(e.target.value)} />
                     </div>
                 </section>
 
                 <section className="border border-slate-200 rounded-sm bg-white">
                     <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "How it is going out" : "How it was paid"}</h3>
+                        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isRefund ? "How it is going out" : "How it was paid"}</h2>
                         {!readOnly && (
                             <Button
                                 type="button" size="sm" variant="outline" className="h-7"

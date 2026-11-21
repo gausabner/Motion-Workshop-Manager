@@ -7,6 +7,7 @@ import { applyStockTakeAction, saveCountsAction } from "@/lib/stock/stocktake-ac
 import { summarise } from "@/lib/stock/stocktake";
 import type { StockTakeRecord } from "@/lib/stock/stocktake-service";
 import { money } from "@/lib/format";
+import { useConfirm } from "@/components/ui/confirm";
 
 const cell = "h-8 w-24 rounded-sm border border-slate-200 bg-white px-2 text-right text-sm tabular-nums disabled:bg-slate-50";
 
@@ -17,6 +18,7 @@ const cell = "h-8 w-24 rounded-sm border border-slate-200 bg-white px-2 text-rig
  */
 export function StockTakeSheet({ tenant, take, currency }: { tenant: string; take: StockTakeRecord; currency: string }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const editable = take.state === "DRAFT";
     const [counts, setCounts] = useState<Map<string, number | null>>(new Map(take.lines.map((l) => [l.id, l.counted])));
     const [filter, setFilter] = useState<"all" | "todo" | "differs">("all");
@@ -113,10 +115,15 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                 <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" disabled={busy} onClick={() => run(() => saveCountsAction(tenant, take.id, payload()))}>{busy ? "Saving…" : "Save what is counted"}</Button>
                     <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={busy}
-                        onClick={() => {
+                        onClick={async () => {
                             const left = summary.uncounted;
-                            const warn = left > 0 ? `${left} of ${summary.lines} have not been counted. They will be left exactly as they are. Apply the rest?` : "Apply this count and correct the stock?";
-                            if (window.confirm(warn)) run(() => applyStockTakeAction(tenant, take.id, payload()));
+                            const yes = await confirm({
+                                title: left > 0 ? "Apply the rest of the count?" : "Apply this count and correct the stock?",
+                                description: left > 0 ? `${left} of ${summary.lines} have not been counted. They will be left exactly as they are.` : undefined,
+                                confirm: "Apply the count",
+                                agent: "Applies the stock count and corrects stock on hand",
+                            });
+                            if (yes) run(() => applyStockTakeAction(tenant, take.id, payload()));
                         }}>
                         Apply the count
                     </Button>

@@ -8,6 +8,15 @@ import { getVehicle, vehicleHistory } from "@/lib/vehicles/queries";
 import { customerHit } from "@/lib/search/hits";
 import { setVehicleArchived } from "@/lib/vehicles/actions";
 import { dateShort, money } from "@/lib/format";
+import type { Metadata } from "next";
+import { tabTitle } from "@/lib/copy/terms";
+
+export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
+    const { tenant: slug, id } = await params;
+    const { db } = await requireTenant(slug);
+    const v = await db.vehicle.findUnique({ where: { id }, select: { plate: true, make: true, model: true } });
+    return { title: tabTitle(v?.plate ?? "Vehicle", v ? [v.make, v.model].filter(Boolean).join(" ") : null) };
+}
 
 export default async function VehiclePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ saved?: string }> }) {
     const [{ tenant: slug, id }, { saved }] = await Promise.all([params, searchParams]);

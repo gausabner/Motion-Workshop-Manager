@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -35,7 +36,7 @@ import { TERM } from "@/lib/copy/terms";
  * are for a different kind of buyer, and listing them to a two-bay workshop
  * would be noise.
  */
-type Item = { href: string; label: string; icon: LucideIcon; show?: boolean; feature?: Feature };
+type Item = { href: string; label: string; icon: LucideIcon; show?: boolean; feature?: Feature; exact?: boolean; also?: string[] };
 type Group = { label: string; items: Item[] };
 
 export function SidebarNav({
@@ -53,13 +54,14 @@ export function SidebarNav({
     features: Feature[];
 }) {
     const pathname = usePathname();
+    const id = useId();
     const has = (f: Feature) => features.includes(f);
 
     const groups: Group[] = [
         {
             label: "Today",
             items: [
-                { href: `${base}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
+                { href: `${base}/dashboard`, label: "Dashboard", icon: LayoutDashboard, exact: true },
                 { href: `${base}/dashboard/schedule`, label: "Booking diary", icon: CalendarDays },
                 { href: `${base}/dashboard/reminders`, label: "Reminders", icon: Bell, feature: "reminders" },
                 { href: `${base}/dashboard/messages`, label: "Messages", icon: Megaphone },
@@ -68,9 +70,9 @@ export function SidebarNav({
         {
             label: "Work",
             items: [
-                { href: `${base}/dashboard/jobs`, label: "Job cards", icon: ClipboardList },
+                { href: `${base}/dashboard/jobs`, label: "Job cards", icon: ClipboardList, also: [`${base}/dashboard/inspections`] },
                 { href: `${base}/dashboard/flow`, label: "On site", icon: MapPin, feature: "jobFlow" },
-                { href: `${base}/dashboard/transactions`, label: TERM.transactions, icon: ListChecks },
+                { href: `${base}/dashboard/transactions`, label: TERM.transactions, icon: ListChecks, also: [`${base}/dashboard/documents`, `${base}/dashboard/invoices`] },
                 { href: `${base}/dashboard/customers`, label: "Customers", icon: Users },
                 { href: `${base}/dashboard/vehicles`, label: "Vehicles", icon: Car },
                 { href: `${base}/dashboard/loan-cars`, label: "Courtesy cars", icon: CarFront, feature: "loanCars" },
@@ -113,23 +115,25 @@ export function SidebarNav({
         .filter((g) => g.items.length > 0);
 
     // Longest matching href wins, so /settings/users marks Team rather than
-    // Settings, and /jobs does not light up Dashboard. Prefix matching alone
-    // gets both of those wrong.
+    // Settings. Dashboard matches only itself, since every screen sits under it;
+    // a job card or invoice belongs to the list it was opened from.
+    const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
     const active = visible
         .flatMap((g) => g.items)
         .filter((i) => !locked(i))
-        .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
-        .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+        .map((i) => ({ i, at: i.exact ? (pathname === i.href ? i.href.length : -1) : Math.max(under(i.href) ? i.href.length : -1, ...(i.also ?? []).map((a) => (under(a) ? a.length : -1))) }))
+        .filter((m) => m.at >= 0)
+        .sort((a, b) => b.at - a.at)[0]?.i.href;
 
     // Dense for a mouse, as a counter screen wants: 11px items in a 180px
     // rail. On a touch screen — the phone drawer reuses this list — each row
     // grows to the 44px a thumb needs and the text to 14px, so the same
     // navigation is usable by hand without a second copy of it.
     return (
-        <nav className="grid items-start gap-px px-2 text-[11px] font-medium">
-            {visible.map((group) => (
-                <div key={group.label} className="pb-1">
-                    <p className="px-3 pb-1 pt-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <nav aria-label="Main" className="grid items-start gap-px px-2 text-[11px] font-medium">
+            {visible.map((group, g) => (
+                <div key={group.label} role="group" aria-labelledby={`${id}-${g}`} className="pb-1">
+                    <p id={`${id}-${g}`} className="px-3 pb-1 pt-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         {group.label}
                     </p>
                     {group.items.map((item) => {
@@ -158,7 +162,7 @@ export function SidebarNav({
                                 aria-current={isActive ? "page" : undefined}
                                 className={
                                     isActive
-                                        ? "flex items-center gap-3 rounded-sm border-l border-teal-700 bg-teal-50 py-2 pl-[11px] pr-3 font-semibold text-teal-900 transition-colors duration-150 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
+                                        ? "flex items-center gap-3 rounded-sm border-l border-teal-700 py-2 pl-[11px] pr-3 font-semibold text-slate-900 transition-colors duration-150 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
                                         : "flex items-center gap-3 rounded-sm px-3 py-2 text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:text-slate-900 pointer-coarse:min-h-11 pointer-coarse:text-[14px]"
                                 }
                             >

@@ -26,7 +26,7 @@ export function TopicRail({ groups }: { groups: { id: GroupId; label: string; to
     const current = groups.flatMap((g) => g.topics).find((t) => pathname.endsWith(`/help/${t.slug}`));
 
     const list = (
-        <nav className="space-y-5">
+        <nav aria-label="Topics" className="space-y-5">
             {groups.map((group) => (
                 <div key={group.id}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{group.label}</p>
