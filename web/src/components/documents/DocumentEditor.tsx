@@ -1,8 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Field, TextField, SelectField, CheckField } from "@/components/forms/fields";
 import { Textarea } from "@/components/ui/textarea";
 import { fieldClass } from "@/components/ui/input";
@@ -19,7 +17,7 @@ import { calculateTotals } from "@/lib/documents/totals";
 import { JOB_STATUS_LABELS, JOB_STATUS_ORDER } from "@/lib/documents/types";
 import { dateInput, money } from "@/lib/format";
 import { formatLocalDateTime } from "@/lib/diary/time";
-import { setUnsaved, useUnsaved } from "@/lib/documents/unsaved";
+import { editorFormId, forget, setEditing, useUnsaved } from "@/lib/documents/unsaved";
 import { useLeaveGuard } from "@/components/documents/useLeaveGuard";
 import type { DocumentRecord, EditorOptions } from "@/lib/documents/queries";
 
@@ -66,11 +64,18 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
     // late or not at all on a document page, which would hold Process back
     // on a document that is already saved.
     const action = async (previous: ActionState, data: FormData) => {
-        const answer = await saveDocument(tenant, doc.id, previous, data);
-        if (answer.ok && edits.current === editsAtSave.current) setUnsaved(doc.id, false);
-        return answer;
+        setEditing(doc.id, { saving: true, said: null });
+        try {
+            const answer = await saveDocument(tenant, doc.id, previous, data);
+            const clean = answer.ok && edits.current === editsAtSave.current;
+            setEditing(doc.id, { saving: false, said: answer.message ? { ok: !!answer.ok, text: answer.message } : null, ...(clean ? { unsaved: false } : {}) });
+            return answer;
+        } catch (thrown) {
+            setEditing(doc.id, { saving: false });
+            throw thrown;
+        }
     };
-    const [state, formAction, pending] = useActionState(action, initialActionState);
+    const [state, formAction] = useActionState(action, initialActionState);
     const [lines, setLines] = useState<EditorLine[]>(() => toEditorLines(doc));
     const [customer, setCustomer] = useState<PickerHit | null>(() => (doc.customer ? customerHit(doc.customer) : null));
     const [vehicle, setVehicle] = useState<VehicleHit | null>(() => (doc.vehicle ? vehicleHit(doc.vehicle) : null));
@@ -91,13 +96,13 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
     const touch = () => {
         if (readOnly) return;
         edits.current += 1;
-        setUnsaved(doc.id, true);
+        setEditing(doc.id, { unsaved: true, said: null });
     };
     const changeLines: typeof setLines = (next) => {
         setLines(next);
         touch();
     };
-    useEffect(() => () => setUnsaved(doc.id, false), [doc.id]);
+    useEffect(() => () => forget(doc.id), [doc.id]);
     useLeaveGuard(unsaved);
 
     const isJob = doc.type === "BOOKING" || doc.type === "JOB_CARD";
@@ -124,6 +129,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
 
     return (
         <form
+            id={editorFormId(doc.id)}
             action={formAction}
             onInput={touch}
             // Saved by hand rather than through the action attribute: React resets
@@ -141,22 +147,8 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
             {/* `key` is editor-only; JSON.stringify drops undefined, so it never reaches the server. */}
             <input type="hidden" name="lines" value={JSON.stringify(lines.map((line) => ({ ...line, key: undefined })))} />
 
-            <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-slate-600">
-                    {readOnly ? "Processed documents are read-only. Copy it or raise a credit note to make changes." : "Draft — nothing is posted until you process it."}
-                </p>
-                <div className="flex items-center gap-2">
-                    <span role="status" className={`text-sm ${unsaved ? "font-medium text-slate-800" : "text-teal-700"}`}>
-                        {unsaved ? "Unsaved changes. Save before you process." : state.ok && state.message ? state.message : ""}
-                    </span>
-                    {state.message && !state.ok && <span className="text-sm text-red-700" role="alert">{state.message}</span>}
-                    {!readOnly && (
-                        <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending}>
-                            <Save className="w-4 h-4 mr-1" />{pending ? "Saving…" : "Save"}
-                        </Button>
-                    )}
-                </div>
-            </div>
+            {readOnly && <p className="text-sm text-slate-600">Processed documents are read-only. Copy it or raise a credit note to make changes.</p>}
+            {state.message && !state.ok && <p className="text-sm text-red-700" role="alert">{state.message}</p>}
 
             {/* A processed document is a record, not a form: every field is
                 disabled, so nothing invites a change that cannot be saved. */}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Car, Plus, Pencil } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
@@ -8,6 +8,7 @@ import type { listVehicles } from "@/lib/vehicles/queries";
 import { dateShort } from "@/lib/format";
 import { DownloadIcon } from "@/components/exports/DownloadPair";
 import { Pager } from "@/components/ui/pager";
+import { ListHeader } from "@/components/layout/ListHeader";
 
 type Data = Awaited<ReturnType<typeof listVehicles>>;
 
@@ -25,20 +26,14 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
     const flag = (d: Date | null) => (d && d < soon ? "text-amber-700 font-medium" : "");
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
-            <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
-                    <div className="flex items-center gap-3">
-                        <Car className="w-5 h-5 text-slate-600" />
-                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">Vehicles</h1>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <CustomerListControls q={q} archived={archived} />
-                        <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
-                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add vehicle" aria-label="Add vehicle">
-                            <Link href={`${base}/vehicles/new`}><Plus className="w-5 h-5" /></Link>
-                        </Button>
-                    </div>
-                </CardHeader>
+            <Card className="rounded-none shadow-none border border-slate-200 gap-0 py-0">
+                <ListHeader icon={Car} title="Vehicles" count={data.total} noun={data.total === 1 ? "vehicle" : "vehicles"}>
+                    <CustomerListControls q={q} archived={archived} />
+                    <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
+                    <Button asChild size="sm" className="h-8">
+                        <Link href={`${base}/vehicles/new`}><Plus className="h-4 w-4" aria-hidden="true" />New vehicle</Link>
+                    </Button>
+                </ListHeader>
                 <CardContent className="p-0 flex-1 overflow-auto bg-white">
                     <Table data-mobile="cards">
                         <TableHeader>

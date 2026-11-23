@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, Car, User } from "lucide-react";
+import { FileText, MailOpen, Send } from "lucide-react";
 import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DocumentToolbar } from "@/components/documents/DocumentToolbar";
+import { DocumentFooterBar } from "@/components/documents/DocumentFooterBar";
+import { ObjectHeader } from "@/components/layout/ObjectHeader";
+import { Notice } from "@/components/ui/notice";
 import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
 import { requireTenant } from "@/lib/auth/session";
 import { includes } from "@/lib/plans/features";
@@ -75,34 +78,45 @@ export default async function DocumentPage({ params, searchParams }: { params: P
 
     return (
         <div className="max-w-7xl mx-auto space-y-4 pb-16">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                    <FileText className="w-6 h-6 text-slate-400 mt-0.5" />
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-800 leading-tight flex items-center gap-3 flex-wrap">
-                            {DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}
-                            <StatePill state={doc.state} type={doc.type} />
-                            {place && <span className="text-sm font-medium text-slate-700">{place}</span>}
-                            {/* On a council job the place says booked in, inspecting or in progress already; a status that adds something still shows. */}
-                            {doc.jobStatus && (!place || !["BOOKED_IN", "INSPECTION_IN_PROGRESS", "WORK_IN_PROGRESS"].includes(doc.jobStatus)) && <JobStatusPill status={doc.jobStatus} />}
-                        </h1>
-                        <p className="text-xs text-slate-500 flex items-center gap-3 flex-wrap mt-0.5">
-                            {doc.customer ? (
-                                <Link href={`${base}/customers/${doc.customer.id}`} className="hover:text-teal-700 flex items-center gap-1"><User className="w-3 h-3" />{doc.customer.firstName} {doc.customer.lastName}</Link>
-                            ) : <span>Cash sale</span>}
-                            {doc.vehicle && (
-                                <Link href={`${base}/vehicles/${doc.vehicle.id}`} className="hover:text-teal-700 flex items-center gap-1"><Car className="w-3 h-3" />{doc.vehicle.plate} · {doc.vehicle.make} {doc.vehicle.model}</Link>
-                            )}
-                            <span>{dateShort(doc.postDate)}</span>
-                            {doc.state === "PROCESSED" && <span className="font-semibold text-slate-700">{money(doc.total)}</span>}
-                            {doc.sourceDocument && (
-                                <Link href={`${base}/documents/${doc.sourceDocument.id}`} className="hover:text-teal-700">from {DOCUMENT_TYPE_LABELS[doc.sourceDocument.type].toLowerCase()} {doc.sourceDocument.number ?? ""}</Link>
-                            )}
-                        </p>
-                    </div>
-                </div>
-                <DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} fleet={!!route} />
-            </div>
+            <ObjectHeader
+                icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-slate-400" aria-hidden="true" />}
+                title={<>{DOCUMENT_TYPE_LABELS[doc.type]} {doc.number ?? (doc.jobNumber ? `· ${doc.jobNumber}` : "")}</>}
+                status={
+                    <>
+                        <StatePill state={doc.state} type={doc.type} />
+                        {place && <span className="text-sm font-medium text-slate-700">{place}</span>}
+                        {/* On a council job the place says booked in, inspecting or in progress already; a status that adds something still shows. */}
+                        {doc.jobStatus && (!place || !["BOOKED_IN", "INSPECTION_IN_PROGRESS", "WORK_IN_PROGRESS"].includes(doc.jobStatus)) && <JobStatusPill status={doc.jobStatus} />}
+                    </>
+                }
+                actions={<DocumentToolbar tenant={slug} doc={doc} currency={tenant.currency} canProcess={can(membership, "documents:process")} canVoid={can(membership, "documents:void")} canTakePayment={can(membership, "payments:take")} canSend={can(membership, "messages:send")} fleet={!!route} />}
+                facts={[
+                    {
+                        label: "Customer",
+                        value: doc.customer ? (
+                            <Link href={`${base}/customers/${doc.customer.id}`} className="text-teal-700 hover:underline">{doc.customer.firstName} {doc.customer.lastName}</Link>
+                        ) : "Cash sale",
+                    },
+                    ...(doc.vehicle
+                        ? [{
+                            label: "Vehicle",
+                            value: (
+                                <Link href={`${base}/vehicles/${doc.vehicle.id}`} className="inline-flex items-center gap-1.5 text-slate-800 hover:text-teal-700">
+                                    <span className="rounded-sm bg-yellow-100 px-1 text-xs font-bold text-yellow-900">{doc.vehicle.plate}</span>
+                                    <span className="truncate">{doc.vehicle.make} {doc.vehicle.model}</span>
+                                </Link>
+                            ),
+                        }]
+                        : []),
+                    { label: "Date", value: dateShort(doc.postDate) },
+                    ...(doc.sourceDocument
+                        ? [{ label: "From", value: <Link href={`${base}/documents/${doc.sourceDocument.id}`} className="text-teal-700 hover:underline">{DOCUMENT_TYPE_LABELS[doc.sourceDocument.type]} {doc.sourceDocument.number ?? ""}</Link> }]
+                        : []),
+                    { label: "Total", value: money(doc.total), figure: true },
+                    ...(doc.state !== "DRAFT" && doc.amountPaid > 0 ? [{ label: "Paid", value: money(doc.amountPaid), figure: true }] : []),
+                    ...(doc.state !== "DRAFT" && (doc.type === "INVOICE" || doc.type === "CASH_SALE") ? [{ label: "Due", value: money(doc.amountDue), figure: true }] : []),
+                ]}
+            />
 
             <DeliveryStrip messages={messages} />
 
@@ -111,14 +125,14 @@ export default async function DocumentPage({ params, searchParams }: { params: P
             {parts && <JobParts tenant={slug} documentId={id} rows={parts} canRaise={can(membership, "requisitions:raise") && doc.state === "DRAFT"} />}
 
             {processed && (
-                <p className="rounded-sm border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800">
+                <Notice role="status">
                     Processed as <strong>{doc.number}</strong>. The lines are locked; raise a credit note if it needs to change.
-                </p>
+                </Notice>
             )}
             {short && (
-                <p className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                <Notice tone="caution">
                     Stock on hand has gone negative on <strong>{short.split(",").join(", ")}</strong>. Either it was never booked in, or the count is wrong — check it on the product.
-                </p>
+                </Notice>
             )}
             {loans.length > 0 && (
                 <section className="rounded-sm border border-slate-200 bg-white text-sm">
@@ -253,6 +267,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                     </ol>
                 </section>
             )}
+
+            {doc.state === "DRAFT" && <DocumentFooterBar tenant={slug} doc={doc} canProcess={can(membership, "documents:process")} showProcess={!route} />}
         </div>
     );
 }
@@ -265,10 +281,10 @@ function DeliveryStrip({ messages }: { messages: Awaited<ReturnType<typeof listM
     if (!latest) return null;
     const channel = latest.channel === "WHATSAPP" ? "WhatsApp" : latest.channel === "EMAIL" ? "email" : "SMS";
     return (
-        <p className={`rounded-sm border px-4 py-2 text-sm ${opened ? "border-teal-300 bg-teal-50 text-teal-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>
+        <Notice icon={opened ? MailOpen : Send}>
             {latest.status === "HANDED_OFF" ? `Handed to ${channel}` : `Sent by ${channel}`} {when(latest.createdAt)}
             {count > 1 ? ` (${count} times)` : ""}
             {opened ? <> · <strong>opened by the customer {when(opened)}</strong></> : " · not opened yet"}
-        </p>
+        </Notice>
     );
 }

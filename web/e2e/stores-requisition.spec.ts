@@ -60,7 +60,7 @@ test.describe("stores requisition", () => {
         await state(page, /Waiting for the foreman/);
         await said(page, /^Submitted\. Waiting on /);
         await page.goto(job);
-        await expect(page.getByRole("heading", { level: 1 })).toContainText("Waiting for parts");
+        await expect(page.getByRole("group", { name: "Status" })).toContainText("Waiting for parts");
 
         // The foreman, then the divisional head, approve.
         await signInAs(page, workshop, owner);
@@ -98,7 +98,8 @@ test.describe("stores requisition", () => {
         // On the job card, at cost, and no longer waiting for parts.
         await page.goto(job);
         await expect(page.getByRole("textbox", { name: "Description, line 1" })).toHaveValue("Brake pads, heavy duty, axle set");
-        await expect(page.getByRole("heading", { level: 1 })).not.toContainText("Waiting for parts");
+        await expect(page.getByRole("group", { name: "Status" })).toBeVisible();
+        await expect(page.getByRole("group", { name: "Status" })).not.toContainText("Waiting for parts");
 
         // Finalised by the three who must sign.
         for (const [who, box] of [[owner, "Sign as foreman"], [coordinator, "Sign as fleet coordinator"], [head, "Sign as divisional head"]] as const) {
