@@ -77,6 +77,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Flip every bit of one byte, in place: Python rather than dd, and XOR rather
+# than an overwrite. crypt.test.sh has the same helper and says why.
+flip_byte() {
+    python3 -c 'import sys
+path, at = sys.argv[1], int(sys.argv[2])
+with open(path, "r+b") as f:
+    f.seek(at); b = f.read(1); f.seek(at); f.write(bytes([b[0] ^ 0xFF]))' "$1" "$2"
+}
+
 fails=0
 check() {
     local what=$1 got=$2 want=$3
@@ -283,7 +292,9 @@ check "so are the bytes that are not text" \
 echo
 echo "a damaged backup is refused rather than half-restored"
 cp "$BUCKET_DIR/motion/db/$STAMP.dump.enc" "$tmp/good.enc"
-printf '\x00' | dd of="$BUCKET_DIR/motion/db/$STAMP.dump.enc" bs=1 seek=4096 count=1 conv=notrunc status=none
+flip_byte "$BUCKET_DIR/motion/db/$STAMP.dump.enc" 4096
+check "the tampered backup really differs" \
+    "$(cmp -s "$tmp/good.enc" "$BUCKET_DIR/motion/db/$STAMP.dump.enc" && echo same || echo different)" "different"
 ./motion-restore.sh latest --into "$SCRATCH_URL" > "$tmp/tampered.log" 2>&1 && r=restored || r=refused
 check "a flipped byte in the ciphertext stops the restore" "$r" "refused"
 check "and it says why, rather than failing obscurely" \
