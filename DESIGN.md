@@ -320,6 +320,19 @@ Help over the work, already on the right page. A right-anchored white panel at `
 - **One behaviour, from UI SDK.** Dialog (`components/ui/dialog.tsx`), Drawer (the customer sheet, the phone menu) and the shared confirm (`components/ui/confirm.tsx`, `useConfirm()`) move focus in, keep Tab inside, close on Escape and return focus to what opened them. Open a dialog from its `DialogTrigger` so there is something to return to. Never `window.confirm`.
 - **Look:** square, white, 1px hairline, the Panel shadow, the 20% slate scrim; enter on opacity and a 0.97 scale over 200ms, leave in 150ms, motion-safe only. Top-layer content needs `fixed inset-0 m-auto h-fit` because Tailwind's reset removes the margin that centres it.
 
+### Page structure (SAP's floorplans, MOTION's look)
+The structure of SAP Fiori, which councils and large firms in Namibia and South Africa already work in, drawn in this system's palette, hairlines and square corners. Never SAP's colours or its 72 typeface.
+- **Record page** (`components/layout/ObjectHeader.tsx`): what the record is, `<h1>`, and where it stands, a group named "Status" of status chips, on the left; everyday actions on the right; under a hairline, a row of facts and figures (customer, vehicle, date, total, paid, due) with 10px labels and tabular figures. The row fills its width whatever the number of facts.
+- **More** (`components/ui/more-menu.tsx`): a page's rarer actions (copy, split, credit note, rework, void, delete) wait in one disclosure at the end of the toolbar, named "More actions", closing on Escape or a press outside.
+- **Footer bar** (`components/documents/DocumentFooterBar.tsx`): a draft's finishing actions sit in a bar fixed to the bottom of the page, beside the line that says where the draft stands (`role="status"`). Save is the filled button while there is something to save; once saved, Process is. One filled button at a time. On a phone it sits above the tab bar (`.above-tab-bar`).
+- **List** (`components/layout/ListHeader.tsx`): every list opens with the same band: icon, `<h1>`, the record count, then search, filters and labelled create actions ("New customer", not an unlabelled +).
+
+### Status chips
+`ObjectStatus` in `components/documents/StatusPill.tsx`: a lucide icon and the status in words inside a hairline frame, 12px medium ink. Job statuses use the diary's icon for each status, so a status looks the same on the board, the diary, a list and a record. No tints; Void alone is red.
+
+### Buttons
+Filled is teal-700, the one acting colour; outline is white with the 3:1 `field-edge`, flat. Corners 2px. A pressed button scales to 0.98 (motion-safe), and transitions name their properties. A button held with `aria-disabled` (kept focusable so its reason can be heard) looks disabled too.
+
 ### Notes and Terms
 - **Note:** a hairline top-and-bottom band on `surface-sunken` at 70%, 12px side padding, with a 16px info glyph in faint ink. One tone only — three colours of callout teaches the reader to ignore two of them.
 - **Notice:** what a settings screen needs to say before the form (a feature on another plan, MOTION read-only, a key shown once, an import's result) is `components/ui/notice.tsx`: white ground, hairline all round, and the left marker in teal-700, or in caution amber when it is about money that needs attention. Never a teal-50 or amber-50 ground.

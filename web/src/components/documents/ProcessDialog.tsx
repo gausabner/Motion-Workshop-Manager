@@ -19,7 +19,7 @@ const input = "h-9 w-full rounded-md border border-input bg-white px-2 text-sm t
  * cannot be undone except by a credit note.
  */
 /** `disabled` while the editor holds unsaved changes: processing acts on what is saved, not on what is on screen. */
-export function ProcessDialog({ tenant, doc, disabled = false }: { tenant: string; doc: DocumentRecord; disabled?: boolean }) {
+export function ProcessDialog({ tenant, doc, disabled = false, inMenu = false }: { tenant: string; doc: DocumentRecord; disabled?: boolean; inMenu?: boolean }) {
     const [open, setOpen] = useState(false);
     const [state, action, pending] = useActionState(processDocument.bind(null, tenant, doc.id), initialActionState);
     const kind = promptFor(doc.type, !!doc.vehicle);
@@ -41,7 +41,7 @@ export function ProcessDialog({ tenant, doc, disabled = false }: { tenant: strin
     return (
         <>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger disabled={disabled} focusableWhenDisabled render={<Button type="button" size="sm" className="bg-slate-800 hover:bg-slate-900" />}>
+                <DialogTrigger disabled={disabled} focusableWhenDisabled render={inMenu ? <Button type="button" size="sm" variant="ghost" className="w-full justify-start" /> : <Button type="button" size="sm" />}>
                     <CheckCircle2 className="w-4 h-4 mr-1" aria-hidden="true" />Process
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">
@@ -117,7 +117,7 @@ export function ProcessDialog({ tenant, doc, disabled = false }: { tenant: strin
                         {state.message && !state.ok && <p className="text-sm text-red-600" role="alert">{state.message}</p>}
                         <div className="flex justify-end gap-2">
                             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                            <Button type="submit" size="sm" className="bg-slate-800 hover:bg-slate-900" disabled={pending}>
+                            <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" />{pending ? "Processing…" : `Process ${label}`}
                             </Button>
                         </div>
