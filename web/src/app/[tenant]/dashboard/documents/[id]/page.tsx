@@ -236,7 +236,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
 
             {doc.statusEvents.length > 0 && (
                 <section className="border border-slate-200 rounded-sm bg-white">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status history</h3>
+                    <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status history</h2>
                     <ol className="divide-y divide-slate-100">
                         {doc.statusEvents.map((e) => (
                             <li key={e.id} className="px-4 py-2 text-sm flex items-center justify-between gap-4">

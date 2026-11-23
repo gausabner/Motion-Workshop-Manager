@@ -426,6 +426,8 @@ enum ShareKind {
   INSPECTION
   /// A customer's own portal; targetId is the customer.
   PORTAL
+  /// A request for quotation sent to a supplier; targetId is the requisition, params.supplierId the supplier asked.
+  QUOTATION_REQUEST
 }
 
 enum SequenceKey {
@@ -562,6 +564,7 @@ model Tenant {
   requisitionLines           RequisitionLine[]
   requisitionSignoffs        RequisitionSignoff[]
   requisitionIssues          RequisitionIssue[]
+  requisitionIssueLines      RequisitionIssueLine[]
 }
 
 /// Where a workshop stands with MOTION — distinct from anything about its own
@@ -2087,6 +2090,7 @@ model StockMovement {
   supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
   requisitionLine     RequisitionLine?     @relation(fields: [requisitionLineId], references: [id])
   requisitionIssue    RequisitionIssue?    @relation(fields: [requisitionIssueId], references: [id])
+  handoverLine        RequisitionIssueLine?
   by                  Membership?          @relation(fields: [byId], references: [id])
 
   @@unique([documentLineId, kind])
@@ -2516,16 +2520,22 @@ model RequisitionLine {
   /// The form's "Rates": an estimate, excluding VAT. Stores and the supplier decide the real cost.
   unitCost      Decimal @default(0) @db.Decimal(12, 2)
   note          String?
+  /// On a purchase requisition split from a stores one: the stores line it buys instead, so the stores line stops waiting for it.
+  sourceLineId  String?
 
-  tenant             Tenant              @relation(fields: [tenantId], references: [id])
-  requisition        Requisition         @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
-  product            Product?            @relation(fields: [productId], references: [id])
+  tenant             Tenant                 @relation(fields: [tenantId], references: [id])
+  requisition        Requisition            @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  product            Product?               @relation(fields: [productId], references: [id])
+  sourceLine         RequisitionLine?       @relation("RequisitionLineSplit", fields: [sourceLineId], references: [id], onDelete: Restrict)
+  boughtAs           RequisitionLine[]      @relation("RequisitionLineSplit")
   stockMovements     StockMovement[]
   purchaseOrderLines PurchaseOrderLine[]
   /// The job card lines its issues became.
   documentLines      DocumentLine[]
+  handedOver         RequisitionIssueLine[]
 
   @@index([requisitionId, sortOrder])
+  @@index([sourceLineId])
 }
 
 /// One signature on the form. Name, role and pay number are copied at the
@@ -2573,10 +2583,34 @@ model RequisitionIssue {
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
   requisition    Requisition     @relation(fields: [requisitionId], references: [id])
   issuedBy       Membership      @relation("RequisitionIssuedBy", fields: [issuedById], references: [id])
-  receiver       Membership?     @relation("RequisitionReceivedBy", fields: [receiverMembershipId], references: [id])
+  receiver       Membership?            @relation("RequisitionReceivedBy", fields: [receiverMembershipId], references: [id])
   stockMovements StockMovement[]
+  lines          RequisitionIssueLine[]
 
   @@index([requisitionId, at])
+}
+
+/// One line of a handover: how many of a requisition line went to the
+/// receiver, and at what cost. A stock item's line has the ISSUE movement that
+/// took it off the shelf; an item bought for the job and handed over as it
+/// arrived has none. What a line has had is the sum of these.
+model RequisitionIssueLine {
+  id                String   @id @default(cuid())
+  tenantId          String
+  issueId           String
+  requisitionLineId String
+  quantity          Decimal  @db.Decimal(12, 2)
+  /// Excluding VAT: stores' cost for a stock item, what the supplier charged for one bought in.
+  unitCost          Decimal  @db.Decimal(12, 2)
+  stockMovementId   String?  @unique
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  issue           RequisitionIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  requisitionLine RequisitionLine  @relation(fields: [requisitionLineId], references: [id])
+  stockMovement   StockMovement?   @relation(fields: [stockMovementId], references: [id])
+
+  @@index([requisitionLineId])
+  @@index([issueId])
 }
 
 /// A count of what is actually on the shelves. Nothing changes until it is

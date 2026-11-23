@@ -25,7 +25,7 @@ export default async function WorkshopSettingsPage({ params }: { params: Promise
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Workshops and bays</h3>
+                <h2 className="text-lg font-medium">Workshops and bays</h2>
                 <p className="text-sm text-slate-500">Where vehicles are: each workshop and bay the council has, who runs it, and its foremen.</p>
             </div>
             <div className="border-t border-slate-200" />

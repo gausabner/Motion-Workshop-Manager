@@ -3,6 +3,7 @@ import { Package, Plus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { money } from "@/lib/format";
 import type { listProducts } from "@/lib/products/queries";
+import { Input, fieldClass } from "@/components/ui/input";
 
 type Data = Awaited<ReturnType<typeof listProducts>>;
 
@@ -33,9 +34,9 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
                 </span>
             </div>
 
-            <form action={base} method="get" className="flex flex-wrap items-center gap-2">
-                <input name="q" defaultValue={q} placeholder="Code, description, brand or shelf" className="h-9 w-64 rounded-md border border-slate-300 px-3 text-sm" />
-                <select name="type" defaultValue={type} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+            <form role="search" aria-label="Products" action={base} method="get" className="flex flex-wrap items-center gap-2">
+                <Input name="q" type="search" defaultValue={q} aria-label="Search products" placeholder="Code, description, brand or shelf" className="w-64 text-sm" />
+                <select name="type" defaultValue={type} aria-label="Product type" className={`${fieldClass} h-9 w-auto px-2 text-sm`}>
                     <option value="">Every type</option>
                     {Object.entries(TYPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>

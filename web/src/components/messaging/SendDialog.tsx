@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { MessageChannel } from "@prisma/client";
 import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Mail, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { draftMessageAction, sendMessageAction } from "@/lib/messaging/actions";
 import type { Draft, SendTarget } from "@/lib/messaging/service";
 
@@ -103,10 +103,10 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
 
     return (
         <>
-            <Button type="button" size={size} variant={variant} onClick={() => openDialog(true)}>
-                <Send className="w-4 h-4 mr-1" />Send
-            </Button>
             <Dialog open={open} onOpenChange={openDialog}>
+                <DialogTrigger render={<Button type="button" size={size} variant={variant} />}>
+                    <Send className="w-4 h-4 mr-1" aria-hidden="true" />Send
+                </DialogTrigger>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Send {label}</DialogTitle>

@@ -187,7 +187,7 @@ export async function deleteDraft(tx: TenantTx, tenant: Tenant, actor: Actor, id
  * raised it, a parts driver (who is usually the one bringing them back), or
  * stores.
  */
-async function quoteHandler(tx: TenantTx, actor: Actor, requisitionId: string): Promise<void> {
+export async function quoteHandler(tx: TenantTx, actor: Actor, requisitionId: string): Promise<void> {
     const req = await tx.requisition.findUnique({ where: { id: requisitionId }, select: { state: true, kind: true, requestedById: true } });
     if (!req) throw new Error(MISSING);
     if (req.kind !== "PURCHASE") throw new Error("Only a purchase requisition carries quotations.");
@@ -212,6 +212,8 @@ export async function addQuote(tx: TenantTx, tenant: Tenant, actor: Actor, requi
             validUntil: day(input.validUntil),
             note: text(input.note),
             obtainedById: actor.membershipId,
+            // The first one in is the one put forward until somebody chooses another: a purchase needing one quotation needs no second step.
+            chosen: (await tx.requisitionQuote.count({ where: { requisitionId, chosen: true } })) === 0,
         },
         select: { id: true },
     });
@@ -320,13 +322,17 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
     const req = await tx.requisition.findUnique({
         where: { id },
         select: {
-            state: true, kind: true, number: true, requestedById: true, workshopId: true, chargeDocumentId: true, chargeVoteId: true, value: true, submittedAt: true,
+            state: true, kind: true, number: true, requestedById: true, workshopId: true, chargeDocumentId: true, chargeVoteId: true, value: true, submittedAt: true, sourceRequisitionId: true,
             lines: { select: { description: true, quantity: true, productId: true, unitCost: true } },
             quotes: { select: { amount: true, chosen: true, validUntil: true } },
         },
     });
     if (!req) throw new Error(MISSING);
-    if (req.requestedById !== actor.membershipId) throw new Error("Only the person who raised it can submit it.");
+    // A purchase requisition split off by stores is sent on by whoever gathered its quotations: stores, or a parts driver.
+    if (req.requestedById !== actor.membershipId) {
+        const gatherer = req.sourceRequisitionId && (actor.canIssue || (await tx.membership.findUnique({ where: { id: actor.membershipId }, select: { designations: true } }))?.designations.includes("PARTS_DRIVER"));
+        if (!gatherer) throw new Error("Only the person who raised it can submit it.");
+    }
     // A purchase requisition is priced by its chosen quotation, so only a stores requisition's hand-typed lines need an estimate.
     const problem = submitError({ ...req, lines: req.lines.map((l) => ({ description: l.description, quantity: l.quantity.toNumber(), productId: l.productId, unitCost: req.kind === "STORES" ? l.unitCost.toNumber() : undefined })) });
     if (problem) throw new Error(problem);
@@ -346,10 +352,11 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
         OVER_LIMIT: candidatesFor("OVER_LIMIT", scope, authorities, units),
     };
     const steps = stepsFor(value, settings.overLimitAt);
-    const unsignable = unsignableStep(steps, candidates, actor.membershipId);
+    // The need is the requester's, whoever sends it on: they are the one who may not approve it.
+    const unsignable = unsignableStep(steps, candidates, req.requestedById);
     if (unsignable) throw new Error(unsignable);
 
-    const raisedByForeman = foremanStepRaisedByForeman(candidates.FOREMAN, actor.membershipId);
+    const raisedByForeman = foremanStepRaisedByForeman(candidates.FOREMAN, req.requestedById);
     const first = raisedByForeman ? steps[1] : steps[0];
     const number = req.number ?? (await allocateNumber(tx, tenant.id, "REQUISITION"));
     const now = new Date();
@@ -363,7 +370,7 @@ export async function submitRequisition(tx: TenantTx, tenant: Tenant, actor: Act
     await sign(tx, tenant, { requisitionId: id, step: "REQUESTED", decision: "SUBMITTED", membershipId: actor.membershipId, role: STEP_LABEL.REQUESTED, value, at: now });
     if (raisedByForeman) {
         await sign(tx, tenant, {
-            requisitionId: id, step: "FOREMAN", decision: "RAISED_BY_FOREMAN", membershipId: actor.membershipId, role: STEP_LABEL.FOREMAN, value,
+            requisitionId: id, step: "FOREMAN", decision: "RAISED_BY_FOREMAN", membershipId: req.requestedById, role: STEP_LABEL.FOREMAN, value,
             comment: "Raised by the workshop's only foreman; the divisional head signs next.", at: new Date(now.getTime() + 1),
         });
     }

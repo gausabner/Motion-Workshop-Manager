@@ -12,6 +12,16 @@ import { listMessages } from "@/lib/messaging/queries";
 import { MessageLog } from "@/components/messaging/MessageLog";
 import { SendDialog } from "@/components/messaging/SendDialog";
 import { dateShort, money } from "@/lib/format";
+import type { Metadata } from "next";
+import { tabTitle } from "@/lib/copy/terms";
+
+export async function generateMetadata({ params }: { params: Promise<{ tenant: string; id: string }> }): Promise<Metadata> {
+    const { tenant: slug, id } = await params;
+    const { db } = await requireTenant(slug);
+    const p = await db.payment.findUnique({ where: { id }, select: { number: true, direction: true, customer: { select: { firstName: true, lastName: true } } } });
+    const kind = p?.direction === "REFUND" ? "Refund" : "Receipt";
+    return { title: tabTitle(p?.number ?? `Draft ${kind.toLowerCase()}`, p?.customer ? `${p.customer.firstName} ${p.customer.lastName}`.trim() : null) };
+}
 
 export default async function PaymentPage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ posted?: string; problem?: string }> }) {
     const [{ tenant: slug, id }, { posted, problem }] = await Promise.all([params, searchParams]);

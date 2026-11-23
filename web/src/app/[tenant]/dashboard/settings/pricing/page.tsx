@@ -23,7 +23,7 @@ export default async function PricingSettingsPage({ params }: { params: Promise<
         <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h3 className="text-lg font-medium">Price matrices</h3>
+                    <h2 className="text-lg font-medium">Price matrices</h2>
                     <p className="text-sm text-slate-500">Markup bands by cost. Put a product on a matrix and its selling price follows its cost — so a supplier&rsquo;s increase does not quietly come out of your margin.</p>
                 </div>
                 <form action={newMatrixAction.bind(null, slug)}>

@@ -9,6 +9,7 @@ import { costTotals } from "@/lib/purchasing/rules";
 import { saveOrderAction, setOrderStateAction, receiveOrderAction } from "@/lib/purchasing/actions";
 import type { OrderRecord } from "@/lib/purchasing/queries";
 import { money } from "@/lib/format";
+import { useConfirm } from "@/components/ui/confirm";
 
 type Options = { suppliers: { id: string; companyName: string }[]; products: { id: string; itemCode: string; description: string; cost: number; price: number; requiresSerial?: boolean }[]; jobs: { id: string; label: string }[] };
 type Line = { key: string; id?: string; productId: string; description: string; quantity: number; unitCost: number; documentId: string; dueDate: string; received: number };
@@ -21,6 +22,7 @@ const blank = (): Line => ({ key: `n${++seq}`, productId: "", description: "", q
 /** What we are asking a supplier for, line by line, with the job each line is for. */
 export function OrderEditor({ tenant, order, options, currency, taxRate, today }: { tenant: string; order: OrderRecord | null; options: Options; currency: string; taxRate: number; today: string }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const editable = !order || (order.state !== "CANCELLED" && order.state !== "RECEIVED" && (order.state === "SUGGESTED" || !order.anyReceived));
     const [supplierId, setSupplierId] = useState(order?.supplier.id ?? options.suppliers[0]?.id ?? "");
     // The workshop's own date, handed in by the server: reading the clock here makes the first render differ from the server's.
@@ -140,7 +142,7 @@ export function OrderEditor({ tenant, order, options, currency, taxRate, today }
                 )}
                 {order && order.state !== "CANCELLED" && order.state !== "RECEIVED" && !order.anyReceived && (
                     <Button type="button" variant="ghost" className="text-slate-500" disabled={busy}
-                        onClick={() => { if (window.confirm("Cancel this order?")) start(async () => { await setOrderStateAction(tenant, order.id, "CANCELLED"); router.refresh(); }); }}>Cancel order</Button>
+                        onClick={async () => { if (await confirm({ title: "Cancel this order?", confirm: "Cancel the order", cancel: "Keep the order" })) start(async () => { await setOrderStateAction(tenant, order.id, "CANCELLED"); router.refresh(); }); }}>Cancel order</Button>
                 )}
                 {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? undefined : "alert"}>{status.text}</p>}
             </div>

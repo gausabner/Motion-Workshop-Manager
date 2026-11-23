@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import type { PickerHit } from "@/lib/search/types";
 import { splitByExcess, splitPreview, type SplitLine } from "@/lib/documents/split";
@@ -30,8 +30,8 @@ export function SplitDialog({ tenant, documentId, lines, total, currency }: { te
 
     return (
         <>
-            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}><Scissors className="mr-1 h-4 w-4" />Split</Button>
             <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger render={<Button type="button" size="sm" variant="outline" />}><Scissors className="mr-1 h-4 w-4" aria-hidden="true" />Split</DialogTrigger>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Split this job between two payers</DialogTitle>

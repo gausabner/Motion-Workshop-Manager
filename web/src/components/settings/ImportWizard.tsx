@@ -52,7 +52,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
     return (
         <div className="space-y-4">
             <section className="rounded-sm border border-slate-200 bg-white">
-                <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">What is in the file</h2>
+                <h3 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">What is in the file</h3>
                 <div className="flex flex-wrap items-end gap-3 px-4 py-3">
                     <label className="space-y-1 text-sm">
                         <span className="block text-slate-600">It holds</span>
@@ -85,7 +85,7 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
             {preview && (
                 <>
                     <section className="rounded-sm border border-slate-200 bg-white">
-                        <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Which column is which</h2>
+                        <h3 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Which column is which</h3>
                         <ul className="grid gap-2 px-4 py-3 sm:grid-cols-2">
                             {spec.fields.map((f) => (
                                 <li key={f.key} className="flex items-center gap-2 text-sm">
@@ -110,9 +110,9 @@ export function ImportWizard({ tenant, allowed }: { tenant: string; allowed: Imp
 
                     <section className="rounded-sm border border-slate-200 bg-white">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-slate-50 px-4 py-2">
-                            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                                 {preview.readyCount} of {preview.total} row{preview.total === 1 ? "" : "s"} ready · matched on {spec.matchOn}
-                            </h2>
+                            </h3>
                             <Button
                                 type="button" size="sm" className="h-7 bg-teal-700 hover:bg-teal-800"
                                 disabled={busy || preview.readyCount === 0 || preview.missingRequired.length > 0}

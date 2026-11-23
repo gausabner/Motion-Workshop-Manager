@@ -6,6 +6,7 @@ import { ExternalLink, Mail, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { finishCampaignAction, sendRecipientAction, skipRecipientAction } from "@/lib/campaigns/actions";
 import type { CampaignRecord } from "@/lib/campaigns/queries";
+import { useConfirm } from "@/components/ui/confirm";
 
 type Row = CampaignRecord["recipients"][number];
 
@@ -16,6 +17,7 @@ type Row = CampaignRecord["recipients"][number];
  */
 export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: CampaignRecord }) {
     const router = useRouter();
+    const confirm = useConfirm();
     const [openUrl, setOpenUrl] = useState<{ id: string; url: string } | null>(null);
     const [error, setError] = useState<string>();
     const [busy, start] = useTransition();
@@ -55,7 +57,7 @@ export function CampaignQueue({ tenant, campaign }: { tenant: string; campaign: 
                     <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">To send · {pending.length}</h2>
                     {pending.length > 0 && campaign.state !== "DONE" && (
                         <Button type="button" size="sm" variant="ghost" className="h-7 text-slate-500" disabled={busy}
-                            onClick={() => { if (window.confirm(`Close this campaign and leave out the remaining ${pending.length}?`)) start(() => finishCampaignAction(tenant, campaign.id)); }}>
+                            onClick={async () => { if (await confirm({ title: "Close this campaign?", description: `The remaining ${pending.length} are left out.`, confirm: "Close the campaign", cancel: "Keep sending" })) start(() => finishCampaignAction(tenant, campaign.id)); }}>
                             Close campaign
                         </Button>
                     )}

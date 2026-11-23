@@ -102,7 +102,7 @@ export function featuresOf(plan: PlanId | null): Feature[] {
 export const FEATURE_MODELS: Partial<Record<Feature, string[]>> = {
     stock: ["StockTake", "StockTakeLine", "PriceMatrix", "PriceMatrixBand", "BundleItem"],
     purchasing: ["Supplier", "PurchaseOrder", "PurchaseOrderLine", "SupplierInvoice", "SupplierInvoiceLine", "SupplierPayment", "SupplierPaymentAllocation"],
-    requisitions: ["OrgUnit", "Vote", "Workshop", "SigningAuthority", "Requisition", "RequisitionLine", "RequisitionQuote", "RequisitionSignoff", "RequisitionIssue"],
+    requisitions: ["OrgUnit", "Vote", "Workshop", "SigningAuthority", "Requisition", "RequisitionLine", "RequisitionQuote", "RequisitionSignoff", "RequisitionIssue", "RequisitionIssueLine"],
     jobFlow: ["JobVisit", "JobSignoff"],
     inspections: ["InspectionTemplate", "InspectionTemplateItem", "Inspection", "InspectionItem"],
     reminders: ["Campaign", "CampaignRecipient"],

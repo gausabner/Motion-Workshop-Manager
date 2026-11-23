@@ -3,7 +3,7 @@
 import { useActionState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, SelectField, TextField } from "@/components/forms/fields";
+import { SelectField, TextField } from "@/components/forms/fields";
 import { initialActionState } from "@/lib/forms";
 import { addTimeOff, removeTimeOff } from "@/lib/diary/actions";
 
@@ -24,9 +24,7 @@ export function TimeOffPanel({ tenant, mechanics, entries, canEdit }: { tenant: 
                     <TextField label="From" name="startsAt" type="datetime-local" errors={errors} />
                     <TextField label="Until" name="endsAt" type="datetime-local" errors={errors} />
                     <TextField label="Reason" name="reason" errors={errors} placeholder="Annual leave, course…" />
-                    <Field label=" " name="submit">
-                        <Button type="submit" size="sm" className="h-8 w-full bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
-                    </Field>
+                    <Button type="submit" size="sm" className="h-8 w-full bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
                     {state.message && <p className={`md:col-span-5 text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</p>}
                 </form>
             )}
