@@ -36,31 +36,31 @@ export function Quotations({ tenant, view, suppliers, currency, when, onAnswer }
                     No quotations yet. A purchase of this value needs {need === 1 ? "one" : need}, and the approvers approve the one chosen.
                 </p>
             ) : (
-                <table data-mobile="cards" className="w-full text-sm">
-                    <thead>
-                        <tr className={`text-left ${label}`}>
-                            <th scope="col" className="px-4 py-2 font-semibold">Supplier</th>
-                            <th scope="col" className="py-2 pr-3 text-right font-semibold">Excl. VAT, {currency}</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">Their reference</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">Valid until</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">Obtained by</th>
-                            <th scope="col" className="py-2 pr-4 font-semibold"><span className="sr-only">Chosen, scan and changes</span></th>
+                <table role="table" data-mobile="cards" className="w-full text-sm">
+                    <thead role="rowgroup">
+                        <tr role="row" className={`text-left ${label}`}>
+                            <th role="columnheader" scope="col" className="px-4 py-2 font-semibold">Supplier</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Excl. VAT, {currency}</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">Their reference</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">Valid until</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">Obtained by</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-4 font-semibold"><span className="sr-only">Chosen, scan and changes</span></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                         {view.quotes.map((q) => (
-                            <tr key={q.id} className="relative border-t border-slate-100 align-baseline">
-                                <td data-mobile="primary" className="px-4 py-2 font-medium text-slate-900">
+                            <tr role="row" key={q.id} className="relative border-t border-slate-100 align-baseline">
+                                <td role="cell" data-mobile="primary" className="px-4 py-2 font-medium text-slate-900">
                                     {q.chosen && <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-teal-700" />}
                                     {q.supplier}
                                     {q.chosen && <span className="ml-2 text-xs font-semibold text-teal-700">Chosen</span>}
                                     {q.note && <span className="block text-xs font-normal text-slate-600">{q.note}</span>}
                                 </td>
-                                <td data-label={`Excl. VAT, ${currency}`} className="py-2 pr-3 text-right tabular-nums">{money(q.amount)}</td>
-                                <td data-label="Their reference" className="py-2 pr-3 text-slate-700">{q.reference ?? "—"}</td>
-                                <td data-label="Valid until" className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-700">{q.validUntil ? day(q.validUntil) : "—"}</td>
-                                <td data-label="Obtained by" className="py-2 pr-3 text-slate-700">{q.obtainedBy}</td>
-                                <td className="py-2 pr-4">
+                                <td role="cell" data-label={`Excl. VAT, ${currency}`} className="py-2 pr-3 text-right tabular-nums">{money(q.amount)}</td>
+                                <td role="cell" data-label="Their reference" className="py-2 pr-3 text-slate-700">{q.reference ?? "—"}</td>
+                                <td role="cell" data-label="Valid until" className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-700">{q.validUntil ? day(q.validUntil) : "—"}</td>
+                                <td role="cell" data-label="Obtained by" className="py-2 pr-3 text-slate-700">{q.obtainedBy}</td>
+                                <td role="cell" className="py-2 pr-4">
                                     <div className="flex flex-wrap items-center justify-end gap-2 max-md:justify-start">
                                         {q.scan && (
                                             <a href={`/${tenant}/attachments/${q.scan.id}`} target="_blank" rel="noreferrer" className={`text-xs font-medium text-teal-700 hover:underline ${touch} inline-flex items-center`}>

@@ -195,7 +195,7 @@ export function ReceiptEditor({ tenant, invoice, options, currency }: { tenant: 
                             if (reason) start(async () => { const r = await voidInvoiceAction(tenant, invoice.id, reason); setStatus({ ok: r.ok, text: r.ok ? "Voided; the stock has come back off." : r.message ?? "Not voided" }); router.refresh(); });
                         }}>Void</Button>
                 )}
-                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? undefined : "alert"}>{status.text}</p>}
+                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? "status" : "alert"}>{status.text}</p>}
             </div>
         </div>
     );

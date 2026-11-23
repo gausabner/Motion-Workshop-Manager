@@ -120,35 +120,35 @@ function Details({ view, currency }: { view: RequisitionView; currency: string }
                 <Fact label="Needed by" value={view.requiredBy ? day(view.requiredBy) : "—"} />
                 {view.purpose && <Fact label="What it is for" value={view.purpose} wide />}
             </dl>
-            <table data-mobile="cards" className="w-full border-t border-slate-200 text-sm">
-                <thead>
-                    <tr className={`text-left ${label}`}>
-                        <th scope="col" className="px-4 py-2 font-semibold">Item</th>
-                        <th scope="col" className="py-2 pr-3 text-right font-semibold">Qty</th>
-                        <th scope="col" className="py-2 pr-3 text-right font-semibold">Rate</th>
-                        <th scope="col" className="py-2 pr-3 text-right font-semibold">Value</th>
-                        {shelf && <th scope="col" className="py-2 pr-3 text-right font-semibold">On hand</th>}
-                        {issuing && bought && <th scope="col" className="py-2 pr-3 text-right font-semibold">Arrived</th>}
-                        {issuing && <th scope="col" className="py-2 pr-4 text-right font-semibold">{bought ? "Handed over" : "Issued"}</th>}
+            <table role="table" data-mobile="cards" className="w-full border-t border-slate-200 text-sm">
+                <thead role="rowgroup">
+                    <tr role="row" className={`text-left ${label}`}>
+                        <th role="columnheader" scope="col" className="px-4 py-2 font-semibold">Item</th>
+                        <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Qty</th>
+                        <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Rate</th>
+                        <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Value</th>
+                        {shelf && <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">On hand</th>}
+                        {issuing && bought && <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Arrived</th>}
+                        {issuing && <th role="columnheader" scope="col" className="py-2 pr-4 text-right font-semibold">{bought ? "Handed over" : "Issued"}</th>}
                     </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                     {view.lines.map((l) => (
-                        <tr key={l.id} className="border-t border-slate-100 align-baseline">
-                            <td data-mobile="primary" className="px-4 py-2 text-slate-900">
+                        <tr role="row" key={l.id} className="border-t border-slate-100 align-baseline">
+                            <td role="cell" data-mobile="primary" className="px-4 py-2 text-slate-900">
                                 {l.itemCode && <span className="mr-2 tabular-nums text-xs font-normal text-slate-600">{l.itemCode}</span>}
                                 {l.description}
                                 {!l.stocked && !bought && <span className="block text-xs font-normal text-slate-600">Not a stock item: it has to be bought.</span>}
                                 {l.moved > 0 && <span className="block text-xs font-normal text-slate-600">{l.moved} bought instead, on a purchase requisition.</span>}
                                 {l.note && <span className="block text-xs font-normal text-slate-600">{l.note}</span>}
                             </td>
-                            <td data-label="Qty" className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
-                            <td data-label="Rate" className="py-2 pr-3 text-right tabular-nums text-slate-600">{money(l.unitCost)}</td>
-                            <td data-label="Value" className="py-2 pr-3 text-right tabular-nums">{money(l.quantity * l.unitCost)}</td>
-                            {shelf && <td data-label="On hand" className={`py-2 pr-3 text-right tabular-nums ${l.onHand !== null && l.onHand < l.outstanding ? "font-semibold text-amber-700" : "text-slate-600"}`}>{l.onHand ?? "—"}</td>}
-                            {issuing && bought && <td data-label="Arrived" className="py-2 pr-3 text-right tabular-nums">{l.received} of {l.quantity}</td>}
+                            <td role="cell" data-label="Qty" className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
+                            <td role="cell" data-label="Rate" className="py-2 pr-3 text-right tabular-nums text-slate-600">{money(l.unitCost)}</td>
+                            <td role="cell" data-label="Value" className="py-2 pr-3 text-right tabular-nums">{money(l.quantity * l.unitCost)}</td>
+                            {shelf && <td role="cell" data-label="On hand" className={`py-2 pr-3 text-right tabular-nums ${l.onHand !== null && l.onHand < l.outstanding ? "font-semibold text-amber-700" : "text-slate-600"}`}>{l.onHand ?? "—"}</td>}
+                            {issuing && bought && <td role="cell" data-label="Arrived" className="py-2 pr-3 text-right tabular-nums">{l.received} of {l.quantity}</td>}
                             {issuing && (
-                                <td data-label={bought ? "Handed over" : "Issued"} className="py-2 pr-4 text-right tabular-nums">
+                                <td role="cell" data-label={bought ? "Handed over" : "Issued"} className="py-2 pr-4 text-right tabular-nums">
                                     {bought || l.stocked ? `${l.issued} of ${l.quantity - l.moved}` : l.moved >= l.quantity ? "Bought instead" : "To be bought"}
                                 </td>
                             )}

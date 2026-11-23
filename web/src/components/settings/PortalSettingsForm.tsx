@@ -73,7 +73,7 @@ export function PortalSettingsForm({ tenant, settings }: { tenant: string; setti
 
             <div className="flex items-center gap-3">
                 <Button type="submit" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-                {state.message && <p className={`text-sm ${state.ok ? "text-teal-700" : "text-red-600"}`} role={state.ok ? undefined : "alert"}>{state.message}</p>}
+                {state.message && <p className={`text-sm ${state.ok ? "text-teal-700" : "text-red-600"}`} role={state.ok ? "status" : "alert"}>{state.message}</p>}
             </div>
         </form>
     );

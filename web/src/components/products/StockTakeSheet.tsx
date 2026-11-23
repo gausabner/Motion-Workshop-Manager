@@ -127,7 +127,7 @@ export function StockTakeSheet({ tenant, take, currency }: { tenant: string; tak
                         }}>
                         Apply the count
                     </Button>
-                    {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? undefined : "alert"}>{status.text}</p>}
+                    {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? "status" : "alert"}>{status.text}</p>}
                 </div>
             )}
             {!editable && status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`}>{status.text}</p>}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ListChecks, MessageCircle } from "lucide-react";
+import { ListChecks, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
@@ -8,6 +8,7 @@ import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 import type { listDocuments } from "@/lib/documents/queries";
 import { TERM } from "@/lib/copy/terms";
+import { Pager } from "@/components/ui/pager";
 
 type Data = Awaited<ReturnType<typeof listDocuments>>;
 
@@ -55,11 +56,12 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                     </div>
                 </CardHeader>
 
-                <div className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
+                <nav aria-label="Filter" className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
                     {TABS.map((t) => (
                         <Link
                             key={t.key}
                             href={href({ tab: t.key, page: 1 })}
+                            aria-current={t.key === tab ? "page" : undefined}
                             className={`whitespace-nowrap px-3 py-2 text-sm border-b-2 -mb-px transition-colors ${
                                 t.key === tab ? "border-teal-700 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
                             }`}
@@ -67,7 +69,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                             {t.label}
                         </Link>
                     ))}
-                </div>
+                </nav>
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
@@ -125,11 +127,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-label="Previous page" href={href({ page: data.page - 1 })} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" href={href({ page: data.page + 1 })} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={(page) => href({ page })} />
                 </div>
             </Card>
         </div>

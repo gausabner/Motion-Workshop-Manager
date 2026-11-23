@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useRef, useState, useTransition } from "react";
 import { Ban, CheckCircle2, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fieldClass } from "@/components/ui/input";
 import { TextField } from "@/components/forms/fields";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import { AllocationGrid } from "@/components/payments/AllocationGrid";
@@ -184,7 +185,8 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                                     : "No money tendered. Applying a credit note on its own is fine — add a tender if cash actually changed hands."}
                             </p>
                         )}
-                        {tenders.map((t) => {
+                        {tenders.map((t, row) => {
+                            const line = tenders.length > 1 ? `, line ${row + 1}` : "";
                             const method = methods.find((m) => m.id === t.methodId);
                             // Change is a cash idea, so the Received field only appears on the seeded CASH method.
                             const takesChange = !isRefund && method?.code === "CASH";
@@ -195,41 +197,41 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
                             <div key={t.key} className="px-4 py-2">
                                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                                     <select
-                                        aria-label="Payment method" value={t.methodId} disabled={readOnly}
+                                        aria-label={`Payment method${line}`} value={t.methodId} disabled={readOnly}
                                         onChange={(e) => setTender(t.key, { methodId: e.target.value, received: null })}
-                                        className="sm:col-span-3 h-8 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                        className={`sm:col-span-3 h-8 ${fieldClass} px-2 text-sm`}
                                     >
                                         {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                                     </select>
                                     {takesChange ? (
                                         <div className="sm:col-span-6 flex items-center gap-2">
                                             <input
-                                                aria-label="Cash received" type="number" step="0.01" inputMode="decimal" disabled={readOnly}
+                                                aria-label={`Cash received${line}`} type="number" step="0.01" inputMode="decimal" disabled={readOnly}
                                                 value={t.received ?? ""} placeholder="Cash received"
                                                 onChange={(e) => setTender(t.key, { received: e.target.value === "" ? null : Number(e.target.value) })}
-                                                className="h-8 w-40 rounded-md border border-input bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                                className={`h-8 w-40 ${fieldClass} px-2 text-right text-sm tabular-nums`}
                                             />
-                                            <span className={`text-xs ${given > 0 ? "text-slate-700" : "text-slate-500"}`}>
+                                            <span role="status" className={`text-xs ${given > 0 ? "text-slate-700" : "text-slate-500"}`}>
                                                 {given > 0 ? <>Change <strong className="tabular-nums">{money(given)}</strong></> : "Change 0.00"}
                                             </span>
                                         </div>
                                     ) : (
                                         <input
-                                            aria-label="Reference" value={t.reference} disabled={readOnly}
+                                            aria-label={`Reference${line}`} value={t.reference} disabled={readOnly}
                                             placeholder={method?.isEft ? "EFT reference — put it on the deposit slip" : "Reference (optional)"}
                                             onChange={(e) => setTender(t.key, { reference: e.target.value })}
-                                            className="sm:col-span-6 h-8 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                            className={`sm:col-span-6 h-8 ${fieldClass} px-2 text-sm`}
                                         />
                                     )}
                                     <input
-                                        aria-label={isRefund ? "Amount paid out" : "Amount kept"} type="number" step="0.01" inputMode="decimal" disabled={readOnly}
+                                        aria-label={`${isRefund ? "Amount paid out" : "Amount kept"}${line}`} type="number" step="0.01" inputMode="decimal" disabled={readOnly}
                                         value={t.amount === 0 ? "" : t.amount} placeholder="0.00"
                                         onChange={(e) => setTender(t.key, { amount: Math.abs(Number(e.target.value)) })}
-                                        className="sm:col-span-2 h-8 rounded-md border border-input bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:bg-slate-50"
+                                        className={`sm:col-span-2 h-8 ${fieldClass} px-2 text-right text-sm tabular-nums`}
                                     />
                                     {!readOnly && (
                                         <button
-                                            type="button" aria-label="Remove tender" className="relative hit-area sm:col-span-1 justify-self-end text-slate-500 hover:text-red-600"
+                                            type="button" aria-label={`Remove tender${line}`} className="relative hit-area sm:col-span-1 justify-self-end text-slate-500 hover:text-red-600"
                                             onClick={() => { setTenders((rows) => rows.filter((r) => r.key !== t.key)); setDirty(true); }}
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -265,9 +267,11 @@ export function PaymentEditor({ tenant, payment, methods, openItems: initialItem
 
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div className="text-sm">
-                        {state.message && <p className={state.ok ? "text-teal-700" : "text-red-600"} role={state.ok ? undefined : "alert"}>{state.message}</p>}
-                        {!readOnly && problem && <p className="text-amber-700">{problem}</p>}
-                        {!readOnly && !problem && dirty && <p className="text-slate-500">Save before posting.</p>}
+                        {state.message && <p className={state.ok ? "text-teal-700" : "text-red-600"} role={state.ok ? "status" : "alert"}>{state.message}</p>}
+                        {/* Why it cannot post yet, said where a screen reader hears it, not only in the button's tooltip. */}
+                        <p role="status" className={!readOnly && problem ? "text-amber-700" : "text-slate-600"}>
+                            {readOnly ? "" : problem ?? (dirty ? "Save before posting." : "")}
+                        </p>
                     </div>
                     <div className="flex items-end gap-6">
                         <dl className="text-sm text-right">
