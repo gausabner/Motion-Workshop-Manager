@@ -1,4 +1,4 @@
-import { test, expect, signIn } from "./workshop";
+import { test, expect, signIn, inWorkshop } from "./workshop";
 import { violations } from "./axe";
 
 /**
@@ -15,12 +15,14 @@ import { violations } from "./axe";
  */
 
 test.describe("accessibility", () => {
-    // The rules are the same at every width; one engine keeps the suite quick.
+    // Desktop and a phone, both Chromium: the rules are the same, but the
+    // layout is not. Tables become cards, the sidebar becomes a tab bar and a
+    // drawer, and what a screen reader meets changes with them.
     test.beforeEach(({}, testInfo) => {
-        test.skip(testInfo.project.name !== "chromium", "desktop Chromium only");
+        test.skip(!["chromium", "phone"].includes(testInfo.project.name), "Chromium on desktop and phone only");
     });
 
-    for (const path of ["/", "/pricing", "/support", "/login", "/register", "/help"]) {
+    for (const path of ["/", "/pricing", "/support", "/login", "/register", "/help", "/help/the-diary"]) {
         test(`public: ${path}`, async ({ page }) => {
             await page.goto(path);
             expect(await violations(page)).toEqual([]);
@@ -43,12 +45,26 @@ test.describe("accessibility", () => {
         "/dashboard/settings/organisation",
         "/dashboard/settings/workshops",
         "/dashboard/settings/requisitions",
+        "/dashboard/settings/tax",
+        "/dashboard/products",
+        "/dashboard/purchasing",
+        "/dashboard/messages",
+        "/dashboard/requisitions",
     ];
 
     test("signed-in screens", async ({ page, workshop }) => {
         await signIn(page, workshop);
+        // A record of each kind, so the detail screens are checked too: they are
+        // where the headings and the titles went missing.
+        const job = await inWorkshop(workshop, (tx) =>
+            tx.document.create({
+                data: { tenantId: workshop.tenantId, type: "JOB_CARD", jobNumber: "JC-AXE", jobStatus: "BOOKED_IN", customerId: workshop.customer.id, vehicleId: workshop.vehicle.id },
+                select: { id: true },
+            }),
+        );
+        const detail = [`/dashboard/customers/${workshop.customer.id}`, `/dashboard/vehicles/${workshop.vehicle.id}`, `/dashboard/documents/${job.id}`];
         const report: Record<string, string[]> = {};
-        for (const path of screens) {
+        for (const path of [...screens, ...detail]) {
             await page.goto(`/${workshop.slug}${path}`);
             const found = await violations(page);
             if (found.length) report[path] = found;

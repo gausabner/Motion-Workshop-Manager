@@ -20,9 +20,9 @@ const when = (d: Date, timeZone: string) =>
 export function DocumentHistory({ rows, timezone }: { rows: AuditRow[]; timezone: string }) {
     return (
         <section className="rounded-sm border border-slate-200 bg-white">
-            <h3 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <h2 className="border-b bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 History
-            </h3>
+            </h2>
             {rows.length === 0 ? (
                 <p className="px-4 py-4 text-sm text-slate-500">Nothing recorded against this document yet.</p>
             ) : (

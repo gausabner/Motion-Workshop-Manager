@@ -4,6 +4,10 @@ import { useActionState, useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, TextField, SelectField, CheckField } from "@/components/forms/fields";
+import { Textarea } from "@/components/ui/textarea";
+import { fieldClass } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { FieldControl } from "@ui-sdk/react/field";
 import { LineGrid, type EditorLine } from "@/components/documents/LineGrid";
 import { CustomerPicker } from "@/components/forms/CustomerPicker";
 import { VehiclePicker } from "@/components/forms/VehiclePicker";
@@ -105,7 +109,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
             </div>
 
             <section className="border border-slate-200 rounded-sm bg-white">
-                <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Details</h3>
+                <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Details</h2>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                     <CustomerPicker
                         tenant={tenant}
@@ -135,18 +139,19 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     {isJob && <TextField label="Scheduled for" name="scheduledAt" type="datetime-local" defaultValue={formatLocalDateTime(doc.scheduledAt ? new Date(doc.scheduledAt) : null, timeZone)} errors={errors} />}
                     {isJob && !readOnly && options.services.length > 0 && (
                         <Field label="Service" name="service" errors={errors} hint="Fills the time — the same list online booking uses">
-                            <select
+                            <FieldControl
+                                render={<select />}
                                 id="service" value={service}
                                 onChange={(e) => {
                                     setService(e.target.value);
                                     const chosen = options.services.find((t) => t.id === e.target.value);
                                     if (chosen) setEstimatedHours(String(chosen.hours));
                                 }}
-                                className="flex h-8 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                className={cn(fieldClass, "h-8 px-2 text-sm")}
                             >
                                 <option value="">Choose…</option>
                                 {options.services.map((t) => <option key={t.id} value={t.id}>{t.description} ({t.hours}h)</option>)}
-                            </select>
+                            </FieldControl>
                         </Field>
                     )}
                     {/* Names the job until it has a line one to be named by. */}
@@ -164,7 +169,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
 
             {isJob && (
                 <section className="border border-slate-200 rounded-sm bg-white">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Job</h3>
+                    <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Job</h2>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                         <SelectField label="Status" name="jobStatus" defaultValue={doc.jobStatus ?? "BOOKED_IN"} errors={errors} options={JOB_STATUS_ORDER.map((s) => ({ value: s, label: JOB_STATUS_LABELS[s] }))} />
                         <TextField label="Status comment" name="statusComment" defaultValue={doc.statusComment} errors={errors} className="lg:col-span-3" placeholder="e.g. waiting on brake pads from Midas" />
@@ -173,7 +178,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
             )}
 
             <section className="border border-slate-200 rounded-sm bg-white">
-                <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vehicle readings</h3>
+                <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vehicle readings</h2>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                     <TextField label="Odometer (km)" name="odometer" type="number" min="0" defaultValue={doc.odometer} errors={errors} hint="Saved to the vehicle record when processed" />
                     <TextField label="Next service at (km)" name="nextServiceKm" type="number" min="0" defaultValue={doc.nextServiceKm} errors={errors} />
@@ -187,19 +192,19 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <section className="lg:col-span-2 border border-slate-200 rounded-sm bg-white">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Notes</h3>
+                    <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Notes</h2>
                     <div className="p-4 space-y-3">
                         <Field label="Job card notes (workshop)" name="jobCardNotes" errors={errors}>
-                            <textarea id="jobCardNotes" name="jobCardNotes" defaultValue={doc.jobCardNotes ?? ""} rows={3} disabled={readOnly} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm disabled:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                            <Textarea id="jobCardNotes" name="jobCardNotes" defaultValue={doc.jobCardNotes ?? ""} rows={3} disabled={readOnly} className="text-sm" />
                         </Field>
                         <Field label="Notes on the printed document (customer)" name="invoiceNotes" errors={errors}>
-                            <textarea id="invoiceNotes" name="invoiceNotes" defaultValue={doc.invoiceNotes ?? ""} rows={3} disabled={readOnly} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm disabled:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                            <Textarea id="invoiceNotes" name="invoiceNotes" defaultValue={doc.invoiceNotes ?? ""} rows={3} disabled={readOnly} className="text-sm" />
                         </Field>
                     </div>
                 </section>
 
                 <section className="border border-slate-200 rounded-sm bg-white h-fit">
-                    <h3 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Totals</h3>
+                    <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Totals</h2>
                     <div className="p-4 space-y-2 text-sm">
                         <div className="grid grid-cols-2 gap-2">
                             <TextField label="Discount %" name="discountPercent" type="number" step="0.01" min="0" max="100" defaultValue={discountPercent} onChange={(e) => setDiscountPercent(Number(e.target.value))} errors={errors} disabled={readOnly} />

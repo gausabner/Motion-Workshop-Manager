@@ -16,7 +16,7 @@ export default async function CompanySettingsPage({ params }: { params: Promise<
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Company profile</h3>
+                <h2 className="text-lg font-medium">Company profile</h2>
                 <p className="text-sm text-slate-500">How the workshop appears on everything a customer receives.</p>
             </div>
             <div className="border-t border-slate-200" />

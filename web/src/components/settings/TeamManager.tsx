@@ -154,19 +154,22 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                     <p className={`text-sm font-medium truncate ${inactive ? "text-slate-500" : "text-slate-800"}`}>{member.user.firstName} {member.user.lastName}{isSelf && <span className="text-slate-500 font-normal"> (you)</span>}</p>
                     <p className="text-xs text-slate-500 truncate">{member.user.email}</p>
                 </div>
-                <select name="group" defaultValue={member.group} disabled={isSelf} className={`${field} col-span-3`} aria-label="Role">
+                <select name="group" defaultValue={member.group} disabled={isSelf} className={`${field} col-span-3`} aria-label={`Role, ${member.user.firstName} ${member.user.lastName}`}>
                     {editableGroups.map((g) => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
                 </select>
                 {isSelf && <input type="hidden" name="group" value={member.group} />}
-                <div className="col-span-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                    <label className="flex items-center gap-1"><input type="checkbox" name="isMechanic" defaultChecked={member.isMechanic} className="accent-teal-700" />Mechanic</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="showOnDiary" defaultChecked={member.showOnDiary} className="accent-teal-700" />On diary</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="isServiceAdvisor" defaultChecked={member.isServiceAdvisor} className="accent-teal-700" />Advisor</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" name="active" defaultChecked={!inactive} disabled={isSelf} className="accent-teal-700" />Active</label>
+                {/* Each box names its person, so "Mechanic" read four times down the list says whose it is. */}
+                <div className="col-span-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600 pointer-coarse:gap-y-2">
+                    {([["isMechanic", "Mechanic", member.isMechanic, false], ["showOnDiary", "On diary", member.showOnDiary, false], ["isServiceAdvisor", "Advisor", member.isServiceAdvisor, false], ["active", "Active", !inactive, isSelf]] as const).map(([name, label, checked, disabled]) => (
+                        <label key={name} className="flex min-h-6 items-center gap-1.5 pointer-coarse:min-h-11">
+                            <input type="checkbox" name={name} defaultChecked={checked} disabled={disabled} className="size-4 accent-teal-700" />
+                            {label}<span className="sr-only">, {member.user.firstName} {member.user.lastName}</span>
+                        </label>
+                    ))}
                     {isSelf && <input type="hidden" name="active" value="on" />}
                 </div>
                 <div className="col-span-1 flex justify-end">
-                    <Button type="submit" size="sm" variant="outline" className="h-7" disabled={pending}>{pending ? "…" : "Save"}</Button>
+                    <Button type="submit" size="sm" variant="outline" className="h-7" disabled={pending}>{pending ? "…" : "Save"}<span className="sr-only"> {member.user.firstName} {member.user.lastName}</span></Button>
                 </div>
 
                 {/* Only the permissions this role does not already carry. Offering

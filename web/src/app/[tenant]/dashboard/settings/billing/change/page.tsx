@@ -76,7 +76,7 @@ export default async function ChangePlanPage({
                     <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
                     Billing
                 </Link>
-                <h3 className="text-lg font-medium">Change plan</h3>
+                <h2 className="text-lg font-medium">Change plan</h2>
                 <p className="text-sm text-slate-500">
                     {pending
                         ? `Your request to move to ${pending.toPlanName} is logged.`
@@ -116,9 +116,9 @@ export default async function ChangePlanPage({
 function Choose({ current, base }: { current: PlanId | null; base: string }) {
     return (
         <section aria-labelledby="choose-heading" className="space-y-3">
-            <h4 id="choose-heading" className="text-sm font-semibold text-slate-900">
+            <h3 id="choose-heading" className="text-sm font-semibold text-slate-900">
                 Choose a plan
-            </h4>
+            </h3>
             <ul className="divide-y divide-slate-200 border border-slate-200 bg-white">
                 {PLANS.map((p) => {
                     const id = asPlanId(p.id)!;
@@ -224,9 +224,9 @@ function Review(props: {
 
     return (
         <section aria-labelledby="review-heading" className="space-y-6">
-            <h4 id="review-heading" className="text-sm font-semibold text-slate-900">
+            <h3 id="review-heading" className="text-sm font-semibold text-slate-900">
                 {kind === "upgrade" ? `Move up to ${target.name}` : `Move down to ${target.name}`}
-            </h4>
+            </h3>
 
             <dl className="grid border border-slate-200 bg-white sm:grid-cols-2">
                 <Pair label="Plan" from={props.currentName} to={target.name} />
@@ -328,9 +328,9 @@ function PendingRequest({ pending, reference, period, slug }: { pending: Pending
     return (
         <section aria-labelledby="pending-heading" className="space-y-6">
             <div className="space-y-1">
-                <h4 id="pending-heading" className="text-sm font-semibold text-slate-900">
+                <h3 id="pending-heading" className="text-sm font-semibold text-slate-900">
                     {up ? `Pay to switch on ${pending.toPlanName}` : "Waiting for approval"}
-                </h4>
+                </h3>
                 <p className="text-sm text-slate-600">
                     {up
                         ? `Requested on ${billingDay(pending.requestedAt)}. We switch on ${pending.toPlanName} as soon as the payment is confirmed, and email you the tax invoice.`

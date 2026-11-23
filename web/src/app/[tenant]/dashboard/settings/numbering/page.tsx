@@ -19,7 +19,7 @@ export default async function NumberingSettingsPage({ params }: { params: Promis
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Document numbers</h3>
+                <h2 className="text-lg font-medium">Document numbers</h2>
                 <p className="text-sm text-slate-500">The prefix and next number on each kind of document you send.</p>
             </div>
             <div className="border-t border-slate-200" />

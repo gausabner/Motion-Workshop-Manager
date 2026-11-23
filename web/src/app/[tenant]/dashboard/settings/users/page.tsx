@@ -23,7 +23,7 @@ export default async function UsersSettingsPage({ params }: { params: Promise<{ 
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">Team</h3>
+                <h2 className="text-lg font-medium">Team</h2>
                 <p className="text-sm text-slate-500">Invite your mechanics and service advisors, and choose what each can do.</p>
             </div>
             <div className="border-t border-slate-200" />

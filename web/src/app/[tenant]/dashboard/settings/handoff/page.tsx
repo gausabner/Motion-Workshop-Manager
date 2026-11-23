@@ -15,7 +15,7 @@ export default async function HandoffSettingsPage({ params }: { params: Promise<
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-medium">{TERM.accountingIntegration}</h3>
+                <h2 className="text-lg font-medium">{TERM.accountingIntegration}</h2>
                 <p className="text-sm text-slate-500">
                     Every night MOTION can write the day&rsquo;s journal into a folder for the accounting system to pick up. It sends the file out and
                     nothing comes back in — no connection to configure, nothing listening — which is usually the only arrangement a council&rsquo;s

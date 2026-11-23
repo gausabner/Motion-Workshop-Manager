@@ -53,7 +53,7 @@ export default async function HelpTopicPage({ params }: { params: Promise<{ slug
                 )}
             </div>
 
-            <aside className="hidden w-48 shrink-0 xl:block">
+            <aside aria-label="On this page" className="hidden w-48 shrink-0 xl:block">
                 <OnThisPage anchors={anchors} />
             </aside>
         </div>

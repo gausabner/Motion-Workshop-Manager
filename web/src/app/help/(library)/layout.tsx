@@ -68,6 +68,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
                     than drawn, so nothing new is introduced to the palette; on
                     a tall screen the list ends above it and it is invisible. */}
                 <aside
+                    aria-label="Help topics"
                     className="lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:w-56 lg:shrink-0 lg:overflow-y-auto lg:py-9 lg:[mask-image:linear-gradient(to_bottom,#000_calc(100%-2.5rem),transparent)]"
                 >
                     <TopicRail groups={groups} />

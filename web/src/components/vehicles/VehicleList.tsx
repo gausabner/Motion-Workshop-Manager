@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Car, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
@@ -28,7 +28,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                 <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
                     <div className="flex items-center gap-3">
                         <Car className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Vehicles</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">Vehicles</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <CustomerListControls q={q} archived={archived} />

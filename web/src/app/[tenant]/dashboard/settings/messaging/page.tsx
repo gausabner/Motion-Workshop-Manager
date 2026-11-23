@@ -47,7 +47,7 @@ export default async function MessagingSettingsPage({ params }: { params: Promis
     return (
         <div className="space-y-6 max-w-6xl pb-12">
             <div>
-                <h3 className="text-lg font-medium">Messages and templates</h3>
+                <h2 className="text-lg font-medium">Messages and templates</h2>
                 <p className="text-sm text-slate-500">
                     The wording that goes out with a document on WhatsApp or email, and the terms printed on the documents themselves.
                     Anything you have not changed uses the standard wording, and picks up improvements to it.
@@ -55,7 +55,7 @@ export default async function MessagingSettingsPage({ params }: { params: Promis
             </div>
             {groups.map((group) => (
                 <section key={group} id={group === "Reminders" ? "reminders" : undefined} className="space-y-3 scroll-mt-4">
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{group}</h4>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{group}</h3>
                     {group === "Reminders" && <ReminderSettingsForm tenant={slug} settings={reminderSettings(tenant.settings)} />}
                     {EDITABLE_TEMPLATES.filter((t) => t.group === group).map((t) => (
                         <TemplateEditor

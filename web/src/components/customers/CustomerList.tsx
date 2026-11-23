@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Users, Plus, Pencil, Car, Calendar, FileText, MessageCircle, Mail, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
@@ -33,7 +33,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                 <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="flex items-center gap-3">
                         <Users className="w-5 h-5 text-slate-600" />
-                        <CardTitle className="text-lg text-slate-800 font-bold">Customers</CardTitle>
+                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">Customers</h1>
                     </div>
                     <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <CustomerListControls q={q} archived={archived} />

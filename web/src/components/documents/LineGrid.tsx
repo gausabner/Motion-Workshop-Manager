@@ -138,7 +138,7 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
     return (
         <div className="border border-slate-200 rounded-sm bg-white">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Items</h3>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Items</h2>
                 {!readOnly && (
                     <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => onChange((prev) => [...prev, newLine(taxRate)])}>
                         <Plus className="w-3.5 h-3.5 mr-1" />Add line
@@ -146,7 +146,8 @@ export function LineGrid({ lines, onChange, products, pricesIncludeTax, taxRate,
                 )}
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Wider than a phone, so it scrolls on its own; focusable so a keyboard can scroll it too. */}
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Items">
                 <table className="w-full text-sm min-w-[900px]">
                     <thead>
                         <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
