@@ -32,7 +32,7 @@ export function TaxSettingsForm({ tenant, tax }: { tenant: string; tax: TaxProfi
             <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-slate-500">Applies to documents raised from now on.</p>
                 <div className="flex items-center gap-3">
-                    {state.message && <span className={state.ok ? "text-sm text-teal-700" : "text-sm text-red-600"} role={state.ok ? undefined : "alert"}>{state.message}</span>}
+                    {state.message && <span className={state.ok ? "text-sm text-teal-700" : "text-sm text-red-600"} role={state.ok ? "status" : "alert"}>{state.message}</span>}
                     <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={saving}>
                         <Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}
                     </Button>

@@ -12,6 +12,7 @@ import { SplitDialog } from "@/components/documents/SplitDialog";
 import { reworkDocumentAction } from "@/lib/documents/split-actions";
 import { reworkError } from "@/lib/documents/split";
 import type { DocumentRecord } from "@/lib/documents/queries";
+import { useUnsaved } from "@/lib/documents/unsaved";
 import { TERM } from "@/lib/copy/terms";
 
 type Props = {
@@ -50,6 +51,8 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
     const owing = isProcessed && (doc.type === "INVOICE" || doc.type === "CASH_SALE") && doc.amountDue > 0 && !!doc.customer;
     // A credit note that has not been used up can be handed back in cash or by EFT.
     const refundable = isProcessed && doc.type === "CREDIT" && doc.amountDue < 0 && !!doc.customer;
+    // These act on the saved record, so they wait while the editor holds changes; its status line says why.
+    const unsaved = useUnsaved(doc.id);
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -59,7 +62,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 </a>
             </Button>
             {canSend && doc.customer && doc.state !== "VOID" && (
-                <SendDialog tenant={tenant} target={{ kind: "DOCUMENT", id: doc.id }} label={`${DOCUMENT_TYPE_LABELS[doc.type].toLowerCase()} ${doc.number ?? doc.jobNumber ?? ""}`.trim()} />
+                <SendDialog tenant={tenant} target={{ kind: "DOCUMENT", id: doc.id }} label={`${DOCUMENT_TYPE_LABELS[doc.type].toLowerCase()} ${doc.number ?? doc.jobNumber ?? ""}`.trim()} disabled={unsaved} />
             )}
             {owing && canTakePayment && (
                 <form action={createPayment.bind(null, tenant, { documentId: doc.id })}>
@@ -73,7 +76,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
             )}
             {isDraft && canStartJob && (
                 <form action={convertDocument.bind(null, tenant, doc.id, "JOB_CARD")}>
-                    <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Start job</Button>
+                    <Button type="submit" size="sm" variant="outline" disabled={unsaved}><ArrowRight className="w-4 h-4 mr-1" />Start job</Button>
                 </form>
             )}
             {fleet ? (
@@ -85,10 +88,10 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                         <div className="absolute left-0 z-30 mt-1 flex w-max flex-col items-stretch gap-1 border border-slate-200 bg-white p-1 shadow-[0_10px_15px_-3px_rgb(15_23_42/0.05),0_4px_6px_-4px_rgb(15_23_42/0.05)]">
                             {canInvoice && (
                                 <form action={convertDocument.bind(null, tenant, doc.id, "INVOICE")}>
-                                    <Button type="submit" size="sm" variant="ghost" className="w-full justify-start"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
+                                    <Button type="submit" size="sm" variant="ghost" className="w-full justify-start" disabled={unsaved}><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
                                 </form>
                             )}
-                            {canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
+                            {canProcess && <ProcessDialog tenant={tenant} doc={doc} disabled={unsaved} />}
                         </div>
                     </details>
                 )
@@ -96,10 +99,10 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 <>
                     {isDraft && canInvoice && (
                         <form action={convertDocument.bind(null, tenant, doc.id, "INVOICE")}>
-                            <Button type="submit" size="sm" variant="outline"><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
+                            <Button type="submit" size="sm" variant="outline" disabled={unsaved}><ArrowRight className="w-4 h-4 mr-1" />Convert to invoice</Button>
                         </form>
                     )}
-                    {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} />}
+                    {isDraft && canProcess && <ProcessDialog tenant={tenant} doc={doc} disabled={unsaved} />}
                 </>
             )}
             {isProcessed && (
@@ -110,7 +113,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 </form>
             )}
             <form action={copyDocument.bind(null, tenant, doc.id)}>
-                <Button type="submit" size="sm" variant="outline"><Copy className="w-4 h-4 mr-1" />Copy</Button>
+                <Button type="submit" size="sm" variant="outline" disabled={unsaved}><Copy className="w-4 h-4 mr-1" />Copy</Button>
             </form>
             {isProcessed && (doc.type === "INVOICE" || doc.type === "CASH_SALE") && (
                 <form action={createCreditNote.bind(null, tenant, doc.id)}>
@@ -121,6 +124,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 <SplitDialog
                     tenant={tenant} documentId={doc.id} currency={currency} total={Number(doc.total)}
                     lines={doc.lines.map((l) => ({ id: l.id, description: l.description, lineTotal: Number(l.lineTotal) }))}
+                    disabled={unsaved}
                 />
             )}
 
@@ -128,7 +132,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                 <span className="flex items-center gap-2">
                     <input
                         value={reworkNote} onChange={(e) => setReworkNote(e.target.value)} autoFocus
-                        placeholder="Reason for the rework" className="h-8 w-56 rounded-md border border-slate-300 px-2 text-sm"
+                        aria-label="Reason for the rework" placeholder="Reason for the rework" className="h-8 w-56 rounded-sm border border-[var(--motion-field-edge)] px-2 text-sm"
                     />
                     <Button
                         type="button" size="sm" variant="outline" disabled={!reworkNote.trim() || opening}
@@ -149,7 +153,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
             {doc.state !== "VOID" && canVoid && (
                 voiding ? (
                     <form action={voidDocument.bind(null, tenant, doc.id)} className="flex items-center gap-2">
-                        <input name="voidReason" required autoFocus placeholder="Reason for voiding" className="h-8 w-56 rounded-sm border border-red-300 px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500" />
+                        <input name="voidReason" required autoFocus aria-label="Reason for voiding" placeholder="Reason for voiding" className="h-8 w-56 rounded-sm border border-red-300 px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500" />
                         <Button type="submit" size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">Confirm void</Button>
                         <Button type="button" size="sm" variant="ghost" onClick={() => setVoiding(false)}>Cancel</Button>
                     </form>
@@ -173,6 +177,7 @@ export function DocumentToolbar({ tenant, doc, currency, canProcess, canVoid, ca
                             required
                             autoFocus
                             minLength={3}
+                            aria-label="Why it is being deleted"
                             placeholder="Why — e.g. duplicate of JC-1043"
                             className="h-8 w-64 rounded-sm border border-red-300 px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500"
                         />

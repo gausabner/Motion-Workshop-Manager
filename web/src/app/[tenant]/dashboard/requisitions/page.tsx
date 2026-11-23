@@ -81,33 +81,33 @@ export default async function RequisitionsPage({ params, searchParams }: { param
                               : "No requisitions have been closed, rejected or cancelled."}
                 </p>
             ) : (
-                <table data-mobile="cards" className="w-full border border-slate-200 bg-white text-sm">
-                    <thead>
-                        <tr className="border-b border-slate-200 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
-                            <th scope="col" className="px-4 py-2 font-semibold">Number</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">{show === "issue" || show === "quotes" ? "Needed by" : "Raised"}</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">Workshop</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">By</th>
-                            <th scope="col" className="py-2 pr-3 font-semibold">Charged to</th>
-                            <th scope="col" className="py-2 pr-3 text-right font-semibold">Value, {tenant.currency}</th>
-                            <th scope="col" className="py-2 pr-4 font-semibold">Where it is</th>
+                <table role="table" data-mobile="cards" className="w-full border border-slate-200 bg-white text-sm">
+                    <thead role="rowgroup">
+                        <tr role="row" className="border-b border-slate-200 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                            <th role="columnheader" scope="col" className="px-4 py-2 font-semibold">Number</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">{show === "issue" || show === "quotes" ? "Needed by" : "Raised"}</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">Workshop</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">By</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 font-semibold">Charged to</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-3 text-right font-semibold">Value, {tenant.currency}</th>
+                            <th role="columnheader" scope="col" className="py-2 pr-4 font-semibold">Where it is</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                         {rows.map((r) => (
                             // The whole row opens it; the number is the link, stretched across the row.
-                            <tr key={r.id} className="relative border-t border-slate-100 even:bg-slate-50/60 hover:bg-slate-50">
-                                <td data-mobile="primary" className="px-4 py-2 font-medium">
+                            <tr role="row" key={r.id} className="relative border-t border-slate-100 even:bg-slate-50/60 hover:bg-slate-50">
+                                <td role="cell" data-mobile="primary" className="px-4 py-2 font-medium">
                                     <Link href={`${base}/${r.id}`} className="tabular-nums text-slate-900 after:absolute after:inset-0 hover:text-teal-700">{r.number ?? "Draft"}</Link>
                                 </td>
-                                <td data-label={show === "issue" || show === "quotes" ? "Needed by" : "Raised"} className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-600">
+                                <td role="cell" data-label={show === "issue" || show === "quotes" ? "Needed by" : "Raised"} className="whitespace-nowrap py-2 pr-3 tabular-nums text-slate-600">
                                     {show === "issue" || show === "quotes" ? (r.requiredBy ? day(r.requiredBy, true) : "—") : day(r.createdAt, true)}
                                 </td>
-                                <td data-label="Workshop" className="py-2 pr-3 text-slate-700">{r.workshop ?? "—"}</td>
-                                <td data-label="By" className="py-2 pr-3 text-slate-700">{r.requestedBy}</td>
-                                <td data-label="Charged to" className="py-2 pr-3 tabular-nums text-slate-700">{r.charge ?? "—"}</td>
-                                <td data-label={`Value, ${tenant.currency}`} className="py-2 pr-3 text-right tabular-nums">{money(r.value)}</td>
-                                <td data-label="Where it is" className="py-2 pr-4 text-slate-700">{r.stateLabel}</td>
+                                <td role="cell" data-label="Workshop" className="py-2 pr-3 text-slate-700">{r.workshop ?? "—"}</td>
+                                <td role="cell" data-label="By" className="py-2 pr-3 text-slate-700">{r.requestedBy}</td>
+                                <td role="cell" data-label="Charged to" className="py-2 pr-3 tabular-nums text-slate-700">{r.charge ?? "—"}</td>
+                                <td role="cell" data-label={`Value, ${tenant.currency}`} className="py-2 pr-3 text-right tabular-nums">{money(r.value)}</td>
+                                <td role="cell" data-label="Where it is" className="py-2 pr-4 text-slate-700">{r.stateLabel}</td>
                             </tr>
                         ))}
                     </tbody>

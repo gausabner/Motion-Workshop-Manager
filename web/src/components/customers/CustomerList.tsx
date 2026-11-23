@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Plus, Pencil, Car, Calendar, FileText, MessageCircle, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Plus, Pencil, Car, MessageCircle, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,14 @@ import { CustomerListControls } from "@/components/customers/CustomerListControl
 import type { listCustomers } from "@/lib/customers/queries";
 import { DownloadIcon } from "@/components/exports/DownloadPair";
 import { whatsappLink } from "@/lib/format";
+import { Pager } from "@/components/ui/pager";
 
 type Data = Awaited<ReturnType<typeof listCustomers>>;
 
-const iconBtn = "inline-flex items-center justify-center w-8 h-7 rounded-sm border shadow-sm transition-colors";
-const teal = `${iconBtn} relative hit-area border-teal-500 text-teal-700 bg-white hover:bg-teal-50`;
+const iconBtn = "inline-flex items-center justify-center w-8 h-7 rounded-sm border transition-colors";
+const teal = `${iconBtn} relative hit-area border-[var(--motion-field-edge)] text-teal-700 bg-white hover:bg-slate-50`;
 const disabled = `${iconBtn} border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed`;
+
 
 export function CustomerList({ tenant, data, q, archived }: { tenant: string; data: Data; q: string; archived: boolean }) {
     const base = `/${tenant}/dashboard/customers`;
@@ -81,13 +83,11 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                                                     Edit is reachable by tapping the name; booking and invoice are
                                                     counter work, not something done at a car. */}
                                                 <span className="hidden gap-1 sm:flex">
-                                                    <Link href={`${base}/${c.id}`} className={teal} title="Edit"><Pencil className="w-4 h-4" /></Link>
-                                                    <Link href={`${base}/${c.id}#vehicles`} className={teal} title="Vehicles"><Car className="w-4 h-4" /></Link>
-                                                    <span className={disabled} title="Booking — coming with the diary"><Calendar className="w-4 h-4" /></span>
-                                                    <span className={disabled} title="Invoice — coming with documents"><FileText className="w-4 h-4" /></span>
+                                                    <Link href={`${base}/${c.id}`} className={teal} title="Edit" aria-label={`Edit ${c.firstName} ${c.lastName}`}><Pencil className="w-4 h-4" aria-hidden="true" /></Link>
+                                                    <Link href={`${base}/${c.id}#vehicles`} className={teal} title="Vehicles" aria-label={`Vehicles of ${c.firstName} ${c.lastName}`}><Car className="w-4 h-4" aria-hidden="true" /></Link>
                                                 </span>
-                                                {wa ? <a href={wa} target="_blank" rel="noreferrer" className={teal} title="WhatsApp"><MessageCircle className="w-4 h-4" /></a> : <span className={disabled} title="No mobile number"><MessageCircle className="w-4 h-4" /></span>}
-                                                {c.email ? <a href={`mailto:${c.email}`} className={teal} title="Email"><Mail className="w-4 h-4" /></a> : <span className={disabled} title="No email address"><Mail className="w-4 h-4" /></span>}
+                                                {wa ? <a href={wa} target="_blank" rel="noreferrer" className={teal} title="WhatsApp" aria-label={`WhatsApp ${c.firstName} ${c.lastName} (opens in a new tab)`}><MessageCircle className="w-4 h-4" aria-hidden="true" /></a> : <span aria-hidden="true" className={disabled} title="No mobile number"><MessageCircle className="w-4 h-4" /></span>}
+                                                {c.email ? <a href={`mailto:${c.email}`} className={teal} title="Email" aria-label={`Email ${c.firstName} ${c.lastName}`}><Mail className="w-4 h-4" aria-hidden="true" /></a> : <span aria-hidden="true" className={disabled} title="No email address"><Mail className="w-4 h-4" /></span>}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -99,13 +99,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-disabled={data.page <= 1} href={pageHref(1)} className={`px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>First</Link>
-                        <Link aria-label="Previous page" aria-disabled={data.page <= 1} href={pageHref(data.page - 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" aria-disabled={data.page >= data.pages} href={pageHref(data.page + 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                        <Link aria-disabled={data.page >= data.pages} href={pageHref(data.pages)} className={`px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}>Last</Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={pageHref} ends />
                 </div>
             </Card>
         </div>

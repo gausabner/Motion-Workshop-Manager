@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { Check } from "lucide-react";
 import { Checkbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
 import { Field as Base, FieldControl, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
@@ -103,11 +103,17 @@ export function CheckField({ label, name, defaultChecked, hint }: { label: strin
     );
 }
 
+/**
+ * A titled group of fields. A group named by its heading, so a screen reader
+ * entering "Address 1" hears "Street address" first; the two addresses on a
+ * customer use the same field names and only the group tells them apart.
+ */
 export function Section({ title, children, className, level = 2 }: { title: string; children: React.ReactNode; className?: string; level?: 2 | 3 }) {
     const Heading = level === 2 ? "h2" : "h3";
+    const id = useId();
     return (
-        <section className={cn("border border-slate-200 rounded-sm bg-white", className)}>
-            <Heading className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</Heading>
+        <section role="group" aria-labelledby={id} className={cn("border border-slate-200 rounded-sm bg-white", className)}>
+            <Heading id={id} className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</Heading>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">{children}</div>
         </section>
     );

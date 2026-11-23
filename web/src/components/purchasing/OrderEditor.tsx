@@ -144,7 +144,7 @@ export function OrderEditor({ tenant, order, options, currency, taxRate, today }
                     <Button type="button" variant="ghost" className="text-slate-500" disabled={busy}
                         onClick={async () => { if (await confirm({ title: "Cancel this order?", confirm: "Cancel the order", cancel: "Keep the order" })) start(async () => { await setOrderStateAction(tenant, order.id, "CANCELLED"); router.refresh(); }); }}>Cancel order</Button>
                 )}
-                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? undefined : "alert"}>{status.text}</p>}
+                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? "status" : "alert"}>{status.text}</p>}
             </div>
 
             {order && order.invoices.length > 0 && (

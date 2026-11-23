@@ -18,7 +18,8 @@ const input = "h-9 w-full rounded-md border border-input bg-white px-2 text-sm t
  * — and a plain statement of what pressing the button will do, because it
  * cannot be undone except by a credit note.
  */
-export function ProcessDialog({ tenant, doc }: { tenant: string; doc: DocumentRecord }) {
+/** `disabled` while the editor holds unsaved changes: processing acts on what is saved, not on what is on screen. */
+export function ProcessDialog({ tenant, doc, disabled = false }: { tenant: string; doc: DocumentRecord; disabled?: boolean }) {
     const [open, setOpen] = useState(false);
     const [state, action, pending] = useActionState(processDocument.bind(null, tenant, doc.id), initialActionState);
     const kind = promptFor(doc.type, !!doc.vehicle);
@@ -40,7 +41,7 @@ export function ProcessDialog({ tenant, doc }: { tenant: string; doc: DocumentRe
     return (
         <>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger render={<Button type="button" size="sm" className="bg-slate-800 hover:bg-slate-900" />}>
+                <DialogTrigger disabled={disabled} focusableWhenDisabled render={<Button type="button" size="sm" className="bg-slate-800 hover:bg-slate-900" />}>
                     <CheckCircle2 className="w-4 h-4 mr-1" aria-hidden="true" />Process
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">

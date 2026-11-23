@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Car, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Car, Plus, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { CustomerListControls } from "@/components/customers/CustomerListControl
 import type { listVehicles } from "@/lib/vehicles/queries";
 import { dateShort } from "@/lib/format";
 import { DownloadIcon } from "@/components/exports/DownloadPair";
+import { Pager } from "@/components/ui/pager";
 
 type Data = Awaited<ReturnType<typeof listVehicles>>;
 
@@ -73,11 +74,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                 </CardContent>
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-label="Previous page" href={pageHref(data.page - 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" href={pageHref(data.page + 1)} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={pageHref} />
                 </div>
             </Card>
         </div>

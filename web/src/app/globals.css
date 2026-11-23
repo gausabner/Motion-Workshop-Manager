@@ -108,7 +108,7 @@
   table[data-mobile="cards"] tr {
     margin-bottom: 8px;
     border: 1px solid var(--color-slate-200, #e2e8f0);
-    border-radius: 8px;
+    border-radius: 2px;
     background: #fff;
     padding: 10px 12px;
   }

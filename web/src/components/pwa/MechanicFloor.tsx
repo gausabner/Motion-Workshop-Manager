@@ -135,8 +135,9 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
     const card = (job: Job, mineToo: boolean) => {
         const isRunning = onTheClock?.job.id === job.id;
+        const title = job.description ?? (job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : `Job ${job.jobNumber ?? ""}`);
         return (
-            <li key={job.id} className={`rounded-xl border bg-white p-4 shadow-sm ${isRunning ? "border-teal-500 ring-2 ring-teal-500" : "border-slate-200"}`}>
+            <li key={job.id} className={`rounded-xl border bg-white p-4 shadow-sm ${isRunning ? "border-teal-700 ring-2 ring-teal-700" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <p className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
@@ -144,7 +145,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                             {job.vehicle && <span className="rounded bg-yellow-100 px-1.5 font-bold text-yellow-900">{job.vehicle.plate}</span>}
                             {!mineToo && job.mechanicName && <span>· {job.mechanicName}</span>}
                         </p>
-                        <p className="mt-1 text-base font-semibold text-slate-800">{job.description ?? (job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : `Job ${job.jobNumber ?? ""}`)}</p>
+                        <p className="mt-1 text-base font-semibold text-slate-800">{title}</p>
                         <p className="text-sm text-slate-500">
                             {job.customer ? `${job.customer.firstName} ${job.customer.lastName}` : "No customer"}
                             {job.estimatedMinutes ? ` · about ${hoursLabel(job.estimatedMinutes)}` : ""}
@@ -157,7 +158,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         onClick={() => act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job))}
                         className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-teal-700 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60"
                     >
-                        <Play className="h-5 w-5" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
+                        <Play className="h-5 w-5" aria-hidden="true" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
+                        <span className="sr-only">: {[job.vehicle?.plate, title].filter(Boolean).join(", ")}</span>
                     </button>
                 )}
             </li>
@@ -177,24 +179,27 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         which the floor app affords because it is one screen
                         opened at the start of a shift rather than chrome seen
                         on every navigation. */}
-                    <p className="flex items-center gap-2 font-semibold">
+                    <h1 className="flex items-center gap-2 text-base font-semibold">
                         <MotionMark className="h-5 w-5 shrink-0" accent={ACCENT_ON_DARK} animated />
                         {name}
-                    </p>
+                    </h1>
                     <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
                 </div>
             </header>
 
             <div className="mx-auto max-w-lg space-y-5 px-4 pt-4">
-                {(!online || waiting > 0) && (
-                    <p className={`flex items-start gap-2 rounded-lg px-4 py-3 text-base ${online ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-amber-900"}`}>
-                        <CloudOff className="mt-0.5 h-5 w-5 shrink-0" />
-                        <span>
-                            {online ? "Catching up…" : "No signal. Your taps are being kept with the time you made them."}
-                            {waiting > 0 && <span className="block text-sm">{waitingLabel(waiting)}</span>}
-                        </span>
-                    </p>
-                )}
+                {/* Always in the page, so losing and finding the signal is announced, not only drawn. */}
+                <div role="status">
+                    {(!online || waiting > 0) && (
+                        <p className={`flex items-start gap-2 rounded-lg px-4 py-3 text-base ${online ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-amber-900"}`}>
+                            <CloudOff className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                            <span>
+                                {online ? "Catching up…" : "No signal. Your taps are being kept with the time you made them."}
+                                {waiting > 0 && <span className="block text-sm">{waitingLabel(waiting)}</span>}
+                            </span>
+                        </p>
+                    )}
+                </div>
 
                 {error && <p className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
 

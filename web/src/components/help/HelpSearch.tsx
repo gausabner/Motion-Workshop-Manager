@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { search } from "@/lib/help";
 
@@ -19,6 +19,8 @@ import { search } from "@/lib/help";
  * is a small insult.
  */
 export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
+    // Rendered in the masthead and in the drawer at once, so its ids are its own.
+    const ids = useId();
     const [q, setQ] = useState("");
     const [cursor, setCursor] = useState(0);
     const [open, setOpen] = useState(false);
@@ -50,8 +52,8 @@ export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
                     autoFocus={autoFocus}
                     role="combobox"
                     aria-expanded={showing}
-                    aria-controls="help-search-results"
-                    aria-activedescendant={showing && hits[cursor] ? `help-hit-${hits[cursor].topic.slug}` : undefined}
+                    aria-controls={`${ids}-results`}
+                    aria-activedescendant={showing && hits[cursor] ? `${ids}-hit-${hits[cursor].topic.slug}` : undefined}
                     aria-autocomplete="list"
                     value={q}
                     onChange={(e) => { setQ(e.target.value); setCursor(0); setOpen(true); }}
@@ -71,7 +73,7 @@ export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
             </div>
 
             {showing && (
-                <div id="help-search-results" role="listbox" aria-label="Help results" className="absolute inset-x-0 top-[calc(100%+4px)] z-30 border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
+                <div id={`${ids}-results`} role="listbox" aria-label="Help results" className="absolute inset-x-0 top-[calc(100%+4px)] z-30 border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
                     {hits.length === 0 ? (
                         <p className="px-3 py-3 text-[13px] text-slate-500">
                             Nothing matches that yet. Try the words you would use out loud — &ldquo;deposit&rdquo;, &ldquo;void&rdquo;, &ldquo;who owes&rdquo;.
@@ -79,7 +81,7 @@ export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
                     ) : (
                         <ul className="divide-y divide-slate-100">
                             {hits.map((hit, i) => (
-                                <li key={hit.topic.slug} id={`help-hit-${hit.topic.slug}`} role="option" aria-selected={i === cursor}>
+                                <li key={hit.topic.slug} id={`${ids}-hit-${hit.topic.slug}`} role="option" aria-selected={i === cursor}>
                                     <Link
                                         href={`/help/${hit.topic.slug}`}
                                         onClick={() => { setOpen(false); setQ(""); }}
