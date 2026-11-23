@@ -8,7 +8,6 @@ import { sequenceAudit } from "@/lib/documents/gaps";
 import {
     addQuote,
     cancelRequisition,
-    chooseQuote,
     decideRequisition,
     deleteDraft,
     finaliseRequisition,
@@ -224,10 +223,9 @@ test("a purchase requisition carries the quotations the council's rule asks for,
     const quote = (who: Person, i: number, amount: number) => run((tx) => addQuote(tx, tenant, people[who], id, { supplierId: supplier[i], amount, reference: `Q-${i}` }));
 
     await assert.rejects(quote("outsider", 0, 12_400), /parts driver/);
-    const chosen = await quote("partsDriver", 0, 12_400);
+    await quote("partsDriver", 0, 12_400);
     await quote("partsDriver", 1, 12_950);
-    await assert.rejects(submit("mechanic", id), /Choose the quotation/);
-    await run((tx) => chooseQuote(tx, tenant, people.partsDriver, chosen));
+    // The first one in is put forward, so the council's rule is read at its price straight away.
     await assert.rejects(submit("mechanic", id), /needs 3 quotations\. It has 2/);
     await quote("partsDriver", 2, 13_100);
 

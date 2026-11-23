@@ -6,28 +6,25 @@ import { recalculate } from "@/lib/documents/recalculate";
 import { movesStock } from "@/lib/stock/rules";
 import { fullyIssued, issueError, OPEN_STATES, partsStatus, type IssueLine } from "@/lib/requisitions/stores-rules";
 import type { Actor } from "@/lib/requisitions/service";
+import { issuedByLine, movedByLine, receivedByLine } from "@/lib/requisitions/counts";
 
 /**
- * Stores issuing parts against an approved requisition, inside a transaction.
+ * Stores handing parts over against an approved requisition, inside a
+ * transaction: from the shelf on a stores requisition, and on a purchase
+ * requisition, what the supplier has delivered for it.
  *
  * Each handover is one `RequisitionIssue`: who handed over, who received
- * (by name and pay number, with or without a login), and one `ISSUE` stock
- * movement per line. When the requisition is charged to a job card, the parts
- * land on it at cost, marked with the requisition line, so processing the job
- * card or its invoice never takes them off the shelf again. Once every line
- * has had what it asked for, the requisition waits for its finalising
- * signatures.
+ * (by name and pay number, with or without a login), and one line per item.
+ * A stock item's line has the `ISSUE` movement that took it off the shelf; an
+ * item bought for the job and handed over as it arrived has none. When the
+ * requisition is charged to a job card, the parts land on it at cost, marked
+ * with the requisition line, so processing the job card or its invoice never
+ * takes them off the shelf again. Once every line has had what it asked for,
+ * the requisition waits for its finalising signatures.
  */
 
 const MISSING = "This requisition no longer exists. Refresh the page.";
 const text = (s: string | null | undefined) => (s?.trim() ? s.trim() : null);
-
-/** What has been issued against each of a requisition's lines. Issues are negative movements, so the total is negated. */
-export async function issuedByLine(tx: Pick<TenantTx, "stockMovement">, lineIds: string[]): Promise<Map<string, number>> {
-    if (!lineIds.length) return new Map();
-    const sums = await tx.stockMovement.groupBy({ by: ["requisitionLineId"], where: { requisitionLineId: { in: lineIds }, kind: "ISSUE" }, _sum: { quantity: true } });
-    return new Map(sums.map((s) => [s.requisitionLineId!, -(s._sum.quantity?.toNumber() ?? 0)]));
-}
 
 export async function issueStores(
     tx: TenantTx,
@@ -42,7 +39,7 @@ export async function issueStores(
         where: { id },
         select: {
             state: true, kind: true, number: true, chargeDocumentId: true,
-            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, productId: true } },
+            lines: { orderBy: { sortOrder: "asc" }, select: { id: true, description: true, quantity: true, unitCost: true, productId: true } },
         },
     });
     if (!req) throw new Error(MISSING);
@@ -66,10 +63,15 @@ export async function issueStores(
         receiver = { membershipId: m.id, name: fullName(m.user), payNumber: m.payNumber };
     }
 
-    const issued = await issuedByLine(tx, req.lines.map((l) => l.id));
+    const ids = req.lines.map((l) => l.id);
+    const bought = req.kind === "PURCHASE";
+    const [issued, moved, received] = await Promise.all([issuedByLine(tx, ids), bought ? new Map<string, number>() : movedByLine(tx, ids), bought ? receivedByLine(tx, ids) : new Map<string, { quantity: number; unitCost: number }>()]);
     const lines: IssueLine[] = req.lines.map((l) => {
         const product = productOf(l);
-        return { id: l.id, description: l.description, quantity: l.quantity.toNumber(), issued: issued.get(l.id) ?? 0, stocked: movesStock(product), onHand: product ? product.qtyOnHand.toNumber() : null };
+        return {
+            id: l.id, description: l.description, quantity: l.quantity.toNumber(), issued: issued.get(l.id) ?? 0, moved: moved.get(l.id) ?? 0, received: received.get(l.id)?.quantity ?? 0,
+            stocked: movesStock(product), onHand: product ? product.qtyOnHand.toNumber() : null,
+        };
     });
     const problem = issueError({ state: req.state, kind: req.kind, lines, issue: input.lines, issuer, receiver });
     if (problem) throw new Error(problem);
@@ -85,23 +87,32 @@ export async function issueStores(
     let order = job?._count.lines ?? 0;
     for (const want of input.lines.filter((i) => i.quantity > 0)) {
         const line = req.lines.find((l) => l.id === want.lineId)!;
-        const product = productOf(line)!;
+        const product = productOf(line);
+        const stocked = movesStock(product);
         const quantity = new Prisma.Decimal(want.quantity);
-        await tx.stockMovement.create({
-            data: {
-                tenantId: tenant.id, productId: product.id, kind: "ISSUE", quantity: quantity.negated(), unitCost: product.costExTax,
-                documentId: job?.id ?? null, requisitionLineId: line.id, requisitionIssueId: handover.id, at: now, byId: actor.membershipId,
-                note: req.number ? `Issued on ${req.number}` : null,
-            },
-        });
-        await tx.product.update({ where: { id: product.id }, data: { qtyOnHand: { decrement: quantity } } });
+        // At cost: the shelf's cost for a stock item, what the supplier charged for an item bought in.
+        const unitCost = stocked ? product!.costExTax : new Prisma.Decimal(received.get(line.id)?.unitCost ?? line.unitCost.toNumber());
+        let movementId: string | null = null;
+        if (stocked) {
+            const movement = await tx.stockMovement.create({
+                data: {
+                    tenantId: tenant.id, productId: product!.id, kind: "ISSUE", quantity: quantity.negated(), unitCost,
+                    documentId: job?.id ?? null, requisitionLineId: line.id, requisitionIssueId: handover.id, at: now, byId: actor.membershipId,
+                    note: req.number ? `Issued on ${req.number}` : null,
+                },
+                select: { id: true },
+            });
+            movementId = movement.id;
+            await tx.product.update({ where: { id: product!.id }, data: { qtyOnHand: { decrement: quantity } } });
+        }
+        await tx.requisitionIssueLine.create({ data: { tenantId: tenant.id, issueId: handover.id, requisitionLineId: line.id, quantity, unitCost, stockMovementId: movementId } });
         if (job) {
             // On the job card at cost: the council's own stores, not a sale.
             await tx.documentLine.create({
                 data: {
-                    tenantId: tenant.id, documentId: job.id, sortOrder: order++, productId: product.id, lineType: product.type,
-                    description: line.description, quantity, unitPrice: product.costExTax, unitCost: product.costExTax,
-                    vatRate: product.vatExempt ? 0 : job.taxRate, discountPercent: 0, requisitionLineId: line.id,
+                    tenantId: tenant.id, documentId: job.id, sortOrder: order++, productId: product?.id ?? null, lineType: product?.type ?? "STOCK",
+                    description: line.description, quantity, unitPrice: unitCost, unitCost,
+                    vatRate: product?.vatExempt ? 0 : job.taxRate, discountPercent: 0, requisitionLineId: line.id,
                 },
             });
         }
@@ -128,7 +139,8 @@ export async function syncPartsStatus(tx: TenantTx, tenant: Tenant, actor: Pick<
     if (!documentId) return;
     const [doc, open] = await Promise.all([
         tx.document.findUnique({ where: { id: documentId }, select: { jobStatus: true, state: true } }),
-        tx.requisition.count({ where: { chargeDocumentId: documentId, state: { in: OPEN_STATES } } }),
+        // Open, or split off and still gathering its quotations: either way the job waits for it.
+        tx.requisition.count({ where: { chargeDocumentId: documentId, OR: [{ state: { in: OPEN_STATES } }, { state: "DRAFT", sourceRequisitionId: { not: null } }] } }),
     ]);
     if (!doc || doc.state === "VOID") return;
     const next = partsStatus(doc.jobStatus, open);
