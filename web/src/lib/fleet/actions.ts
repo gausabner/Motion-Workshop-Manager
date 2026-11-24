@@ -26,12 +26,13 @@ async function onSite(slug: string) {
 
 /*
  * Each move answers with the job's route as it stands afterwards, and the
- * panel shows that, rather than waiting for the page to be fetched again. In
- * a production build of Next 16.1 a document page that links to a customer
- * ignores `router.refresh()` and the navigation a revalidating action
- * starts: the fresh page arrives and is never shown, so the button sat on
- * "Booking in…" with the work saved. Answering with the route sidesteps that,
- * keeps the job card's unsaved edits, and is one round trip instead of two.
+ * panel shows that, rather than waiting for the page to be fetched again. It
+ * keeps the job card's unsaved edits and is one round trip instead of two.
+ *
+ * It began as a way round a bug: on Next 16.1.6 a production build sometimes
+ * never showed the page a revalidating action fetched, and the button sat on
+ * "Booking in…" with the work saved. That was the React that Next 16.1.6
+ * ships, and Next 16.4.6 fixed it (see e2e/saving-comes-back.spec.ts).
  */
 async function move(slug: string, documentId: string, done: string, run: (ctx: Awaited<ReturnType<typeof onSite>>) => Promise<unknown>): Promise<MoveState> {
     const ctx = await onSite(slug);

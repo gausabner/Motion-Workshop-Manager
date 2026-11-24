@@ -34,6 +34,17 @@ else:
 PYEOF
 }
 
+# Flip every bit of one byte, in place. In Python rather than with dd: on the
+# Ubuntu 26.04 runner image of 16 Nov 2026 the dd edit left the copy as it was,
+# so a "tampered" backup opened cleanly and the refusal check failed. XORed
+# rather than overwritten, so the byte cannot already hold the new value.
+flip_byte() {
+    python3 -c 'import sys
+path, at = sys.argv[1], int(sys.argv[2])
+with open(path, "r+b") as f:
+    f.seek(at); b = f.read(1); f.seek(at); f.write(bytes([b[0] ^ 0xFF]))' "$1" "$2"
+}
+
 fails=0
 check() {
     local what=$1 got=$2 want=$3
@@ -85,7 +96,9 @@ check "and leaves no half-written dump behind" "$([ -e "$tmp/no1" ] && echo pres
 # Flip a byte in the middle of the ciphertext. AES-CBC will still decrypt
 # something; the recorded hash is what catches it.
 cp "$tmp/cipher" "$tmp/tampered"
-printf '\xff' | dd of="$tmp/tampered" bs=1 seek=150000 count=1 conv=notrunc status=none
+flip_byte "$tmp/tampered" 150000
+check "the tampered copy really differs" \
+    "$(cmp -s "$tmp/cipher" "$tmp/tampered" && echo same || echo different)" "different"
 crypt_open "$tmp/tampered" "$tmp/env" "$tmp/priv.pem" "$tmp/no2" 2>/dev/null && r=opened || r=refused
 check "a single flipped byte is caught by the recorded hash" "$r" "refused"
 check "and that dump is removed rather than left to be trusted" \
