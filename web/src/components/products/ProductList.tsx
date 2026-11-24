@@ -46,37 +46,37 @@ export function ProductList({ tenant, data, q, type, lowOnly, archived, currency
             </form>
 
             <div className="overflow-hidden rounded-sm border border-slate-200 bg-white">
-                <table data-mobile="cards" className="w-full text-sm">
-                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
-                        <tr>
-                            <th className="px-4 py-2 text-left font-semibold">Code</th>
-                            <th className="px-2 py-2 text-left font-semibold">Description</th>
-                            <th className="px-2 py-2 text-left font-semibold">Type</th>
-                            <th className="px-2 py-2 text-left font-semibold">Shelf</th>
-                            <th className="px-2 py-2 text-right font-semibold">On hand</th>
-                            <th className="px-2 py-2 text-right font-semibold">Cost</th>
-                            <th className="px-2 py-2 text-right font-semibold">Sell</th>
-                            <th className="px-4 py-2 text-right font-semibold">Margin</th>
+                <table role="table" data-mobile="cards" className="w-full text-sm">
+                    <thead role="rowgroup" className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+                        <tr role="row">
+                            <th role="columnheader" className="px-4 py-2 text-left font-semibold">Code</th>
+                            <th role="columnheader" className="px-2 py-2 text-left font-semibold">Description</th>
+                            <th role="columnheader" className="px-2 py-2 text-left font-semibold">Type</th>
+                            <th role="columnheader" className="px-2 py-2 text-left font-semibold">Shelf</th>
+                            <th role="columnheader" className="px-2 py-2 text-right font-semibold">On hand</th>
+                            <th role="columnheader" className="px-2 py-2 text-right font-semibold">Cost</th>
+                            <th role="columnheader" className="px-2 py-2 text-right font-semibold">Sell</th>
+                            <th role="columnheader" className="px-4 py-2 text-right font-semibold">Margin</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {data.rows.length === 0 && <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-500">{q || type || lowOnly ? "No products match these filters." : archived ? "No archived products." : "No products yet. Add one, or import a price list under Settings → Import."}</td></tr>}
+                    <tbody role="rowgroup" className="divide-y divide-slate-100">
+                        {data.rows.length === 0 && <tr role="row"><td role="cell" colSpan={8} className="px-4 py-6 text-center text-slate-500">{q || type || lowOnly ? "No products match these filters." : archived ? "No archived products." : "No products yet. Add one, or import a price list under Settings → Import."}</td></tr>}
                         {data.rows.map((r) => {
                             const margin = r.retail > 0 ? Math.round(((r.retail - r.cost) / r.retail) * 100) : null;
                             const low = r.tracked && r.onHand <= r.minQty;
                             return (
-                                <tr key={r.id} className="hover:bg-slate-50">
-                                    <td data-mobile="primary" className="px-4 py-2"><Link href={`${base}/${r.id}`} className="font-medium text-slate-800 hover:text-teal-700">{r.itemCode}</Link></td>
-                                    <td data-label="What it is" className="px-2 py-2 text-slate-700">{r.description}</td>
-                                    <td data-mobile="hide" className="px-2 py-2 text-slate-500">{TYPE_LABEL[r.type] ?? r.type}</td>
-                                    <td data-label="Shelf" className="px-2 py-2 text-slate-500">{r.location ?? ""}</td>
-                                    <td data-label="On hand" className={`px-2 py-2 text-right tabular-nums ${r.onHand < 0 ? "font-semibold text-red-700" : low ? "font-medium text-amber-700" : "text-slate-700"}`}>
+                                <tr role="row" key={r.id} className="hover:bg-slate-50">
+                                    <td role="cell" data-mobile="primary" className="px-4 py-2"><Link href={`${base}/${r.id}`} className="font-medium text-slate-800 hover:text-teal-700">{r.itemCode}</Link></td>
+                                    <td role="cell" data-label="What it is" className="px-2 py-2 text-slate-700">{r.description}</td>
+                                    <td role="cell" data-mobile="hide" className="px-2 py-2 text-slate-500">{TYPE_LABEL[r.type] ?? r.type}</td>
+                                    <td role="cell" data-label="Shelf" className="px-2 py-2 text-slate-500">{r.location ?? ""}</td>
+                                    <td role="cell" data-label="On hand" className={`px-2 py-2 text-right tabular-nums ${r.onHand < 0 ? "font-semibold text-red-700" : low ? "font-medium text-amber-700" : "text-slate-700"}`}>
                                         {r.tracked ? r.onHand : <span className="text-slate-500">—</span>}
                                         {low && r.onHand >= 0 && <AlertTriangle className="ml-1 inline h-3 w-3" aria-label="At or below minimum" />}
                                     </td>
-                                    <td data-label="Cost" className="px-2 py-2 text-right tabular-nums text-slate-600">{money(r.cost, currency)}</td>
-                                    <td data-label="Sell" className="px-2 py-2 text-right tabular-nums text-slate-700">{money(r.retail, currency)}</td>
-                                    <td data-label="Margin" className={`px-4 py-2 text-right tabular-nums ${margin !== null && margin < 0 ? "text-red-700" : "text-slate-500"}`}>{margin === null ? "" : `${margin}%`}</td>
+                                    <td role="cell" data-label="Cost" className="px-2 py-2 text-right tabular-nums text-slate-600">{money(r.cost, currency)}</td>
+                                    <td role="cell" data-label="Sell" className="px-2 py-2 text-right tabular-nums text-slate-700">{money(r.retail, currency)}</td>
+                                    <td role="cell" data-label="Margin" className={`px-4 py-2 text-right tabular-nums ${margin !== null && margin < 0 ? "text-red-700" : "text-slate-500"}`}>{margin === null ? "" : `${margin}%`}</td>
                                 </tr>
                             );
                         })}

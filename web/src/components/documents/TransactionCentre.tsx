@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ListChecks, MessageCircle } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ListChecks, MessageCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobStatusPill, StatePill } from "@/components/documents/StatusPill";
 import { NewDocumentButtons } from "@/components/documents/NewDocumentButtons";
@@ -8,6 +8,9 @@ import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/types";
 import { dateShort, money } from "@/lib/format";
 import type { listDocuments } from "@/lib/documents/queries";
 import { TERM } from "@/lib/copy/terms";
+import { Pager } from "@/components/ui/pager";
+import { ListHeader } from "@/components/layout/ListHeader";
+import { Input } from "@/components/ui/input";
 
 type Data = Awaited<ReturnType<typeof listDocuments>>;
 
@@ -37,29 +40,21 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
 
     return (
         <div className="w-full max-w-7xl mx-auto">
-            <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                    <div className="flex items-center gap-3">
-                        <ListChecks className="w-5 h-5 shrink-0 text-slate-600" />
-                        <h1 data-slot="card-title" className="leading-none whitespace-nowrap text-lg font-bold text-slate-800">{TERM.transactions}</h1>
-                    </div>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
-                        <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
-                            {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
-                            <input
-                                type="search" name="q" defaultValue={q} placeholder="Number, plate or customer…"
-                                className="h-8 w-full min-w-0 rounded-sm border border-slate-300 bg-white px-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 sm:w-64 sm:text-sm"
-                            />
-                        </form>
-                        <NewDocumentButtons tenant={tenant} />
-                    </div>
-                </CardHeader>
+            <Card className="rounded-none shadow-none border border-slate-200 gap-0 py-0">
+                <ListHeader icon={ListChecks} title={TERM.transactions} count={data.total} noun={data.total === 1 ? "record" : "records"}>
+                    <form role="search" aria-label={TERM.transactions} action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+                        {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
+                        <Input type="search" name="q" defaultValue={q} aria-label={`Search ${TERM.transactions.toLowerCase()}`} placeholder="Number, plate or customer…" className="h-8 px-2 text-base sm:w-64 sm:text-sm" />
+                    </form>
+                    <NewDocumentButtons tenant={tenant} />
+                </ListHeader>
 
-                <div className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
+                <nav aria-label="Filter" className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
                     {TABS.map((t) => (
                         <Link
                             key={t.key}
                             href={href({ tab: t.key, page: 1 })}
+                            aria-current={t.key === tab ? "page" : undefined}
                             className={`whitespace-nowrap px-3 py-2 text-sm border-b-2 -mb-px transition-colors ${
                                 t.key === tab ? "border-teal-700 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
                             }`}
@@ -67,7 +62,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
                             {t.label}
                         </Link>
                     ))}
-                </div>
+                </nav>
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
@@ -125,11 +120,7 @@ export function TransactionCentre({ tenant, data, tab, q }: { tenant: string; da
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-label="Previous page" href={href({ page: data.page - 1 })} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" href={href({ page: data.page + 1 })} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={(page) => href({ page })} />
                 </div>
             </Card>
         </div>

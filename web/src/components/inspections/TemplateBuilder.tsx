@@ -165,7 +165,7 @@ export function TemplateBuilder({ tenant, id, initial, products, currencySymbol 
             <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:left-[180px]">
                 <div className="mx-auto flex max-w-5xl items-center gap-3">
                     <span className="mr-auto text-sm">
-                        {status ? <span className={status.ok ? "text-teal-700" : "text-red-600"} role={status.ok ? undefined : "alert"}>{status.text}</span>
+                        {status ? <span className={status.ok ? "text-teal-700" : "text-red-600"} role={status.ok ? "status" : "alert"}>{status.text}</span>
                             : <span className="text-slate-500">{groups.length} group{groups.length === 1 ? "" : "s"}, {checks} check{checks === 1 ? "" : "s"}{dirty ? " · unsaved changes" : ""}</span>}
                     </span>
                     <Button type="button" className="bg-teal-700 hover:bg-teal-800" disabled={saving || !dirty} onClick={save}>{saving ? "Saving…" : "Save template"}</Button>

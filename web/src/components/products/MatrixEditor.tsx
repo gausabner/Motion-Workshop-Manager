@@ -133,7 +133,7 @@ export function MatrixEditor({ tenant, matrix, currency }: { tenant: string; mat
                     </Button>
                 )}
                 <span className="text-sm text-slate-500">{matrix.products} product{matrix.products === 1 ? "" : "s"} priced by this matrix</span>
-                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? undefined : "alert"}>{status.text}</p>}
+                {status && <p className={`text-sm ${status.ok ? "text-teal-700" : "text-red-600"}`} role={status.ok ? "status" : "alert"}>{status.text}</p>}
             </div>
 
             {preview && (

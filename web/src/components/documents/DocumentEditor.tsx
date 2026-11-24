@@ -1,8 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Field, TextField, SelectField, CheckField } from "@/components/forms/fields";
 import { Textarea } from "@/components/ui/textarea";
 import { fieldClass } from "@/components/ui/input";
@@ -14,11 +12,13 @@ import { VehiclePicker } from "@/components/forms/VehiclePicker";
 import { customerHit, vehicleHit } from "@/lib/search/hits";
 import type { PickerHit, VehicleHit } from "@/lib/search/types";
 import { saveDocument } from "@/lib/documents/actions";
-import { initialActionState } from "@/lib/forms";
+import { initialActionState, type ActionState } from "@/lib/forms";
 import { calculateTotals } from "@/lib/documents/totals";
 import { JOB_STATUS_LABELS, JOB_STATUS_ORDER } from "@/lib/documents/types";
 import { dateInput, money } from "@/lib/format";
 import { formatLocalDateTime } from "@/lib/diary/time";
+import { editorFormId, forget, setEditing, useUnsaved } from "@/lib/documents/unsaved";
+import { useLeaveGuard } from "@/components/documents/useLeaveGuard";
 import type { DocumentRecord, EditorOptions } from "@/lib/documents/queries";
 
 type Props = {
@@ -56,8 +56,26 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
     const pricesIncludeTax = doc.pricesIncludeTax;
     const taxRate = doc.taxRate;
     const readOnly = doc.state !== "DRAFT";
-    const action = saveDocument.bind(null, tenant, doc.id);
-    const [state, formAction, pending] = useActionState(action, initialActionState);
+    // Counted before the action is defined, because the action reads them.
+    const edits = useRef(0);
+    const editsAtSave = useRef(0);
+    // Cleared the moment the server answers that the save worked, not when the
+    // refreshed page renders: in a production build that refresh can arrive
+    // late or not at all on a document page, which would hold Process back
+    // on a document that is already saved.
+    const action = async (previous: ActionState, data: FormData) => {
+        setEditing(doc.id, { saving: true, said: null });
+        try {
+            const answer = await saveDocument(tenant, doc.id, previous, data);
+            const clean = answer.ok && edits.current === editsAtSave.current;
+            setEditing(doc.id, { saving: false, said: answer.message ? { ok: !!answer.ok, text: answer.message } : null, ...(clean ? { unsaved: false } : {}) });
+            return answer;
+        } catch (thrown) {
+            setEditing(doc.id, { saving: false });
+            throw thrown;
+        }
+    };
+    const [state, formAction] = useActionState(action, initialActionState);
     const [lines, setLines] = useState<EditorLine[]>(() => toEditorLines(doc));
     const [customer, setCustomer] = useState<PickerHit | null>(() => (doc.customer ? customerHit(doc.customer) : null));
     const [vehicle, setVehicle] = useState<VehicleHit | null>(() => (doc.vehicle ? vehicleHit(doc.vehicle) : null));
@@ -67,6 +85,25 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
     const [estimatedHours, setEstimatedHours] = useState(doc.estimatedHours == null ? "" : String(doc.estimatedHours));
     const [service, setService] = useState("");
     const errors = state.errors;
+
+    // What is on screen and what is saved can differ, and Process, Convert and
+    // Copy act on what is saved; the toolbar reads this and waits. Unsaved
+    // means the person has changed something since the last save that
+    // succeeded. Edits are counted, so typing while a save is on its way keeps
+    // the document unsaved; values the server fills in on save are not edits.
+    const unsaved = useUnsaved(doc.id);
+    const [, startSave] = useTransition();
+    const touch = () => {
+        if (readOnly) return;
+        edits.current += 1;
+        setEditing(doc.id, { unsaved: true, said: null });
+    };
+    const changeLines: typeof setLines = (next) => {
+        setLines(next);
+        touch();
+    };
+    useEffect(() => () => forget(doc.id), [doc.id]);
+    useLeaveGuard(unsaved);
 
     const isJob = doc.type === "BOOKING" || doc.type === "JOB_CARD";
     const isFinancial = doc.type === "INVOICE" || doc.type === "CASH_SALE" || doc.type === "CREDIT";
@@ -78,36 +115,44 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
 
     // A different customer drops a vehicle that isn't theirs.
     function chooseCustomer(hit: PickerHit | null) {
+        if (hit?.id !== customer?.id) touch();
         setCustomer(hit);
         if (hit && vehicle?.customerId && vehicle.customerId !== hit.id) setVehicle(null);
     }
 
     // The counter usually starts from the plate, so choosing a vehicle first fills in its owner.
     function chooseVehicle(hit: VehicleHit | null) {
+        if (hit?.id !== vehicle?.id) touch();
         setVehicle(hit);
         if (hit?.customerId && hit.ownerLabel && !customer) setCustomer({ id: hit.customerId, label: hit.ownerLabel, sublabel: null });
     }
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form
+            id={editorFormId(doc.id)}
+            action={formAction}
+            onInput={touch}
+            // Saved by hand rather than through the action attribute: React resets
+            // a form after a successful action, which put fields back to stale
+            // defaults until the refreshed page arrived, and made a saved
+            // document read as changed.
+            onSubmit={(e) => {
+                e.preventDefault();
+                editsAtSave.current = edits.current;
+                const data = new FormData(e.currentTarget);
+                startSave(() => formAction(data));
+            }}
+            className="space-y-4"
+        >
             {/* `key` is editor-only; JSON.stringify drops undefined, so it never reaches the server. */}
             <input type="hidden" name="lines" value={JSON.stringify(lines.map((line) => ({ ...line, key: undefined })))} />
 
-            <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-slate-500">
-                    {readOnly ? "Processed documents are read-only. Copy it or raise a credit note to make changes." : "Draft — nothing is posted until you process it."}
-                </p>
-                <div className="flex items-center gap-2">
-                    {state.ok && state.message && <span className="text-sm text-teal-700">{state.message}</span>}
-                    {state.message && !state.ok && <span className="text-sm text-red-600" role="alert">{state.message}</span>}
-                    {!readOnly && (
-                        <Button type="submit" size="sm" className="bg-teal-700 hover:bg-teal-800" disabled={pending}>
-                            <Save className="w-4 h-4 mr-1" />{pending ? "Saving…" : "Save"}
-                        </Button>
-                    )}
-                </div>
-            </div>
+            {readOnly && <p className="text-sm text-slate-600">Processed documents are read-only. Copy it or raise a credit note to make changes.</p>}
+            {state.message && !state.ok && <p className="text-sm text-red-700" role="alert">{state.message}</p>}
 
+            {/* A processed document is a record, not a form: every field is
+                disabled, so nothing invites a change that cannot be saved. */}
+            <fieldset disabled={readOnly} className="min-w-0 space-y-4">
             <section className="border border-slate-200 rounded-sm bg-white">
                 <h2 className="px-4 py-2 border-b bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Details</h2>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
@@ -188,7 +233,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                 </div>
             </section>
 
-            <LineGrid lines={lines} onChange={setLines} products={options.products} pricesIncludeTax={pricesIncludeTax} taxRate={taxRate} showCost={showCost} readOnly={readOnly} />
+            <LineGrid lines={lines} onChange={changeLines} products={options.products} pricesIncludeTax={pricesIncludeTax} taxRate={taxRate} showCost={showCost} readOnly={readOnly} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <section className="lg:col-span-2 border border-slate-200 rounded-sm bg-white">
@@ -213,14 +258,14 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                         <input type="hidden" name="discountAmount" value={0} />
                         <dl className="pt-2 space-y-1.5 border-t border-slate-100">
                             <div className="flex justify-between"><dt className="text-slate-500">Subtotal (excl. VAT)</dt><dd className="tabular-nums">{money(totals.subtotal)}</dd></div>
-                            {totals.discountApplied > 0 && <div className="flex justify-between text-amber-700"><dt>Discount</dt><dd className="tabular-nums">− {money(totals.discountApplied)}</dd></div>}
+                            {totals.discountApplied > 0 && <div className="flex justify-between"><dt className="text-slate-500">Discount</dt><dd className="tabular-nums">− {money(totals.discountApplied)}</dd></div>}
                             <div className="flex justify-between"><dt className="text-slate-500">{doc.taxName} ({taxRate}%)</dt><dd className="tabular-nums">{money(totals.vatTotal)}</dd></div>
                             <div className="flex justify-between pt-1.5 border-t border-slate-200 text-base font-bold"><dt>Total</dt><dd className="tabular-nums">{money(totals.total)}</dd></div>
                         </dl>
                         {showCost && (
                             <dl className="pt-2 border-t border-dashed border-slate-200 space-y-1 text-xs">
                                 <div className="flex justify-between text-slate-500"><dt>Cost</dt><dd className="tabular-nums">{money(totals.totalCost)}</dd></div>
-                                <div className={`flex justify-between font-semibold ${totals.grossProfit < 0 ? "text-red-600" : "text-green-700"}`}>
+                                <div className={`flex justify-between font-semibold ${totals.grossProfit < 0 ? "text-red-700" : "text-slate-800"}`}>
                                     <dt>Gross profit</dt><dd className="tabular-nums">{money(totals.grossProfit)} · {totals.grossMarginPercent}%</dd>
                                 </div>
                             </dl>
@@ -237,6 +282,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     </div>
                 </section>
             </div>
+            </fieldset>
         </form>
     );
 }

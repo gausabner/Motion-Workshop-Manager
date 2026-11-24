@@ -16,6 +16,8 @@ type Props = {
     label: string;
     size?: "sm" | "default";
     variant?: "default" | "outline";
+    /** While the document on screen has unsaved changes: what is sent is what is saved. */
+    disabled?: boolean;
 };
 
 /** What the link in the message opens, said plainly — it differs by what is being sent. */
@@ -39,7 +41,7 @@ type Phase = { step: "compose" } | { step: "done"; url: string | null; channel: 
  * it goes out under the workshop's name. The link to the document is minted
  * only when Send is pressed, so abandoning this dialog leaves nothing live.
  */
-export function SendDialog({ tenant, target, label, size = "sm", variant = "outline" }: Props) {
+export function SendDialog({ tenant, target, label, size = "sm", variant = "outline", disabled = false }: Props) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [channel, setChannel] = useState<MessageChannel>("WHATSAPP");
@@ -104,7 +106,7 @@ export function SendDialog({ tenant, target, label, size = "sm", variant = "outl
     return (
         <>
             <Dialog open={open} onOpenChange={openDialog}>
-                <DialogTrigger render={<Button type="button" size={size} variant={variant} />}>
+                <DialogTrigger disabled={disabled} focusableWhenDisabled render={<Button type="button" size={size} variant={variant} />}>
                     <Send className="w-4 h-4 mr-1" aria-hidden="true" />Send
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-xl">

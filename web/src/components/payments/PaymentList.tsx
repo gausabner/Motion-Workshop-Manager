@@ -1,12 +1,16 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Minus, Plus, Wallet } from "lucide-react";
+import { Ban, CircleCheck, Minus, PencilLine, Plus, Wallet, type LucideIcon } from "lucide-react";
 import type { PaymentState } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createPayment, createRefund } from "@/lib/payments/actions";
 import type { listPayments } from "@/lib/payments/queries";
 import { dateShort, money } from "@/lib/format";
+import { Pager } from "@/components/ui/pager";
+import { ObjectStatus } from "@/components/documents/StatusPill";
+import { ListHeader } from "@/components/layout/ListHeader";
+import { Input } from "@/components/ui/input";
 
 type Data = Awaited<ReturnType<typeof listPayments>>;
 
@@ -21,15 +25,15 @@ export const PAYMENT_TABS = [
 
 export type PaymentTabKey = (typeof PAYMENT_TABS)[number]["key"];
 
-const STATE_STYLES: Record<PaymentState, string> = {
-    DRAFT: "bg-slate-100 text-slate-600 border-slate-300",
-    PROCESSED: "bg-green-50 text-green-700 border-green-300",
-    VOID: "bg-red-50 text-red-700 border-red-300",
+const STATE: Record<PaymentState, { label: string; icon: LucideIcon; tone?: string }> = {
+    DRAFT: { label: "Draft", icon: PencilLine, tone: "text-slate-700" },
+    PROCESSED: { label: "Posted", icon: CircleCheck },
+    VOID: { label: "Void", icon: Ban, tone: "text-red-700" },
 };
-const STATE_LABELS: Record<PaymentState, string> = { DRAFT: "Draft", PROCESSED: "Posted", VOID: "Void" };
 
 export function PaymentStatePill({ state }: { state: PaymentState }) {
-    return <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${STATE_STYLES[state]}`}>{STATE_LABELS[state]}</span>;
+    const s = STATE[state];
+    return <ObjectStatus icon={s.icon} label={s.label} tone={s.tone} />;
 }
 
 export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: string; data: Data; tab: PaymentTabKey; q: string; takenToday: number }) {
@@ -46,35 +50,26 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
 
     return (
         <div className="w-full max-w-7xl mx-auto">
-            <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="flex flex-col items-stretch gap-2 space-y-0 border-b bg-slate-200 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <Wallet className="w-5 h-5 shrink-0 text-slate-600" />
-                        <h1 data-slot="card-title" className="leading-none whitespace-nowrap text-lg font-bold text-slate-800">Receipts &amp; refunds</h1>
-                        <span className="whitespace-nowrap text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>
-                    </div>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
-                        <form action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none">
-                            {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
-                            <input
-                                type="search" name="q" defaultValue={q} placeholder="Receipt number, reference or customer…"
-                                className="h-8 w-full min-w-0 rounded-sm border border-slate-300 bg-white px-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 sm:w-64 sm:text-sm"
-                            />
-                        </form>
-                        <form action={createRefund.bind(null, tenant, undefined)}>
-                            <Button type="submit" size="sm" variant="outline" className="h-8"><Minus className="w-3.5 h-3.5 mr-1" />Refund</Button>
-                        </form>
-                        <form action={createPayment.bind(null, tenant, undefined)}>
-                            <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800"><Plus className="w-3.5 h-3.5 mr-1" />Take payment</Button>
-                        </form>
-                    </div>
-                </CardHeader>
+            <Card className="rounded-none shadow-none border border-slate-200 gap-0 py-0">
+                <ListHeader icon={Wallet} title="Receipts & refunds" count={data.total} noun={data.total === 1 ? "receipt" : "receipts"} extra={<span className="whitespace-nowrap text-xs text-slate-600">Taken today <strong className="tabular-nums">{money(takenToday)}</strong></span>}>
+                    <form role="search" aria-label="Receipts" action={base} method="get" className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none">
+                        {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
+                        <Input type="search" name="q" defaultValue={q} aria-label="Search receipts" placeholder="Receipt number, reference or customer…" className="h-8 px-2 text-base sm:w-64 sm:text-sm" />
+                    </form>
+                    <form action={createRefund.bind(null, tenant, undefined)}>
+                        <Button type="submit" size="sm" variant="outline" className="h-8"><Minus className="w-3.5 h-3.5 mr-1" aria-hidden="true" />Refund</Button>
+                    </form>
+                    <form action={createPayment.bind(null, tenant, undefined)}>
+                        <Button type="submit" size="sm" className="h-8"><Plus className="w-3.5 h-3.5 mr-1" aria-hidden="true" />Take payment</Button>
+                    </form>
+                </ListHeader>
 
-                <div className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
+                <nav aria-label="Filter" className="flex items-center gap-1 border-b bg-white px-4 overflow-x-auto">
                     {PAYMENT_TABS.map((t) => (
                         <Link
                             key={t.key}
                             href={href({ tab: t.key, page: 1 })}
+                            aria-current={t.key === tab ? "page" : undefined}
                             className={`whitespace-nowrap px-3 py-2 text-sm border-b-2 -mb-px transition-colors ${
                                 t.key === tab ? "border-teal-700 text-teal-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"
                             }`}
@@ -82,7 +77,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
                             {t.label}
                         </Link>
                     ))}
-                </div>
+                </nav>
 
                 <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto">
@@ -130,11 +125,7 @@ export function PaymentList({ tenant, data, tab, q, takenToday }: { tenant: stri
 
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} receipt{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-label="Previous page" href={href({ page: data.page - 1 })} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" href={href({ page: data.page + 1 })} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={(page) => href({ page })} />
                 </div>
             </Card>
         </div>

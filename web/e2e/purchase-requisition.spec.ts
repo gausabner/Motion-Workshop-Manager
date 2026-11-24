@@ -131,8 +131,9 @@ test.describe("purchase requisition", () => {
         await page.getByRole("button", { name: "Confirm the issue" }).click();
         await state(page, /Issued, to be finalised/);
         await page.goto(`/${workshop.slug}/dashboard/documents/${council.jobId}`);
-        // Both requisitions are met, so the job is back in work. A council job's heading shows where the vehicle is, not "Work in progress".
-        await expect(page.getByRole("heading", { level: 1 })).not.toContainText("Waiting for parts");
+        // Both requisitions are met, so the job is back in work. A council job's status shows where the vehicle is, not "Work in progress".
+        await expect(page.getByRole("group", { name: "Status" })).toBeVisible();
+        await expect(page.getByRole("group", { name: "Status" })).not.toContainText("Waiting for parts");
         await expect(page.getByRole("listitem").filter({ hasText: "Every requisition for parts has been met." })).toContainText("Waiting for parts → Work in progress");
         if (process.env.SHOTS_DIR) await page.screenshot({ path: `${process.env.SHOTS_DIR}/purchase.png`, fullPage: true });
     });

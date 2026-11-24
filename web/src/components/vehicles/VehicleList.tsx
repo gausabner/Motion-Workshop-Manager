@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { Car, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Car, Plus, Pencil } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
 import type { listVehicles } from "@/lib/vehicles/queries";
 import { dateShort } from "@/lib/format";
 import { DownloadIcon } from "@/components/exports/DownloadPair";
+import { Pager } from "@/components/ui/pager";
+import { ListHeader } from "@/components/layout/ListHeader";
 
 type Data = Awaited<ReturnType<typeof listVehicles>>;
 
@@ -24,20 +26,14 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
     const flag = (d: Date | null) => (d && d < soon ? "text-amber-700 font-medium" : "");
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
-            <Card className="rounded-none shadow-none border border-slate-200">
-                <CardHeader className="bg-slate-200 border-b py-2 px-4 flex flex-row items-center justify-between space-y-0 h-14">
-                    <div className="flex items-center gap-3">
-                        <Car className="w-5 h-5 text-slate-600" />
-                        <h1 data-slot="card-title" className="leading-none text-lg text-slate-800 font-bold">Vehicles</h1>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <CustomerListControls q={q} archived={archived} />
-                        <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
-                        <Button asChild size="icon" variant="outline" className="w-8 h-8 rounded-sm bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 shadow-sm" title="Add vehicle" aria-label="Add vehicle">
-                            <Link href={`${base}/vehicles/new`}><Plus className="w-5 h-5" /></Link>
-                        </Button>
-                    </div>
-                </CardHeader>
+            <Card className="rounded-none shadow-none border border-slate-200 gap-0 py-0">
+                <ListHeader icon={Car} title="Vehicles" count={data.total} noun={data.total === 1 ? "vehicle" : "vehicles"}>
+                    <CustomerListControls q={q} archived={archived} />
+                    <DownloadIcon tenant={tenant} report="vehicles" params={{ archived: archived ? "1" : undefined }} title="Download every vehicle as a spreadsheet" />
+                    <Button asChild size="sm" className="h-8">
+                        <Link href={`${base}/vehicles/new`}><Plus className="h-4 w-4" aria-hidden="true" />New vehicle</Link>
+                    </Button>
+                </ListHeader>
                 <CardContent className="p-0 flex-1 overflow-auto bg-white">
                     <Table data-mobile="cards">
                         <TableHeader>
@@ -73,11 +69,7 @@ export function VehicleList({ tenant, data, q, archived }: { tenant: string; dat
                 </CardContent>
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
                     <span className="text-xs text-slate-500 tabular-nums">{data.total} record{data.total === 1 ? "" : "s"}</span>
-                    <div className="flex items-center rounded-sm border border-slate-200 bg-white shadow-sm h-8 text-xs">
-                        <Link aria-label="Previous page" href={pageHref(data.page - 1)} className={`relative hit-area px-3 h-full flex items-center border-r border-slate-200 ${data.page <= 1 ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronLeft className="w-3.5 h-3.5" /></Link>
-                        <span className="px-4 h-full flex items-center text-teal-700 font-semibold bg-slate-50 border-r border-slate-200 tabular-nums">{data.page} / {data.pages}</span>
-                        <Link aria-label="Next page" href={pageHref(data.page + 1)} className={`relative hit-area px-3 h-full flex items-center ${data.page >= data.pages ? "text-slate-300 pointer-events-none" : "text-slate-600 hover:bg-slate-50"}`}><ChevronRight className="w-3.5 h-3.5" /></Link>
-                    </div>
+                    <Pager page={data.page} pages={data.pages} href={pageHref} />
                 </div>
             </Card>
         </div>

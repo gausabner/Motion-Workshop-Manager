@@ -197,7 +197,7 @@ function MemberRow({ tenant, member, groups, isSelf }: { tenant: string; member:
                         ))}
                     </div>
                 )}
-                {message && <p className={`col-span-12 text-xs ${message.ok ? "text-teal-700" : "text-red-600"}`} role={message.ok ? undefined : "alert"}>{message.text}</p>}
+                {message && <p className={`col-span-12 text-xs ${message.ok ? "text-teal-700" : "text-red-600"}`} role={message.ok ? "status" : "alert"}>{message.text}</p>}
             </form>
         </li>
     );

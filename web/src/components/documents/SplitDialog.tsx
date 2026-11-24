@@ -15,7 +15,7 @@ import { money } from "@/lib/format";
  * insurer pays the repair less the excess, and the customer pays the excess,
  * and the two invoices still add up to the job.
  */
-export function SplitDialog({ tenant, documentId, lines, total, currency }: { tenant: string; documentId: string; lines: SplitLine[]; total: number; currency: string }) {
+export function SplitDialog({ tenant, documentId, lines, total, currency, disabled = false, inMenu = false }: { tenant: string; documentId: string; lines: SplitLine[]; total: number; currency: string; disabled?: boolean; inMenu?: boolean }) {
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState<"excess" | "lines">("excess");
     const [payer, setPayer] = useState<PickerHit | null>(null);
@@ -31,7 +31,7 @@ export function SplitDialog({ tenant, documentId, lines, total, currency }: { te
     return (
         <>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger render={<Button type="button" size="sm" variant="outline" />}><Scissors className="mr-1 h-4 w-4" aria-hidden="true" />Split</DialogTrigger>
+                <DialogTrigger disabled={disabled} focusableWhenDisabled render={inMenu ? <Button type="button" size="sm" variant="ghost" className="w-full justify-start" /> : <Button type="button" size="sm" variant="outline" />}><Scissors className="mr-1 h-4 w-4" aria-hidden="true" />Split</DialogTrigger>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Split this job between two payers</DialogTitle>

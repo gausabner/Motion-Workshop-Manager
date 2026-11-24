@@ -167,7 +167,7 @@ function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; 
                         <section key={stage} aria-labelledby={`sign-${stage}`}>
                             <h3 id={`sign-${stage}`} className="text-xs font-semibold text-slate-900">{STAGE_LABEL[stage]}</h3>
                             {stage === "ISSUE" && issueOffered > 1 && <p className="mt-0.5 text-xs text-slate-600">You can sign one of these boxes; each is a different person on the paper card.</p>}
-                            <table data-mobile="cards" className="mt-1 w-full text-sm md:table-fixed">
+                            <table role="table" data-mobile="cards" className="mt-1 w-full text-sm md:table-fixed">
                                 <colgroup>
                                     <col className="md:w-28" />
                                     <col />
@@ -175,19 +175,19 @@ function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; 
                                     <col className="md:w-24" />
                                 </colgroup>
                                 {/* The columns are named once, over the first stage; the later tables keep their headers for a screen reader. */}
-                                <thead className={n === 0 ? undefined : "sr-only"}>
-                                    <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
-                                        <th scope="col" className="pb-1 pr-3 font-semibold">Role</th>
-                                        <th scope="col" className="pb-1 pr-3 font-semibold">Name</th>
-                                        <th scope="col" className="pb-1 pr-3 font-semibold">Pay No.</th>
-                                        <th scope="col" className="pb-1 text-right font-semibold">Time</th>
+                                <thead role="rowgroup" className={n === 0 ? undefined : "sr-only"}>
+                                    <tr role="row" className="text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                                        <th role="columnheader" scope="col" className="pb-1 pr-3 font-semibold">Role</th>
+                                        <th role="columnheader" scope="col" className="pb-1 pr-3 font-semibold">Name</th>
+                                        <th role="columnheader" scope="col" className="pb-1 pr-3 font-semibold">Pay No.</th>
+                                        <th role="columnheader" scope="col" className="pb-1 text-right font-semibold">Time</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody role="rowgroup">
                                     {signed.map((s) => (
-                                        <tr key={s.id} className="border-t border-slate-100 align-baseline">
-                                            <td className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[s.role]}</td>
-                                            <td data-mobile="primary" className="py-1.5 pr-3 font-medium text-slate-900">
+                                        <tr role="row" key={s.id} className="border-t border-slate-100 align-baseline">
+                                            <td role="cell" className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[s.role]}</td>
+                                            <td role="cell" data-mobile="primary" className="py-1.5 pr-3 font-medium text-slate-900">
                                                 {s.name}
                                                 {(s.decision !== "SIGNED" || s.comment) && (
                                                     <span className="block text-xs font-normal text-slate-600">
@@ -198,14 +198,14 @@ function SignaturesPanel({ tenant, documentId, route, when }: { tenant: string; 
                                                     </span>
                                                 )}
                                             </td>
-                                            <td data-label="Pay No." className="py-1.5 pr-3 tabular-nums text-slate-600">{s.payNumber ?? "—"}</td>
-                                            <td data-label="Signed" className="py-1.5 tabular-nums text-xs text-slate-500 md:text-right">{when(s.at)}</td>
+                                            <td role="cell" data-label="Pay No." className="py-1.5 pr-3 tabular-nums text-slate-600">{s.payNumber ?? "—"}</td>
+                                            <td role="cell" data-label="Signed" className="py-1.5 tabular-nums text-xs text-slate-500 md:text-right">{when(s.at)}</td>
                                         </tr>
                                     ))}
                                     {waiting.map((w) => (
-                                        <tr key={`${w.stage}-${w.role}`} className="border-t border-slate-100 align-middle">
-                                            <td className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[w.role]}</td>
-                                            <td colSpan={3} className="py-1.5">
+                                        <tr role="row" key={`${w.stage}-${w.role}`} className="border-t border-slate-100 align-middle">
+                                            <td role="cell" className="py-1.5 pr-3 text-slate-500 max-md:text-[11px] max-md:font-semibold max-md:uppercase max-md:tracking-[0.05em]">{ROLE_LABEL[w.role]}</td>
+                                            <td role="cell" colSpan={3} className="py-1.5">
                                                 {!mine(w.stage, w.role) ? (
                                                     <span className="text-slate-500">Waiting</span>
                                                 ) : w.role === "INSPECTOR" && route.check && (route.check.required || route.check.inspection) ? (
