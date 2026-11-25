@@ -9,11 +9,15 @@ import { str, type ActionState } from "@/lib/forms";
 import { organisationSettingsSchema, parseSettings, requisitionSettingsSchema } from "@/lib/settings/schema";
 import { parseVoteCsv } from "@/lib/requisitions/csv";
 import {
+    addStaff,
     appoint,
     archiveOrgUnit,
     archiveVote,
     archiveWorkshop,
     importVotes,
+    removeStaff,
+    replaceAuthority,
+    replaceStaff,
     revoke,
     saveDesignations,
     saveOrgUnit,
@@ -162,6 +166,42 @@ export async function revokeAction(slug: string, id: string): Promise<ActionStat
     const { db, tenant, user } = await council(slug);
     const result = await attempt(() => db.$transaction((tx) => revoke(tx, tenant, user.id, id)), "Removed");
     refresh(slug, "organisation", "workshops", "requisitions");
+    return result;
+}
+
+export async function replaceAuthorityAction(slug: string, id: string, membershipId: string): Promise<ActionState> {
+    const { db, tenant, user } = await council(slug);
+    if (!membershipId) return { ok: false, message: "Choose who takes their place." };
+    const result = await attempt(() => db.$transaction((tx) => replaceAuthority(tx, tenant, user.id, id, membershipId)), "Replaced");
+    refresh(slug, "organisation", "workshops", "requisitions");
+    return result;
+}
+
+// ───────────────────────── workshop staff ─────────────────────────
+
+export async function addStaffAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const { db, tenant, user } = await council(slug);
+    const workshopId = str(formData, "workshopId");
+    const membershipId = str(formData, "membershipId");
+    if (!workshopId) return { ok: false, message: "Choose the workshop or bay." };
+    if (!membershipId) return { ok: false, message: "Choose somebody on the team." };
+    const result = await attempt(() => db.$transaction((tx) => addStaff(tx, tenant, user.id, { workshopId, membershipId, role: str(formData, "role") ?? "" })), "Added to the staff");
+    refresh(slug, "workshops", "users");
+    return result;
+}
+
+export async function removeStaffAction(slug: string, id: string): Promise<ActionState> {
+    const { db, tenant, user } = await council(slug);
+    const result = await attempt(() => db.$transaction((tx) => removeStaff(tx, tenant, user.id, id)), "Removed");
+    refresh(slug, "workshops");
+    return result;
+}
+
+export async function replaceStaffAction(slug: string, id: string, membershipId: string): Promise<ActionState> {
+    const { db, tenant, user } = await council(slug);
+    if (!membershipId) return { ok: false, message: "Choose who takes their place." };
+    const result = await attempt(() => db.$transaction((tx) => replaceStaff(tx, tenant, user.id, id, membershipId)), "Replaced");
+    refresh(slug, "workshops", "users");
     return result;
 }
 

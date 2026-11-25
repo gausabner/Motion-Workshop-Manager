@@ -55,8 +55,12 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
         db.timeEntry.findFirst({ where: { mechanicId: membershipId, endedAt: null }, select: { id: true, startedAt: true, document: { select: jobSelect } } }),
         db.document.findMany({
             where: {
-                type: { in: [...JOB_TYPES] }, state: "DRAFT", mechanicId: membershipId,
-                OR: [{ scheduledAt: { gte: dayStart, lt: dayEnd } }, { jobStatus: { in: ["WORK_IN_PROGRESS", "WAITING_FOR_PARTS", "INSPECTION_IN_PROGRESS"] } }],
+                type: { in: [...JOB_TYPES] }, state: "DRAFT",
+                OR: [
+                    { mechanicId: membershipId, OR: [{ scheduledAt: { gte: dayStart, lt: dayEnd } }, { jobStatus: { in: ["WORK_IN_PROGRESS", "WAITING_FOR_PARTS", "INSPECTION_IN_PROGRESS"] } }] },
+                    // A job they are on at the workshop or bay the vehicle is in now, whoever is the lead.
+                    { visits: { some: { leftAt: null, assignments: { some: { membershipId, removedAt: null } } } } },
+                ],
             },
             orderBy: { scheduledAt: "asc" },
             select: jobSelect,

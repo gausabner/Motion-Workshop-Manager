@@ -3,7 +3,8 @@
 import { createContext, useActionState, useCallback, useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { acceptAction, bookInAction, sendOnAction, signJobAction, startCheckAction } from "@/lib/fleet/actions";
+import { useRouter } from "next/navigation";
+import { acceptAction, assignAction, bookInAction, sendOnAction, signJobAction, startCheckAction, unassignAction } from "@/lib/fleet/actions";
 import type { MoveState, RouteView } from "@/lib/fleet/queries";
 import { PURPOSE_LABEL, ROLE_LABEL } from "@/lib/fleet/route-rules";
 import { duration } from "@/lib/fleet/format";
@@ -74,6 +75,7 @@ export function JobRoutePanel({ tenant, documentId, route: given, timezone }: { 
                             ))}
                         </ol>
                     )}
+                    {route.crew && <Crew key={current?.id} tenant={tenant} documentId={documentId} crew={route.crew} />}
                     <RouteActions tenant={tenant} documentId={documentId} route={route} current={current} />
                 </Panel>
                 <SignaturesPanel tenant={tenant} documentId={documentId} route={route} when={when} />
@@ -98,6 +100,76 @@ function RouteActions({ tenant, documentId, route, current }: { tenant: string; 
             {can.send.length > 0 && <SendForm key={current?.id ?? "none"} tenant={tenant} documentId={documentId} groups={can.send} />}
             {can.blocked && <p className="text-xs text-slate-600">{can.blocked}</p>}
         </div>
+    );
+}
+
+/**
+ * Who works on the job at the workshop or bay it is in. The foreman, a deputy
+ * or an administrator puts people from that place's staff on it and takes
+ * them off; the first still on it is the lead, the job card's Mechanic.
+ */
+function Crew({ tenant, documentId, crew }: { tenant: string; documentId: string; crew: NonNullable<RouteView["crew"]> }) {
+    return (
+        <div className="space-y-2 border-t border-slate-200 px-4 py-3">
+            <h3 className="text-xs font-medium text-slate-700">On the job at {crew.place}</h3>
+            {crew.people.length === 0 ? (
+                <p className="text-xs text-slate-600">
+                    {crew.canAssign
+                        ? crew.staff.length
+                            ? "Nobody yet. Choose who works on it."
+                            : `Nobody is on the staff of ${crew.place} yet. Add the mechanics, artisans and interns who work there in Settings, under Workshops and bays.`
+                        : `Nobody yet. The foreman of ${crew.place} assigns the work.`}
+                </p>
+            ) : (
+                <ul className="divide-y divide-slate-100 border-y border-slate-100">
+                    {crew.people.map((p) => <CrewLine key={p.id} tenant={tenant} documentId={documentId} person={p} canAssign={crew.canAssign} />)}
+                </ul>
+            )}
+            {crew.canAssign && crew.staff.length > 0 && <AssignForm key={crew.people.length} tenant={tenant} documentId={documentId} staff={crew.staff} />}
+        </div>
+    );
+}
+
+/** A change to who is on the job changes its Mechanic, which the job card shows above; fetch the page again for it. */
+function useFollowLead(state: MoveState) {
+    const router = useRouter();
+    useEffect(() => {
+        if (state.ok) router.refresh();
+    }, [state, router]);
+}
+
+function CrewLine({ tenant, documentId, person, canAssign }: { tenant: string; documentId: string; person: NonNullable<RouteView["crew"]>["people"][number]; canAssign: boolean }) {
+    const [state, action, pending] = useRouteMove(() => unassignAction(tenant, documentId, person.id));
+    useFollowLead(state);
+    return (
+        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 text-sm">
+            <span className="font-medium text-slate-900">{person.name}</span>
+            {person.role && <span className="text-xs text-slate-500">{person.role}</span>}
+            {person.lead && <span className="border border-slate-300 px-1.5 text-[11px] font-medium text-slate-700">Lead</span>}
+            {canAssign && (
+                <form action={action} className="ml-auto">
+                    <Button type="submit" size="sm" variant="ghost" className={`h-7 ${touch}`} disabled={pending} aria-label={`Take ${person.name} off the job`}>
+                        {pending ? "Removing…" : "Remove"}
+                    </Button>
+                </form>
+            )}
+            <Outcome state={state} />
+        </li>
+    );
+}
+
+function AssignForm({ tenant, documentId, staff }: { tenant: string; documentId: string; staff: NonNullable<RouteView["crew"]>["staff"] }) {
+    const [state, action, pending] = useRouteMove(assignAction.bind(null, tenant, documentId));
+    useFollowLead(state);
+    return (
+        <form action={action} className="flex flex-wrap items-center gap-2">
+            <select name="membershipId" required defaultValue="" aria-label="Who works on it" className={`${field} min-w-0 max-w-full`}>
+                <option value="" disabled>Who works on it</option>
+                {staff.map((s) => <option key={s.id} value={s.id}>{s.name}{s.role ? ` — ${s.role}` : ""}</option>)}
+            </select>
+            <Button type="submit" size="sm" variant="outline" className={`h-8 ${touch}`} disabled={pending}>{pending ? "Assigning…" : "Assign"}</Button>
+            <Outcome state={state} />
+        </form>
     );
 }
 

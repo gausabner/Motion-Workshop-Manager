@@ -11,6 +11,8 @@ import { JOB_SIGN_ROLES, jobFlowSettings, jobFlowSettingsSchema, parseSettings, 
 import { acceptVisit, bookIn, sendOn, signJob } from "@/lib/fleet/route";
 import { routeView, type MoveState } from "@/lib/fleet/queries";
 import { startCheck } from "@/lib/fleet/check-bay";
+import { assign, unassign } from "@/lib/fleet/crew";
+import { can } from "@/lib/auth/permissions";
 
 /**
  * Moving a vehicle along its route, and signing its job card. Council plan
@@ -62,6 +64,21 @@ export async function sendOnAction(slug: string, documentId: string, _prev: Move
 
 export async function acceptAction(slug: string, documentId: string, visitId: string): Promise<MoveState> {
     return move(slug, documentId, "Accepted", ({ db, tenant, actor }) => db.$transaction((tx) => acceptVisit(tx, tenant, actor, visitId)));
+}
+
+/** Put somebody from the workshop's staff on the job. The foreman, a deputy or an administrator. */
+export async function assignAction(slug: string, documentId: string, _prev: MoveState, formData: FormData): Promise<MoveState> {
+    const membershipId = str(formData, "membershipId");
+    if (!membershipId) return { ok: false, message: "Choose who works on it." };
+    return move(slug, documentId, "Assigned", ({ db, tenant, actor, membership }) =>
+        db.$transaction((tx) => assign(tx, tenant, { ...actor, admin: can(membership, "settings:manage") }, documentId, membershipId)),
+    );
+}
+
+export async function unassignAction(slug: string, documentId: string, assignmentId: string): Promise<MoveState> {
+    return move(slug, documentId, "Taken off the job", ({ db, tenant, actor, membership }) =>
+        db.$transaction((tx) => unassign(tx, tenant, { ...actor, admin: can(membership, "settings:manage") }, documentId, assignmentId)),
+    );
 }
 
 export async function signJobAction(slug: string, documentId: string, _prev: MoveState, formData: FormData): Promise<MoveState> {

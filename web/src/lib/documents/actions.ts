@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { routeLead } from "@/lib/fleet/crew";
 import { revalidatePath } from "next/cache";
 import type { DocumentType, JobStatus } from "@prisma/client";
 import { requireTenant, type TenantContext } from "@/lib/auth/session";
@@ -156,7 +157,8 @@ export async function saveDocument(slug: string, id: string, _prev: ActionState,
                     isCashSale: d.isCashSale,
                     vehicleId: d.vehicleId || null,
                     serviceAdvisorId: d.serviceAdvisorId || null,
-                    mechanicId: d.mechanicId || null,
+                    // On a job its route has assigned people to, the route's lead is the Mechanic, whatever the form still holds.
+                    mechanicId: await routeLead(tx, id).then((lead) => (lead === undefined ? d.mechanicId || null : lead)),
                     reference: d.reference ?? null,
                     customerOrderNumber: d.customerOrderNumber ?? null,
                     postDate: d.postDate ?? undefined,

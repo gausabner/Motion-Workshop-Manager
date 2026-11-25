@@ -5,6 +5,8 @@ import { fullName } from "@/lib/format";
 import { jobFlowSettings } from "@/lib/settings/schema";
 import type { ActionState } from "@/lib/forms";
 import { checkProgress, type CheckPurpose } from "@/lib/fleet/check-rules";
+import { assignError, leadOf, mayAssign, STAFF_ROLE_LABEL, isStaffRole } from "@/lib/fleet/crew-rules";
+import { can as canDo } from "@/lib/auth/permissions";
 import {
     currentVisit,
     issueMissing,
@@ -62,6 +64,17 @@ export type RouteView = {
         inspection: { id: string; number: string | null; total: number; left: number; red: number; amber: number; failed: string[] } | null;
         returnTo: { id: string; name: string } | null;
     } | null;
+    /**
+     * Who works on it where it is now: the people on it, the lead first, and
+     * the staff of that place who could be put on it. Null away from a
+     * workshop or bay, and before the place has accepted it.
+     */
+    crew: {
+        place: string;
+        people: { id: string; name: string; role: string | null; lead: boolean }[];
+        staff: { id: string; name: string; role: string }[];
+        canAssign: boolean;
+    } | null;
 };
 
 /** What a move answers with: the usual outcome, and the job's route as it now stands. */
@@ -90,7 +103,7 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
         db.jobSignoff.findMany({ where: { documentId }, orderBy: { at: "asc" }, select: { id: true, stage: true, role: true, decision: true, membershipId: true, name: true, payNumber: true, comment: true, at: true } }),
         db.workshop.findMany({ where: { archivedAt: null }, orderBy: { name: "asc" }, select: { id: true, name: true, kind: true } }),
         viewer(db, membershipId),
-        db.membership.findFirst({ where: { id: membershipId }, select: { payNumber: true, user: { select: { firstName: true, lastName: true } } } }),
+        db.membership.findFirst({ where: { id: membershipId }, select: { payNumber: true, group: true, extraPermissions: true, user: { select: { firstName: true, lastName: true } } } }),
     ]);
     const visits = rows.map((r) => ({ id: r.id, workshopId: r.workshopId, purpose: r.purpose, received: !!r.receivedAt, left: !!r.leftAt }));
     const current = currentVisit(visits);
@@ -163,6 +176,38 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
     }
 
     const name = (m: { user: { firstName: string; lastName: string | null } } | null) => (m ? fullName(m.user) : null);
+
+    // Who is on it at the workshop or bay it is in, and who there could be.
+    let crew: RouteView["crew"] = null;
+    if (here && assignError({ kind: here.workshop.kind, name: here.workshop.name, received: !!here.receivedAt, left: !!here.leftAt }) === null) {
+        const [assigned, staff] = await Promise.all([
+            db.visitAssignment.findMany({
+                where: { visitId: here.id },
+                orderBy: { assignedAt: "asc" },
+                select: { id: true, membershipId: true, assignedAt: true, removedAt: true, membership: { select: { user: { select: { firstName: true, lastName: true } } } } },
+            }),
+            db.workshopStaff.findMany({
+                where: { workshopId: here.workshopId, membership: { status: "ACTIVE" } },
+                select: { membershipId: true, role: true, membership: { select: { user: { select: { firstName: true, lastName: true } } } } },
+            }),
+        ]);
+        const roleOf = new Map(staff.map((s) => [s.membershipId, isStaffRole(s.role) ? STAFF_ROLE_LABEL[s.role] : null]));
+        const lead = leadOf(assigned);
+        const live = assigned.filter((a) => !a.removedAt);
+        const on = new Set(live.map((a) => a.membershipId));
+        crew = {
+            place: here.workshop.name,
+            people: live
+                .map((a) => ({ id: a.id, name: fullName(a.membership.user), role: roleOf.get(a.membershipId) ?? null, lead: a.membershipId === lead }))
+                .sort((a, b) => Number(b.lead) - Number(a.lead)),
+            staff: staff
+                .filter((s) => !on.has(s.membershipId))
+                .map((s) => ({ id: s.membershipId, name: fullName(s.membership.user), role: roleOf.get(s.membershipId) ?? "" }))
+                .sort((a, b) => a.name.localeCompare(b.name)),
+            canAssign: mayAssign(person, !!me && canDo(me, "settings:manage"), here.workshopId),
+        };
+    }
+
     return {
         visits: rows.map((r) => ({
             id: r.id, place: r.workshop.name, kind: r.workshop.kind, purpose: r.purpose, note: r.note,
@@ -184,6 +229,7 @@ export async function routeView(db: TenantDb, tenant: Tenant, documentId: string
             sign,
         },
         check: check && check.returnTo ? { ...check, returnTo: { id: check.returnTo.id, name: check.returnTo.name } } : check,
+        crew,
     };
 }
 

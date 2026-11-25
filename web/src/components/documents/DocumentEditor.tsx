@@ -177,7 +177,7 @@ export function DocumentEditor({ tenant, doc, options, showCost, timeZone }: Pro
                     <TextField label="Reference" name="reference" defaultValue={doc.reference} errors={errors} />
                     <TextField label="Customer order no." name="customerOrderNumber" defaultValue={doc.customerOrderNumber} errors={errors} />
                     <SelectField label="Service advisor" name="serviceAdvisorId" defaultValue={doc.serviceAdvisorId} errors={errors} allowEmpty="—" options={options.advisors.map((a) => ({ value: a.id, label: a.name }))} />
-                    <SelectField label="Mechanic" name="mechanicId" defaultValue={doc.mechanicId} errors={errors} allowEmpty="— unassigned —" options={options.mechanics.map((m) => ({ value: m.id, label: m.name }))} />
+                    <SelectField key={doc.mechanicId ?? "none"} label="Mechanic" name="mechanicId" defaultValue={doc.mechanicId} errors={errors} allowEmpty="— unassigned —" options={options.mechanics.map((m) => ({ value: m.id, label: m.name }))} />
                     <TextField label="Post date" name="postDate" type="date" defaultValue={dateInput(doc.postDate)} errors={errors} />
                     {isFinancial && <TextField label="Due date" name="dueDate" type="date" defaultValue={dateInput(doc.dueDate)} errors={errors} hint="Leave blank to use the payment terms" />}
                     {doc.type === "QUOTE" && <TextField label="Follow up on" name="followUpDate" type="date" defaultValue={dateInput(doc.followUpDate)} errors={errors} />}
