@@ -101,9 +101,9 @@ export default async function DocumentPage({ params, searchParams }: { params: P
                         ? [{
                             label: "Vehicle",
                             value: (
-                                <Link href={`${base}/vehicles/${doc.vehicle.id}`} className="inline-flex items-center gap-1.5 text-slate-800 hover:text-teal-700">
-                                    <span className="rounded-sm bg-yellow-100 px-1 text-xs font-bold text-yellow-900">{doc.vehicle.plate}</span>
-                                    <span className="truncate">{doc.vehicle.make} {doc.vehicle.model}</span>
+                                <Link href={`${base}/vehicles/${doc.vehicle.id}`} className="flex min-w-0 items-center gap-1.5 text-slate-800 hover:text-teal-700">
+                                    <span className="shrink-0 whitespace-nowrap rounded-sm bg-yellow-100 px-1 text-xs font-bold text-yellow-900">{doc.vehicle.plate}</span>
+                                    <span className="min-w-0 truncate">{doc.vehicle.make} {doc.vehicle.model}</span>
                                 </Link>
                             ),
                         }]
