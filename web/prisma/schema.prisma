@@ -2951,6 +2951,8 @@ enum NotificationKind {
   ASSIGNED
   /// A requisition waits for their signature, is charged to their division, or has been decided.
   REQUISITION
+  /// Somebody on a job has finished their part of it.
+  WORK_DONE
 }
 
 /// Something for one person's attention, in their list until they open it:

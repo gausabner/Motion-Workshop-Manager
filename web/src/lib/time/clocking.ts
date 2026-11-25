@@ -69,3 +69,33 @@ export async function clockOff(tx: TenantTx, membershipId: string, at = new Date
     await lockMechanic(tx, membershipId);
     return stopRunning(tx, membershipId, at);
 }
+
+/** How long after a Stop or a Switch it can still be taken back: the toast's ten seconds, and slow signal. */
+export const UNDO_GRACE_MS = 60_000;
+
+/**
+ * Take back the last Stop or Switch, if it was moments ago and nothing has
+ * happened since. A Stop reopens the entry it closed. A Switch removes the
+ * entry it started and reopens the one it stopped, which ended at the same
+ * instant the new one began.
+ */
+export async function undoLast(tx: TenantTx, membershipId: string, now = new Date()): Promise<{ documentId: string }> {
+    await lockMechanic(tx, membershipId);
+    const [last, before] = await tx.timeEntry.findMany({
+        where: { mechanicId: membershipId },
+        orderBy: { startedAt: "desc" },
+        take: 2,
+        select: { id: true, documentId: true, startedAt: true, endedAt: true },
+    });
+    if (!last) throw new Error("There is nothing to undo.");
+    if (last.endedAt) {
+        if (now.getTime() - last.endedAt.getTime() > UNDO_GRACE_MS) throw new Error("That stop is too long ago to undo. Start the job again instead.");
+        await tx.timeEntry.update({ where: { id: last.id }, data: { endedAt: null, minutes: null } });
+        return { documentId: last.documentId };
+    }
+    const switched = before?.endedAt && before.endedAt.getTime() === last.startedAt.getTime();
+    if (!switched || now.getTime() - last.startedAt.getTime() > UNDO_GRACE_MS) throw new Error("There is nothing to undo.");
+    await tx.timeEntry.delete({ where: { id: last.id } });
+    await tx.timeEntry.update({ where: { id: before.id }, data: { endedAt: null, minutes: null } });
+    return { documentId: before.documentId };
+}

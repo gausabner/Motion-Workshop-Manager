@@ -74,7 +74,7 @@ export function Schedule({
     return (
         <Drawer open={open} onOpenChange={onOpenChange} side="bottom">
             <DrawerBackdrop className="fixed inset-0 bg-slate-900/40" />
-            <DrawerContent className="flex h-[92dvh] w-full flex-col border-t border-slate-300 bg-white [scale:calc(1-var(--drawer-stack,0)*0.04)]">
+            <DrawerContent className="mx-auto max-w-lg sm:border-x sm:border-slate-300 flex h-[92dvh] w-full flex-col border-t border-slate-300 bg-white [scale:calc(1-var(--drawer-stack,0)*0.04)]">
                 <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300" />
                 <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-1">
                     <div>
