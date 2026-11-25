@@ -2,7 +2,7 @@ import { act, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 const sheet = {
-    id: "d1", jobNumber: "JC-4181", description: "Replace front left wheel bearing", odometer: 148210, department: "Parks and Recreation",
+    id: "d1", jobNumber: "JC-4181", jobStatus: "WAITING_FOR_PARTS", description: "Replace front left wheel bearing", odometer: 148210, department: "Parks and Recreation",
     vehicle: { plate: "N 9921 W", make: "Toyota", model: "Hilux" },
     lines: [{ id: "l1", description: "Fit bearing kit, torque hub nut", quantity: 1.5, labour: true }],
     findings: [{ description: "Bearing play front left", comment: null, urgent: true }],
@@ -12,7 +12,7 @@ const sheet = {
     crew: [{ name: "Tobias Kandjii", lead: true, me: false }, { name: "Gaus Abner", lead: false, me: true }],
     time: { mine: 30, team: 72, estimate: 120 },
 };
-vi.mock("@/lib/time/floor-actions", () => ({ jobSheetAction: vi.fn(async () => sheet), scheduleAction: vi.fn(async () => ({ month: "2026-12", today: "2026-11-25", days: {} })) }));
+vi.mock("@/lib/time/floor-actions", () => ({ stopReasonAction: vi.fn(async () => ({ ok: true, message: "The foreman of Light and medium vehicles has been told." })), jobSheetAction: vi.fn(async () => sheet), scheduleAction: vi.fn(async () => ({ month: "2026-12", today: "2026-11-25", days: {} })) }));
 
 const { Schedule } = await import("@/components/pwa/Schedule");
 const { hoursLabel } = await import("@/lib/time/clock");
@@ -52,4 +52,17 @@ test("choosing another day opens it, and its job opens the job sheet on top", as
     expect(within(dialog).getByText(/Noise worst on left turns/)).toBeTruthy();
     expect(within(dialog).getByText("Tobias Kandjii (lead) · You")).toBeTruthy();
     expect(within(dialog).getByRole("meter", { name: "Time on the job" }).getAttribute("aria-valuetext")).toBe(`${hoursLabel(72)} of ${hoursLabel(120)}`);
+});
+
+test("the job sheet shows the job's status and lets the mechanic tell the workshop at any time", async () => {
+    const { stopReasonAction } = await import("@/lib/time/floor-actions");
+    open();
+    await act(async () => screen.getByRole("button", { name: /Thursday.*26 November/i }).click());
+    await act(async () => screen.getByRole("button", { name: /09:00.*JC-4181/ }).click());
+    const dialog = await screen.findByRole("dialog", { name: "Replace front left wheel bearing" });
+    expect(within(dialog).getAllByText("Waiting for parts").length).toBeGreaterThan(0);
+    expect((within(dialog).getByRole("button", { name: "Waiting for parts" }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => within(dialog).getByRole("button", { name: "My part is done" }).click());
+    expect(stopReasonAction).toHaveBeenCalledWith("t", "d1", "DONE");
+    expect(within(dialog).getByText("The foreman of Light and medium vehicles has been told.")).toBeTruthy();
 });

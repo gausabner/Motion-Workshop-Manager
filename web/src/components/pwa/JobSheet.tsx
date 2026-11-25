@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { CloudOff, Play, X } from "lucide-react";
+import { CloudOff, Pause, Play, X } from "lucide-react";
+import { JobStatusPill } from "@/components/documents/StatusPill";
+import type { JobStatus } from "@prisma/client";
 import { Drawer, DrawerBackdrop, DrawerClose, DrawerContent, DrawerDescription, DrawerTitle } from "@ui-sdk/react/drawer";
 import { SegmentedControl, SegmentedControlItem } from "@ui-sdk/react/segmented-control";
 import { Meter, MeterLabel, MeterTrack, MeterIndicator, MeterValue } from "@ui-sdk/react/meter";
 import { hoursLabel } from "@/lib/time/clock";
-import { jobSheetAction } from "@/lib/time/floor-actions";
+import { jobSheetAction, stopReasonAction } from "@/lib/time/floor-actions";
 import type { JobSheetData } from "@/lib/time/floor-sheet";
 
 type View = "work" | "findings" | "parts";
@@ -22,7 +24,7 @@ const HERE_FOR: Record<string, string> = {
  * one thumb; Start sits at the bottom where the clock bar's Stop is.
  */
 export function JobSheet({
-    tenant, jobId, onClose, start, startLabel = "Start", onTheClock,
+    tenant, jobId, onClose, start, startLabel = "Start", onTheClock, stop, onChanged,
 }: {
     tenant: string;
     jobId: string | null;
@@ -32,21 +34,43 @@ export function JobSheet({
     /** What Start says, as the cards say it: "Start", or "Switch to this job" while another runs. */
     startLabel?: string;
     onTheClock: boolean;
+    /** Stops the clock when this job is the one running; the sheet then offers Stop where the bar would. */
+    stop?: () => void;
+    /** After the sheet changes the job, so the floor behind it can be fetched again. */
+    onChanged?: () => void;
 }) {
     const [data, setData] = useState<JobSheetData | null>(null);
     const [failed, setFailed] = useState(false);
     const [view, setView] = useState<View>("work");
     const [loading, load] = useTransition();
     const [shownFor, setShownFor] = useState<string | null>(null);
+    const [said, setSaid] = useState<{ ok: boolean; text: string } | null>(null);
 
     // A new job resets the sheet to its work, then reads it.
     if (jobId && jobId !== shownFor) {
         setShownFor(jobId);
         setView("work");
         setFailed(false);
+        setSaid(null);
         setData((d) => (d?.id === jobId ? d : null));
     }
     const [attempt, setAttempt] = useState(0);
+    const [telling, tell] = useTransition();
+    // A reason can be given at any time from here, not only in the ten seconds of the stop toast.
+    const because = (reason: "PARTS" | "DONE") =>
+        jobId &&
+        tell(async () => {
+            try {
+                const answer = await stopReasonAction(tenant, jobId, reason);
+                setSaid({ ok: answer.ok, text: answer.message });
+                if (answer.ok) {
+                    setAttempt((n) => n + 1);
+                    onChanged?.();
+                }
+            } catch {
+                setSaid({ ok: false, text: "That needs a signal. Tell the foreman yourself." });
+            }
+        });
     useEffect(() => {
         if (!jobId) return;
         load(async () => {
@@ -78,6 +102,7 @@ export function JobSheet({
                             {/* The vehicle is the title when the job has no description, so it is not said twice. */}
                             {(data?.description ? vehicle : null) && <span className="text-slate-600">{vehicle}</span>}
                             {data?.odometer ? <span className="tabular-nums text-slate-600">{data.odometer.toLocaleString("en-GB")} km</span> : null}
+                            {data?.jobStatus && data.jobStatus !== "WORK_IN_PROGRESS" && data.jobStatus !== "BOOKED_IN" && <JobStatusPill status={data.jobStatus as JobStatus} />}
                         </p>
                         <DrawerTitle className="mt-1 text-lg font-semibold leading-snug text-slate-900">{data ? title : loading ? "Opening the job…" : "Job"}</DrawerTitle>
                         <DrawerDescription className="text-sm text-slate-600">
@@ -200,12 +225,41 @@ export function JobSheet({
                                     {over !== null && over > 0 ? ` · ${hoursLabel(over)} over the estimate` : ""}
                                 </p>
                             </div>
+
+                            <div className="mt-5">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">Tell the workshop</p>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={telling || data.jobStatus === "WAITING_FOR_PARTS"}
+                                        onClick={() => because("PARTS")}
+                                        className="floor-press h-12 rounded-sm border border-slate-300 px-2 text-sm font-medium text-slate-900 active:bg-slate-50 disabled:opacity-50"
+                                    >
+                                        Waiting for parts
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={telling}
+                                        onClick={() => because("DONE")}
+                                        className="floor-press h-12 rounded-sm border border-slate-300 px-2 text-sm font-medium text-slate-900 active:bg-slate-50 disabled:opacity-50"
+                                    >
+                                        My part is done
+                                    </button>
+                                </div>
+                                <p role="status" className={`mt-1.5 min-h-5 text-[13px] ${said?.ok === false ? "text-red-700" : "text-slate-700"}`}>
+                                    {telling ? "Sending…" : (said?.text ?? "")}
+                                </p>
+                            </div>
                         </div>
                     </>
                 )}
 
                 <div className="shrink-0 border-t border-slate-200 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3">
-                    {onTheClock ? (
+                    {onTheClock && stop ? (
+                        <button type="button" onClick={stop} className="floor-press flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-teal-700 text-lg font-semibold text-white active:bg-teal-800">
+                            <Pause className="h-5 w-5" aria-hidden="true" />Stop
+                        </button>
+                    ) : onTheClock ? (
                         <p className="flex h-14 items-center justify-center rounded-sm border border-teal-700 text-lg font-semibold text-teal-800">On the clock</p>
                     ) : start ? (
                         <button type="button" onClick={start} className="floor-press flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-teal-700 text-lg font-semibold text-white active:bg-teal-800">
