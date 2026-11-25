@@ -1,5 +1,7 @@
 # UI SDK component plan
 
+> **Status, 25 November 2026.** Phases 1–2 shipped (#47): Field, Dialog, Alert Dialog, Drawer, with `createConfirm`. The floor app then brought in, with the owner's approval: **Calendar** and **Accordion** (the schedule, #57), **Segmented Control** and **Meter** (the job sheet and the clock, #57–#58), and **Toast** (Undo and Why?, #59–#60). Two traps found on the way: `CalendarDay` is the table cell, so its look goes on an inner element; and a full-width Toast region needs `translate: none`, because UI SDK centres a centre-aligned region with `translate: -50%`. Toggle, Collapsible and Timeline are approved but not yet used.
+
 21 November 2026. A plan only: nothing is installed yet. It maps every
 interactive pattern in MOTION to the component UI SDK recommends for it, and
 orders the work by the accessibility findings of the critique run the same day

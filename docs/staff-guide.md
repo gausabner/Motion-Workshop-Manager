@@ -166,11 +166,11 @@ pricing page. The rules live in one place (`web/src/lib/plans/features.ts`).
 | --- | --- |
 | **Workshop** | The diary, job cards, quotes to invoices, receipts, sending, customers and vehicles, what customers owe, profit, the mechanic clock, the portal, online booking, import, and every table as CSV |
 | **Full workshop** | Parts and stock, purchasing and suppliers, inspections, reminders and campaigns, courtesy cars, the owner reports |
-| **Council and multi-site** | Audit reports, accounting integration, the public API |
+| **Fleet and multi-site** | The vehicle's route, requisitions, workshop staff and assignment, the audit reports, accounting integration, the public API |
 
 - A Full workshop screen outside the plan shows in the workshop's menus
   greyed with a lock, and leads to Settings → Billing, which says which plan
-  includes it and starts the move up. Council-only screens are not shown.
+  includes it and starts the move up. Fleet and multi-site screens are not shown.
 - A workshop with **no plan** — one switched on before plans existed — keeps
   everything until **Set up billing** gives it one.
 - Nothing is deleted when a workshop moves down. Their stock, suppliers and
@@ -205,6 +205,19 @@ amount (excluding VAT — change it for a negotiated price). What it can use
 changes at once; the new price is what its next renewal is invoiced at, and
 nothing already paid is re-priced. The owner is emailed what they gained or
 lost and the new price.
+
+## Supporting an organisation with its own fleet
+
+An organisation on **Fleet and multi-site** runs more of MOTION than a workshop does. When its people ring, this is where things are. The walkthrough of one job, from reception to collection, is at https://claude.ai/artifact/DfcvL47UbygC2bAbTBM8sh.
+
+| They ask about | Where it lives | What to check first |
+| --- | --- | --- |
+| Who signs what | Settings → Organisation, Workshops and bays, Requisitions | That the unit has a divisional head and the workshop a foreman. **Replace** hands an appointment to someone else in one step. |
+| A vehicle that will not move on | The job card's Route panel | It must be accepted where it was sent. Leaving reception needs every issue signature; leaving the check bay needs the assessment signed. |
+| A mechanic who cannot be assigned | Settings → Workshops and bays → Staff | The mechanic must be on that workshop's staff. Only the foreman, a deputy or an administrator assigns. |
+| A requisition stuck waiting | The requisition's page | The step waiting and who may sign it. Nobody signs their own requisition, or two steps of one round. |
+| Notifications not arriving | The bell (office) or the floor app's bell | The person must work at the place (staff or foreman) or be the one assigned. Nobody is told about their own action. |
+| A mechanic's floor app | `https://motionworkshopmanager.com/<workshop>/pwa` | They must be marked a mechanic (Team, or by being added to a workshop's staff). After an update, reloading the page once picks it up. |
 
 ## What you cannot see
 

@@ -4,7 +4,8 @@ What happens when something breaks, how MOTION comes back, and — stated plainl
 — what is not yet in place. For the IT manager who has to satisfy themselves
 that a workshop can keep trading.
 
-Last reviewed 1 October 2026 against the shipped pipeline.
+Last reviewed 25 November 2026 against the shipped pipeline and the production
+server.
 
 ---
 
@@ -153,13 +154,16 @@ the scenario where we do not.
 | **Backups are tested** | **Yes, weekly**, by restoring them. This is the claim most backup policies cannot make |
 | **Backups are encrypted off-site** | **Yes**, and the server that writes them cannot read them |
 | **Point-in-time recovery** | **No.** Nightly granularity only. Sub-day recovery needs WAL archiving, which is not built |
-| **Uptime percentage** | **None published.** There is no monitoring in place to measure one, and a figure that cannot be measured is worse than no figure. Blocked on choosing a host, not on engineering |
+| **Uptime percentage** | **None published.** There is no monitoring in place to measure one, and a figure that cannot be measured is worse than no figure. The host is chosen; what is missing is an outside check that records when the service answers |
 | **A tested failover** | **Not performed.** There is no second environment to fail over to. Recovery is restore-and-start, not switch-over |
 
-> **To decide.** The host. Not for the backup's sake — the backup arrangement
-> is deliberately independent of it, and works the same on any Linux server
-> with a bucket — but the uptime figure and the data-residency answer both
-> wait on it.
+**Decided.** Production is one Namecheap server in Phoenix, Arizona, running
+Docker Compose from `ops/server` and reached through a Cloudflare tunnel (see
+[architecture.md](architecture.md), ADR-007). The backup arrangement is
+deliberately independent of it and works the same on any Linux server with a
+bucket. Data residency in Namibia is the installed edition's answer. Each
+release backs up first and pulls the new image while the old one serves, so a
+deploy stops the app for seconds, not minutes ([launch-runbook.md](launch-runbook.md), section 11).
 
 ## 6. Keeping trading while MOTION is down
 
@@ -172,4 +176,13 @@ time. What is lost is convenience, not the day's work.
 
 The offline floor app continues to accept clock-on and clock-off while the
 network is gone, and queues those events to replay when it returns. Replay is
-idempotent: an event that arrives twice is recorded once.
+idempotent: an event that arrives twice is recorded once. The card says "Not
+sent yet" until it has. The job sheet, the schedule and notifications need a
+signal, and say so with a way to retry.
+
+**For an organisation with its own fleet,** the paper job card travels with
+the vehicle as it always has, and collects its signatures by hand. Moves made
+while MOTION is down are entered when it returns, at the time they are
+entered; write the real time in the move's note. Notifications are not sent
+for anything that did not happen in MOTION, so tell the receiving workshop in
+person, as before.

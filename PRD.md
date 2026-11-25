@@ -30,7 +30,7 @@ AU/US parts-catalogue integrations, Carfax / DVLA lookups, integrated card termi
 
 ## 2. Target market & users
 
-**Market:** independent workshops, dealership service departments and small fleets in **Namibia first, South Africa second**; 1–3 sites, 2–15 staff. The benchmark's Silver tier ($149–169/month) sets the price ceiling.
+**Market:** independent workshops, dealership service departments and small fleets in **Namibia first, South Africa second**; 1–3 sites, 2–15 staff. The benchmark's Silver tier ($149–169/month) sets the price ceiling. *(Updated November 2026: since 1 December 2025 the benchmark sells in rand — R1,100–R2,900 a month — so MOTION's tiers now sit at its price, and the case is scope, not price. See [docs/website-and-market-plan.md](docs/website-and-market-plan.md).)*
 
 **User groups** (adopt the benchmark's model, *WS-USER*, trimmed to six):
 
@@ -379,7 +379,7 @@ erDiagram
 | Phones | E.164 storage; display +264 / +27; WhatsApp deep links |
 | Language | English (ZA/NA spelling); Afrikaans document labels as the *bilingual* option; dd/mm/yyyy; `Africa/Windhoek` / `Africa/Johannesburg` |
 | Payments | EFT + proof-of-payment first-class; cash; card via local gateway later |
-| Data protection | POPIA (SA) and Namibia's Data Protection Bill: consent for marketing messages, opt-out honoured, data export & erasure on request |
+| Data protection | POPIA (SA) and Namibia's Data Protection Bill (still a bill, not law, in November 2026): consent for marketing messages, opt-out honoured, data export & erasure on request |
 | Fields dropped | WOF, rego, GST, AMS/Capricorn member numbers, MOT/DVLA, Carfax |
 
 ---

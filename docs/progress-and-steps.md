@@ -4,6 +4,22 @@ A survey of MOTION for journeys that would complete more often if the person
 doing them could see how much was left — prompted by the password-reset
 stepper, which is the first one built.
 
+**Status (25 November 2026).** Built since this survey:
+
+- **Online booking steps** — `/[tenant]/book` shows its four steps with
+  `StepProgress`. Online booking itself is off by default, and is not offered
+  in the Namibian market (see [website-and-market-plan.md](website-and-market-plan.md)).
+- **The fleet route on the job card** — `JobRoutePanel` shows each stay
+  (reception, check bay, workshops, quality check) with who sent and received
+  it, which is the status track this survey asked for, for fleet jobs.
+- **The floor app** — the job's status as a chip on every card and in the job
+  sheet, and time against the estimate as a meter (`Meter` from the UI SDK),
+  with no percentage claim past the estimate.
+
+Not built: the job card's own status track for walk-in jobs, the document
+chain ribbon, counted progress for inspections and stock takes, and the
+purchase order track. The order below still stands for those.
+
 ## The distinction that has to come first
 
 Two different things get called "a progress bar", and building the second as

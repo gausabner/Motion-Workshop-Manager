@@ -1,10 +1,15 @@
 # File storage
 
-Uploaded files — EFT proofs of payment today, job-card photos and signed
-authorisations next — go through one interface, and a deployment chooses where
+Uploaded files go through one interface, and a deployment chooses where
 the bytes actually land. One codebase serves a workshop running on a single
 machine and a workshop on object storage, and a workshop that moves from the
 first to the second keeps everything it already had.
+
+**What is stored today (25 November 2026):** EFT proofs of payment, inspection
+photos (one or more per checklist item), quotations attached to a purchase
+requisition, and the workshop's logo. Every one goes through
+`lib/attachments/service.ts`; production runs the `local` driver on the
+server's disk, inside the nightly off-site backup.
 
 ## The contract
 

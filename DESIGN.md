@@ -10,6 +10,7 @@ colors:
   accent: "#0f766e"
   accent-hover: "#115e59"
   accent-tint: "#f0fdfa"
+  accent-on-dark: "#2dd4bf"
   hairline: "#e2e8f0"
   hairline-faint: "#f1f5f9"
   field-edge: "#7a8699"
@@ -339,6 +340,21 @@ Filled is teal-700, the one acting colour; outline is white with the 3:1 `field-
 - **Term:** a 1px `field-edge` left marker with the term at 13px/600 ink-dark and its definition in secondary ink.
 - **List:** the bullet is a 10px hairline, not a glyph. The page is built from rules; so are its lists.
 - **Steps:** a teal tabular numeral in a 16px right-aligned column, so a list running past nine keeps its text aligned.
+
+## The floor app
+
+The mechanic's screen (`/<workshop>/pwa`, `web/src/components/pwa/`) follows the same system, tuned for a phone held at arm's length on a bright workshop floor, often with gloves.
+
+- **Ground and frame.** Slate-50 ground; a slate-900 header (the installed app's bar, answering the home-screen icon); cards are white with a hairline, 2px corners and no shadow. The running card's hairline turns teal-700 and it says "On the clock".
+- **Accent on dark.** On the dark header and the toasts, the accent is `accent-on-dark` (#2dd4bf, the mark's accent): the bell's count (with slate-950 text) and the toast's Undo. Teal-700 stays the accent on light surfaces.
+- **Targets.** Start, Switch and Stop are 56px tall and full width; every other control is at least 44px. Nothing functional is under 12px; captions and hints are 13px.
+- **Status.** A card shows the job number, the plate, and MOTION's status chip (icon and words) when the job is not plain work in progress. Jobs waiting for parts sink below those that can be worked now.
+- **The clock bar.** Fixed to the bottom with the job, the running time and the estimate meter; Stop is always one thumb away. Its job opens the job's sheet.
+- **Sheets.** The job sheet, the schedule and notifications are UI SDK drawers from the bottom, held to the floor's 32rem column on wide screens with side hairlines. A sheet opened from another stacks on top and the one beneath eases back.
+- **The schedule.** A month calendar (UI SDK Calendar, weeks from Monday) with a teal mark under each day with work, today outlined and the chosen day filled teal; under it the week as a stack of day bands — the day in 28px bold capitals, deeper slate towards the weekend — the chosen day open with its jobs.
+- **Toasts.** One at a time at the top, slate-900, inside the 16px gutters: "Clock stopped" with the job number on the second line, then "Why?" and "Undo".
+- **Motion.** Press: scale 0.97 over 120ms (`.floor-press`). Clock bar: up 240ms on `cubic-bezier(0.32, 0.72, 0, 1)`, away 180ms on `cubic-bezier(0.23, 1, 0.32, 1)` (`.floor-clock`). Day bands: height 220ms on the strong ease-out. Meters: width 600ms. Toasts: in 220ms, out 160ms. Under reduced motion, movement becomes a fade and the bands snap. The ticking clock never animates.
+- **Offline.** "No signal" is a slate line with the cloud icon (amber is for money); a tap waiting for a signal says "Not sent yet · started 11:42" on its own card.
 
 ## Do's and Don'ts
 

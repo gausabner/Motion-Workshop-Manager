@@ -1,5 +1,11 @@
 # Fleet job flow: brief and plan
 
+> **Status, 25 November 2026: built and live.** The route, the check bay and the job card's signatures shipped in parts 1–5 (#38–#45). Since then:
+> - **Workshop staff and assignment (#52):** each workshop and bay has staff (mechanic, artisan, intern); once a place accepts a vehicle its foreman, a deputy or an administrator puts staff on the job; the first still on it is the lead and the job card's Mechanic. Appointments and staff can be replaced in one step.
+> - **Notifications (#54):** a vehicle sent on tells the people at the place it is going (reception's people, the check bay's foremen, a workshop's foremen, deputies and staff); a person put on a job is told.
+> - **The floor app (#56–#61):** assigned people see the job, its place on the route, its sheet (work, findings, parts, crew, time against the estimate) and can tell the foreman "my part is done".
+> - Copy says *organisation*, not council (#51). The walkthrough of one job is at https://claude.ai/artifact/DfcvL47UbygC2bAbTBM8sh; the design decisions are ADR-002 and ADR-004 in [architecture.md](architecture.md).
+
 Shaped on 19 November 2026 from the owner's brief "Job Card Flow", and widened
 the same day by the owner's note on divisions, departments and vote numbers
 (§6). Its companion is `requisitions-plan.md`, which this plan revises where the
@@ -49,7 +55,9 @@ two meet (§5). Nothing here is built yet.
   purchase requisition names the stores requisition it came from.
 - **Quotations by value, set by the council.** For example, one quotation
   below a figure and three above it, to match the council's procurement
-  policy. MOTION holds no figure of its own.
+  policy. MOTION holds no figure of its own. *(November 2026: a South African
+  municipality needs three written quotations for anything over R2,000, so
+  its bands start there; see [compliance-check-2026-11.md](compliance-check-2026-11.md).)*
 - **Finalising a received requisition always needs the Foreman, the Fleet
   Coordinator and the Division Head.** The person who fitted the part
   (mechanic, artisan or intern) signs when present; their signature is

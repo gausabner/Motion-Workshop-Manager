@@ -10,14 +10,15 @@ things are not — it says so under [What MOTION does not have yet](#what-motion
 rather than being left for you to discover. A security document that only
 lists strengths is telling you what it wants you to hear.
 
-Last reviewed 30 September 2026 against the shipped code.
+Last reviewed 25 November 2026 against the shipped code (`main` 5413cad), including
+the fleet route, requisitions, workshop staff, notifications and the floor app.
 
 ---
 
 ## The short version
 
 - Each workshop's data is separated **by the database itself**, not by the
-  application remembering to filter. 50 of 59 tables carry a row-level policy
+  application remembering to filter. 71 of 79 tables carry a row-level policy
   that binds even the account the application connects as.
 - Nothing that could be replayed is stored in a form that can be used: passwords,
   session tokens, API keys, invitations, password-reset links and customer share
@@ -47,13 +48,16 @@ another client's row during development, which is what the guard exists to stop
 happening again.
 
 **In the database.** PostgreSQL row-level security policies compare every row
-against the workshop announced on the connection. Of 59 tables, 56 carry a
-policy and **50 are `FORCE`d**, which means the policy binds even the role that
+against the workshop announced on the connection. Of 79 tables, 77 carry a
+policy and **71 are `FORCE`d**, which means the policy binds even the role that
 owns the tables. A query that has not said which workshop it is for returns
 nothing and writes nothing — it does not quietly return everything.
 
 **The six that are not forced, and why.** `Session`, `Membership`, `ApiKey`,
-`Invitation`, `ShareLink` and `PasswordReset`. Each answers the question *which
+`Invitation`, `ShareLink` and `PasswordReset`. (The other two of the eight are
+`Tenant` and `User`, which carry no policy because neither belongs to one
+workshop: the tenant row is the workshop itself, and a person may work for
+several.) Each answers the question *which
 workshop is this?* and therefore cannot itself be scoped by the answer: a
 sign-in looks up a session before it knows the workshop, an API request looks up
 a key, somebody following a reset link is by definition not signed in. All six
@@ -117,6 +121,29 @@ wrong:
 
 Where a user may not see a record at all, the system answers "not found" rather
 than "not allowed", so it does not confirm the existence of what it is hiding.
+
+**For organisations with their own fleets**, three further rules decide who may
+act, and each is a pure function the screens, the actions, the tests and the
+notifications all ask:
+
+- **Who may sign.** A requisition step is signed only by the person appointed
+  to it — the foreman or deputy of the asking workshop, the divisional head of
+  that unit, the over-limit approver above the value limit — never by role
+  alone. A job card stage is signed only by someone whose recorded designation
+  matches it (reception, foreman, fleet coordinator, mechanic). Each signature
+  records the name and pay number at the time, and stays when an appointment
+  later ends.
+- **Who may assign.** Only the foreman or deputy of the workshop a vehicle is
+  at, or an administrator, may put people on the job there.
+- **Who is told.** A notification goes to the people the rules name for that
+  event, never to the person who acted, and is written in the same
+  transaction as the act — so a failed move tells nobody. It carries the job
+  number, the vehicle and staff names, never a customer's contact details.
+
+**The floor app** shows a mechanic their own jobs without prices or customer
+contact details. To work without a signal it keeps the last floor page and any
+unsent clock taps on the phone; no other screen is cached, because a balance
+served from yesterday is worse than an error.
 
 ## 4. What is recorded
 
@@ -190,7 +217,7 @@ Three properties are worth a procurement officer's attention:
 **The server cannot read its own backups.** Each backup is encrypted with a
 fresh random key, and that key is wrapped with an RSA public key. Only the
 public half is on the server. Someone who takes the server, or the bucket, or
-both, has ciphertext. The private half is held by the workshop or the council,
+both, has ciphertext. The private half is held by the workshop or the organisation,
 not by MOTION, and not on the machine — which also means MOTION cannot read
 your backups either.
 
@@ -219,17 +246,17 @@ later is worse than being told now.
 
 | Not yet | Position |
 | --- | --- |
-| **Multi-factor authentication** | Not implemented. Realistic to add, and the right first ask for a council. |
-| **Single sign-on / Active Directory** | Not implemented. Understood to be a procurement requirement for councils and planned as one; no work has started. |
+| **Multi-factor authentication** | Not implemented. Realistic to add, and the right first ask from a public body. |
+| **Single sign-on / Active Directory** | Not implemented. Understood to be a procurement requirement for public bodies and planned as one; no work has started. |
 | **Point-in-time recovery** | Not implemented. Backups are nightly, so the recovery point is up to 24 hours. Continuous WAL archiving would close this and is not built. See section 8. |
 | **Backups configured by default** | The scripts ship with the product; the bucket and key pair are set up per installation. A site that has not been commissioned has no off-site backup, which is why commissioning is not complete until a restore has been run and passed. |
 | **Encryption at rest for the live database** | Not configured. The hosted service runs PostgreSQL on a Namecheap VPS with NVMe storage; disk-level encryption is not enabled and is not something MOTION can currently attest to. Separate from the backups, which *are* encrypted before they leave the machine — see section 8. |
 | **SOC 2 / ISO 27001** | Neither held. Both are a year and six figures; there is no honest way to have them before revenue. |
-| **Independent penetration test** | Not yet commissioned. Worth doing before a first council go-live. |
+| **Independent penetration test** | Not yet commissioned. Worth doing before the first go-live at an organisation with its own fleet. |
 | **A published uptime commitment** | None. Nothing is measuring it yet. A figure nobody is measuring is worse than no figure. |
 | **Data held in Namibia** | No. The hosted service runs in Phoenix, Arizona; Namecheap confirmed their VPS estate is United States only. A client who requires Namibian residency is served by the installed edition on their own hardware, which is what it is for. |
-| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States, and Private Email, which carries password-reset messages and therefore sees a name and an address), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any council contract. |
-| **A registered legal entity** | Not yet registered. The terms and privacy policy are drafts and say so. |
+| **Named subprocessor list** | Not yet published, though it is now short and knowable: Namecheap (the server, in the United States, and Private Email, which carries password-reset messages and therefore sees a name and an address), Cloudflare (DNS and the edge that carries traffic to it), and the backup bucket's provider. Owed in writing before any contract with a public body. |
+| **Settled terms and an operator agreement** | The entity is registered — Omzizi Investment CC, trading as Motion Dynamic Systems, CC/2014/11996 — but the terms and privacy policy are drafts not yet reviewed by counsel, and there is no written operator agreement of the kind South Africa's POPIA requires. Both are owed before a South African customer; see [legal-review-2026-11.md](legal-review-2026-11.md). |
 
 ## Asking us about this
 

@@ -163,6 +163,11 @@ count and a retry cannot slip through a second server.
   what the workshop paid.
 - **No processing or settling.** Turning a job card into an invoice, taking
   money, voiding a document — those stay with a person who is signed in.
+- **No fleet route, requisitions or notifications — yet.** Sending a vehicle,
+  signing a requisition and assigning a mechanic carry a person's signature
+  and stay in the signed-in screens. A read-only view of where a vehicle is
+  would be the first fleet endpoint, when a buyer asks for one. (Checked
+  against the routes on `main`, 25 November 2026.)
 - **No wildcards in the path.** Theirs accepts `*` inside the URL as a filter;
   every read here is scoped to the key's tenant by the same layer that scopes
   the dashboard, so a key cannot ask a wider question than the workshop can.

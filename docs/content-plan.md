@@ -1,5 +1,7 @@
 # Content plan — the wording, from first visit to daily use
 
+> **Update, 25 November 2026.** Customer-facing copy names the third plan **Fleet and multi-site** and says *organisation*, *an auditor* and *a fleet of your own* — never council or municipality (#51, owner's decision). Plan names are read from `PLAN_NAMES` in `web/src/lib/plans/features.ts`, never typed. The fleet and floor app vocabulary (route, stay, send and accept, check bay, requisition, lead, "Tell the workshop", "Why?", "Not sent yet") is listed under Terminology in `PRODUCT.md`.
+
 Written 9 October 2026 after reading every public page, the registration and
 sign-in flow, the pages a workshop's own customers see, and a cross-section of
 the signed-in app (dashboard, jobs, transactions, a processed invoice, the
@@ -88,7 +90,7 @@ articles and emails alike.
 | Returned job | Rework | Came back | Document action |
 | Fully paid invoice | Paid (a settled credit note: Settled) | Closed | Decision D4 |
 | Monthly CSVs for the bookkeeper | Accounting export | For the bookkeeper | Every plan |
-| Nightly journal to the accounting system | Accounting integration | Hand-off, Accounting hand-off | Council plan |
+| Nightly journal to the accounting system | Accounting integration | Hand-off, Accounting hand-off | Fleet and multi-site plan |
 | Report groups | Management reports, Audit reports | For the owner, For the auditor | |
 | The estimate document | Quote; printed title Quotation | — | Decision D1 |
 | Open work | Open job cards | Jobs on the floor | |
@@ -157,9 +159,9 @@ articles and emails alike.
 | Now | Proposed |
 | --- | --- |
 | What it costs / Priced for this market rather than converted from somewhere else… | Pricing / Monthly subscriptions in Namibian dollars. Every plan includes all your staff, and you can export your data at any time. |
-| For the buyer whose procurement asks what happens if you stop existing. | For municipalities, fleets and multi-site operators that require installation on their own servers and audit reporting. |
+| For the buyer whose procurement asks what happens if you stop existing. | For organisations that require installation on their own servers and audit reporting. |
 | Stock on hand from a real movement ledger, not a number somebody edits | Stock levels calculated from every movement, never edited by hand |
-| The six exports a council audit asks for, filed as PDFs and re-addable as CSVs | The six reports a council audit requires, as PDFs with CSV copies |
+| The six exports an audit asks for, filed as PDFs and re-addable as CSVs | The six reports an auditor asks for, as PDFs with CSV copies |
 | The nightly journal into your accounting system — outbound only, nothing listening | A nightly journal to your accounting system, sent outbound only |
 | Whichever tier you are on | Included in every plan |
 | Getting started | Moving from another system |
@@ -264,6 +266,6 @@ happens once. A translation framework is not proposed; MOTION is English-only.
    internal. (Phase 3.)
 5. **Self-registration is promoted** beside the demonstration on the landing
    and pricing pages, and from the sign-in page. (Done in Phase 1.)
-6. **Council tier:** "Request a quote". (Done in Phase 1.)
+6. **Fleet and multi-site tier:** "Request a quote". (Done in Phase 1.)
 7. **Currency:** "N$ 1,380.00" — the spaced form `money()` already produces,
    now used on the public pages too. (Done in Phase 1 for the pages touched.)
