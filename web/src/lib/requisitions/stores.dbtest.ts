@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { Designation, Tenant } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { forTenant } from "@/lib/tenant-db";
+import { tellAboutRequisition } from "@/lib/requisitions/notices";
 import { postDocumentStock } from "@/lib/stock/ledger";
 import { decideRequisition, finaliseRequisition, saveRequisition, submitRequisition, type Actor } from "@/lib/requisitions/service";
 import { issueStores } from "@/lib/requisitions/stores";
@@ -59,6 +60,7 @@ before(async () => {
 
 after(async () => {
     const tenantId = tenant.id;
+    await prisma.notification.deleteMany({ where: { tenantId } });
     await prisma.stockMovement.deleteMany({ where: { tenantId } });
     await prisma.documentLine.deleteMany({ where: { tenantId } });
     await prisma.documentStatusEvent.deleteMany({ where: { tenantId } });
@@ -111,6 +113,11 @@ test("stores issues it in two handovers to a named receiver, once off the shelf 
     assert.equal(await onHand(), 8);
     // A receiver without a login, by name and pay number.
     assert.equal((await issue("storeman", 1, { name: "Petrus Amukoto", payNumber: "PN-77120" })).state, "AWAITING_FINALISE");
+    // Everything issued: the three who finalise it are each told, and stores, who issued it, is not.
+    await run((tx) => tellAboutRequisition(tx, tenant, people.storeman, req, "ISSUED"));
+    const ready = await prisma.notification.findMany({ where: { tenantId: tenant.id, title: { endsWith: "is ready to finalise" } }, select: { membershipId: true, body: true } });
+    assert.deepEqual(ready.map((n) => n.membershipId).sort(), [people.foreman.membershipId, people.coordinator.membershipId, people.head.membershipId].sort());
+    assert.ok(ready.every((n) => /Everything has been issued\. Sign as (foreman|fleet coordinator|divisional head) to finalise it\.$/.test(n.body ?? "")));
     assert.equal(await onHand(), 7);
     await assert.rejects(issue("storeman", 1, { name: "Petrus Amukoto" }), /Everything on it has been issued/);
 

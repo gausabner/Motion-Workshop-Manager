@@ -22,6 +22,7 @@ import { storeUpload } from "@/lib/attachments/service";
 import { requestOrigin } from "@/lib/http/origin";
 import { shareUrl } from "@/lib/sharing/links";
 import { requisitionView, type RequisitionAnswer } from "@/lib/requisitions/view";
+import { tellAboutRequisition } from "@/lib/requisitions/notices";
 
 /**
  * Requisitions as their screens drive them. Every action answers with the
@@ -133,7 +134,11 @@ export async function saveRequisitionAction(slug: string, id: string, _prev: Req
 }
 
 export async function submitRequisitionAction(slug: string, id: string): Promise<RequisitionAnswer> {
-    return answer(slug, id, "Submitted", ({ db, tenant, actor }) => db.$transaction((tx) => submitRequisition(tx, tenant, actor, id)));
+    return answer(slug, id, "Submitted", ({ db, tenant, actor }) => db.$transaction(async (tx) => {
+        const done = await submitRequisition(tx, tenant, actor, id);
+        await tellAboutRequisition(tx, tenant, actor, id, "SUBMITTED");
+        return done;
+    }));
 }
 
 export async function discardRequisitionAction(slug: string, id: string): Promise<RequisitionAnswer> {
@@ -156,7 +161,11 @@ export async function decideRequisitionAction(slug: string, id: string, _prev: R
     const decision = z.enum(["APPROVED", "RETURNED", "REJECTED"]).safeParse(str(formData, "decision"));
     if (!decision.success) return { ok: false, message: "Approve, return or reject it." };
     const done = decision.data === "APPROVED" ? "Approved" : decision.data === "RETURNED" ? "Returned for changes" : "Rejected";
-    return answer(slug, id, done, ({ db, tenant, actor }) => db.$transaction((tx) => decideRequisition(tx, tenant, actor, id, decision.data, str(formData, "comment") ?? null)));
+    return answer(slug, id, done, ({ db, tenant, actor }) => db.$transaction(async (tx) => {
+        const done = await decideRequisition(tx, tenant, actor, id, decision.data, str(formData, "comment") ?? null);
+        await tellAboutRequisition(tx, tenant, actor, id, "DECIDED");
+        return done;
+    }));
 }
 
 export async function cancelRequisitionAction(slug: string, id: string, _prev: RequisitionAnswer, formData: FormData): Promise<RequisitionAnswer> {
@@ -172,7 +181,11 @@ export async function issueRequisitionAction(slug: string, id: string, _prev: Re
         .map(([k, v]) => ({ lineId: k.slice(6), quantity: Number(String(v).replace(",", ".")) || 0 }));
     if (lines.some((l) => l.quantity < 0)) return { ok: false, message: "A quantity cannot be below nothing." };
     const receiver = { membershipId: str(formData, "receiverId") ?? null, name: str(formData, "receiverName") ?? null, payNumber: str(formData, "receiverPayNumber") ?? null };
-    return answer(slug, id, "Issued", ({ db, tenant, actor }) => db.$transaction((tx) => issueStores(tx, tenant, actor, id, { lines, receiver, note: str(formData, "note") ?? null })));
+    return answer(slug, id, "Issued", ({ db, tenant, actor }) => db.$transaction(async (tx) => {
+        const done = await issueStores(tx, tenant, actor, id, { lines, receiver, note: str(formData, "note") ?? null });
+        await tellAboutRequisition(tx, tenant, actor, id, "ISSUED");
+        return done;
+    }));
 }
 
 // ───────────────────────── finalising ─────────────────────────
@@ -192,7 +205,12 @@ export async function splitRequisitionAction(slug: string, id: string): Promise<
     const c = await ctx(slug);
     let made: { id: string };
     try {
-        made = await c.db.$transaction((tx) => splitToPurchase(tx, c.tenant, c.actor, id));
+        made = await c.db.$transaction(async (tx) => {
+            const split = await splitToPurchase(tx, c.tenant, c.actor, id);
+            // What stores had already issued may now be all there is: then the original waits to be finalised.
+            await tellAboutRequisition(tx, c.tenant, c.actor, id, "ISSUED");
+            return split;
+        });
     } catch (error) {
         return { ok: false, message: error instanceof Error ? error.message : "Not split. Try again." };
     }

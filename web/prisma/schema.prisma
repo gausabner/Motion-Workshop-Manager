@@ -2949,6 +2949,8 @@ enum NotificationKind {
   VEHICLE_SENT
   /// They have been put on a job.
   ASSIGNED
+  /// A requisition waits for their signature, is charged to their division, or has been decided.
+  REQUISITION
 }
 
 /// Something for one person's attention, in their list until they open it:

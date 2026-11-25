@@ -19,6 +19,7 @@ import {
     type FinalStep,
     type RequisitionInput,
 } from "@/lib/requisitions/service";
+import { tellAboutRequisition } from "@/lib/requisitions/notices";
 
 /**
  * Requisitions against a real database, in the shape of the owner's council:
@@ -130,6 +131,7 @@ before(async () => {
 after(async () => {
     await appDb?.$disconnect();
     for (const tenantId of [tenant.id, otherId]) {
+        await prisma.notification.deleteMany({ where: { tenantId } });
         await prisma.requisitionSignoff.deleteMany({ where: { tenantId } });
         await prisma.requisitionQuote.deleteMany({ where: { tenantId } });
         await prisma.requisitionLine.deleteMany({ where: { tenantId } });
@@ -315,4 +317,40 @@ test("a council sees its own requisitions and organisation, and no other council
         assert.equal(await inTx({}, read), 0, "with no workshop announced, nothing");
         assert.ok((await inTx({ "motion.tenant_id": tenant.id }, read)) > 0);
     }
+});
+
+test("the people a requisition waits on are told, the paying division is told, and the requester hears the decision", async () => {
+    const told = async (title: RegExp) =>
+        (await prisma.notification.findMany({ where: { tenantId: tenant.id, kind: "REQUISITION" }, select: { membershipId: true, title: true, body: true } }))
+            .filter((n) => title.test(n.title))
+            .map((n) => n.membershipId)
+            .sort();
+    const ids = (...who: Person[]) => who.map((w) => people[w].membershipId).sort();
+    await prisma.notification.deleteMany({ where: { tenantId: tenant.id } });
+
+    const id = await raise("mechanic", { purpose: "Wheel bearing kit" });
+    await run(async (tx) => {
+        await submitRequisition(tx, tenant, people.mechanic, id);
+        await tellAboutRequisition(tx, tenant, people.mechanic, id, "SUBMITTED");
+    });
+    assert.deepEqual(await told(/waiting for your signature/), ids("foremanA", "foremanB", "head"), "the workshop's foremen and deputies, never the requester");
+    assert.deepEqual(await told(/charged to your division/), ids("fleetTech"), "the paying division's fleet coordinator");
+    const note = await prisma.notification.findFirstOrThrow({ where: { tenantId: tenant.id, membershipId: people.foremanA.membershipId }, select: { body: true, href: true } });
+    assert.match(note.body ?? "", /^Stores requisition from .+, N\$ 450\.00\. Sign as foreman\. Raised by mechanic ZZTEST\.$/);
+    assert.equal(note.href, `dashboard/requisitions/${id}`);
+
+    await prisma.notification.deleteMany({ where: { tenantId: tenant.id } });
+    await run(async (tx) => {
+        await decideRequisition(tx, tenant, people.foremanA, id, "APPROVED");
+        await tellAboutRequisition(tx, tenant, people.foremanA, id, "DECIDED");
+    });
+    assert.deepEqual(await told(/waiting for your signature/), ids("head"), "then the divisional head, and nobody who signed this round");
+
+    await run(async (tx) => {
+        await decideRequisition(tx, tenant, people.head, id, "RETURNED", "Quote the OEM kit, not the pattern part");
+        await tellAboutRequisition(tx, tenant, people.head, id, "DECIDED");
+    });
+    const back = await prisma.notification.findFirstOrThrow({ where: { tenantId: tenant.id, title: { contains: "returned" } }, select: { membershipId: true, body: true } });
+    assert.equal(back.membershipId, people.mechanic.membershipId);
+    assert.match(back.body ?? "", /Returned by head ZZTEST\. “Quote the OEM kit, not the pattern part” Change it and submit it again\./);
 });
