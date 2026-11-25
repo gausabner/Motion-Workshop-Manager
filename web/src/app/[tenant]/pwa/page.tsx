@@ -5,7 +5,6 @@ import { floorView } from "@/lib/time/queries";
 import { unreadCount } from "@/lib/notifications/queries";
 import { scheduleMonth } from "@/lib/time/floor-sheet";
 import { toZoned } from "@/lib/diary/time";
-import Link from "next/link";
 
 export const metadata: Metadata = {
     title: "On the floor | MOTION",
@@ -32,12 +31,6 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
 
     return (
         <>
-        {/* Jobs they are put on already appear below; this says something new has come in, and where to read it. */}
-        {unread > 0 && (
-            <Link href={`/${slug}/dashboard/notifications`} className="block bg-teal-700 px-4 py-3 text-center text-base font-medium text-white">
-                {unread === 1 ? "1 new notification" : `${unread} new notifications`}. Open them.
-            </Link>
-        )}
         <MechanicFloor
             tenant={slug}
             name={user.firstName}
@@ -47,6 +40,7 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
             others={floor.others}
             schedule={schedule}
             day={floor.day}
+            unread={unread}
         />
         </>
     );

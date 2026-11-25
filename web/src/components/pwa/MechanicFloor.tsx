@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { Toast, ToastAction, ToastDescription, ToastRegion, ToastTitle, createToaster } from "@ui-sdk/react/toast";
+import { FloorNotifications } from "@/components/pwa/FloorNotifications";
+import { stopReasonAction, type StopReason } from "@/lib/time/floor-actions";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CloudOff, Pause, Play } from "lucide-react";
 import { JobSheet } from "@/components/pwa/JobSheet";
@@ -9,7 +12,7 @@ import { Schedule } from "@/components/pwa/Schedule";
 import type { ScheduleMonth } from "@/lib/time/floor-sheet";
 import { ACCENT_ON_DARK } from "@/components/brand/MotionLogo";
 import { MotionMark } from "@/components/brand/MotionMark";
-import { clockOffAction, clockOnAction } from "@/lib/time/actions";
+import { clockOffAction, clockOnAction, undoClockAction } from "@/lib/time/actions";
 import { hoursLabel } from "@/lib/time/clock";
 import { minuteLabel } from "@/lib/diary/time";
 import { enqueue, forget, isOnline, loadQueue, newRef, queueCount, registerWorker, subscribeOnline, subscribeQueue } from "@/lib/offline/client";
@@ -44,6 +47,19 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: 
 /** Every pressable thing on the floor: a press the hand can feel, through gloves. */
 const PRESS = "floor-press";
 
+/**
+ * The last tap kept for want of a signal, and what was running before it, so
+ * Undo can take it back off the phone. One floor screen per page, so one slot.
+ */
+type Held = { ref: string; before: { startedAt: string; job: Job; priorMinutes?: number } | null | undefined };
+const undoSlot: { held: Held | null } = { held: null };
+const keepForUndo = (held: Held) => void (undoSlot.held = held);
+const takeForUndo = () => {
+    const held = undoSlot.held;
+    undoSlot.held = null;
+    return held;
+};
+
 /** A short buzz on phones that have one, so a tap is felt as well as seen. */
 function buzz() {
     try {
@@ -62,6 +78,8 @@ type Props = {
     others: Job[];
     /** This month's booked jobs, for the schedule. */
     schedule: ScheduleMonth;
+    /** Notifications not yet opened, for the bell. */
+    unread: number;
     /** The mechanic's day and week, for the Today strip. */
     day: { shiftMinutes: number | null; jobsWorked: number; waitingForParts: number; weekMinutes: number; next: { jobNumber: string | null; day: string; minute: number } | null };
 };
@@ -98,7 +116,11 @@ function Elapsed({ since }: { since: string }) {
  * One big button per job. Starting a job stops the one that was running,
  * because walking to the next car is what that means.
  */
-export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule, day }: Props) {
+export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule, day, unread }: Props) {
+    const [toaster] = useState(() => createToaster({ duration: 10_000 }));
+    useEffect(() => () => toaster.dismiss(), [toaster]);
+    // The job just stopped, while the mechanic may say why.
+    const [stopped, setStopped] = useState<{ id: string; jobNumber: string | null } | null>(null);
     const now = useMinuteNow();
     const [mountedAt] = useState(() => Date.now());
     const [sheet, setSheet] = useState<string | null>(null);
@@ -146,22 +168,25 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
      * the phone knows it is offline or only finds out when the request dies —
      * the tap is kept with the time it was made and applied on screen.
      */
-    function act(key: string, run: () => Promise<{ ok: boolean; message?: string }>, fallback: () => void) {
+    function act(key: string, run: () => Promise<{ ok: boolean; message?: string }>, fallback: () => void, after?: (queued: boolean) => void) {
         buzz();
         setBusy(key);
         setError(undefined);
         start(async () => {
             if (!navigator.onLine) {
                 fallback();
+                after?.(true);
                 setBusy(null);
                 return;
             }
             try {
                 const result = await run();
                 if (!result.ok) setError(result.message);
+                else after?.(false);
                 router.refresh();
             } catch {
                 fallback();
+                after?.(true);
             }
             setBusy(null);
         });
@@ -169,13 +194,73 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
     function queueStart(job: Job) {
         const at = new Date().toISOString();
-        enqueue({ kind: "on", ref: newRef(), at, documentId: job.id });
+        const ref = newRef();
+        keepForUndo({ ref, before: queuedRunning });
+        enqueue({ kind: "on", ref, at, documentId: job.id });
         setQueuedRunning({ startedAt: at, job });
     }
 
     function queueStop() {
-        enqueue({ kind: "off", ref: newRef(), at: new Date().toISOString() });
+        const ref = newRef();
+        keepForUndo({ ref, before: queuedRunning });
+        enqueue({ kind: "off", ref, at: new Date().toISOString() });
         setQueuedRunning(null);
+    }
+
+    /** Take back the last Stop or Switch: from the queue when it never left the phone, otherwise on the server. */
+    function undo() {
+        buzz();
+        setStopped(null);
+        const kept = takeForUndo();
+        if (kept && loadQueue().some((e) => e.ref === kept.ref)) {
+            forget([kept.ref]);
+            setQueuedRunning(kept.before);
+            return;
+        }
+        start(async () => {
+            try {
+                const result = await undoClockAction(tenant);
+                if (!result.ok) setError(result.message);
+                router.refresh();
+            } catch {
+                setError("Undo needs a signal. Start the job again instead.");
+            }
+        });
+    }
+
+    const offerUndo = (title: string) => toaster(title, { action: { label: "Undo", onAction: undo } });
+
+    function stop() {
+        const was = onTheClock?.job ?? null;
+        act("stop", () => clockOffAction(tenant), queueStop, (queued) => {
+            offerUndo(`Clock stopped${was?.jobNumber ? ` on ${was.jobNumber}` : ""}`);
+            if (!queued && was) setStopped({ id: was.id, jobNumber: was.jobNumber });
+        });
+    }
+
+    function begin(job: Job) {
+        const switching = !!onTheClock;
+        setStopped(null);
+        act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job), () => {
+            if (switching) offerUndo(`Switched to ${job.jobNumber ?? "this job"}`);
+        });
+    }
+
+    function because(reason: StopReason) {
+        const job = stopped;
+        setStopped(null);
+        if (!job) return;
+        buzz();
+        start(async () => {
+            try {
+                const result = await stopReasonAction(tenant, job.id, reason);
+                if (!result.ok) setError(result.message);
+                else toaster(result.message, { duration: 5_000 });
+                if (reason === "PARTS") router.refresh();
+            } catch {
+                setError("That needs a signal. Tell the foreman yourself.");
+            }
+        });
     }
 
     // What the mechanic is actually on, whether the server has heard about it yet or not.
@@ -231,7 +316,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 {!isRunning && (
                     <button
                         type="button" disabled={pending}
-                        onClick={() => act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job))}
+                        onClick={() => begin(job)}
                         className={`${PRESS} mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-teal-700 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60`}
                     >
                         <Play className="h-5 w-5" aria-hidden="true" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
@@ -248,12 +333,12 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         if (!job || onTheClock?.job.id === id) return null;
         return () => {
             setSheet(null);
-            act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job));
+            begin(job);
         };
     };
 
     return (
-        <main className={`min-h-dvh bg-slate-100 ${onTheClock ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+        <main className={`min-h-dvh bg-slate-100 ${onTheClock || stopped ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
             {/* The header runs under the notch and pads its content back out, so
                 the bar is the workshop's colour rather than a black letterbox. */}
             <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] text-white">
@@ -270,6 +355,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         {name}
                     </h1>
                     <div className="flex items-center gap-3">
+                        <FloorNotifications tenant={tenant} unread={unread} onOpenJob={setSheet} />
                         <button
                             type="button"
                             onClick={() => setScheduleOpen(true)}
@@ -345,7 +431,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         {bar.job.estimatedMinutes ? <EstimateMeter estimate={bar.job.estimatedMinutes} minutes={(bar.priorMinutes ?? 0) + Math.max(0, Math.floor((now - new Date(bar.startedAt).getTime()) / 60_000))} /> : null}
                         <button
                             type="button" disabled={pending}
-                            onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
+                            onClick={stop}
                             className={`${PRESS} mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60`}
                         >
                             <Pause className="h-5 w-5" aria-hidden="true" />{busy === "stop" ? "Stopping…" : "Stop"}
@@ -354,6 +440,41 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </div>
                 </div>
             )}
+            {stopped && !onTheClock && (
+                <section aria-labelledby="stop-why" className="floor-reasons fixed inset-x-0 bottom-0 z-20 border-t border-slate-300 bg-white px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-4px_16px_rgba(15,23,42,.12)]">
+                    <div className="mx-auto max-w-lg">
+                        <div className="flex items-baseline justify-between gap-3">
+                            <h2 id="stop-why" className="text-base font-semibold text-slate-900">
+                                Why did you stop{stopped.jobNumber ? ` ${stopped.jobNumber}` : ""}? <span className="text-sm font-normal text-slate-600">Optional</span>
+                            </h2>
+                            <button type="button" onClick={() => setStopped(null)} className="floor-press -mr-2 h-11 rounded-sm px-2 text-sm font-medium text-slate-700 active:bg-slate-100">Skip</button>
+                        </div>
+                        <div className="mt-2 grid gap-2">
+                            {([
+                                { value: "PARTS", label: "Waiting for parts", hint: "the job shows it" },
+                                { value: "BREAK", label: "Break or end of shift", hint: "" },
+                                { value: "DONE", label: "My part is done", hint: "the foreman is told" },
+                            ] as const).map((r) => (
+                                <button key={r.value} type="button" onClick={() => because(r.value)} className="floor-press flex h-14 items-center justify-between gap-3 rounded-sm border border-slate-300 px-4 text-left text-base font-medium text-slate-900 active:bg-slate-50">
+                                    {r.label}
+                                    {r.hint && <span className="text-xs font-normal text-slate-600">{r.hint}</span>}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+            <ToastRegion toaster={toaster} side="top" align="center" className="floor-toasts">
+                {() => (
+                    <Toast className="floor-toast flex items-center justify-between gap-3 rounded-sm bg-slate-900 px-4 py-3 text-white shadow-[0_10px_25px_rgba(15,23,42,.25)]">
+                        <span className="min-w-0">
+                            <ToastTitle className="block text-base font-medium" />
+                            <ToastDescription className="block text-sm text-slate-300" />
+                        </span>
+                        <ToastAction className="floor-press h-11 shrink-0 rounded-sm px-3 text-base font-semibold text-teal-300 active:bg-slate-800" />
+                    </Toast>
+                )}
+            </ToastRegion>
             <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
             <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} runningId={onTheClock?.job.id ?? null} />
         </main>

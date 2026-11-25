@@ -811,3 +811,31 @@ a { text-underline-offset: 0.2em; }
    the layout cost is nothing, and the minute's step reads as progress. */
 .floor-meter { transition: width 600ms cubic-bezier(0.23, 1, 0.32, 1); }
 @media (prefers-reduced-motion: reduce) { .floor-meter { transition: none; } }
+
+/* Floor toasts: one at a time at the top, dropping in quickly and leaving
+   faster; swiped, they follow the thumb. Reduced motion fades them. */
+/* UI SDK centres a centre-aligned region with translate: -50%; this one spans the width instead. */
+.floor-toasts {
+  translate: none;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+}
+.floor-toast {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  user-select: none;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.floor-toast:not([data-front]) { visibility: hidden; }
+.floor-toast:is([data-starting-style], [data-ending-style]) { opacity: 0; transform: translateY(-10px); }
+.floor-toast[data-ending-style] { transition-duration: 160ms; }
+.floor-toast[data-swiping] { transform: translate(var(--toast-swipe-x, 0), var(--toast-swipe-y, 0)); transition: none; }
+.floor-reasons { transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1); }
+@starting-style { .floor-reasons { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .floor-toast, .floor-toast:is([data-starting-style], [data-ending-style]) { transform: none; }
+  .floor-reasons { transition: opacity 150ms ease-out; }
+  @starting-style { .floor-reasons { transform: none; opacity: 0; } }
+}

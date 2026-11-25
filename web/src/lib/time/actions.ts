@@ -6,7 +6,7 @@ import { assertCan } from "@/lib/auth/permissions";
 import { str, type ActionState } from "@/lib/forms";
 import { parseLocalDateTime } from "@/lib/diary/time";
 import { entryMinutes, isSuspect } from "@/lib/time/clock";
-import { clockOff, clockOn } from "@/lib/time/clocking";
+import { clockOff, clockOn, undoLast } from "@/lib/time/clocking";
 
 function revalidateJob(slug: string, documentId?: string) {
     revalidatePath(`/${slug}/pwa`);
@@ -33,6 +33,18 @@ export async function clockOffAction(slug: string): Promise<{ ok: boolean; messa
     const stopped = await ctx.db.$transaction((tx) => clockOff(tx, ctx.membership.id));
     revalidateJob(slug, stopped?.documentId);
     return { ok: true, message: stopped ? undefined : "Nothing was running" };
+}
+
+/** Take back a Stop or a Switch made moments ago, from the floor app's toast. */
+export async function undoClockAction(slug: string): Promise<{ ok: boolean; message?: string }> {
+    const ctx = await requireTenant(slug);
+    try {
+        const { documentId } = await ctx.db.$transaction((tx) => undoLast(tx, ctx.membership.id));
+        revalidateJob(slug, documentId);
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "Could not undo" };
+    }
 }
 
 /**

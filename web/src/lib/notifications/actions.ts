@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/auth/session";
-import { unreadCount } from "@/lib/notifications/queries";
+import { notificationsFor, unreadCount } from "@/lib/notifications/queries";
 
 /** The number on the bell. Asked for by the bell itself, so it is current on every screen, not only after a full load. */
 export async function unreadCountAction(slug: string): Promise<number> {
@@ -25,4 +25,16 @@ export async function markAllReadAction(slug: string): Promise<void> {
     const { db, membership } = await requireTenant(slug);
     await db.notification.updateMany({ where: { membershipId: membership.id, readAt: null }, data: { readAt: new Date() } });
     revalidatePath(`/${slug}/dashboard/notifications`);
+}
+
+/** The floor app's list, read inside the floor app rather than on the office screen. */
+export async function floorNotificationsAction(slug: string) {
+    const { db, membership } = await requireTenant(slug);
+    const notes = await notificationsFor(db, membership.id, 40);
+    return notes.map((n) => ({ id: n.id, title: n.title, body: n.body, href: n.href, at: n.createdAt.toISOString(), read: !!n.readAt }));
+}
+
+export async function readNotificationAction(slug: string, id: string): Promise<void> {
+    const { db, membership } = await requireTenant(slug);
+    await db.notification.updateMany({ where: { id, membershipId: membership.id, readAt: null }, data: { readAt: new Date() } });
 }
