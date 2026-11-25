@@ -3,6 +3,8 @@ import { MechanicFloor } from "@/components/pwa/MechanicFloor";
 import { requireTenant } from "@/lib/auth/session";
 import { floorView } from "@/lib/time/queries";
 import { unreadCount } from "@/lib/notifications/queries";
+import { scheduleMonth } from "@/lib/time/floor-sheet";
+import { toZoned } from "@/lib/diary/time";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -17,7 +19,8 @@ export const viewport: Viewport = { themeColor: "#0f172a", width: "device-width"
 export default async function FloorPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership, user } = await requireTenant(slug);
-    const [floor, unread] = await Promise.all([floorView(db, tenant, membership.id), unreadCount(db, membership.id)]);
+    const month = toZoned(new Date(), tenant.timezone).day.slice(0, 7);
+    const [floor, unread, schedule] = await Promise.all([floorView(db, tenant, membership.id), unreadCount(db, membership.id), scheduleMonth(db, tenant, membership.id, month)]);
 
     if (!membership.isMechanic && !membership.showOnDiary) {
         return (
@@ -42,6 +45,7 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
             running={floor.running ? { startedAt: floor.running.startedAt.toISOString(), job: floor.running.job } : null}
             mine={floor.mine}
             others={floor.others}
+            schedule={schedule}
         />
         </>
     );

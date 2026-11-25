@@ -790,3 +790,19 @@ a { text-underline-offset: 0.2em; }
 .floor-press:active:not(:disabled) {
   transform: scale(0.97);
 }
+
+/* The floor schedule's day bands open and close by height, quickly, on a
+   strong ease-out; the calendar's grid is a table, so its cells are centred. */
+.floor-days [data-slot="accordion-panel"] {
+  height: var(--accordion-panel-height);
+  overflow: hidden;
+  transition: height 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.floor-days [data-slot="accordion-panel"]:is([data-starting-style], [data-ending-style]) {
+  height: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .floor-days [data-slot="accordion-panel"] { transition: none; }
+}
+.floor-calendar [data-slot="calendar-grid"] td,
+.floor-calendar [data-slot="calendar-grid"] th { text-align: center; padding: 0; }

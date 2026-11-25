@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/lib/time/actions", () => ({ clockOnAction: vi.fn(async () => ({ ok: true })), clockOffAction: vi.fn(async () => ({ ok: true })) }));
 vi.mock("@/lib/offline/actions", () => ({ syncClockQueue: vi.fn(async () => ({ problems: [] })) }));
+vi.mock("@/lib/time/floor-actions", () => ({ jobSheetAction: vi.fn(async () => null), scheduleAction: vi.fn(async () => ({ month: "2026-12", today: "2026-11-25", days: {} })) }));
 
 const { MechanicFloor } = await import("@/components/pwa/MechanicFloor");
 const { enqueue, newRef } = await import("@/lib/offline/client");
@@ -18,7 +19,7 @@ const bearing = {
 };
 const service = { ...bearing, id: "d2", jobNumber: "JC-4203", description: null, vehicle: { plate: "N 22015 W", make: "Toyota", model: "Quantum" }, place: { name: "Tyre bay", purpose: "WORK", arrived: false } };
 const floor = (running: { startedAt: string; job: typeof bearing } | null = null) =>
-    render(<MechanicFloor tenant="t" name="Tobias" minutesToday={220} running={running} mine={[bearing, service]} others={[]} />);
+    render(<MechanicFloor tenant="t" name="Tobias" minutesToday={220} running={running} mine={[bearing, service]} others={[]} schedule={{ month: "2026-11", today: "2026-11-25", days: {} }} />);
 
 beforeEach(() => window.localStorage.clear());
 afterEach(() => window.localStorage.clear());
