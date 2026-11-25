@@ -3,6 +3,8 @@ import type { Tenant, VisitPurpose } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
 import { addDays, fromZoned, toZoned } from "@/lib/diary/time";
 import { efficiency, entryMinutes, isSuspect, splitCharged } from "@/lib/time/clock";
+import { diarySettings } from "@/lib/settings/schema";
+import { workingInterval } from "@/lib/diary/capacity";
 
 const JOB_TYPES = ["BOOKING", "JOB_CARD"] as const;
 
@@ -53,7 +55,9 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
         visits: { where: { leftAt: null }, take: 1, select: { purpose: true, receivedAt: true, workshop: { select: { name: true } } } },
     } as const;
 
-    const [running, mine, others, workedToday] = await Promise.all([
+    const weekday = toZoned(now, tenant.timezone).weekday;
+    const weekStart = fromZoned(addDays(today, 1 - weekday), 0, tenant.timezone);
+    const [running, mine, others, workedWeek, override, next] = await Promise.all([
         db.timeEntry.findFirst({ where: { mechanicId: membershipId, endedAt: null }, select: { id: true, startedAt: true, document: { select: jobSelect } } }),
         db.document.findMany({
             where: {
@@ -73,10 +77,24 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
             take: 30,
             select: { ...jobSelect, mechanic: { select: { user: { select: { firstName: true } } } } },
         }),
-        db.timeEntry.findMany({ where: { mechanicId: membershipId, startedAt: { gte: dayStart, lt: dayEnd } }, select: { startedAt: true, endedAt: true, minutes: true } }),
+        // The week so far, Monday first; today's share of it is the day's clocked time.
+        db.timeEntry.findMany({ where: { mechanicId: membershipId, startedAt: { gte: weekStart, lt: dayEnd } }, select: { startedAt: true, endedAt: true, minutes: true, documentId: true } }),
+        db.workingHours.findFirst({ where: { membershipId, weekday }, select: { weekday: true, startMinute: true, endMinute: true } }),
+        db.document.findFirst({
+            where: { type: { in: [...JOB_TYPES] }, state: "DRAFT", mechanicId: membershipId, scheduledAt: { gt: now } },
+            orderBy: { scheduledAt: "asc" },
+            select: { jobNumber: true, scheduledAt: true },
+        }),
     ]);
 
-    const minutesToday = workedToday.reduce((s, e) => s + (e.endedAt ? (e.minutes ?? 0) : entryMinutes(e.startedAt, now)), 0);
+    const minutesOf = (e: { startedAt: Date; endedAt: Date | null; minutes: number | null }) => (e.endedAt ? (e.minutes ?? 0) : entryMinutes(e.startedAt, now));
+    const workedToday = workedWeek.filter((e) => e.startedAt >= dayStart);
+    const minutesToday = workedToday.reduce((s, e) => s + minutesOf(e), 0);
+    const shift = workingInterval(weekday, diarySettings(tenant.settings), override ?? undefined);
+    // What the mechanic has already put into the running job, so the clock bar can measure it against the estimate.
+    const prior = running
+        ? await db.timeEntry.aggregate({ where: { mechanicId: membershipId, documentId: running.document.id, endedAt: { not: null } }, _sum: { minutes: true } })
+        : null;
     // The Decimal is dropped here, not later: this goes straight to a client
     // component, and a Decimal cannot cross that boundary.
     const shape = <T extends { scheduledAt: Date | null; estimatedHours: { toNumber(): number } | null; visits: { purpose: VisitPurpose; receivedAt: Date | null; workshop: { name: string } }[] }>({ estimatedHours, visits, ...d }: T) => ({
@@ -89,7 +107,14 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
     return {
         today,
         minutesToday,
-        running: running ? { id: running.id, startedAt: running.startedAt, job: shape(running.document) } : null,
+        running: running ? { id: running.id, startedAt: running.startedAt, job: shape(running.document), priorMinutes: prior?._sum.minutes ?? 0 } : null,
+        day: {
+            shiftMinutes: shift ? shift.end - shift.start : null,
+            jobsWorked: new Set(workedToday.map((e) => e.documentId)).size,
+            waitingForParts: mine.filter((d) => d.jobStatus === "WAITING_FOR_PARTS").length,
+            weekMinutes: workedWeek.reduce((s, e) => s + minutesOf(e), 0),
+            next: next?.scheduledAt ? { jobNumber: next.jobNumber, ...toZoned(next.scheduledAt, tenant.timezone) } : null,
+        },
         mine: mine.map(shape),
         others: others.map((d) => ({ ...shape(d), mechanicName: d.mechanic?.user.firstName ?? null })),
     };

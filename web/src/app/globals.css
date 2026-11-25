@@ -806,3 +806,8 @@ a { text-underline-offset: 0.2em; }
 }
 .floor-calendar [data-slot="calendar-grid"] td,
 .floor-calendar [data-slot="calendar-grid"] th { text-align: center; padding: 0; }
+
+/* Floor meters fill by width (the meter sets it inline); on a bar this small
+   the layout cost is nothing, and the minute's step reads as progress. */
+.floor-meter { transition: width 600ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) { .floor-meter { transition: none; } }

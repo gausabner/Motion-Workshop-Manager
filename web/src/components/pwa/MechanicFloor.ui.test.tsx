@@ -18,8 +18,9 @@ const bearing = {
     place: { name: "Light and medium vehicles", purpose: "WORK", arrived: true },
 };
 const service = { ...bearing, id: "d2", jobNumber: "JC-4203", description: null, vehicle: { plate: "N 22015 W", make: "Toyota", model: "Quantum" }, place: { name: "Tyre bay", purpose: "WORK", arrived: false } };
+const day = { shiftMinutes: 480, jobsWorked: 2, waitingForParts: 1, weekMinutes: 1100, next: { jobNumber: "JC-4203", day: "2026-11-25", minute: 810 } };
 const floor = (running: { startedAt: string; job: typeof bearing } | null = null) =>
-    render(<MechanicFloor tenant="t" name="Tobias" minutesToday={220} running={running} mine={[bearing, service]} others={[]} schedule={{ month: "2026-11", today: "2026-11-25", days: {} }} />);
+    render(<MechanicFloor tenant="t" name="Tobias" minutesToday={220} running={running} mine={[bearing, service]} others={[]} schedule={{ month: "2026-11", today: "2026-11-25", days: {} }} day={day} />);
 
 beforeEach(() => window.localStorage.clear());
 afterEach(() => window.localStorage.clear());
@@ -51,4 +52,18 @@ test("a Start kept while there was no signal shows on its own card", () => {
     floor();
     const held = screen.getByText(/^Not sent yet · started /);
     expect(held.closest("li")?.textContent).toContain("JC-4203");
+});
+
+test("the Today strip gives the mechanic's own numbers", () => {
+    floor();
+    expect(screen.getByRole("meter", { name: "Today" }).getAttribute("aria-valuetext")).toBe("3h 40 of 8h");
+    expect(screen.getByText("1 waiting for parts")).toBeTruthy();
+    expect(screen.getByText("13:30")).toBeTruthy();
+    expect(screen.getByText("18h 20")).toBeTruthy();
+});
+
+test("the clock bar measures the running job against its estimate", () => {
+    floor({ startedAt: new Date(Date.now() - 12 * 60_000).toISOString(), job: bearing, priorMinutes: 60 } as never);
+    const meter = screen.getByRole("meter", { name: "This job against its estimate" });
+    expect(meter.getAttribute("aria-valuetext")).toBe("1h 12 of 2h");
 });

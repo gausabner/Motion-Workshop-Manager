@@ -42,10 +42,11 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
             tenant={slug}
             name={user.firstName}
             minutesToday={floor.minutesToday}
-            running={floor.running ? { startedAt: floor.running.startedAt.toISOString(), job: floor.running.job } : null}
+            running={floor.running ? { startedAt: floor.running.startedAt.toISOString(), job: floor.running.job, priorMinutes: floor.running.priorMinutes } : null}
             mine={floor.mine}
             others={floor.others}
             schedule={schedule}
+            day={floor.day}
         />
         </>
     );
