@@ -46,6 +46,7 @@ export async function jobSheet(db: TenantDb, documentId: string, membershipId: s
     return {
         id: doc.id,
         jobNumber: doc.jobNumber,
+        jobStatus: doc.jobStatus,
         description: doc.description,
         odometer: doc.odometer,
         department: doc.customer ? `${doc.customer.firstName} ${doc.customer.lastName}`.trim() : null,

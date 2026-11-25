@@ -8,6 +8,8 @@ import { stopReasonAction, type StopReason } from "@/lib/time/floor-actions";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CloudOff, Pause, Play } from "lucide-react";
 import { JobSheet } from "@/components/pwa/JobSheet";
+import { JobStatusPill } from "@/components/documents/StatusPill";
+import type { JobStatus } from "@prisma/client";
 import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from "@ui-sdk/react/meter";
 import { Schedule } from "@/components/pwa/Schedule";
 import type { ScheduleMonth } from "@/lib/time/floor-sheet";
@@ -33,6 +35,13 @@ type Job = {
     place: { name: string; purpose: string; arrived: boolean } | null;
     mechanicName?: string | null;
 };
+
+/** Statuses a card leaves unsaid: the clock or the Start button already says them. */
+const QUIET_STATUS = new Set(["BOOKED_IN", "WORK_IN_PROGRESS"]);
+
+/** Jobs that can be worked now come first; those waiting for parts sink below, in their booked order. */
+const workableFirst = <T extends { jobStatus: string | null }>(jobs: T[]) =>
+    [...jobs].sort((a, b) => Number(a.jobStatus === "WAITING_FOR_PARTS") - Number(b.jobStatus === "WAITING_FOR_PARTS"));
 
 /** Why the vehicle is where it is, in the words of a card. */
 const HERE_FOR: Record<string, string> = {
@@ -296,6 +305,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </p>
                     {isRunning ? (
                         <span className="shrink-0 text-sm font-medium text-teal-700">On the clock</span>
+                    ) : job.jobStatus && !QUIET_STATUS.has(job.jobStatus) ? (
+                        <JobStatusPill status={job.jobStatus as JobStatus} className="shrink-0" />
                     ) : (
                         // A job booked for another day says which day, so 09:00 is never read as this morning.
                         job.time && <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{job.time.day && job.time.day !== schedule.today ? `${dayName(job.time.day)} ` : ""}{minuteLabel(job.time.minute)}</span>
@@ -379,7 +390,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
             <div className="mx-auto max-w-lg space-y-5 px-4 pt-4">
                 {/* Always in the page, so losing and finding the signal is announced, not only drawn. */}
-                <div role="status">
+                <div role="status" className="empty:absolute">
                     {(!online || waiting > 0) && (
                         <p className={`flex items-start gap-2 rounded-sm border px-4 py-3 text-base ${online ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-300 bg-white text-slate-900"}`}>
                             <CloudOff className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
@@ -396,7 +407,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
                 <section className="space-y-2">
                     <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-slate-500">My jobs</h2>
-                    {mine.length ? <ul className="space-y-3">{mine.map((j) => card(j, true))}</ul> : <p className="px-1 text-base text-slate-500">No jobs are assigned to you today.</p>}
+                    {mine.length ? <ul className="space-y-3">{workableFirst(mine).map((j) => card(j, true))}</ul> : <p className="px-1 text-base text-slate-500">No jobs are assigned to you today.</p>}
                 </section>
 
                 {others.length > 0 && (
@@ -423,11 +434,11 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 >
                     <div className="mx-auto max-w-lg">
                         <div className="flex items-baseline justify-between gap-3">
-                            <p className="min-w-0 truncate text-sm">
+                            <button type="button" onClick={() => setSheet(bar.job.id)} aria-label={`Open ${bar.job.jobNumber ?? "the running job"}`} className="floor-press -my-1 min-w-0 truncate rounded-sm py-1 text-left text-sm underline decoration-teal-400 underline-offset-4">
                                 {bar.job.jobNumber && <span className="mr-2 font-semibold">{bar.job.jobNumber}</span>}
-                                {bar.job.vehicle && <span className="mr-2 rounded-sm bg-yellow-300 px-1.5 font-bold text-yellow-950">{bar.job.vehicle.plate}</span>}
+                                {bar.job.vehicle && <span className="mr-2 rounded-sm bg-yellow-300 px-1.5 font-bold text-yellow-950 no-underline">{bar.job.vehicle.plate}</span>}
                                 {bar.job.description ?? (bar.job.vehicle ? `${bar.job.vehicle.make} ${bar.job.vehicle.model}` : "")}
-                            </p>
+                            </button>
                             <p className="shrink-0 text-2xl font-bold tabular-nums"><Elapsed since={bar.startedAt} /></p>
                         </div>
                         {bar.job.estimatedMinutes ? <EstimateMeter estimate={bar.job.estimatedMinutes} minutes={(bar.priorMinutes ?? 0) + Math.max(0, Math.floor((now - new Date(bar.startedAt).getTime()) / 60_000))} /> : null}
@@ -484,7 +495,16 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </Toast>
                 )}
             </ToastRegion>
-            <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} startLabel={onTheClock ? "Switch to this job" : "Start"} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
+            <JobSheet
+                tenant={tenant}
+                jobId={sheet}
+                onClose={() => setSheet(null)}
+                start={sheet ? startable(sheet) : null}
+                startLabel={onTheClock ? "Switch to this job" : "Start"}
+                onTheClock={!!sheet && onTheClock?.job.id === sheet}
+                stop={() => { setSheet(null); stop(); }}
+                onChanged={() => router.refresh()}
+            />
             <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} startLabel={onTheClock ? "Switch to this job" : "Start"} runningId={onTheClock?.job.id ?? null} />
         </main>
     );

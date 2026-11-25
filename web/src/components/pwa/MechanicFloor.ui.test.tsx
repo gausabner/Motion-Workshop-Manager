@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 // jsdom puts a space between a button's words and its screen-reader detail ("Start : JC-4201"); browsers do not, so names match either.
@@ -93,4 +93,23 @@ test("a second stop's Undo still reaches the server", async () => {
     view.rerender(ui(null));
     await act(async () => (await screen.findByRole("button", { name: "Undo" })).click());
     expect(undoClockAction).toHaveBeenCalledWith("t");
+});
+
+test("a job waiting for parts says so on its card, and sinks below the jobs that can be worked now", () => {
+    render(
+        <MechanicFloor tenant="t" name="Tobias" minutesToday={0} running={null}
+            mine={[{ ...bearing, jobStatus: "WAITING_FOR_PARTS" }, service]} others={[]}
+            schedule={{ month: "2026-11", today: "2026-11-25", days: {} }} day={day} unread={0} />,
+    );
+    const cards = screen.getAllByRole("listitem");
+    expect(cards[0].textContent).toContain("JC-4203");
+    expect(cards[1].textContent).toContain("JC-4201");
+    expect(cards[1].textContent).toContain("Waiting for parts");
+});
+
+test("the clock bar opens the running job's sheet, and the sheet offers Stop", async () => {
+    floor({ startedAt: new Date().toISOString(), job: bearing });
+    await act(async () => screen.getByRole("button", { name: "Open JC-4201" }).click());
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Stop" })).toBeTruthy();
 });
