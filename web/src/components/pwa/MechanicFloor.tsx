@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CloudOff, Pause, Play } from "lucide-react";
 import { ACCENT_ON_DARK } from "@/components/brand/MotionLogo";
@@ -21,8 +21,33 @@ type Job = {
     estimatedMinutes: number | null;
     customer: { firstName: string; lastName: string } | null;
     vehicle: { plate: string; make: string; model: string } | null;
+    /** Where the vehicle is on a fleet route, if it is on one. */
+    place: { name: string; purpose: string; arrived: boolean } | null;
     mechanicName?: string | null;
 };
+
+/** Why the vehicle is where it is, in the words of a card. */
+const HERE_FOR: Record<string, string> = {
+    INTAKE: "booked in",
+    ASSESSMENT: "for assessment",
+    WORK: "for work",
+    QUALITY_CHECK: "for its quality check",
+    RELEASE: "ready for collection",
+};
+
+const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+/** Every pressable thing on the floor: a press the hand can feel, through gloves. */
+const PRESS = "floor-press";
+
+/** A short buzz on phones that have one, so a tap is felt as well as seen. */
+function buzz() {
+    try {
+        navigator.vibrate?.(10);
+    } catch {
+        // Some browsers refuse vibration outright; the tap still happened.
+    }
+}
 
 type Props = {
     tenant: string;
@@ -100,6 +125,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
      * the tap is kept with the time it was made and applied on screen.
      */
     function act(key: string, run: () => Promise<{ ok: boolean; message?: string }>, fallback: () => void) {
+        buzz();
         setBusy(key);
         setError(undefined);
         start(async () => {
@@ -132,34 +158,59 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
     // What the mechanic is actually on, whether the server has heard about it yet or not.
     const onTheClock = queuedRunning === undefined ? running : queuedRunning;
+    // The bar keeps showing the job it was on while it slides away.
+    const [lastClock, setLastClock] = useState(onTheClock);
+    if (onTheClock && onTheClock !== lastClock) setLastClock(onTheClock);
+    const bar = onTheClock ?? lastClock;
+    // Which job's Start is still waiting for a signal, and since when. Read again whenever the queue changes.
+    const heldStart = useMemo(() => {
+        const held = new Map<string, string>();
+        if (waiting > 0) for (const e of loadQueue()) if (e.kind === "on") held.set(e.documentId, e.at);
+        return held;
+    }, [waiting]);
 
     const card = (job: Job, mineToo: boolean) => {
         const isRunning = onTheClock?.job.id === job.id;
-        const title = job.description ?? (job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : `Job ${job.jobNumber ?? ""}`);
+        const vehicle = job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}`.trim() : null;
+        const title = job.description ?? vehicle ?? `Job ${job.jobNumber ?? ""}`;
+        const who = job.customer ? `${job.customer.firstName} ${job.customer.lastName}`.trim() : null;
+        const held = heldStart.get(job.id);
         return (
-            <li key={job.id} className={`rounded-xl border bg-white p-4 shadow-sm ${isRunning ? "border-teal-700 ring-2 ring-teal-700" : "border-slate-200"}`}>
+            <li key={job.id} className={`rounded-sm border border-l-2 bg-white p-4 transition-colors duration-150 ${isRunning ? "border-slate-200 border-l-teal-700" : "border-slate-200 border-l-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <p className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                            {job.time && <span className="font-semibold tabular-nums text-slate-700">{minuteLabel(job.time.minute)}</span>}
-                            {job.vehicle && <span className="rounded bg-yellow-100 px-1.5 font-bold text-yellow-900">{job.vehicle.plate}</span>}
-                            {!mineToo && job.mechanicName && <span>· {job.mechanicName}</span>}
-                        </p>
-                        <p className="mt-1 text-base font-semibold text-slate-800">{title}</p>
-                        <p className="text-sm text-slate-500">
-                            {job.customer ? `${job.customer.firstName} ${job.customer.lastName}` : "No customer"}
-                            {job.estimatedMinutes ? ` · about ${hoursLabel(job.estimatedMinutes)}` : ""}
-                        </p>
-                    </div>
+                    <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+                        {job.jobNumber && <span className="font-semibold text-slate-900">{job.jobNumber}</span>}
+                        {job.vehicle && <span className="rounded-sm bg-yellow-100 px-1.5 font-bold text-yellow-900">{job.vehicle.plate}</span>}
+                        {!mineToo && job.mechanicName && <span className="text-slate-600">· {job.mechanicName}</span>}
+                    </p>
+                    {isRunning ? (
+                        <span className="shrink-0 text-sm font-medium text-teal-700">On the clock</span>
+                    ) : (
+                        job.time && <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{minuteLabel(job.time.minute)}</span>
+                    )}
                 </div>
+                <p className="mt-1 text-base font-semibold text-slate-900">{title}</p>
+                <p className="text-sm text-slate-600">
+                    {[job.description ? vehicle : null, who, job.estimatedMinutes ? `about ${hoursLabel(job.estimatedMinutes)}` : null].filter(Boolean).join(" · ") || "\u00a0"}
+                </p>
+                {job.place && (
+                    <p className="mt-1 text-sm text-slate-700">
+                        {job.place.arrived ? `At ${job.place.name}, ${HERE_FOR[job.place.purpose] ?? "on its route"}` : `On its way to ${job.place.name}`}
+                    </p>
+                )}
+                {held && (
+                    <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                        <CloudOff className="h-4 w-4 shrink-0" aria-hidden="true" />Not sent yet · started {time(held)}
+                    </p>
+                )}
                 {!isRunning && (
                     <button
                         type="button" disabled={pending}
                         onClick={() => act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job))}
-                        className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-teal-700 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60"
+                        className={`${PRESS} mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-teal-700 text-lg font-semibold text-white active:bg-teal-800 disabled:opacity-60`}
                     >
                         <Play className="h-5 w-5" aria-hidden="true" />{busy === job.id ? "Starting…" : onTheClock ? "Switch to this job" : "Start"}
-                        <span className="sr-only">: {[job.vehicle?.plate, title].filter(Boolean).join(", ")}</span>
+                        <span className="sr-only">: {[job.jobNumber, job.vehicle?.plate, title].filter(Boolean).join(", ")}</span>
                     </button>
                 )}
             </li>
@@ -191,7 +242,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 {/* Always in the page, so losing and finding the signal is announced, not only drawn. */}
                 <div role="status">
                     {(!online || waiting > 0) && (
-                        <p className={`flex items-start gap-2 rounded-lg px-4 py-3 text-base ${online ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-amber-900"}`}>
+                        <p className={`flex items-start gap-2 rounded-sm border px-4 py-3 text-base ${online ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-300 bg-white text-slate-900"}`}>
                             <CloudOff className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
                             <span>
                                 {online ? "Catching up…" : "No signal. Your taps are being kept with the time you made them."}
@@ -201,10 +252,10 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     )}
                 </div>
 
-                {error && <p className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
+                {error && <p className="rounded-sm border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
 
                 {!onTheClock && (
-                    <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-base text-slate-500">Not on the clock. Tap Start on a job.</p>
+                    <p className="rounded-sm border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-base text-slate-600">Not on the clock. Tap Start on a job.</p>
                 )}
 
                 <section className="space-y-2">
@@ -227,22 +278,29 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 meant scrolling back up to find it. Here it is always one thumb
                 away, clear of the home indicator, and it says what you are on so
                 there is no doubt which job is about to stop. */}
-            {onTheClock && (
-                <div className="fixed inset-x-0 bottom-0 z-20 border-t border-teal-800 bg-teal-700 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 text-white shadow-[0_-4px_16px_rgba(15,23,42,.25)]">
+            {bar && (
+                <div
+                    data-open={onTheClock ? "true" : "false"}
+                    aria-hidden={!onTheClock}
+                    inert={!onTheClock}
+                    className="floor-clock fixed inset-x-0 bottom-0 z-20 border-t border-teal-800 bg-teal-700 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 text-white"
+                >
                     <div className="mx-auto max-w-lg">
                         <div className="flex items-baseline justify-between gap-3">
                             <p className="min-w-0 truncate text-sm">
-                                {onTheClock.job.vehicle && <span className="mr-2 rounded bg-yellow-300 px-1.5 font-bold text-yellow-950">{onTheClock.job.vehicle.plate}</span>}
-                                {onTheClock.job.description ?? `Job ${onTheClock.job.jobNumber ?? ""}`}
+                                {bar.job.jobNumber && <span className="mr-2 font-semibold">{bar.job.jobNumber}</span>}
+                                {bar.job.vehicle && <span className="mr-2 rounded-sm bg-yellow-300 px-1.5 font-bold text-yellow-950">{bar.job.vehicle.plate}</span>}
+                                {bar.job.description ?? (bar.job.vehicle ? `${bar.job.vehicle.make} ${bar.job.vehicle.model}` : "")}
                             </p>
-                            <p className="shrink-0 text-2xl font-bold tabular-nums"><Elapsed since={onTheClock.startedAt} /></p>
+                            <p className="shrink-0 text-2xl font-bold tabular-nums"><Elapsed since={bar.startedAt} /></p>
                         </div>
                         <button
                             type="button" disabled={pending}
                             onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
-                            className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60"
+                            className={`${PRESS} mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-white text-lg font-semibold text-teal-800 active:bg-teal-50 disabled:opacity-60`}
                         >
-                            <Pause className="h-5 w-5" />{busy === "stop" ? "Stopping…" : "Stop"}
+                            <Pause className="h-5 w-5" aria-hidden="true" />{busy === "stop" ? "Stopping…" : "Stop"}
+                            {bar.job.jobNumber && <span className="sr-only">: {bar.job.jobNumber}</span>}
                         </button>
                     </div>
                 </div>
