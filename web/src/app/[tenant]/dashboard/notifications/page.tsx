@@ -8,8 +8,8 @@ export const metadata = { title: "Notifications | MOTION Workshop Manager" };
 
 /**
  * What wants this person's attention: vehicles on their way to where they
- * work, and jobs they have been put on. Opening one marks it read and goes to
- * the job card.
+ * work, jobs they have been put on, and requisitions waiting for them. Opening one marks it read and goes to
+ * what it is about.
  */
 export default async function NotificationsPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
@@ -23,7 +23,7 @@ export default async function NotificationsPage({ params }: { params: Promise<{ 
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-semibold tracking-[-0.01em] text-slate-900">Notifications</h1>
-                    <p className="text-sm text-slate-600">{unread ? `${unread} unread.` : "Nothing unread."} Vehicles on their way to where you work, and jobs you have been put on.</p>
+                    <p className="text-sm text-slate-600">{unread ? `${unread} unread.` : "Nothing unread."} Vehicles on their way to where you work, jobs you have been put on, and requisitions waiting for your signature.</p>
                 </div>
                 {unread > 0 && (
                     <form action={markAllReadAction.bind(null, slug)}>
@@ -35,7 +35,7 @@ export default async function NotificationsPage({ params }: { params: Promise<{ 
                 <div className="border border-slate-200 bg-white px-4 py-10 text-center">
                     <Bell aria-hidden strokeWidth={1.5} className="mx-auto h-6 w-6 text-slate-500" />
                     <p className="mt-2 text-sm text-slate-700">No notifications yet.</p>
-                    <p className="text-sm text-slate-600">When a vehicle is sent to where you work, or you are put on a job, it appears here.</p>
+                    <p className="text-sm text-slate-600">When a vehicle is sent to where you work, you are put on a job, or a requisition needs your signature, it appears here.</p>
                 </div>
             ) : (
                 <ul className="divide-y divide-slate-100 border border-slate-200 bg-white">
