@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { MechanicFloor } from "@/components/pwa/MechanicFloor";
 import { requireTenant } from "@/lib/auth/session";
 import { floorView } from "@/lib/time/queries";
+import { unreadCount } from "@/lib/notifications/queries";
+import Link from "next/link";
 
 export const metadata: Metadata = {
     title: "On the floor | MOTION",
@@ -15,7 +17,7 @@ export const viewport: Viewport = { themeColor: "#0f172a", width: "device-width"
 export default async function FloorPage({ params }: { params: Promise<{ tenant: string }> }) {
     const { tenant: slug } = await params;
     const { db, tenant, membership, user } = await requireTenant(slug);
-    const floor = await floorView(db, tenant, membership.id);
+    const [floor, unread] = await Promise.all([floorView(db, tenant, membership.id), unreadCount(db, membership.id)]);
 
     if (!membership.isMechanic && !membership.showOnDiary) {
         return (
@@ -26,6 +28,13 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
     }
 
     return (
+        <>
+        {/* Jobs they are put on already appear below; this says something new has come in, and where to read it. */}
+        {unread > 0 && (
+            <Link href={`/${slug}/dashboard/notifications`} className="block bg-teal-700 px-4 py-3 text-center text-base font-medium text-white">
+                {unread === 1 ? "1 new notification" : `${unread} new notifications`}. Open them.
+            </Link>
+        )}
         <MechanicFloor
             tenant={slug}
             name={user.firstName}
@@ -34,5 +43,6 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
             mine={floor.mine}
             others={floor.others}
         />
+        </>
     );
 }

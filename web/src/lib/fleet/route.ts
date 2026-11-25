@@ -4,6 +4,7 @@ import type { TenantTx } from "@/lib/tenant-db";
 import { jobFlowSettings } from "@/lib/settings/schema";
 import { audit, lockJob, personOf, routeOf, signaturesOf, text, type Actor } from "@/lib/fleet/route-db";
 import { checkSignature } from "@/lib/fleet/check-bay";
+import { jobLine, nameOf, notify, peopleAt } from "@/lib/notifications/notify";
 import {
     collected,
     currentVisit,
@@ -53,6 +54,15 @@ export async function bookIn(tx: TenantTx, tenant: Tenant, actor: Actor, documen
  * or if a gate is shut: an unsigned job card, an unsigned assessment, a
  * quality check not passed.
  */
+/** Why it is coming, in the words of a notification. */
+const WHY_SENT: Record<VisitPurpose, string> = {
+    INTAKE: "To be booked in",
+    ASSESSMENT: "For assessment",
+    WORK: "For work",
+    QUALITY_CHECK: "For its quality check",
+    RELEASE: "Ready for the driver to collect",
+};
+
 export async function sendOn(tx: TenantTx, tenant: Tenant, actor: Actor, documentId: string, input: { purpose: VisitPurpose; workshopId: string; note?: string | null }): Promise<void> {
     await lockJob(tx, documentId);
     const [visits, signatures, destination, person] = await Promise.all([
@@ -85,6 +95,15 @@ export async function sendOn(tx: TenantTx, tenant: Tenant, actor: Actor, documen
         data: { tenantId: tenant.id, documentId, workshopId: destination.id, purpose: input.purpose, sentAt: now, sentById: actor.membershipId, note: text(input.note) },
     });
     await audit(tx, tenant, actor, documentId, "SENT", { purpose: input.purpose, to: destination.name });
+
+    // Tell the people at the place it is going, so they know what to expect.
+    const [job, sender, recipients] = await Promise.all([jobLine(tx, documentId), nameOf(tx, actor.membershipId), peopleAt(tx, destination)]);
+    await notify(tx, tenant.id, recipients, {
+        kind: "VEHICLE_SENT",
+        title: `${job.number} is on its way to ${destination.name}`,
+        body: [job.vehicle, WHY_SENT[input.purpose], `Sent by ${sender}`, text(input.note)].filter(Boolean).join(". ") + ".",
+        href: `dashboard/documents/${documentId}`,
+    }, actor.membershipId);
 }
 
 /** The place it was sent accepts it, which records who received it and when. */

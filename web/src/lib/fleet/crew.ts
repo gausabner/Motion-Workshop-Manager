@@ -4,6 +4,7 @@ import type { TenantTx } from "@/lib/tenant-db";
 import { audit, lockJob, personOf, routeOf, type Actor } from "@/lib/fleet/route-db";
 import { currentVisit } from "@/lib/fleet/route-rules";
 import { assignError, leadOf, mayAssign } from "@/lib/fleet/crew-rules";
+import { jobLine, nameOf, notify } from "@/lib/notifications/notify";
 
 /**
  * Putting people on a job while the vehicle is at a workshop or bay, and
@@ -58,6 +59,14 @@ export async function assign(tx: TenantTx, tenant: Tenant, assigner: Assigner, d
     await tx.visitAssignment.create({ data: { tenantId: tenant.id, visitId: visit.id, membershipId, assignedById: assigner.membershipId } });
     await followLead(tx, documentId, visit.id);
     await audit(tx, tenant, assigner, documentId, "ASSIGNED", { visitId: visit.id, membershipId });
+
+    const [job, by] = await Promise.all([jobLine(tx, documentId), nameOf(tx, assigner.membershipId)]);
+    await notify(tx, tenant.id, [membershipId], {
+        kind: "ASSIGNED",
+        title: `You are on ${job.number} at ${visit.name}`,
+        body: [job.vehicle, `Assigned by ${by}`].filter(Boolean).join(". ") + ".",
+        href: `dashboard/documents/${documentId}`,
+    }, assigner.membershipId);
 }
 
 export async function unassign(tx: TenantTx, tenant: Tenant, assigner: Assigner, documentId: string, assignmentId: string): Promise<void> {

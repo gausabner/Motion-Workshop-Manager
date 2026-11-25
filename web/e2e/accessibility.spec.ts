@@ -38,6 +38,7 @@ test.describe("accessibility", () => {
         "/dashboard/payments",
         "/dashboard/schedule",
         "/dashboard/reports",
+        "/dashboard/notifications",
         "/dashboard/reports/receivables",
         "/dashboard/settings/company",
         "/dashboard/settings/users",

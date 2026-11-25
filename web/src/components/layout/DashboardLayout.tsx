@@ -7,6 +7,7 @@ import { can } from "@/lib/auth/permissions";
 import { GROUP_LABELS } from "@/lib/auth/permissions";
 import { SiteSwitcher } from "@/components/layout/SiteSwitcher";
 import { HelpButton } from "@/components/help/HelpButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SignOutButton } from "@/components/layout/SignOutButton";
@@ -74,6 +75,7 @@ export function TopNav({ tenant, userName, group }: ShellProps) {
             </div>
             {/* Beside the work, not in a menu: help that takes three clicks
                 to reach is help nobody reaches. */}
+            <NotificationBell tenant={tenant} />
             <HelpButton />
             <div className="flex items-center gap-3 border-slate-200 sm:border-l sm:pl-4">
                 <div className="hidden text-right leading-tight sm:block">
