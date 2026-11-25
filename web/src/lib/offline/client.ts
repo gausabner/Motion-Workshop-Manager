@@ -110,6 +110,13 @@ export function newRef(): string {
  */
 export function registerWorker(): void {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    // A development server serves changing code under unchanging names, which the worker's cache-first
+    // shell would freeze; only a production build, whose names change with its code, is cached.
+    if (process.env.NODE_ENV !== "production") {
+        navigator.serviceWorker.getRegistrations().then((all) => all.forEach((r) => r.unregister())).catch(() => {});
+        if (typeof caches !== "undefined") caches.keys().then((keys) => keys.filter((k) => k.startsWith("motion-")).forEach((k) => caches.delete(k))).catch(() => {});
+        return;
+    }
     navigator.serviceWorker.register("/sw.js").catch(() => {
         // An unregistered worker costs the mechanic nothing but the offline shell.
     });

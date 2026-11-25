@@ -283,7 +283,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         const who = job.customer ? `${job.customer.firstName} ${job.customer.lastName}`.trim() : null;
         const held = heldStart.get(job.id);
         return (
-            <li key={job.id} className={`rounded-sm border border-l-2 bg-white p-4 transition-colors duration-150 ${isRunning ? "border-slate-200 border-l-teal-700" : "border-slate-200 border-l-slate-200"}`}>
+            <li key={job.id} className={`rounded-sm border bg-white p-4 transition-colors duration-150 ${isRunning ? "border-teal-700" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
                     <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
                         {job.jobNumber && <span className="font-semibold text-slate-900">{job.jobNumber}</span>}
@@ -338,7 +338,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     };
 
     return (
-        <main className={`min-h-dvh bg-slate-100 ${onTheClock || stopped ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+        <main className={`min-h-dvh bg-slate-50 ${onTheClock || stopped ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
             {/* The header runs under the notch and pads its content back out, so
                 the bar is the workshop's colour rather than a black letterbox. */}
             <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] text-white">
@@ -471,7 +471,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                             <ToastTitle className="block text-base font-medium" />
                             <ToastDescription className="block text-sm text-slate-300" />
                         </span>
-                        <ToastAction className="floor-press h-11 shrink-0 rounded-sm px-3 text-base font-semibold text-teal-300 active:bg-slate-800" />
+                        <ToastAction className="floor-press h-11 shrink-0 rounded-sm px-3 text-base font-semibold text-[var(--motion-accent-on-dark)] active:bg-slate-800" />
                     </Toast>
                 )}
             </ToastRegion>
@@ -509,7 +509,8 @@ function TodayStrip({ today, minutes, day }: { today: string; minutes: number; d
     const cell = "min-w-0 px-3 py-2.5";
     const label = "text-[10px] font-semibold uppercase tracking-wider text-slate-600";
     return (
-        <dl className="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-white">
+        <div className="border-b border-slate-200 bg-white">
+        <dl className="mx-auto grid max-w-lg grid-cols-3 divide-x divide-slate-200">
             <div className={cell}>
                 {day.shiftMinutes ? (
                     <Meter value={minutes} min={0} max={day.shiftMinutes} format={(v: number) => `${hoursLabel(v)} of ${hoursLabel(day.shiftMinutes!)}`}>
@@ -556,5 +557,6 @@ function TodayStrip({ today, minutes, day }: { today: string; minutes: number; d
                 <dt className="inline">This week</dt> <dd className="inline font-medium tabular-nums text-slate-900">{hoursLabel(day.weekMinutes)}</dd>
             </div>
         </dl>
+        </div>
     );
 }

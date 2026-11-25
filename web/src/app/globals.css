@@ -344,6 +344,7 @@ table th,
    different widths cannot be read down. */
 :root {
   --motion-accent: #0f766e;   /* teal-700 */
+  --motion-accent-on-dark: #2dd4bf;   /* the mark's accent on the dark floor header and toasts */
   --motion-ink: #0f172a;      /* slate-900 */
   --motion-hairline: #e2e8f0; /* slate-200 */
   /* The resting edge of anything you type into or tick. A hairline is 1.2:1 and
@@ -817,6 +818,8 @@ a { text-underline-offset: 0.2em; }
 /* UI SDK centres a centre-aligned region with translate: -50%; this one spans the width instead. */
 .floor-toasts {
   translate: none;
+  max-width: 32rem;
+  margin-inline: auto;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   left: max(16px, env(safe-area-inset-left, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));

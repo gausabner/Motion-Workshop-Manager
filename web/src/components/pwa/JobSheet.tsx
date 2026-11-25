@@ -65,7 +65,7 @@ export function JobSheet({
     return (
         <Drawer open={!!jobId} onOpenChange={(open) => { if (!open) onClose(); }} side="bottom">
             <DrawerBackdrop className="fixed inset-0 bg-slate-900/40" />
-            <DrawerContent className="flex max-h-[88dvh] w-full flex-col border-t border-slate-300 bg-white [scale:calc(1-var(--drawer-stack,0)*0.04)]">
+            <DrawerContent className="mx-auto max-w-lg sm:border-x sm:border-slate-300 flex max-h-[88dvh] w-full flex-col border-t border-slate-300 bg-white [scale:calc(1-var(--drawer-stack,0)*0.04)]">
                 <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300" />
                 <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-2">
                     <div className="min-w-0">
@@ -96,7 +96,7 @@ export function JobSheet({
                 {data && (
                     <>
                         {data.note && (
-                            <p className="mx-4 mb-3 border-l-2 border-teal-700 bg-teal-50 px-3 py-2 text-sm text-slate-800">
+                            <p className="mx-4 mb-3 rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
                                 &ldquo;{data.note.text}&rdquo;{data.note.from ? <span className="text-slate-600"> · {data.note.from}</span> : null}
                             </p>
                         )}
@@ -137,7 +137,7 @@ export function JobSheet({
                                 data.findings.length ? (
                                     <ul className="space-y-2">
                                         {data.findings.map((f, i) => (
-                                            <li key={`${f.description}-${i}`} className={`border-l-2 px-3 py-2 text-base ${f.urgent ? "border-red-700 bg-red-50 text-red-900" : "border-amber-600 bg-amber-50 text-amber-950"}`}>
+                                            <li key={`${f.description}-${i}`} className={`rounded-sm border px-3 py-2 text-base ${f.urgent ? "border-red-200 bg-red-50 text-red-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
                                                 <span className="font-semibold">{f.urgent ? "Urgent" : "Soon"}:</span> {f.description}
                                                 {f.comment && <span className="block text-sm opacity-90">{f.comment}</span>}
                                             </li>

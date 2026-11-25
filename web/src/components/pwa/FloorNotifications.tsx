@@ -56,13 +56,13 @@ export function FloorNotifications({ tenant, unread: initialUnread, onOpenJob }:
             <DrawerTrigger aria-label={label} className="floor-press relative grid h-10 w-10 place-items-center rounded-sm border border-slate-600 text-white active:bg-slate-800">
                 <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
                 {unread > 0 && (
-                    <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-teal-600 px-1 text-center text-[11px] font-semibold leading-5 tabular-nums text-white">
+                    <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-[var(--motion-accent-on-dark)] px-1 text-center text-[11px] font-semibold leading-5 tabular-nums text-slate-950">
                         {unread > 99 ? "99+" : unread}
                     </span>
                 )}
             </DrawerTrigger>
             <DrawerBackdrop className="fixed inset-0 bg-slate-900/40" />
-            <DrawerContent className="flex max-h-[85dvh] w-full flex-col border-t border-slate-300 bg-white">
+            <DrawerContent className="mx-auto max-w-lg sm:border-x sm:border-slate-300 flex max-h-[85dvh] w-full flex-col border-t border-slate-300 bg-white">
                 <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300" />
                 <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-1">
                     <div>
