@@ -35,7 +35,7 @@ const count = (n: number) => (n === 0 ? "Nothing booked" : n === 1 ? "1 job" : `
  * sheet on top, and the schedule eases back beneath it.
  */
 export function Schedule({
-    tenant, initial, open, onOpenChange, startable, runningId,
+    tenant, initial, open, onOpenChange, startable, startLabel, runningId,
 }: {
     tenant: string;
     initial: ScheduleMonth;
@@ -43,6 +43,7 @@ export function Schedule({
     onOpenChange: (open: boolean) => void;
     /** Today's jobs the mechanic can start from a sheet, by id. */
     startable: (id: string) => (() => void) | null;
+    startLabel?: string;
     runningId: string | null;
 }) {
     const [days, setDays] = useState<Record<string, ScheduleItem[]>>(initial.days);
@@ -177,7 +178,7 @@ export function Schedule({
                     </Accordion>
                 </div>
 
-                <JobSheet tenant={tenant} jobId={jobId} onClose={() => setJobId(null)} start={jobId ? startable(jobId) : null} onTheClock={jobId !== null && jobId === runningId} />
+                <JobSheet tenant={tenant} jobId={jobId} onClose={() => setJobId(null)} start={jobId ? startable(jobId) : null} startLabel={startLabel} onTheClock={jobId !== null && jobId === runningId} />
             </DrawerContent>
         </Drawer>
     );

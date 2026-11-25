@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
-import { Toast, ToastAction, ToastDescription, ToastRegion, ToastTitle, createToaster } from "@ui-sdk/react/toast";
+import { Toast, ToastAction, ToastClose, ToastDescription, ToastRegion, ToastTitle, createToaster } from "@ui-sdk/react/toast";
+import { HelpButton } from "@/components/help/HelpButton";
 import { FloorNotifications } from "@/components/pwa/FloorNotifications";
 import { stopReasonAction, type StopReason } from "@/lib/time/floor-actions";
 import { useRouter } from "next/navigation";
@@ -228,13 +229,16 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         });
     }
 
-    const offerUndo = (title: string) => toaster(title, { action: { label: "Undo", onAction: undo } });
-
+    // The reasons are asked for only when the mechanic taps "Why?" on the stop's toast; a lunch break needs no form.
     function stop() {
         const was = onTheClock?.job ?? null;
         act("stop", () => clockOffAction(tenant), queueStop, (queued) => {
-            offerUndo(`Clock stopped${was?.jobNumber ? ` on ${was.jobNumber}` : ""}`);
-            if (!queued && was) setStopped({ id: was.id, jobNumber: was.jobNumber });
+            // The job number goes on its own line, so a narrow toast never breaks it at its hyphen.
+            toaster("Clock stopped", {
+                description: was?.jobNumber ?? undefined,
+                action: { label: "Undo", onAction: undo },
+                ...(!queued && was ? { cancel: { label: "Why?", onCancel: () => setStopped({ id: was.id, jobNumber: was.jobNumber }) } } : {}),
+            });
         });
     }
 
@@ -242,7 +246,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         const switching = !!onTheClock;
         setStopped(null);
         act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job), () => {
-            if (switching) offerUndo(`Switched to ${job.jobNumber ?? "this job"}`);
+            if (switching) toaster("Switched jobs", { description: job.jobNumber ? `Now on ${job.jobNumber}` : undefined, action: { label: "Undo", onAction: undo } });
         });
     }
 
@@ -355,6 +359,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         {name}
                     </h1>
                     <div className="flex items-center gap-3">
+                        <HelpButton className="floor-press relative grid h-10 w-10 place-items-center rounded-sm border border-slate-600 text-white active:bg-slate-800" />
                         <FloorNotifications tenant={tenant} unread={unread} onOpenJob={setSheet} />
                         <button
                             type="button"
@@ -388,9 +393,6 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
 
                 {error && <p className="rounded-sm border border-red-300 bg-red-50 px-4 py-3 text-base text-red-800" role="alert">{error}</p>}
 
-                {!onTheClock && (
-                    <p className="rounded-sm border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-base text-slate-600">Not on the clock. Tap Start on a job.</p>
-                )}
 
                 <section className="space-y-2">
                     <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-slate-500">My jobs</h2>
@@ -457,7 +459,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                             ] as const).map((r) => (
                                 <button key={r.value} type="button" onClick={() => because(r.value)} className="floor-press flex h-14 items-center justify-between gap-3 rounded-sm border border-slate-300 px-4 text-left text-base font-medium text-slate-900 active:bg-slate-50">
                                     {r.label}
-                                    {r.hint && <span className="text-xs font-normal text-slate-600">{r.hint}</span>}
+                                    {r.hint && <span className="text-[13px] font-normal text-slate-600">{r.hint}</span>}
                                 </button>
                             ))}
                         </div>
@@ -465,18 +467,25 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 </section>
             )}
             <ToastRegion toaster={toaster} side="top" align="center" className="floor-toasts">
-                {() => (
-                    <Toast className="floor-toast flex items-center justify-between gap-3 rounded-sm bg-slate-900 px-4 py-3 text-white shadow-[0_10px_25px_rgba(15,23,42,.25)]">
+                {(item) => (
+                    <Toast className="floor-toast flex items-center justify-between gap-2 rounded-sm bg-slate-900 py-2 pl-4 pr-2 text-white shadow-[0_10px_25px_rgba(15,23,42,.25)]">
                         <span className="min-w-0">
                             <ToastTitle className="block text-base font-medium" />
                             <ToastDescription className="block text-sm text-slate-300" />
                         </span>
-                        <ToastAction className="floor-press h-11 shrink-0 rounded-sm px-3 text-base font-semibold text-[var(--motion-accent-on-dark)] active:bg-slate-800" />
+                        <span className="flex shrink-0 items-center">
+                            {item.cancel && (
+                                <ToastClose action={item.cancel.onCancel} aria-label="Say why you stopped" className="floor-press h-11 rounded-sm px-3 text-base font-medium text-white underline decoration-slate-500 underline-offset-4 active:bg-slate-800">
+                                    {item.cancel.label}
+                                </ToastClose>
+                            )}
+                            <ToastAction className="floor-press h-11 rounded-sm px-3 text-base font-semibold text-[var(--motion-accent-on-dark)] active:bg-slate-800" />
+                        </span>
                     </Toast>
                 )}
             </ToastRegion>
-            <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
-            <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} runningId={onTheClock?.job.id ?? null} />
+            <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} startLabel={onTheClock ? "Switch to this job" : "Start"} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
+            <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} startLabel={onTheClock ? "Switch to this job" : "Start"} runningId={onTheClock?.job.id ?? null} />
         </main>
     );
 }
@@ -490,7 +499,7 @@ function EstimateMeter({ minutes, estimate }: { minutes: number; estimate: numbe
             <MeterTrack className="h-1.5 overflow-hidden rounded-sm bg-teal-900/60">
                 <MeterIndicator className="floor-meter h-full bg-white" />
             </MeterTrack>
-            <p className="mt-1 text-xs text-teal-50">
+            <p className="mt-1 text-[13px] text-teal-50">
                 <MeterValue />
                 {over > 0 ? ` · ${hoursLabel(over)} over` : " estimated"}
             </p>
@@ -507,7 +516,7 @@ const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString
  */
 function TodayStrip({ today, minutes, day }: { today: string; minutes: number; day: Props["day"] }) {
     const cell = "min-w-0 px-3 py-2.5";
-    const label = "text-[10px] font-semibold uppercase tracking-wider text-slate-600";
+    const label = "text-xs font-semibold uppercase tracking-wider text-slate-600";
     return (
         <div className="border-b border-slate-200 bg-white">
         <dl className="mx-auto grid max-w-lg grid-cols-3 divide-x divide-slate-200">
@@ -520,13 +529,13 @@ function TodayStrip({ today, minutes, day }: { today: string; minutes: number; d
                             <MeterTrack className="mt-1 h-1 overflow-hidden rounded-sm bg-slate-200">
                                 <MeterIndicator className="floor-meter h-full bg-teal-700" />
                             </MeterTrack>
-                            <span className="mt-0.5 block text-xs text-slate-600">of {hoursLabel(day.shiftMinutes)}</span>
+                            <span className="mt-0.5 block text-[13px] text-slate-600">of {hoursLabel(day.shiftMinutes)}</span>
                         </dd>
                     </Meter>
                 ) : (
                     <>
                         <dt className={label}>Today</dt>
-                        <dd><span className="block text-base font-semibold tabular-nums text-slate-900">{hoursLabel(minutes)}</span><span className="block text-xs text-slate-600">Not a working day</span></dd>
+                        <dd><span className="block text-base font-semibold tabular-nums text-slate-900">{hoursLabel(minutes)}</span><span className="block text-[13px] text-slate-600">Not a working day</span></dd>
                     </>
                 )}
             </div>
@@ -534,7 +543,7 @@ function TodayStrip({ today, minutes, day }: { today: string; minutes: number; d
                 <dt className={label}>Jobs</dt>
                 <dd>
                     <span className="block text-base font-semibold tabular-nums text-slate-900">{day.jobsWorked}</span>
-                    <span className="block text-xs text-slate-600">{day.waitingForParts ? `${day.waitingForParts} waiting for parts` : "worked today"}</span>
+                    <span className="block text-[13px] leading-snug text-slate-600">{day.waitingForParts ? `${day.waitingForParts} waiting for parts` : "worked today"}</span>
                 </dd>
             </div>
             <div className={cell}>
@@ -543,17 +552,17 @@ function TodayStrip({ today, minutes, day }: { today: string; minutes: number; d
                     {day.next ? (
                         <>
                             <span className="block text-base font-semibold tabular-nums text-slate-900">{day.next.day === today ? minuteLabel(day.next.minute) : `${dayName(day.next.day)} ${minuteLabel(day.next.minute)}`}</span>
-                            <span className="block truncate text-xs text-slate-600">{day.next.jobNumber ?? "Booked job"}</span>
+                            <span className="block truncate text-[13px] text-slate-600">{day.next.jobNumber ?? "Booked job"}</span>
                         </>
                     ) : (
                         <>
                             <span className="block text-base font-semibold text-slate-900">None</span>
-                            <span className="block text-xs text-slate-600">booked ahead</span>
+                            <span className="block text-[13px] text-slate-600">booked ahead</span>
                         </>
                     )}
                 </dd>
             </div>
-            <div className="col-span-3 border-t border-slate-100 px-3 py-1.5 text-xs text-slate-600">
+            <div className="col-span-3 border-t border-slate-100 px-3 py-1.5 text-[13px] text-slate-600">
                 <dt className="inline">This week</dt> <dd className="inline font-medium tabular-nums text-slate-900">{hoursLabel(day.weekMinutes)}</dd>
             </div>
         </dl>
