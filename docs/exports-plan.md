@@ -3,7 +3,12 @@
 Planned before building, because the two buyers want opposite files and
 conflating them is how workshop software exports badly.
 
-A council auditor wants **evidence**: completeness, immutability, a total that
+**Status (25 November 2026):** all three phases are built and live. Only the
+retention sweep and the drop-folder question below remain open. Wording follows
+the November rule: an *organisation* with its own fleet (a municipality, a
+parastatal, a mine) rather than "council".
+
+An organisation's auditor wants **evidence**: completeness, immutability, a total that
 ties, and a PDF with a page count they can file. An owner wants a **decision**:
 what made money, who owes, what is not moving — as CSV, because the next thing
 they do is sort it.
@@ -25,7 +30,7 @@ where needed, `=`/`+`/`@` defused so a spreadsheet cannot run a cell, CRLF, and
 a BOM so Excel does not mangle the first heading. Ten tests hold it. Nothing
 below adds a second CSV writer.
 
-## Phase 1 — a council refuses to buy without these
+## Phase 1 — an organisation's auditor refuses to buy without these — **built**
 
 | Export | Format | Data |
 | --- | --- | --- |
@@ -70,7 +75,7 @@ screen, or the export becomes the way around the permission.
 ## Phase 3 — the machine hand-off — **built**
 
 Outbound only. MOTION writes a file; the ERP picks it up. Nothing listens and
-nothing is exposed, which is the only shape a council network team will accept.
+nothing is exposed, which is the only shape an organisation's network team will accept.
 
     MOTION (on the LAN) --nightly--> drop folder / SFTP --> SOLAR / Sage / SAP / Odoo
                                             ^                        |
@@ -87,7 +92,7 @@ of a month of failed imports is at year end.
    site's version wants, which is a per-deal conversation.
 3. **Everything, as a bundle.** A ZIP of every table as CSV. The concrete form
    of the promise that a workshop's data is never withheld, and the
-   disaster-recovery answer council IT asks for before signing.
+   disaster-recovery answer an organisation's IT asks for before signing.
 
 All three are built. The runner is idempotent on tenant, kind, shape and
 period; the journal is refused if any batch does not balance; and a receipt
@@ -122,17 +127,17 @@ have, and the on-premise buyers asked for a file in a folder.
   close. The record is what an auditor wants; blocking would be a support call
   every time somebody deletes a draft.
 - **The full bundle is owner self-service and audited** — which is the answer
-  council IT asks for, not a weaker one.
+  an organisation's IT asks for, not a weaker one.
 
 ## Still open
 
 Both of these are now settings rather than blockers, but neither has been
 confirmed with a buyer:
 
-- **Council retention.** `keepYears` defaults to seven. Nothing is swept yet —
+- **Retention for public bodies.** `keepYears` defaults to seven. Nothing is swept yet —
   the setting is what a future sweep will read, and what the hand-off screen
   reports against. Confirm the real figure before writing the sweep.
-- **Drop folder per tenant or per council.** Answered by making the folder a
+- **Drop folder per tenant or per organisation.** Answered by making the folder a
   template: `{tenant}` gives one each, leaving it out gives one shared, and the
-  workshop's name is in every file either way. Which a council actually wants
-  is still a question for a council.
+  workshop's name is in every file either way. Which an organisation actually wants
+  is still a question for one.

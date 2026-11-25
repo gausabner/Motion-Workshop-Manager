@@ -9,6 +9,8 @@ Workshop Software (Workshop Software Pty Ltd, Warriewood NSW) has 30+ years in m
 
 ## 1. Pricing tiers (USD, Sep 2026)
 
+> **Superseded for Southern Africa.** Since 1 December 2025 Workshop Software also lists rand prices: Silver R1,400, Gold R1,700, Platinum R2,900 a month, or R1,100, R1,400 and R2,400 billed yearly, additional users R295 (checked November 2026; [reports/MOTION compliance and market facts.md](../../reports/MOTION%20compliance%20and%20market%20facts.md)). The USD table is kept as observed.
+
 | Tier | Monthly / annual-equivalent | What it adds |
 |:--|:--|:--|
 | **Silver** | $169 / $149 | Full job & vehicle management, booking management, import/export, SMS (per-message fee), stock orders, supplier invoices & payments, stock take, canned services/bundles, VIN & plate decoding, adjustable user groups & permissions, shop scheduling, mobile app. Additional users $20/user/month. |

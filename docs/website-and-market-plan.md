@@ -1,7 +1,11 @@
 # The website, the documents, and getting into the market
 
+*Updated 25 November 2026: wording follows the rule (an organisation with its own
+fleet, not a council), the benchmark's prices are corrected, and the three
+decisions are made.*
+
 Planned before building, because the expensive mistake here is writing ninety
-documents nobody asked for while the one a council actually wants is missing.
+documents nobody asked for while the one an organisation's procurement actually wants is missing.
 
 ## Part one — the two front doors
 
@@ -11,19 +15,19 @@ Both editions need something in front of that, and they need different things.
 
 | | Cloud edition | On-premise edition |
 | --- | --- | --- |
-| Who arrives | A workshop owner, on a phone, sent a WhatsApp link | Staff at an installed site; council IT |
-| What they want | To believe this is worth N$550 a month | To do their job; to find who to ring |
+| Who arrives | A workshop owner, on a phone, sent a WhatsApp link | Staff at an installed site; the organisation's IT |
+| What they want | To believe this is worth N$ 1,200 a month | To do their job; to find who to ring |
 | What must not appear | — | Pricing, sign-up, anything implying a purchase |
 | Network | Ordinary internet | Outbound-only, often no internet at all |
 
 One codebase, one flag. `MOTION_EDITION=cloud|onprem` decides which front door
-is served, the same way `STORAGE_DRIVER` decides where files go. A council that
+is served, the same way `STORAGE_DRIVER` decides where files go. An organisation that
 sees "Start your free trial" on a system their procurement already bought has
 been sold something twice, and it reads as carelessness.
 
 ### The insight that shapes the build
 
-At N$550 a month with margins to stay above 90 %, **support volume is the
+At N$ 1,200 a month with margins to stay above 90 %, **support volume is the
 binding constraint, not infrastructure.** That is already recorded as the
 reason onboarding and CSV import are commercial features rather than niceties.
 
@@ -46,7 +50,7 @@ at all.
 
 ### The constraint that decides the technology
 
-An on-premise site is on a council network with no inbound access and often no
+An on-premise site is on an organisation's network with no inbound access and often no
 internet. **Every public page must render with no outward request.** That rules
 out a hosted CMS, an analytics tag, an embedded chat widget, a font from a CDN
 and an image from a bucket.
@@ -78,7 +82,7 @@ the cheapest way to be sure is to look.
   put your logo on an invoice, raise the first job card.
 - **Contact and support** — hours, channels, what counts as urgent, and what to
   have ready when reporting a problem.
-- **Release notes** — what changed and when. Councils ask for this by name, and
+- **Release notes** — what changed and when. Public bodies ask for this by name, and
   it is the cheapest credibility a small vendor can buy.
 
 **Cloud only:**
@@ -93,7 +97,7 @@ the cheapest way to be sure is to look.
 
 - **About this installation** — which workshop, which version, who installed it
   and when, where the data lives, when it was last backed up.
-- **Who to ring** — the site's own administrator first, then us. A council's
+- **Who to ring** — the site's own administrator first, then us. An organisation's
   staff should never be told to email a vendor about a forgotten password.
 
 ### What this is not
@@ -128,14 +132,14 @@ Eight documents. This is the whole list for a private workshop sale.
 | Invoice and quote templates | The paperwork of actually being a business |
 | Care plan description | Hand-holding is **sold**, not bundled — already decided |
 
-### Tier two — before a council will sign — **written**
+### Tier two — before an organisation will sign — **written**
 
 Procurement will ask for these by name and a missing one stalls a tender for a
 month. The good news is how much of it already exists as working code rather
 than as prose to invent.
 
 Written as four documents rather than nine, because several of them are one
-document in practice: a council asks for a DPA and expects retention inside it,
+document in practice: an organisation asks for a DPA and expects retention inside it,
 and nobody runs a UAT plan separately from the cutover checklist it leads to.
 
 | Document | Covers |
@@ -156,7 +160,7 @@ entity. Procurement finds those anyway — later, and with less goodwill.
 small vendor a month is mostly a description of decisions already made and
 tested. The gap report proves document completeness. The export log answers
 "who has been taking data out". The outbound-only hand-off is exactly the
-network posture councils demand and most vendors cannot offer. That is not
+network posture public bodies demand and most vendors cannot offer. That is not
 paperwork to produce — it is evidence to write down.
 
 ### Tier three — not yet, and what would trigger it
@@ -166,13 +170,13 @@ Named so they are deliberately deferred rather than forgotten.
 | Deferred | What would trigger it |
 | --- | --- |
 | SOC 2 / ISO 27001 | A buyer who contractually requires it. Six figures and a year; there is no sane way to do it before revenue |
-| Software escrow | A council naming it in a tender — plausible, and the bundle is a cheaper answer to the same fear |
+| Software escrow | An organisation naming it in a tender — plausible, and the bundle is a cheaper answer to the same fear |
 | Certification programme, train-the-trainer | Enough sites that training does not scale one at a time |
 | Partner / reseller kit | A first partner who asks |
 | CPQ rules, discount approval matrix, margin model | More than one person quoting |
 | QBR decks | An account large enough to review quarterly |
 | VPAT / accessibility | A government tender requiring it. Worth doing the work regardless; the *document* waits |
-| Penetration test summary | A buyer asking, or the first council go-live — whichever is first |
+| Penetration test summary | A buyer asking, or the first go-live at an organisation with its own fleet — whichever is first |
 
 ### What the checklist got right that is easy to miss
 
@@ -195,32 +199,51 @@ of them, onboarded by hand, will:
 
 - prove the product survives contact with a real workshop;
 - generate the help content, because every question asked becomes a page;
-- produce the reference sites a council will ask for.
+- produce the reference sites an organisation will ask for.
 
-**Councils second, and only with references.** They run SOLAR, Sage, SAP or
+**Organisations with their own fleets second, and only with references.** They run SOLAR, Sage, SAP or
 Odoo, authenticate against Active Directory, and buy through procurement. They
 are slow, they ask for tier-two documents, and they will not be the first
 customer of an unproven vendor. But they pay more, they stay, and the hand-off
 built this month is aimed squarely at them.
 
-The wedge against the benchmark is already known and should be said plainly:
-Workshop Software charges roughly N$3,127–5,532 a month and **its integrated
-payments do not work in Africa.** MOTION is local, priced for the market, and
-handles the licence disc, the roadworthy, VAT at 15 % and WhatsApp.
+**The wedge against the benchmark has moved, and the copy must move with it.**
+Since 1 December 2025 Workshop Software publishes rand prices: Silver R1,400,
+Gold R1,700 and Platinum R2,900 a month, or R1,100, R1,400 and R2,400 a month
+billed yearly (rand and Namibian dollar are at par). The old figure of
+N$3,127–5,532 is out of date. MOTION's N$1,200 and N$2,400 now sit *at* the
+benchmark's price, and its yearly Silver plan is cheaper than MOTION's entry
+tier — so **compete on scope, never on price.** What it does not have:
+purchase requisitions with quotations and sign-offs, the fleet route, a floor
+app that works without a signal, an edition installed on the buyer's own
+servers (its hosting is in Australia, the US and Europe; MOTION's hosted
+edition is in the US too, so residency is the installed edition's answer),
+and payments that work in Africa. Technician clocking needs its Gold
+plan. MOTION handles the licence disc, the roadworthy, VAT at 15 % and
+WhatsApp, in every plan.
 
-## Decisions I need
+For organisations with their own fleets, say **workshop system**, never
+"fleet management system": in South African tenders that phrase means vehicle
+tracking. MOTION works *beside* the tracking provider and the finance system
+(SAP PM, SOLAR, Pragma On Key at the large end), not instead of them. Where a
+fleet is bought as a bundle — South Africa's national contract RT46-2026 puts
+maintenance with Afrirent until June 2031 — the opening is the garage doing
+the work, which must keep a record of quotes and approvals. In Namibia,
+central government built its own fleet system in November 2025; councils and
+state-owned companies with their own garages remain the buyers. Sources and
+dates: [reports/MOTION compliance and market facts.md](../reports/MOTION%20compliance%20and%20market%20facts.md).
 
-1. **Is the hosted edition actually for sale yet?** No host has been chosen and
-   no secrets exist. A marketing site that sells a trial nobody can start is
-   worse than no site. Either pick a host, or the cloud pages launch as
-   "request a demo" with no self-service sign-up.
-2. **Do we publish prices?** Publishing anchors the market and filters out the
-   workshops who were never going to pay. Not publishing keeps room to
-   negotiate per council. I lean towards publishing the workshop tiers and
-   quoting councils on request.
-3. **What is the legal entity, and who writes the terms?** A privacy policy and
-   an EULA are the two documents on this list I should draft but not be the
-   last word on.
+## Decided
+
+1. **The hosted edition is for sale.** Production runs on one server (see
+   [architecture.md](architecture.md), ADR-007) at motionworkshopmanager.com,
+   with self-service registration.
+2. **Prices are published** for the two workshop plans (N$ 1,200 and
+   N$ 2,400 a month, excluding VAT). Fleet and multi-site is quoted per site.
+3. **The legal entity is Omzizi Investment CC**, trading as Motion Dynamic
+   Systems, registered and VAT-registered. The terms and privacy policy are
+   still drafts; see [legal-review-2026-11.md](legal-review-2026-11.md) for
+   what counsel must settle.
 
 ## What I would build first
 
@@ -236,4 +259,4 @@ In order, smallest useful thing first:
 4. **The cloud marketing site** — after a host is chosen, so the call to action
    is real.
 5. **The security whitepaper** — mostly transcription of what already exists,
-   and the thing that will most often decide a council tender.
+   and the thing that will most often decide a public body's tender.

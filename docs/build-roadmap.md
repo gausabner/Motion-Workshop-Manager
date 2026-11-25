@@ -1,5 +1,7 @@
 # MOTION — build roadmap
 
+> **Status, 25 November 2026.** R1c to R7 are complete. Beyond the roadmap, for organisations with their own fleets: the vehicle's route (#38–#45), requisitions (#38–#46), workshop staff and assignment (#52), notifications (#54–#55), and the floor app's job sheet, schedule, Today strip, Undo and stop reasons (#56–#61). Accessibility and the SAP-style page structure followed the 21 November critique (#47, #49, #50). The sections below are the plan as written in September.
+
 > **The end goal:** a Namibian or South African workshop runs its entire day in MOTION — books the car in, works the job, takes the money, orders the parts, pays the supplier, and knows what it made — on one modern codebase, in its own currency and tax regime, talking to customers on WhatsApp. Feature-comparable to Workshop Software's Gold tier, better on everything local, and without thirty years of accumulated schema debt.
 >
 > **Where to start:** §5, R1c. Two of those items are live correctness bugs.

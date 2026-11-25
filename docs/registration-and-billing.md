@@ -167,7 +167,7 @@ worse than a wrong reference is a reference the customer no longer has.
 
 1. **`/register`** — as today, but the tenant is created `PENDING_PAYMENT` and
    the redirect goes to the plan chooser rather than the dashboard.
-2. **Choose a plan** — the three tiers from `plans.ts`. `council` has no price,
+2. **Choose a plan** — the three tiers from `plans.ts`. `council` (shown as **Fleet and multi-site**) has no price,
    so it routes to "we will quote you" and a staff conversation, not a
    reference.
 3. **Confirmation page** — amount including VAT if applicable, the reference,
@@ -326,7 +326,7 @@ matters and the trading name follows it.
 `64283593331`. Out of the repository because an account number shown to
 customers is the highest-value line in that file to an attacker — change it and
 payments go elsewhere silently, with the first symptom being a customer
-insisting they paid — and because an installed edition at a council does not
+insisting they paid — and because an installed edition at an organisation does not
 bill through Omzizi at all.
 
 **A reference convention already in use.** The supplied quotation carries
@@ -465,8 +465,9 @@ grace period.
 > trigger makes it final: nothing but `emailedAt` can change, and it cannot be
 > deleted. It is attached to the activation and renewal emails, listed on each
 > workshop's staff page (`/admin/workshops/[id]`) and on the workshop's own
-> Billing page. Not built: credit notes, which is how a wrong invoice would be
-> corrected.
+> Billing page. A payment recorded in error is reversed with a tax credit
+> note that cancels its invoice (#24, `lib/billing/reversals.ts`); only the
+> most recent payment can be reversed.
 
 **Later — cards.** `PaymentMethodKind` already has room for it. Nothing in
 phases 1–3 should assume a bank deposit is the only way money arrives.
@@ -475,8 +476,9 @@ phases 1–3 should assume a bank deposit is the only way money arrives.
 
 ## What this does not cover
 
-- **Credit notes from MOTION to its clients.** Tax invoices are issued (see
-  Phase 3 above); correcting one needs a credit note, which is not built.
+- **Credit notes for anything but a reversal.** A payment recorded in error
+  is reversed with a credit note (#24). A partial credit — a discount given
+  after the invoice — is not built.
 - **Dunning.** What actually happens on the third unpaid month is a business
   policy, not a schema.
 - **Proration and plan changes.** A workshop moving from Workshop to Full

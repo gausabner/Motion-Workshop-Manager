@@ -260,6 +260,11 @@ both false, 50 tables with FORCE RLS and 56 policies, a query that has not
 announced its tenant returns zero rows, and `motion` is refused when it tries
 to grant itself `BYPASSRLS`.
 
+*That check was made in September 2026. At `main` 5413cad (25 November 2026)
+the same migrations give 79 tables, 71 with FORCE RLS and 82 policies,
+counted on a development database; rerun the check on the throwaway instance
+before quoting it.*
+
 ## 6. Prove it is actually up
 
 ```bash
@@ -441,11 +446,38 @@ send resets either.
 
 ---
 
+## 11. Deploying a release
+
+Learned the hard way: on 19 November `systemctl restart motion` took the site down for eight minutes, because the unit stops everything *before* it pulls, and a slow pull from GitHub's image store left nothing running. Every release since has gone out this way, with no downtime:
+
+1. **Merge only when every check on the pull request is green**, then wait until CI, the end-to-end tests and the image build are green on `main`. The image is `ghcr.io/gausabner/motion-workshop-manager:latest`.
+2. **Make sure the server answers.** The route to it can drop for minutes at a time:
+   ```bash
+   until ssh motion-root 'echo reachable'; do sleep 20; done
+   ```
+3. **Back up first**, especially before a migration (it runs synchronously, about 15 seconds):
+   ```bash
+   systemctl start motion-backup.service && systemctl show motion-backup.service -p Result
+   ```
+4. **Pull while the old app serves.** `ctr` shows progress and resumes; `docker pull` looks hung when it is only slow:
+   ```bash
+   ctr -n moby images pull --platform linux/amd64 ghcr.io/gausabner/motion-workshop-manager:latest
+   ```
+5. **Restart only the app**, always from `ops/server` (from `/opt/motion` compose picks up the development file):
+   ```bash
+   cd /opt/motion/ops/server && docker compose --env-file /etc/motion/motion.env up -d --remove-orphans
+   ```
+   The app is healthy again in about 15 seconds; migrations run as it starts (`docker compose ... logs app | grep migration`).
+6. **Check from outside:** `curl -s https://motionworkshopmanager.com/api/health` reports the database up, and the served stylesheet or page carries something only the new release has.
+
+A background script that deploys after CI must check that its ssh calls succeeded; an `ssh` that fails to connect does not stop a shell loop, and twice on 25 November a chain ended "successfully" without deploying.
+
 ## What this does not cover
 
-- **No staging environment.** `render.yaml` describes one on Render and it is
-  worth standing up before the first change lands on a live workshop, but it is
-  not on the path to Saturday.
+- **No staging environment.** `render.yaml` describes one on Render (see
+  `docs/deploy-render.md`). Every release so far has been checked against a
+  local production build and the end-to-end tests instead; a staging site is
+  still worth standing up before larger customers arrive.
 - **No failover.** One server. Recovery is restore-and-start, which is the
   honest position `docs/continuity-and-recovery.md` already takes.
 - **No email sending from this box.** Its reverse DNS is Namecheap's default

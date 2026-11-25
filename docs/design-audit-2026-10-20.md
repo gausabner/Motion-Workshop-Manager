@@ -1,5 +1,7 @@
 # Design audit, 20 October 2026
 
+> **Historical record.** Later reviews: the whole-app critique of 21 November 2026 (23/40, acted on in #47, #49, #50) and the floor app critiques of 25 November 2026 (29/40, then 31/40, acted on in #60 and #61; snapshots in `.impeccable/critique/`).
+
 Scope: the content work (phases 1–6), the locked plan features, and the new
 plan-change flow. Lenses: Impeccable's technical audit, design-taste-frontend
 for the public pages, and the animate skill for every moving part. Evidence:

@@ -44,6 +44,35 @@ scope, we will do it next month" is the one who makes the date.
       has been run and passed — step 7 below.*
 - [ ] Support contacts exchanged both ways.
 
+### An organisation with its own fleet
+
+On the Fleet and multi-site plan, the setup is the organisation's own
+hierarchy. Collect it on paper first; it is the part that takes longest to
+agree, and nothing in the fleet route works until it is in.
+
+- [ ] **Units and workshops.** Every division, every workshop and bay, and the
+      check bay and reception points, named as the organisation names them
+      (Settings → Workshops and bays).
+- [ ] **Staff per workshop.** Who works where, as mechanic, artisan or intern.
+      A person may be on more than one (Settings → Workshops and bays).
+- [ ] **Appointments.** The foreman and deputy of each workshop, the divisional
+      head of each unit, and the fleet coordinator (Settings → Organisation).
+- [ ] **Requisition rules.** The value limit, who approves above it, and how
+      many quotations a purchase needs at each value (Settings → Requisition
+      rules). Copy them from the organisation's own procurement policy; a
+      South African municipality's may be stricter than the national bands.
+      MOTION compares values **excluding VAT**, and the law's thresholds
+      include it: enter each limit as its VAT-exclusive equivalent.
+- [ ] **Pay numbers and designations** on every person who signs a job card or
+      a requisition. They are printed beside the signature.
+- [ ] **Departments as customers.** Each department that sends vehicles, with
+      its cost centre, so the job card and the requisition name who pays.
+- [ ] **The floor app on the mechanics' phones.** The link is
+      `https://motionworkshopmanager.com/<workshop>/pwa` (or the installed
+      site's address). Each mechanic signs in once and adds it to the home
+      screen; the staff guide's *Supporting an organisation with its own fleet*
+      covers what to tell them.
+
 ## 3. Testing, before it is anybody's real work
 
 Run against real data in a copy, by the people who will use it — not by MOTION
@@ -96,6 +125,23 @@ discussed and forgotten.
 | 22 | Spot-check twenty records against source | Fields in the right columns, nothing truncated |
 | 23 | Check opening balances | Total owed matches the old system |
 | 24 | Search for a customer by phone and by plate | Found both ways |
+
+### The fleet route — organisations with their own fleets only
+
+Run one real vehicle through every step, with the people who hold each
+appointment doing their own part on their own sign-in.
+
+| # | What is done | What must be true |
+| --- | --- | --- |
+| 25 | Reception opens a job card and sends the vehicle to the check bay | The check bay is told; the vehicle shows as on its way |
+| 26 | The check bay receives it, inspects, and sends it to a workshop with a note | The foreman and deputy of that workshop are told; the note travels with it |
+| 27 | The foreman assigns two mechanics | Both are told; the first is the lead and is printed as the job card's mechanic |
+| 28 | A mechanic opens the job in the floor app, clocks on, and stops for parts | Time lands on the job; the job card shows Waiting for parts |
+| 29 | A stores requisition is raised for the parts and signed by each appointment in turn | Each signer is told when it waits for them; the over-limit approver only above the limit |
+| 30 | The part the shelf cannot meet becomes a purchase requisition with quotations | Quotations attach; the chosen supplier is recorded with the reason |
+| 31 | The mechanic stops with "My part is done"; the foreman sends the vehicle to the quality check | The foreman is told the work is done; the quality check is told it is on its way; a failed check returns it to the workshop that did the work |
+| 32 | Reception receives it and the department collects | Every signature is on the printed job card, with names, designations and pay numbers |
+| 33 | Replace a foreman with their deputy, then end an assignment | New notifications go to the new person; signatures already given stay on the record |
 
 ## 4. The switch
 

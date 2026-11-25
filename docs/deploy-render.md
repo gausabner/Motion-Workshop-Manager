@@ -1,5 +1,7 @@
 # Deploying MOTION to Render
 
+> **Superseded for production (October 2026).** Production runs on one server with Docker Compose from `ops/server`, behind a Cloudflare tunnel, using the image CI publishes to GHCR — see [launch-runbook.md](launch-runbook.md) and ADR-007 in [architecture.md](architecture.md). This page is kept because Render remains the simplest way to stand up a staging site.
+
 Staging first. The same blueprint makes production later, on a bigger plan with
 backups that have been restored from at least once.
 

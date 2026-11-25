@@ -1,7 +1,7 @@
 # Connecting MOTION to your systems
 
 For the IT manager or finance system owner asking how MOTION will talk to
-SOLAR, Sage, SAP, Odoo or whatever the council already runs.
+SOLAR, Sage, SAP, Odoo or whatever the organisation already runs.
 
 The short answer: **MOTION pushes outward, and nothing ever reaches in.**
 
@@ -16,7 +16,7 @@ no port to open, no VPN to build, no agent waiting for instructions, and no
 account for us on your systems.
 
 That is not a limitation dressed as a principle — it is the only arrangement a
-council's network team will sign, and building every integration to fit it is
+organisation's network team will sign, and building every integration to fit it is
 cheaper than arguing the point per deal.
 
 ```
@@ -83,7 +83,7 @@ entirely in the wrong place.
 ### Where the file lands
 
 A folder path template. `handoff/{tenant}/{yyyy}/{mm}` by default — `{tenant}`
-gives a council running four workshops a folder each, leaving it out gives one
+gives an organisation running four workshops a folder each, leaving it out gives one
 shared folder, and the workshop's name is in every filename either way.
 
 The folder is reached through MOTION's storage layer, so it can be a local

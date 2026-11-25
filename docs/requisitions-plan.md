@@ -1,5 +1,10 @@
 # Requisitions: brief and plan
 
+> **Status, 25 November 2026: built and live.** Parts 1–6 shipped (#38–#46): organisation settings, stores requisitions with the sign-off ledger and issuing, and purchase requisitions with quotations split from what the shelf cannot meet. Since then:
+> - **Notifications (#55):** the signers of the step a requisition waits for are told (never the requester, nor anyone who signed this round); the paying division's fleet coordinator is told on submission; the requester hears when it is approved, returned or rejected; the finalisers are told once everything is issued.
+> - **Replace (#52):** a foreman, divisional head, fleet coordinator or over-limit approver can be replaced in one step, keeping the place and the deputy standing.
+> - Still open from the plan: a help topic for requisitions. The design decision is ADR-003 in [architecture.md](architecture.md).
+
 Shaped on 19 November 2026. The benchmark is a council's paper form, "Requisition for Supplies" (Prime Press 042021, serial 1367550). Nothing here is built yet, and this document is the brief to confirm before any code.
 
 > **Revised the same day by the owner's job flow brief.** See `fleet-job-flow-plan.md` §5. That plan's build order (§7) replaces §7 below. Where the two documents differ, the decisions in §3 here are the current ones.
@@ -15,7 +20,7 @@ One requisition can be met in two ways:
 
 Requester, approvers, storeman and receiver are different people. Separating them is the control the paper form exists to enforce.
 
-In Namibia, councils fall under the Public Procurement Act 15 of 2015. Each council has an accounting officer, a procurement committee and a procurement management unit, and under the 2017 regulations also a bid evaluation committee. The end-user department starts the request. The procurement management unit runs the buying method, which depends on value (Regulation 3, Annexure 2, amended by GN 259 of 2026). MOTION records and enforces the council's own limits. It never hard-codes the law's figures, which change and which we have not been able to confirm.
+In Namibia, councils fall under the Public Procurement Act 15 of 2015. Each council has an accounting officer, a procurement committee and a procurement management unit, and under the 2017 regulations also a bid evaluation committee. The end-user department starts the request. The procurement management unit runs the buying method, which depends on value (Regulation 3, Annexure 2, amended by GN 259 of 2026). MOTION records and enforces the council's own limits. It never hard-codes the law's figures, which change. As checked in November 2026: from 4 August 2026 small-value procurement runs to N$ 30,000 and sealed quotations to N$ 3 million, both **including VAT**, while MOTION's requisition values and quotations are recorded excluding VAT — so a limit copied from the law must be entered as its VAT-exclusive equivalent. The minimum number of quotations per method is still unconfirmed. See [compliance-check-2026-11.md](compliance-check-2026-11.md).
 
 ## 2. The paper form, and where each box goes
 

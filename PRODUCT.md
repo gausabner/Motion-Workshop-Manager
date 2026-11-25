@@ -8,16 +8,28 @@ web
 
 ## What it is
 
-MOTION Workshop Manager is workshop-management software for motor trades in
-Namibia first and South Africa second: the diary, job cards, invoicing,
-payments, parts, purchasing and customer communication a workshop runs its day
-on. It is benchmarked feature-by-feature against Workshop Software
+MOTION Workshop Manager is workshop-management software for motor trades, and
+for organisations that run their own fleets, in Namibia first and South Africa
+second: the diary, job cards, invoicing, payments, parts, purchasing and
+customer communication a workshop runs its day on, and for a fleet, the
+vehicle's route through its workshops, requisitions and sign-offs. It is benchmarked feature-by-feature against Workshop Software
 (workshopsoftware.com), which is the incumbent in this market.
 
-Built as one Next.js 16 codebase in `web/` (Prisma 6, Postgres 15). Feature
-areas R1–R7 are complete: documents, money in and out, printing, sending,
-diary, inspections, reminders, stock, purchasing, loan cars, a public API and
-an offline floor app.
+Built as one Next.js 16 codebase in `web/` (Prisma 6, Postgres 15, the UI SDK).
+Feature areas R1–R7 are complete: documents, money in and out, printing,
+sending, diary, inspections, reminders, stock, purchasing, loan cars, a public
+API and an offline floor app. Since then (November 2026): the fleet route
+(reception, check bay, workshops and bays, quality check, collection, with the
+job card's signatures), stores and purchase requisitions with quotations and
+appointed approvers, workshop staff and assigning people to a job, in-app
+notifications, and the floor app's job sheet, schedule, Today strip and Undo.
+Live at https://motionworkshopmanager.com; architecture in
+[docs/architecture.md](docs/architecture.md).
+
+Plans (excluding VAT): **Workshop** N$ 1,200 a month, **Full workshop**
+N$ 2,400, **Fleet and multi-site** quoted per site. Customer-facing copy says
+*organisation*, never council or municipality (owner, 25 Nov 2026); the plan's
+id in code stays `council`.
 
 ## Users and jobs
 
@@ -38,8 +50,9 @@ an offline floor app.
 Confirmed 22 Sep 2026. These are equal first-class targets, not one plus an
 afterthought.
 
-- **Installed.** Municipalities, regional and town councils, brand workshops,
-  bodywork and fitment shops, MOT garages. MOTION runs on their own network.
+- **Installed.** Organisations with their own fleets — municipalities,
+  regional and town councils, mines, utilities, logistics firms — and brand
+  workshops, bodywork and fitment shops, MOT garages. MOTION runs on their own network.
   **Outbound internet yes, inbound never** — corrected 22 Sep 2026, replacing an
   earlier note in this file that recorded councils as fully isolated. One
   operating model therefore covers every installed site: an outbound licence
@@ -69,11 +82,11 @@ it.
 
 ## Durable constraints
 
-- **Tenancy.** Multi-tenant on a `Tenant` model; 54 of 56 tables carry
+- **Tenancy.** Multi-tenant on a `Tenant` model; 77 of 79 tables carry
   `tenantId`. Path-based routing (`/{tenant}/dashboard/…`), no subdomains.
   Scoping is enforced in the app by a deny-by-default Prisma extension
-  (`forTenant`), and in Postgres by row-level security policies that are in
-  place but dormant until the app connects as a non-superuser.
+  (`forTenant`), and in Postgres by row-level security, on since September
+  2026 and forced on 71 tables, so it binds the account the app connects as.
 - **Money is the product.** Every screen is somebody's books. Tax is
   snapshotted onto each document; balances are derived from allocations and
   never stored. Being plainly down beats being quietly wrong.
@@ -94,9 +107,18 @@ Workshop (the business), tenant (its data boundary), job card, quote, invoice,
 credit note, receipt, refund, booking diary, courtesy car, inspection,
 share link, job card "on the floor".
 
+For fleets: organisation (the customer; never "council" in copy), unit (a
+division or department), workshop or bay, route, stay (one visit to one
+place), send and accept (a handover), check bay, assessment, quality check,
+requisition (stores or purchase), quotation, foreman, deputy, divisional head,
+fleet coordinator, workshop staff (mechanic, artisan, intern), lead (the first
+person on a job, who is its Mechanic), notification.
+
 ## Open decisions
 
-- Where cloud staging and production are hosted. Undecided as of 22 Sep 2026.
+- ~~Where production is hosted~~ — decided: one server running Docker Compose,
+  reached through a Cloudflare tunnel, images built in CI. Staging is still
+  undecided (see `docs/deploy-render.md`).
 - How many on-site visits a year a council subscription includes, and whether
   distance from Windhoek carries a travel surcharge.
 - Whether support is bundled or sold separately as a care plan.
