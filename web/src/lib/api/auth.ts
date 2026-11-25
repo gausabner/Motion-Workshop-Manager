@@ -2,7 +2,7 @@ import "server-only";
 import { Prisma, type ApiScope, type Tenant } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { forTenant, type TenantDb } from "@/lib/tenant-db";
-import { includes } from "@/lib/plans/features";
+import { includes, PLAN_NAMES } from "@/lib/plans/features";
 import { planFor } from "@/lib/plans/tenant";
 import { bearerToken, hashApiKey, hasScope, RATE_LIMIT, retryAfter } from "./keys";
 import { fail } from "./http";
@@ -42,7 +42,7 @@ export async function authenticate(req: Request, needed: ApiScope): Promise<ApiC
     // The API is a Council feature. A key minted under that plan stops working
     // when the workshop leaves it, rather than outliving what was paid for.
     if (!includes(await planFor(db, tenant.id), "api")) {
-        return fail("forbidden", "The public API is part of the Council and multi-site plan, and this workshop is not on it.");
+        return fail("forbidden", `The public API is part of the ${PLAN_NAMES.council} plan, and this workshop is not on it.`);
     }
     return { db, tenant, keyId: key.id, scopes: key.scopes };
 }

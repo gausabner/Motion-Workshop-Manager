@@ -91,7 +91,7 @@ export const reportTopics: Topic[] = [
         screens: ["/dashboard/reports/handoff", "/dashboard/settings/handoff"],
         plan: "council",
         blocks: [
-            { kind: "p", text: "Data only leaves MOTION; nothing comes in, which is what council network policies usually require. The Accounting integration screen shows whether each night's file was sent and whether the accounting system collected it." },
+            { kind: "p", text: "Data only leaves MOTION; nothing comes in, which is what most organisations' network policies require. The Accounting integration screen shows whether each night's file was sent and whether the accounting system collected it." },
             { kind: "h", text: "What the screen tells you" },
             { kind: "list", items: [
                 "Days in the last fortnight that were never sent.",

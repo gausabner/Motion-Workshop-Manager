@@ -19,7 +19,7 @@ export type PlanId = "workshop" | "full" | "council";
 
 export type Feature = "stock" | "purchasing" | "requisitions" | "jobFlow" | "inspections" | "reminders" | "loanCars" | "ownerReports" | "auditPack" | "handoff" | "api";
 
-export const PLAN_NAMES: Record<PlanId, string> = { workshop: "Workshop", full: "Full workshop", council: "Council and multi-site" };
+export const PLAN_NAMES: Record<PlanId, string> = { workshop: "Workshop", full: "Full workshop", council: "Fleet and multi-site" };
 
 export const FEATURES: Record<Feature, { name: string; plan: PlanId; what: string }> = {
     stock: {
@@ -57,7 +57,7 @@ export const FEATURES: Record<Feature, { name: string; plan: PlanId; what: strin
     auditPack: {
         name: TERM.auditReports,
         plan: "council",
-        what: "The six reports a council audit requires, including the number-sequence report.",
+        what: "The six reports an auditor asks for, including the number-sequence report.",
     },
     handoff: { name: TERM.accountingIntegration, plan: "council", what: "A nightly journal to your accounting system." },
     api: { name: "The public API", plan: "council", what: "API keys, for connecting other systems to MOTION." },

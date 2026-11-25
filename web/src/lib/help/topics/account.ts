@@ -59,7 +59,7 @@ export const accountTopics: Topic[] = [
                 ["Moving down", "No payment is needed. When we approve the change, the features the smaller plan does not include are locked, and your records in them are kept. The lower price applies from your next renewal."],
             ] },
             { kind: "note", text: "One request can be open at a time. You can withdraw it from Settings → Billing until we act on it; if you have already paid, contact us instead so that the payment can be matched." },
-            { kind: "p", text: "The Council and multi-site plan is quoted per site. Contact us for a quote." },
+            { kind: "p", text: "The Fleet and multi-site plan is quoted per site. Contact us for a quote." },
         ],
         related: ["paying-for-motion"],
     },

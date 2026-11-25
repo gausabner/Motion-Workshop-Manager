@@ -149,7 +149,7 @@ export const PRIVACY: Clause[] = [
         paragraphs: [
             "On the hosted service, on servers we operate. Where MOTION is installed on your own equipment, it lives on your equipment and we hold none of it except what you send us when you ask for support.",
         ],
-        decide: "Name the hosting country and provider once staging is chosen. A council will ask, and “we will tell you later” loses tenders.",
+        decide: "Name the hosting country and provider once staging is chosen. Procurement teams will ask, and “we will tell you later” loses tenders.",
     },
     {
         heading: "Who else sees it",
@@ -165,7 +165,7 @@ export const PRIVACY: Clause[] = [
             "For as long as you are a customer, and for a period afterwards so that a workshop coming back does not find its history gone.",
             "A workshop's books are usually kept far longer than a subscription — seven years is the working assumption for accounting records here. Deletion requests are honoured except where keeping something is a legal requirement, in which case we will say so.",
         ],
-        decide: "Confirm the retention period with a council or an accountant before publishing a figure. Seven years is assumed, not verified.",
+        decide: "Confirm the retention period with an accountant before publishing a figure. Seven years is assumed, not verified.",
     },
     {
         heading: "Your rights, and your customers'",

@@ -42,7 +42,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ tenant
         },
         {
             href: `${base}/audit`, icon: ShieldCheck, title: TERM.auditReports,
-            blurb: "The six reports a council audit requires: the number sequence and any gaps, the sales register, VAT, the cash book, debtors and the activity log.",
+            blurb: "The six reports an auditor asks for: the number sequence and any gaps, the sales register, VAT, the cash book, debtors and the activity log.",
             figure: null,
             show: showMoney && includes(plan, "auditPack"),
         },

@@ -11,7 +11,7 @@ import { atRequestTime } from "@/lib/edition";
 export const metadata = {
     title: "Pricing | MOTION Workshop Manager",
     description:
-        "MOTION pricing: from N$ 1,200.00 a month, excluding VAT, with unlimited staff. Councils and multi-site operators are quoted per site.",
+        "MOTION pricing: from N$ 1,200.00 a month, excluding VAT, with unlimited staff. Organisations with their own fleet or several sites are quoted per site.",
 };
 
 /**

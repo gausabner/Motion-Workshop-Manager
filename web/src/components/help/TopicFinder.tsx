@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { PLAN_NAMES } from "@/lib/plans/features";
 import { SpineSection, PublicHero } from "@/components/public/spine";
 
 /**
@@ -174,7 +175,7 @@ export function TopicFinder({
                                             </span>
                                             {topic.plan && (
                                                 <span className="mt-auto pt-1 text-[0.8125rem] text-slate-600">
-                                                    {topic.plan === "full" ? "Full workshop and Council plans" : "Council and multi-site plan"}
+                                                    {topic.plan === "full" ? `${PLAN_NAMES.full} and ${PLAN_NAMES.council} plans` : `${PLAN_NAMES.council} plan`}
                                                 </span>
                                             )}
                                         </Link>
