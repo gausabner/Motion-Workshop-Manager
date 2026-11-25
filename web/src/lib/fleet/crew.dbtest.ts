@@ -8,6 +8,7 @@ import { addStaff, removeStaff, replaceAuthority, replaceStaff } from "@/lib/req
 import { routeView } from "@/lib/fleet/queries";
 import { floorView } from "@/lib/time/queries";
 import { notify, peopleAt } from "@/lib/notifications/notify";
+import { jobSheet, scheduleMonth } from "@/lib/time/floor-sheet";
 
 /**
  * A workshop's staff, and the people its foreman puts on a job while the
@@ -130,6 +131,11 @@ test("the first still on it is the job card's Mechanic, and everybody on it sees
     assert.equal(await run((tx) => routeLead(tx, job)), people.thabo.membershipId, "a save of the job card keeps the lead");
     const floor = await floorView(db(), tenant, people.maria.membershipId);
     assert.ok(floor.mine.some((j) => j.id === job), "on the floor app of somebody who is not the lead");
+    const sheet = await jobSheet(db(), job, people.maria.membershipId);
+    assert.deepEqual(sheet?.crew, [{ name: "thabo ZZTEST", lead: true, me: false }, { name: "maria ZZTEST", lead: false, me: true }], "the job sheet says who is on it, the lead and you");
+    assert.deepEqual(sheet?.place, { name: "Heavy duty vehicles", purpose: "WORK", arrived: true });
+    const month = await scheduleMonth(db(), tenant, people.maria.membershipId, new Date().toISOString().slice(0, 7));
+    assert.ok(month.days[month.today]?.some((i) => i.id === job && i.minute === null), "today's schedule carries the fleet job they are on, with no booked time");
 
     const [thabo] = await live();
     await run((tx) => unassign(tx, tenant, as("admin", true), job, thabo.id));

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff, Pause, Play } from "lucide-react";
+import { CalendarDays, CloudOff, Pause, Play } from "lucide-react";
+import { JobSheet } from "@/components/pwa/JobSheet";
+import { Schedule } from "@/components/pwa/Schedule";
+import type { ScheduleMonth } from "@/lib/time/floor-sheet";
 import { ACCENT_ON_DARK } from "@/components/brand/MotionLogo";
 import { MotionMark } from "@/components/brand/MotionMark";
 import { clockOffAction, clockOnAction } from "@/lib/time/actions";
@@ -56,6 +59,8 @@ type Props = {
     running: { startedAt: string; job: Job } | null;
     mine: Job[];
     others: Job[];
+    /** This month's booked jobs, for the schedule. */
+    schedule: ScheduleMonth;
 };
 
 /** A running clock, counted on the phone so it moves without asking the server. */
@@ -80,7 +85,9 @@ function Elapsed({ since }: { since: string }) {
  * One big button per job. Starting a job stops the one that was running,
  * because walking to the next car is what that means.
  */
-export function MechanicFloor({ tenant, name, minutesToday, running, mine, others }: Props) {
+export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule }: Props) {
+    const [sheet, setSheet] = useState<string | null>(null);
+    const [scheduleOpen, setScheduleOpen] = useState(false);
     const router = useRouter();
     const [pending, start] = useTransition();
     const [busy, setBusy] = useState<string | null>(null);
@@ -189,10 +196,12 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         job.time && <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{minuteLabel(job.time.minute)}</span>
                     )}
                 </div>
-                <p className="mt-1 text-base font-semibold text-slate-900">{title}</p>
-                <p className="text-sm text-slate-600">
-                    {[job.description ? vehicle : null, who, job.estimatedMinutes ? `about ${hoursLabel(job.estimatedMinutes)}` : null].filter(Boolean).join(" · ") || "\u00a0"}
-                </p>
+                <button type="button" onClick={() => setSheet(job.id)} className="floor-press mt-1 block w-full text-left" aria-label={`Open ${job.jobNumber ?? title}: ${title}`}>
+                    <span className="block text-base font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4">{title}</span>
+                    <span className="block text-sm text-slate-600">
+                        {[job.description ? vehicle : null, who, job.estimatedMinutes ? `about ${hoursLabel(job.estimatedMinutes)}` : null].filter(Boolean).join(" · ") || "\u00a0"}
+                    </span>
+                </button>
                 {job.place && (
                     <p className="mt-1 text-sm text-slate-700">
                         {job.place.arrived ? `At ${job.place.name}, ${HERE_FOR[job.place.purpose] ?? "on its route"}` : `On its way to ${job.place.name}`}
@@ -217,6 +226,16 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         );
     };
 
+    // A job on today's list can be started from its sheet; one booked for another day can only be read.
+    const startable = (id: string) => {
+        const job = [...mine, ...others].find((j) => j.id === id);
+        if (!job || onTheClock?.job.id === id) return null;
+        return () => {
+            setSheet(null);
+            act(job.id, () => clockOnAction(tenant, job.id), () => queueStart(job));
+        };
+    };
+
     return (
         <main className={`min-h-dvh bg-slate-100 ${onTheClock ? "pb-[calc(9rem+env(safe-area-inset-bottom,0px))]" : "pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]"}`}>
             {/* The header runs under the notch and pads its content back out, so
@@ -234,7 +253,16 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         <MotionMark className="h-5 w-5 shrink-0" accent={ACCENT_ON_DARK} animated />
                         {name}
                     </h1>
-                    <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
+                    <div className="flex items-center gap-3">
+                        <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
+                        <button
+                            type="button"
+                            onClick={() => setScheduleOpen(true)}
+                            className="floor-press inline-flex h-10 items-center gap-1.5 rounded-sm border border-slate-600 px-3 text-sm font-medium text-white active:bg-slate-800"
+                        >
+                            <CalendarDays className="h-4 w-4" aria-hidden="true" />Schedule
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -305,6 +333,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </div>
                 </div>
             )}
+            <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
+            <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} runningId={onTheClock?.job.id ?? null} />
         </main>
     );
 }
