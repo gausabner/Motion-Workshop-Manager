@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { appointAction, revokeAction, saveRequisitionRules } from "@/lib/requisitions/settings-actions";
+import { appointAction, replaceAuthorityAction, revokeAction, saveRequisitionRules } from "@/lib/requisitions/settings-actions";
 import { AppointedChip, Outcome, Panel, PersonSelect, field, useAction, type Appointment, type Person } from "@/components/settings/council/shared";
 
 type Rules = { overLimitAt: number | null; reapprovalTolerancePercent: number; quoteBands: { from: number; quotes: number }[] };
@@ -60,7 +60,7 @@ export function RequisitionRules({ tenant, rules, approvers, people, currency }:
 
             <Panel title="Approvers above the value limit" footer="Usually the procurement officer or the accounting officer. They need no other duties in MOTION.">
                 <div className="flex flex-wrap gap-1.5 px-4 py-3">
-                    {approvers.length === 0 ? <span className="text-sm text-slate-500">Nobody yet. Requisitions at or above the limit cannot be submitted until somebody is appointed.</span> : approvers.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} />)}
+                    {approvers.length === 0 ? <span className="text-sm text-slate-500">Nobody yet. Requisitions at or above the limit cannot be submitted until somebody is appointed.</span> : approvers.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} replace={{ people, run: (id, who) => replaceAuthorityAction(tenant, id, who) }} />)}
                 </div>
                 <form action={appoint} className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3">
                     <input type="hidden" name="kind" value="OVER_LIMIT" />

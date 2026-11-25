@@ -559,6 +559,8 @@ model Tenant {
   signingAuthorities         SigningAuthority[]
   requisitionQuotes          RequisitionQuote[]
   jobVisits                  JobVisit[]
+  workshopStaff              WorkshopStaff[]
+  visitAssignments           VisitAssignment[]
   jobSignoffs                JobSignoff[]
   requisitions               Requisition[]
   requisitionLines           RequisitionLine[]
@@ -944,6 +946,10 @@ model Membership {
   quotesObtained     RequisitionQuote[]
   visitsSent         JobVisit[]            @relation("VisitSentBy")
   visitsReceived     JobVisit[]            @relation("VisitReceivedBy")
+  workshopPlaces     WorkshopStaff[]
+  assignments        VisitAssignment[]     @relation("AssignmentPerson")
+  assignmentsMade    VisitAssignment[]     @relation("AssignmentBy")
+  assignmentsEnded   VisitAssignment[]     @relation("AssignmentEndedBy")
   jobSignoffs        JobSignoff[]
   requisitionSigns   RequisitionSignoff[]
   requisitionIssues  RequisitionIssue[]    @relation("RequisitionIssuedBy")
@@ -2084,14 +2090,14 @@ model StockMovement {
   byId                  String?
   createdAt             DateTime          @default(now())
 
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  product             Product              @relation(fields: [productId], references: [id])
-  document            Document?            @relation(fields: [documentId], references: [id])
-  supplierInvoiceLine SupplierInvoiceLine? @relation(fields: [supplierInvoiceLineId], references: [id])
-  requisitionLine     RequisitionLine?     @relation(fields: [requisitionLineId], references: [id])
-  requisitionIssue    RequisitionIssue?    @relation(fields: [requisitionIssueId], references: [id])
+  tenant              Tenant                @relation(fields: [tenantId], references: [id])
+  product             Product               @relation(fields: [productId], references: [id])
+  document            Document?             @relation(fields: [documentId], references: [id])
+  supplierInvoiceLine SupplierInvoiceLine?  @relation(fields: [supplierInvoiceLineId], references: [id])
+  requisitionLine     RequisitionLine?      @relation(fields: [requisitionLineId], references: [id])
+  requisitionIssue    RequisitionIssue?     @relation(fields: [requisitionIssueId], references: [id])
   handoverLine        RequisitionIssueLine?
-  by                  Membership?          @relation(fields: [byId], references: [id])
+  by                  Membership?           @relation(fields: [byId], references: [id])
 
   @@unique([documentLineId, kind])
   @@index([tenantId, productId, at])
@@ -2343,8 +2349,29 @@ model Workshop {
   authorities  SigningAuthority[]
   requisitions Requisition[]
   visits       JobVisit[]
+  staff        WorkshopStaff[]
 
   @@unique([tenantId, name])
+}
+
+/// Who works at a workshop or bay besides its foremen: the mechanics,
+/// artisans and interns its foreman can put on a job while the vehicle is there.
+/// A person may work at more than one place.
+model WorkshopStaff {
+  id           String      @id @default(cuid())
+  tenantId     String
+  workshopId   String
+  membershipId String
+  /// MECHANIC, ARTISAN or INTERN.
+  role         Designation
+  createdAt    DateTime    @default(now())
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  workshop   Workshop   @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workshopId, membershipId])
+  @@index([tenantId, membershipId])
 }
 
 /// Who may sign, and for what. Approval is by appointment rather than by role:
@@ -2453,9 +2480,32 @@ model JobVisit {
 
   /// The check bay's assessment or quality check made during this stay.
   inspections Inspection[]
+  assignments VisitAssignment[]
 
   @@index([documentId, sentAt])
   @@index([tenantId, workshopId, leftAt])
+}
+
+/// Who works on a job during one stay at a workshop or bay. Ending an
+/// assignment keeps the row, so the job's history says who was on it and when.
+model VisitAssignment {
+  id           String    @id @default(cuid())
+  tenantId     String
+  visitId      String
+  membershipId String
+  assignedAt   DateTime  @default(now())
+  assignedById String?
+  removedAt    DateTime?
+  removedById  String?
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  visit      JobVisit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  membership Membership  @relation("AssignmentPerson", fields: [membershipId], references: [id], onDelete: Cascade)
+  assignedBy Membership? @relation("AssignmentBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  removedBy  Membership? @relation("AssignmentEndedBy", fields: [removedById], references: [id], onDelete: SetNull)
+
+  @@index([visitId, assignedAt])
+  @@index([tenantId, membershipId, removedAt])
 }
 
 /// One signature on a job card. Name, pay number and the role it was given
@@ -2580,9 +2630,9 @@ model RequisitionIssue {
   note                 String?
   at                   DateTime @default(now())
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id])
-  requisition    Requisition     @relation(fields: [requisitionId], references: [id])
-  issuedBy       Membership      @relation("RequisitionIssuedBy", fields: [issuedById], references: [id])
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id])
+  requisition    Requisition            @relation(fields: [requisitionId], references: [id])
+  issuedBy       Membership             @relation("RequisitionIssuedBy", fields: [issuedById], references: [id])
   receiver       Membership?            @relation("RequisitionReceivedBy", fields: [receiverMembershipId], references: [id])
   stockMovements StockMovement[]
   lines          RequisitionIssueLine[]
@@ -2595,14 +2645,14 @@ model RequisitionIssue {
 /// took it off the shelf; an item bought for the job and handed over as it
 /// arrived has none. What a line has had is the sum of these.
 model RequisitionIssueLine {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   tenantId          String
   issueId           String
   requisitionLineId String
-  quantity          Decimal  @db.Decimal(12, 2)
+  quantity          Decimal @db.Decimal(12, 2)
   /// Excluding VAT: stores' cost for a stock item, what the supplier charged for one bought in.
-  unitCost          Decimal  @db.Decimal(12, 2)
-  stockMovementId   String?  @unique
+  unitCost          Decimal @db.Decimal(12, 2)
+  stockMovementId   String? @unique
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
   issue           RequisitionIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)

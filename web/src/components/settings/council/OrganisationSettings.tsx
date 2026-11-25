@@ -8,6 +8,7 @@ import {
     archiveOrgUnitAction,
     archiveVoteAction,
     importVotesAction,
+    replaceAuthorityAction,
     revokeAction,
     saveOrganisationLevels,
     saveOrgUnitAction,
@@ -84,10 +85,10 @@ function UnitsPanel({ tenant, levels, units, appointments, people, label }: { te
             <ul className="divide-y divide-slate-100">
                 {tops.map((top) => (
                     <li key={top.id}>
-                        <UnitRow tenant={tenant} unit={top} levels={levels} tops={tops} appointments={appointments} />
+                        <UnitRow tenant={tenant} unit={top} levels={levels} tops={tops} appointments={appointments} people={people} />
                         {units.filter((u) => u.parentId === top.id).map((child) => (
                             <div key={child.id} className="ml-4 border-l border-slate-200">
-                                <UnitRow tenant={tenant} unit={child} levels={levels} tops={tops} appointments={appointments} />
+                                <UnitRow tenant={tenant} unit={child} levels={levels} tops={tops} appointments={appointments} people={people} />
                             </div>
                         ))}
                     </li>
@@ -101,7 +102,7 @@ function UnitsPanel({ tenant, levels, units, appointments, people, label }: { te
     );
 }
 
-function UnitRow({ tenant, unit, levels, tops, appointments }: { tenant: string; unit: Unit; levels: Levels; tops: Unit[]; appointments: UnitAppointment[] }) {
+function UnitRow({ tenant, unit, levels, tops, appointments, people }: { tenant: string; unit: Unit; levels: Levels; tops: Unit[]; appointments: UnitAppointment[]; people: Person[] }) {
     const [state, action, saving] = useAction(saveOrgUnitAction.bind(null, tenant, unit.id));
     const mine = appointments.filter((a) => a.orgUnitId === unit.id);
     const heads = mine.filter((a) => a.kind === "DIVISION_HEAD");
@@ -121,8 +122,8 @@ function UnitRow({ tenant, unit, levels, tops, appointments }: { tenant: string;
             <Outcome state={state} />
             {(heads.length > 0 || coordinators.length > 0) && (
                 <dl className="grid gap-1.5 text-xs sm:grid-cols-[9rem_1fr]">
-                    {heads.length > 0 && <><dt className="pt-1 text-slate-500">Divisional Head</dt><dd className="flex flex-wrap gap-1.5">{heads.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} />)}</dd></>}
-                    {coordinators.length > 0 && <><dt className="pt-1 text-slate-500">Fleet Coordinator</dt><dd className="flex flex-wrap gap-1.5">{coordinators.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} />)}</dd></>}
+                    {heads.length > 0 && <><dt className="pt-1 text-slate-500">Divisional Head</dt><dd className="flex flex-wrap gap-1.5">{heads.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} replace={{ people, run: (id, who) => replaceAuthorityAction(tenant, id, who) }} />)}</dd></>}
+                    {coordinators.length > 0 && <><dt className="pt-1 text-slate-500">Fleet Coordinator</dt><dd className="flex flex-wrap gap-1.5">{coordinators.map((a) => <AppointedChip key={a.id} appointment={a} onRemove={(id) => revokeAction(tenant, id)} replace={{ people, run: (id, who) => replaceAuthorityAction(tenant, id, who) }} />)}</dd></>}
                 </dl>
             )}
         </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Repeat2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { initialActionState, type ActionState } from "@/lib/forms";
 
 /**
@@ -12,7 +13,11 @@ import { initialActionState, type ActionState } from "@/lib/forms";
  */
 
 export type Person = { id: string; name: string; designations: string[] };
-export type Appointment = { id: string; membershipId: string; name: string; deputy: boolean };
+/** An appointment or a place on a staff. `note` says what as, where a deputy flag does not: "Mechanic". */
+export type Appointment = { id: string; membershipId: string; name: string; deputy: boolean; note?: string };
+
+/** Put somebody else in the same place in one step. */
+export type Replace = { people: Person[]; run: (id: string, membershipId: string) => Promise<ActionState> };
 
 /** A titled panel. Settings read at a measure; `wide` lets a panel fill its column, as on the job card. */
 export function Panel({ title, action, children, footer, wide = false, level = 3 }: { title: string; action?: ReactNode; children: ReactNode; footer?: ReactNode; wide?: boolean; level?: 2 | 3 }) {
@@ -70,7 +75,7 @@ export const field =
 
 export function PersonSelect({ people, name = "membershipId", label }: { people: Person[]; name?: string; label: string }) {
     return (
-        <select name={name} required defaultValue="" aria-label={label} className={`${field} min-w-0`}>
+        <select name={name} required defaultValue="" aria-label={label} className={`${field} min-w-0 max-w-full`}>
             <option value="" disabled>
                 {label}
             </option>
@@ -84,23 +89,52 @@ export function PersonSelect({ people, name = "membershipId", label }: { people:
     );
 }
 
-/** One appointment, with the means to end it. Ending it stops new signatures only; the ones given stay. */
-export function AppointedChip({ appointment, onRemove }: { appointment: Appointment; onRemove: (id: string) => Promise<ActionState> }) {
+/**
+ * One appointment, with the means to end it and, where offered, to hand it to
+ * somebody else in one step. Ending it stops new signatures only; the ones
+ * given stay.
+ */
+export function AppointedChip({ appointment, onRemove, replace }: { appointment: Appointment; onRemove: (id: string) => Promise<ActionState>; replace?: Replace }) {
     const [pending, start] = useTransition();
+    const [replacing, setReplacing] = useState(false);
+    const [said, setSaid] = useState<ActionState | null>(null);
+    const icon = "relative hit-area grid h-5 w-5 place-items-center text-slate-500 disabled:opacity-40";
+    const swap = (formData: FormData) =>
+        start(async () => {
+            const answer = await replace!.run(appointment.id, String(formData.get("membershipId") ?? ""));
+            setSaid(answer.ok ? null : answer);
+            if (answer.ok) setReplacing(false);
+        });
     return (
-        <span className="inline-flex items-center gap-1 border border-slate-200 bg-white py-0.5 pl-2 pr-0.5 text-xs text-slate-700">
-            {appointment.name}
-            {appointment.deputy && <span className="text-slate-500">(deputy)</span>}
-            <button
-                type="button"
-                disabled={pending}
-                onClick={() => start(async () => void (await onRemove(appointment.id)))}
-                aria-label={`Remove ${appointment.name}`}
-                className="relative hit-area grid h-5 w-5 place-items-center text-slate-500 hover:text-red-700 disabled:opacity-40"
-            >
-                <X className="h-3 w-3" strokeWidth={1.75} aria-hidden />
-            </button>
-        </span>
+        <>
+            <span className="inline-flex items-center gap-1 border border-slate-200 bg-white py-0.5 pl-2 pr-0.5 text-xs text-slate-700">
+                {appointment.name}
+                {appointment.note ? <span className="text-slate-500">· {appointment.note}</span> : appointment.deputy && <span className="text-slate-500">(deputy)</span>}
+                {replace && (
+                    <button type="button" disabled={pending} onClick={() => setReplacing((r) => !r)} aria-expanded={replacing} aria-label={`Replace ${appointment.name}`} className={`${icon} hover:text-teal-700`}>
+                        <Repeat2 className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                    </button>
+                )}
+                <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => start(async () => void (await onRemove(appointment.id)))}
+                    aria-label={`Remove ${appointment.name}`}
+                    className={`${icon} hover:text-red-700`}
+                >
+                    <X className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                </button>
+            </span>
+            {replacing && replace && (
+                <form action={swap} className="flex basis-full flex-wrap items-center gap-2 py-1">
+                    <span className="text-xs text-slate-600">Replace {appointment.name} with</span>
+                    <PersonSelect people={replace.people.filter((p) => p.id !== appointment.membershipId)} label="Person" />
+                    <Button type="submit" size="sm" variant="outline" className="h-8" disabled={pending}>{pending ? "Replacing…" : "Replace"}</Button>
+                    <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setReplacing(false)}>Cancel</Button>
+                </form>
+            )}
+            {said && <p role="alert" className="basis-full text-xs text-red-700">{said.message}</p>}
+        </>
     );
 }
 

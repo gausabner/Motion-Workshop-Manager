@@ -4,6 +4,7 @@ import { Designation as DesignationEnum } from "@prisma/client";
 import type { TenantTx } from "@/lib/tenant-db";
 import { organisationSettings } from "@/lib/settings/schema";
 import type { VoteRow } from "@/lib/requisitions/csv";
+import { hasStaff, isStaffRole } from "@/lib/fleet/crew-rules";
 
 /**
  * The organisation a council's requisitions answer to, and the workshop they
@@ -231,6 +232,53 @@ export async function revoke(tx: TenantTx, tenant: Tenant, actorUserId: string, 
     if (!row) return;
     await tx.signingAuthority.delete({ where: { id } });
     await audit(tx, tenant, actorUserId, "SigningAuthority", id, "DELETED", row);
+}
+
+/**
+ * Put somebody else in an appointment in one step: the same kind, the same
+ * place, the same deputy standing. Signatures the person replaced has given
+ * stay on their requisitions.
+ */
+export async function replaceAuthority(tx: TenantTx, tenant: Tenant, actorUserId: string, id: string, membershipId: string): Promise<string> {
+    const row = await tx.signingAuthority.findUnique({ where: { id }, select: { kind: true, workshopId: true, orgUnitId: true, membershipId: true, deputy: true } });
+    if (!row) throw new Error("That appointment has already ended. Refresh the page.");
+    if (row.membershipId === membershipId) throw new Error("Choose somebody else to take their place.");
+    await revoke(tx, tenant, actorUserId, id);
+    return appoint(tx, tenant, actorUserId, { kind: row.kind, workshopId: row.workshopId, orgUnitId: row.orgUnitId, membershipId, deputy: row.deputy });
+}
+
+// ───────────────────────── workshop staff ─────────────────────────
+
+/** Somebody who works at a workshop or bay. They can clock on to jobs from then on, so they are marked a mechanic. */
+export async function addStaff(tx: TenantTx, tenant: Tenant, actorUserId: string, input: { workshopId: string; membershipId: string; role: string }): Promise<string> {
+    if (!isStaffRole(input.role)) throw new Error("Choose whether they are a mechanic, artisan or intern.");
+    const workshop = await tx.workshop.findFirst({ where: { id: input.workshopId, archivedAt: null }, select: { name: true, kind: true } });
+    if (!workshop) throw new Error("Choose a workshop or bay that is in use.");
+    if (!hasStaff(workshop.kind)) throw new Error("Staff belong to a workshop or bay. Reception and the check bay work by designation, in Team.");
+    const person = await tx.membership.findFirst({ where: { id: input.membershipId, status: "ACTIVE" }, select: { id: true, isMechanic: true } });
+    if (!person) throw new Error("Choose somebody on the team.");
+    const already = await tx.workshopStaff.findFirst({ where: { workshopId: input.workshopId, membershipId: input.membershipId }, select: { id: true } });
+    if (already) throw new Error(`They are already on the staff of ${workshop.name}.`);
+    const created = await tx.workshopStaff.create({ data: { tenantId: tenant.id, workshopId: input.workshopId, membershipId: input.membershipId, role: input.role }, select: { id: true } });
+    if (!person.isMechanic) await tx.membership.updateMany({ where: { id: person.id }, data: { isMechanic: true } });
+    await audit(tx, tenant, actorUserId, "WorkshopStaff", created.id, "CREATED", input);
+    return created.id;
+}
+
+/** Jobs they are on now keep them; they simply cannot be put on new ones here. */
+export async function removeStaff(tx: TenantTx, tenant: Tenant, actorUserId: string, id: string): Promise<void> {
+    const row = await tx.workshopStaff.findUnique({ where: { id }, select: { workshopId: true, membershipId: true, role: true } });
+    if (!row) return;
+    await tx.workshopStaff.delete({ where: { id } });
+    await audit(tx, tenant, actorUserId, "WorkshopStaff", id, "DELETED", row);
+}
+
+export async function replaceStaff(tx: TenantTx, tenant: Tenant, actorUserId: string, id: string, membershipId: string): Promise<string> {
+    const row = await tx.workshopStaff.findUnique({ where: { id }, select: { workshopId: true, membershipId: true, role: true } });
+    if (!row) throw new Error("They are no longer on the staff. Refresh the page.");
+    if (row.membershipId === membershipId) throw new Error("Choose somebody else to take their place.");
+    await removeStaff(tx, tenant, actorUserId, id);
+    return addStaff(tx, tenant, actorUserId, { workshopId: row.workshopId, membershipId, role: row.role });
 }
 
 // ───────────────────────── people ─────────────────────────

@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { appointAction, archiveWorkshopAction, revokeAction, saveWorkshopAction } from "@/lib/requisitions/settings-actions";
+import { addStaffAction, appointAction, archiveWorkshopAction, removeStaffAction, replaceAuthorityAction, replaceStaffAction, revokeAction, saveWorkshopAction } from "@/lib/requisitions/settings-actions";
+import { STAFF_ROLES, STAFF_ROLE_LABEL } from "@/lib/fleet/crew-rules";
 import { AppointedChip, ArchiveButton, Outcome, Panel, PersonSelect, field, useAction, type Appointment, type Person } from "@/components/settings/council/shared";
+
+/** Somebody on a workshop's staff, with what they work as in `note`. */
+export type StaffRow = Appointment & { workshopId: string };
 
 export type WorkshopRow = { id: string; name: string; kind: "RECEPTION" | "CHECK_BAY" | "WORKSHOP" | "BAY"; orgUnitId: string; archived: boolean };
 export type UnitOption = { id: string; label: string };
@@ -17,13 +21,16 @@ const KINDS: { value: WorkshopRow["kind"]; label: string }[] = [
 ];
 
 /**
- * Where vehicles are: the workshops and bays the council has, the unit that
- * runs each (whose divisional head approves its requisitions), and its foremen.
+ * Where vehicles are: the workshops and bays the organisation has, the unit
+ * that runs each (whose divisional head approves its requisitions), its
+ * foremen, and the mechanics, artisans and interns who work there.
  */
-export function WorkshopSettings({ tenant, workshops, units, foremen, people }: { tenant: string; workshops: WorkshopRow[]; units: UnitOption[]; foremen: (Appointment & { workshopId: string })[]; people: Person[] }) {
+export function WorkshopSettings({ tenant, workshops, units, foremen, staff, people }: { tenant: string; workshops: WorkshopRow[]; units: UnitOption[]; foremen: (Appointment & { workshopId: string })[]; staff: StaffRow[]; people: Person[] }) {
     const [adding, setAdding] = useState(false);
     const [state, appoint, appointing] = useAction(appointAction.bind(null, tenant));
+    const [added, addStaff, addingStaff] = useAction(addStaffAction.bind(null, tenant));
     const open = workshops.filter((w) => !w.archived);
+    const staffed = open.filter((w) => w.kind === "WORKSHOP" || w.kind === "BAY");
     return (
         <Panel
             title="Workshops and bays"
@@ -34,9 +41,9 @@ export function WorkshopSettings({ tenant, workshops, units, foremen, people }: 
             {units.length > 0 && workshops.length === 0 && !adding && <p className="px-4 py-6 text-sm text-slate-500">No workshops or bays yet. Add each one the council has: reception, the check bay, every workshop and bay.</p>}
             <ul className="divide-y divide-slate-100">
                 {workshops.map((w) => (
-                    <WorkshopLine key={w.id} tenant={tenant} workshop={w} units={units} foremen={foremen.filter((f) => f.workshopId === w.id)} />
+                    <WorkshopLine key={w.id} tenant={tenant} workshop={w} units={units} foremen={foremen.filter((f) => f.workshopId === w.id)} staff={staff.filter((s) => s.workshopId === w.id)} people={people} />
                 ))}
-                {adding && <WorkshopLine tenant={tenant} workshop={null} units={units} foremen={[]} onDone={() => setAdding(false)} />}
+                {adding && <WorkshopLine tenant={tenant} workshop={null} units={units} foremen={[]} staff={[]} people={people} onDone={() => setAdding(false)} />}
             </ul>
             {open.length > 0 && (
                 <form action={appoint} className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3">
@@ -52,11 +59,26 @@ export function WorkshopSettings({ tenant, workshops, units, foremen, people }: 
                     <div className="w-full"><Outcome state={state} /></div>
                 </form>
             )}
+            {staffed.length > 0 && (
+                <form action={addStaff} className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3">
+                    <span className="text-xs text-slate-500">Add to the staff of</span>
+                    <select name="workshopId" required defaultValue="" aria-label="Workshop or bay to add them to" className={`${field} min-w-0`}>
+                        <option value="" disabled>Workshop or bay</option>
+                        {staffed.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                    <PersonSelect people={people} label="Person" />
+                    <select name="role" required defaultValue="MECHANIC" aria-label="Works as" className={field}>
+                        {STAFF_ROLES.map((r) => <option key={r} value={r}>{STAFF_ROLE_LABEL[r]}</option>)}
+                    </select>
+                    <Button type="submit" size="sm" variant="outline" className="h-8" disabled={addingStaff}>{addingStaff ? "Adding…" : "Add"}</Button>
+                    <div className="w-full"><Outcome state={added} /></div>
+                </form>
+            )}
         </Panel>
     );
 }
 
-function WorkshopLine({ tenant, workshop, units, foremen, onDone }: { tenant: string; workshop: WorkshopRow | null; units: UnitOption[]; foremen: Appointment[]; onDone?: () => void }) {
+function WorkshopLine({ tenant, workshop, units, foremen, staff, people, onDone }: { tenant: string; workshop: WorkshopRow | null; units: UnitOption[]; foremen: Appointment[]; staff: StaffRow[]; people: Person[]; onDone?: () => void }) {
     const [state, action, saving] = useAction(async (prev, formData) => {
         const result = await saveWorkshopAction(tenant, workshop?.id ?? null, prev, formData);
         if (result.ok && !workshop) onDone?.();
@@ -84,7 +106,17 @@ function WorkshopLine({ tenant, workshop, units, foremen, onDone }: { tenant: st
             {workshop && (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
                     <span className="text-slate-500">Foremen</span>
-                    {foremen.length === 0 ? <span className="text-amber-700">None yet. Nothing from here can be approved until one is appointed.</span> : foremen.map((f) => <AppointedChip key={f.id} appointment={f} onRemove={(id) => revokeAction(tenant, id)} />)}
+                    {foremen.length === 0 ? <span className="text-amber-700">None yet. Nothing from here can be approved until one is appointed.</span> : foremen.map((f) => <AppointedChip key={f.id} appointment={f} onRemove={(id) => revokeAction(tenant, id)} replace={{ people, run: (id, who) => replaceAuthorityAction(tenant, id, who) }} />)}
+                </div>
+            )}
+            {workshop && (workshop.kind === "WORKSHOP" || workshop.kind === "BAY") && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-slate-500">Staff</span>
+                    {staff.length === 0 ? (
+                        <span className="text-slate-500">Nobody yet. Add the mechanics, artisans and interns who work here, so its foreman can put them on jobs.</span>
+                    ) : (
+                        staff.map((s) => <AppointedChip key={s.id} appointment={s} onRemove={(id) => removeStaffAction(tenant, id)} replace={{ people, run: (id, who) => replaceStaffAction(tenant, id, who) }} />)
+                    )}
                 </div>
             )}
         </li>
