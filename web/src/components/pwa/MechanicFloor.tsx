@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTra
 import { useRouter } from "next/navigation";
 import { CalendarDays, CloudOff, Pause, Play } from "lucide-react";
 import { JobSheet } from "@/components/pwa/JobSheet";
+import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from "@ui-sdk/react/meter";
 import { Schedule } from "@/components/pwa/Schedule";
 import type { ScheduleMonth } from "@/lib/time/floor-sheet";
 import { ACCENT_ON_DARK } from "@/components/brand/MotionLogo";
@@ -20,7 +21,7 @@ type Job = {
     jobNumber: string | null;
     description: string | null;
     jobStatus: string | null;
-    time: { minute: number } | null;
+    time: { minute: number; day?: string } | null;
     estimatedMinutes: number | null;
     customer: { firstName: string; lastName: string } | null;
     vehicle: { plate: string; make: string; model: string } | null;
@@ -56,12 +57,24 @@ type Props = {
     tenant: string;
     name: string;
     minutesToday: number;
-    running: { startedAt: string; job: Job } | null;
+    running: { startedAt: string; job: Job; priorMinutes?: number } | null;
     mine: Job[];
     others: Job[];
     /** This month's booked jobs, for the schedule. */
     schedule: ScheduleMonth;
+    /** The mechanic's day and week, for the Today strip. */
+    day: { shiftMinutes: number | null; jobsWorked: number; waitingForParts: number; weekMinutes: number; next: { jobNumber: string | null; day: string; minute: number } | null };
 };
+
+/** The time, refreshed often enough for minutes; the clock bar's seconds keep their own ticker. */
+function useMinuteNow() {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 20_000);
+        return () => clearInterval(timer);
+    }, []);
+    return now;
+}
 
 /** A running clock, counted on the phone so it moves without asking the server. */
 function Elapsed({ since }: { since: string }) {
@@ -85,7 +98,9 @@ function Elapsed({ since }: { since: string }) {
  * One big button per job. Starting a job stops the one that was running,
  * because walking to the next car is what that means.
  */
-export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule }: Props) {
+export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule, day }: Props) {
+    const now = useMinuteNow();
+    const [mountedAt] = useState(() => Date.now());
     const [sheet, setSheet] = useState<string | null>(null);
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const router = useRouter();
@@ -100,7 +115,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
      * made down here with no signal, which the screen must honour immediately —
      * a mechanic will not stand in the pit wondering whether the clock started.
      */
-    const [queuedRunning, setQueuedRunning] = useState<{ startedAt: string; job: Job } | null | undefined>(undefined);
+    const [queuedRunning, setQueuedRunning] = useState<Props["running"] | undefined>(undefined);
 
     useEffect(registerWorker, []);
 
@@ -193,7 +208,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     {isRunning ? (
                         <span className="shrink-0 text-sm font-medium text-teal-700">On the clock</span>
                     ) : (
-                        job.time && <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{minuteLabel(job.time.minute)}</span>
+                        // A job booked for another day says which day, so 09:00 is never read as this morning.
+                        job.time && <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{job.time.day && job.time.day !== schedule.today ? `${dayName(job.time.day)} ` : ""}{minuteLabel(job.time.minute)}</span>
                     )}
                 </div>
                 <button type="button" onClick={() => setSheet(job.id)} className="floor-press mt-1 block w-full text-left" aria-label={`Open ${job.jobNumber ?? title}: ${title}`}>
@@ -254,7 +270,6 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         {name}
                     </h1>
                     <div className="flex items-center gap-3">
-                        <p className="text-sm text-slate-300">Today {hoursLabel(minutesToday)}</p>
                         <button
                             type="button"
                             onClick={() => setScheduleOpen(true)}
@@ -265,6 +280,11 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                     </div>
                 </div>
             </header>
+            <TodayStrip
+                today={schedule.today}
+                minutes={minutesToday + (onTheClock ? Math.max(0, Math.floor((now - Math.max(mountedAt, new Date(onTheClock.startedAt).getTime())) / 60_000)) : 0)}
+                day={day}
+            />
 
             <div className="mx-auto max-w-lg space-y-5 px-4 pt-4">
                 {/* Always in the page, so losing and finding the signal is announced, not only drawn. */}
@@ -322,6 +342,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                             </p>
                             <p className="shrink-0 text-2xl font-bold tabular-nums"><Elapsed since={bar.startedAt} /></p>
                         </div>
+                        {bar.job.estimatedMinutes ? <EstimateMeter estimate={bar.job.estimatedMinutes} minutes={(bar.priorMinutes ?? 0) + Math.max(0, Math.floor((now - new Date(bar.startedAt).getTime()) / 60_000))} /> : null}
                         <button
                             type="button" disabled={pending}
                             onClick={() => act("stop", () => clockOffAction(tenant), queueStop)}
@@ -336,5 +357,83 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
             <JobSheet tenant={tenant} jobId={sheet} onClose={() => setSheet(null)} start={sheet ? startable(sheet) : null} onTheClock={!!sheet && onTheClock?.job.id === sheet} />
             <Schedule tenant={tenant} initial={schedule} open={scheduleOpen} onOpenChange={setScheduleOpen} startable={startable} runningId={onTheClock?.job.id ?? null} />
         </main>
+    );
+}
+
+/** This job's time against its estimate, on the clock bar. Past the estimate the bar stays full and the words say by how much. */
+function EstimateMeter({ minutes, estimate }: { minutes: number; estimate: number }) {
+    const over = minutes - estimate;
+    return (
+        <Meter value={minutes} min={0} max={estimate} format={(v: number) => `${hoursLabel(v)} of ${hoursLabel(estimate)}`} className="mt-1.5 block">
+            <MeterLabel className="sr-only">This job against its estimate</MeterLabel>
+            <MeterTrack className="h-1.5 overflow-hidden rounded-sm bg-teal-900/60">
+                <MeterIndicator className="floor-meter h-full bg-white" />
+            </MeterTrack>
+            <p className="mt-1 text-xs text-teal-50">
+                <MeterValue />
+                {over > 0 ? ` · ${hoursLabel(over)} over` : " estimated"}
+            </p>
+        </Meter>
+    );
+}
+
+const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+
+/**
+ * The mechanic's own numbers, under the header: today on the clock against
+ * the shift, the jobs worked and how many wait for parts, and the next booked
+ * job. None of it compares one mechanic with another.
+ */
+function TodayStrip({ today, minutes, day }: { today: string; minutes: number; day: Props["day"] }) {
+    const cell = "min-w-0 px-3 py-2.5";
+    const label = "text-[10px] font-semibold uppercase tracking-wider text-slate-600";
+    return (
+        <dl className="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-white">
+            <div className={cell}>
+                {day.shiftMinutes ? (
+                    <Meter value={minutes} min={0} max={day.shiftMinutes} format={(v: number) => `${hoursLabel(v)} of ${hoursLabel(day.shiftMinutes!)}`}>
+                        <dt><MeterLabel className={label}>Today</MeterLabel></dt>
+                        <dd>
+                            <span className="block text-base font-semibold tabular-nums text-slate-900">{hoursLabel(minutes)}</span>
+                            <MeterTrack className="mt-1 h-1 overflow-hidden rounded-sm bg-slate-200">
+                                <MeterIndicator className="floor-meter h-full bg-teal-700" />
+                            </MeterTrack>
+                            <span className="mt-0.5 block text-xs text-slate-600">of {hoursLabel(day.shiftMinutes)}</span>
+                        </dd>
+                    </Meter>
+                ) : (
+                    <>
+                        <dt className={label}>Today</dt>
+                        <dd><span className="block text-base font-semibold tabular-nums text-slate-900">{hoursLabel(minutes)}</span><span className="block text-xs text-slate-600">Not a working day</span></dd>
+                    </>
+                )}
+            </div>
+            <div className={cell}>
+                <dt className={label}>Jobs</dt>
+                <dd>
+                    <span className="block text-base font-semibold tabular-nums text-slate-900">{day.jobsWorked}</span>
+                    <span className="block text-xs text-slate-600">{day.waitingForParts ? `${day.waitingForParts} waiting for parts` : "worked today"}</span>
+                </dd>
+            </div>
+            <div className={cell}>
+                <dt className={label}>Next</dt>
+                <dd>
+                    {day.next ? (
+                        <>
+                            <span className="block text-base font-semibold tabular-nums text-slate-900">{day.next.day === today ? minuteLabel(day.next.minute) : `${dayName(day.next.day)} ${minuteLabel(day.next.minute)}`}</span>
+                            <span className="block truncate text-xs text-slate-600">{day.next.jobNumber ?? "Booked job"}</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="block text-base font-semibold text-slate-900">None</span>
+                            <span className="block text-xs text-slate-600">booked ahead</span>
+                        </>
+                    )}
+                </dd>
+            </div>
+            <div className="col-span-3 border-t border-slate-100 px-3 py-1.5 text-xs text-slate-600">
+                <dt className="inline">This week</dt> <dd className="inline font-medium tabular-nums text-slate-900">{hoursLabel(day.weekMinutes)}</dd>
+            </div>
+        </dl>
     );
 }
