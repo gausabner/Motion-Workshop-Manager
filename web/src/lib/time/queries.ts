@@ -1,5 +1,5 @@
 import "server-only";
-import type { Tenant } from "@prisma/client";
+import type { Tenant, VisitPurpose } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
 import { addDays, fromZoned, toZoned } from "@/lib/diary/time";
 import { efficiency, entryMinutes, isSuspect, splitCharged } from "@/lib/time/clock";
@@ -49,6 +49,8 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
         id: true, type: true, jobNumber: true, jobStatus: true, description: true, scheduledAt: true, estimatedHours: true, mechanicId: true,
         customer: { select: { firstName: true, lastName: true } },
         vehicle: { select: { plate: true, make: true, model: true } },
+        // Where the vehicle is on a fleet route, so the card can say "At Light and medium vehicles".
+        visits: { where: { leftAt: null }, take: 1, select: { purpose: true, receivedAt: true, workshop: { select: { name: true } } } },
     } as const;
 
     const [running, mine, others, workedToday] = await Promise.all([
@@ -77,8 +79,9 @@ export async function floorView(db: TenantDb, tenant: Tenant, membershipId: stri
     const minutesToday = workedToday.reduce((s, e) => s + (e.endedAt ? (e.minutes ?? 0) : entryMinutes(e.startedAt, now)), 0);
     // The Decimal is dropped here, not later: this goes straight to a client
     // component, and a Decimal cannot cross that boundary.
-    const shape = <T extends { scheduledAt: Date | null; estimatedHours: { toNumber(): number } | null }>({ estimatedHours, ...d }: T) => ({
+    const shape = <T extends { scheduledAt: Date | null; estimatedHours: { toNumber(): number } | null; visits: { purpose: VisitPurpose; receivedAt: Date | null; workshop: { name: string } }[] }>({ estimatedHours, visits, ...d }: T) => ({
         ...d,
+        place: visits[0] ? { name: visits[0].workshop.name, purpose: visits[0].purpose, arrived: !!visits[0].receivedAt } : null,
         time: d.scheduledAt ? toZoned(d.scheduledAt, tenant.timezone) : null,
         estimatedMinutes: estimatedHours ? Math.round(estimatedHours.toNumber() * 60) : null,
     });
