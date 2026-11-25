@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CircleDot, CloudOff, X } from "lucide-react";
 import { Drawer, DrawerBackdrop, DrawerClose, DrawerContent, DrawerDescription, DrawerTitle, DrawerTrigger } from "@ui-sdk/react/drawer";
-import { floorNotificationsAction, markAllReadAction, readNotificationAction } from "@/lib/notifications/actions";
+import { floorNotificationsAction, markAllReadAction, readNotificationAction, unreadCountAction } from "@/lib/notifications/actions";
 
 type Note = { id: string; title: string; body: string | null; href: string; at: string; read: boolean };
 
@@ -22,6 +22,22 @@ export function FloorNotifications({ tenant, unread: initialUnread, onOpenJob }:
     const [unread, setUnread] = useState(initialUnread);
     const [, load] = useTransition();
     const router = useRouter();
+
+    // The count is asked for every minute, and again when the phone is picked up, as the office bell does.
+    useEffect(() => {
+        let live = true;
+        const ask = () => {
+            if (document.visibilityState !== "visible" || !navigator.onLine) return;
+            unreadCountAction(tenant).then((n) => live && setUnread(n), () => {});
+        };
+        const every = setInterval(ask, 60_000);
+        document.addEventListener("visibilitychange", ask);
+        return () => {
+            live = false;
+            clearInterval(every);
+            document.removeEventListener("visibilitychange", ask);
+        };
+    }, [tenant]);
 
     const fetchNotes = () =>
         load(async () => {

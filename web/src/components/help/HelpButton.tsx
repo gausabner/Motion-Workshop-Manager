@@ -17,7 +17,8 @@ import { HelpCircle } from "lucide-react";
  */
 const HelpDrawer = dynamic(() => import("@/components/help/HelpDrawer").then((m) => m.HelpDrawer));
 
-export function HelpButton() {
+/** `className` dresses the trigger for a darker header, such as the floor app's. */
+export function HelpButton({ className }: { className?: string } = {}) {
     // `mounted` stays true once opened, so closing and reopening does not
     // re-request the chunk.
     const [mounted, setMounted] = useState(false);
@@ -47,7 +48,7 @@ export function HelpButton() {
                 onClick={() => { setMounted(true); setOpen(true); }}
                 aria-label="Help for this screen"
                 title="Help for this screen"
-                className="relative hit-area flex h-8 w-8 items-center justify-center rounded-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                className={className ?? "relative hit-area flex h-8 w-8 items-center justify-center rounded-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"}
             >
                 <HelpCircle aria-hidden strokeWidth={1.75} className="h-[18px] w-[18px]" />
             </button>

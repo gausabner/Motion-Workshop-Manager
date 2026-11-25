@@ -22,13 +22,15 @@ const HERE_FOR: Record<string, string> = {
  * one thumb; Start sits at the bottom where the clock bar's Stop is.
  */
 export function JobSheet({
-    tenant, jobId, onClose, start, onTheClock,
+    tenant, jobId, onClose, start, startLabel = "Start", onTheClock,
 }: {
     tenant: string;
     jobId: string | null;
     onClose: () => void;
     /** Starts the clock on this job, when it is one of today's; null when it can only be read. */
     start: (() => void) | null;
+    /** What Start says, as the cards say it: "Start", or "Switch to this job" while another runs. */
+    startLabel?: string;
     onTheClock: boolean;
 }) {
     const [data, setData] = useState<JobSheetData | null>(null);
@@ -44,6 +46,7 @@ export function JobSheet({
         setFailed(false);
         setData((d) => (d?.id === jobId ? d : null));
     }
+    const [attempt, setAttempt] = useState(0);
     useEffect(() => {
         if (!jobId) return;
         load(async () => {
@@ -55,7 +58,7 @@ export function JobSheet({
                 setFailed(true);
             }
         });
-    }, [tenant, jobId]);
+    }, [tenant, jobId, attempt]);
 
     const vehicle = data?.vehicle ? `${data.vehicle.make} ${data.vehicle.model}`.trim() : null;
     const title = data?.description ?? vehicle ?? "Job";
@@ -89,7 +92,10 @@ export function JobSheet({
                 {failed && !data && (
                     <p className="mx-4 mb-4 flex items-start gap-2 border border-slate-300 px-3 py-3 text-base text-slate-800">
                         <CloudOff className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                        The job could not be opened. It needs a signal; try again when you have one.
+                        <span className="min-w-0 flex-1">The job could not be opened. It needs a signal.</span>
+                        <button type="button" onClick={() => setAttempt((n) => n + 1)} className="floor-press -my-1 h-10 shrink-0 rounded-sm border border-slate-300 px-3 text-sm font-medium text-slate-800 active:bg-slate-50">
+                            {loading ? "Trying…" : "Try again"}
+                        </button>
                     </p>
                 )}
 
@@ -101,7 +107,7 @@ export function JobSheet({
                             </p>
                         )}
                         <SegmentedControl
-                            aria-label="Show"
+                            aria-label="Job details"
                             value={view}
                             onValueChange={(next) => next && setView(next as View)}
                             className="mx-4 grid shrink-0 grid-cols-3 border border-slate-300"
@@ -203,7 +209,7 @@ export function JobSheet({
                         <p className="flex h-14 items-center justify-center rounded-sm border border-teal-700 text-lg font-semibold text-teal-800">On the clock</p>
                     ) : start ? (
                         <button type="button" onClick={start} className="floor-press flex h-14 w-full items-center justify-center gap-2 rounded-sm bg-teal-700 text-lg font-semibold text-white active:bg-teal-800">
-                            <Play className="h-5 w-5" aria-hidden="true" />Start this job
+                            <Play className="h-5 w-5" aria-hidden="true" />{startLabel}
                         </button>
                     ) : (
                         <DrawerClose className="floor-press flex h-14 w-full items-center justify-center rounded-sm border border-slate-300 text-lg font-semibold text-slate-800 active:bg-slate-50">Close</DrawerClose>

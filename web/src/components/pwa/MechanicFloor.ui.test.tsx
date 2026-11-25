@@ -71,17 +71,26 @@ test("the clock bar measures the running job against its estimate", () => {
     expect(meter.getAttribute("aria-valuetext")).toBe("1h 12 of 2h");
 });
 
-test("Stop offers Undo, then asks why; the answer reaches the job", async () => {
+test("Stop offers Undo and Why? in its toast; the reasons open only when asked, and the answer reaches the job", async () => {
     const { stopReasonAction } = await import("@/lib/time/floor-actions");
-    const { undoClockAction } = await import("@/lib/time/actions");
     const view = floor({ startedAt: new Date().toISOString(), job: bearing });
     await act(async () => screen.getByRole("button", { name: /^Stop ?: JC-4201$/ }).click());
     view.rerender(ui(null)); // the page the refresh brings back: nothing running
-    expect(await screen.findByText("Clock stopped on JC-4201")).toBeTruthy();
+    expect(await screen.findByText("Clock stopped")).toBeTruthy();
+    expect(screen.getByText("JC-4201", { selector: "[data-slot='toast-description']" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: /Why did you stop/ })).toBeNull();
+    await act(async () => screen.getByRole("button", { name: "Say why you stopped" }).click());
     expect(screen.getByRole("region", { name: /Why did you stop JC-4201/ })).toBeTruthy();
     await act(async () => screen.getByRole("button", { name: /My part is done/ }).click());
     expect(stopReasonAction).toHaveBeenCalledWith("t", "d1", "DONE");
     expect(screen.queryByRole("region", { name: /Why did you stop/ })).toBeNull();
-    await act(async () => screen.getByRole("button", { name: "Undo" }).click());
+});
+
+test("a second stop's Undo still reaches the server", async () => {
+    const { undoClockAction } = await import("@/lib/time/actions");
+    const view = floor({ startedAt: new Date().toISOString(), job: bearing });
+    await act(async () => screen.getByRole("button", { name: /^Stop ?: JC-4201$/ }).click());
+    view.rerender(ui(null));
+    await act(async () => (await screen.findByRole("button", { name: "Undo" })).click());
     expect(undoClockAction).toHaveBeenCalledWith("t");
 });
