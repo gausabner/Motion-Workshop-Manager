@@ -65,7 +65,7 @@ export const TENANT_MODELS = new Set([
     // off. `tenant-models.test.ts` now asserts this set against the schema so
     // the next one is a build failure rather than a surprise in production.
     "ExportRun", "Subscription", "SubscriptionPayment", "SubscriptionInvoice", "SubscriptionCreditNote", "PlanChangeRequest",
-    "OrgUnit", "Vote", "Workshop", "SigningAuthority", "Requisition", "RequisitionLine", "RequisitionQuote", "RequisitionSignoff", "RequisitionIssue", "RequisitionIssueLine", "JobVisit", "JobSignoff", "WorkshopStaff", "VisitAssignment",
+    "OrgUnit", "Vote", "Workshop", "SigningAuthority", "Requisition", "RequisitionLine", "RequisitionQuote", "RequisitionSignoff", "RequisitionIssue", "RequisitionIssueLine", "JobVisit", "JobSignoff", "WorkshopStaff", "VisitAssignment", "Notification",
 ]);
 
 /**

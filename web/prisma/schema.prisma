@@ -560,6 +560,7 @@ model Tenant {
   requisitionQuotes          RequisitionQuote[]
   jobVisits                  JobVisit[]
   workshopStaff              WorkshopStaff[]
+  notifications              Notification[]
   visitAssignments           VisitAssignment[]
   jobSignoffs                JobSignoff[]
   requisitions               Requisition[]
@@ -950,6 +951,7 @@ model Membership {
   assignments        VisitAssignment[]     @relation("AssignmentPerson")
   assignmentsMade    VisitAssignment[]     @relation("AssignmentBy")
   assignmentsEnded   VisitAssignment[]     @relation("AssignmentEndedBy")
+  notifications      Notification[]
   jobSignoffs        JobSignoff[]
   requisitionSigns   RequisitionSignoff[]
   requisitionIssues  RequisitionIssue[]    @relation("RequisitionIssuedBy")
@@ -2940,4 +2942,32 @@ enum ExportRunState {
   /// The receiving system wrote a receipt back.
   ACKNOWLEDGED
   FAILED
+}
+
+enum NotificationKind {
+  /// A vehicle is on its way to where they work.
+  VEHICLE_SENT
+  /// They have been put on a job.
+  ASSIGNED
+}
+
+/// Something for one person's attention, in their list until they open it:
+/// a vehicle on its way to where they work, or a job they were put on.
+model Notification {
+  id           String           @id @default(cuid())
+  tenantId     String
+  membershipId String
+  kind         NotificationKind
+  title        String
+  body         String?
+  /// Where opening it goes, inside the tenant: "dashboard/documents/…".
+  href         String
+  createdAt    DateTime         @default(now())
+  readAt       DateTime?
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, membershipId, readAt])
+  @@index([membershipId, createdAt])
 }

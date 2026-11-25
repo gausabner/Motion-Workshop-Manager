@@ -7,6 +7,7 @@ import { assign, routeLead, unassign, type Assigner } from "@/lib/fleet/crew";
 import { addStaff, removeStaff, replaceAuthority, replaceStaff } from "@/lib/requisitions/organisation";
 import { routeView } from "@/lib/fleet/queries";
 import { floorView } from "@/lib/time/queries";
+import { notify, peopleAt } from "@/lib/notifications/notify";
 
 /**
  * A workshop's staff, and the people its foreman puts on a job while the
@@ -52,6 +53,7 @@ before(async () => {
 
 after(async () => {
     const tenantId = tenant.id;
+    await prisma.notification.deleteMany({ where: { tenantId } });
     await prisma.visitAssignment.deleteMany({ where: { tenantId } });
     await prisma.workshopStaff.deleteMany({ where: { tenantId } });
     await prisma.timeEntry.deleteMany({ where: { tenantId } });
@@ -108,6 +110,11 @@ test("the foreman, a deputy or an administrator assigns, and only the workshop's
     await run((tx) => assign(tx, tenant, as("foreman"), job, people.thabo.membershipId));
     await assert.rejects(run((tx) => assign(tx, tenant, as("foreman"), job, people.thabo.membershipId)), /already on this job/);
     await run((tx) => assign(tx, tenant, as("clerk"), job, people.maria.membershipId)); // the deputy now
+    const told = await prisma.notification.findMany({ where: { tenantId: tenant.id, kind: "ASSIGNED" }, orderBy: { createdAt: "asc" }, select: { membershipId: true, title: true, body: true, href: true } });
+    assert.deepEqual(told.map((n) => n.membershipId), [people.thabo.membershipId, people.maria.membershipId], "each person put on it is told, and nobody else");
+    assert.equal(told[0].title, "You are on JC-9101 at Heavy duty vehicles");
+    assert.equal(told[1].body, "Assigned by clerk ZZTEST.");
+    assert.equal(told[0].href, `dashboard/documents/${job}`);
     assert.equal((await live()).length, 2);
 
     const seen = await routeView(db(), tenant, job, people.stranger.membershipId);
@@ -134,4 +141,17 @@ test("the first still on it is the job card's Mechanic, and everybody on it sees
     assert.equal(await lead(), null, "nobody on it, no Mechanic");
     assert.equal(await run((tx) => routeLead(tx, job)), null, "and a save does not put an old Mechanic back");
     assert.equal(await prisma.visitAssignment.count({ where: { visitId: visit } }), 2, "ended assignments stay as history");
+});
+
+test("a vehicle sent somewhere tells the people who work there, and never the sender", async () => {
+    await prisma.membership.update({ where: { id: people.clerk.membershipId }, data: { designations: ["RECEPTION"] } });
+    const at = (id: string, kind: "RECEPTION" | "WORKSHOP" | "BAY") => run((tx) => peopleAt(tx, { id, kind }));
+    assert.deepEqual((await at(place.reception, "RECEPTION")).sort(), [people.clerk.membershipId], "reception is whoever is designated Reception");
+    assert.deepEqual(
+        (await at(place.heavy, "WORKSHOP")).sort(),
+        [people.foreman.membershipId, people.clerk.membershipId, people.thabo.membershipId, people.maria.membershipId].sort(),
+        "a workshop is its foremen, deputies and staff",
+    );
+    const sent = await run(async (tx) => notify(tx, tenant.id, await peopleAt(tx, { id: place.heavy, kind: "WORKSHOP" }), { kind: "VEHICLE_SENT", title: "JC-9101 is on its way to Heavy duty vehicles", href: "dashboard/documents/x" }, people.foreman.membershipId));
+    assert.equal(sent, 3, "everybody there but the foreman who sent it");
 });
