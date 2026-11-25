@@ -29,7 +29,8 @@ export function ObjectHeader({ icon, title, status, actions, facts = [] }: { ico
                 right and below, and the frame hides the outer ones. */}
             {facts.length > 0 && (
                 <div className="overflow-hidden border-t border-slate-200">
-                    <dl className="-mb-px -mr-px grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]">
+                    {/* minmax(0, …) so a long value wraps or truncates inside its cell instead of widening the page on a phone. */}
+                    <dl className="-mb-px -mr-px grid grid-cols-[repeat(2,minmax(0,1fr))] sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]">
                         {facts.map((fact) => (
                             <div key={fact.label} className="min-w-0 border-b border-r border-slate-100 px-4 py-2.5">
                                 <dt className="text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">{fact.label}</dt>

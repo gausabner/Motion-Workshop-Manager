@@ -61,8 +61,8 @@ export function WorkshopSettings({ tenant, workshops, units, foremen, staff, peo
             )}
             {staffed.length > 0 && (
                 <form action={addStaff} className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3">
-                    <span className="text-xs text-slate-500">Add to the staff of</span>
-                    <select name="workshopId" required defaultValue="" aria-label="Workshop or bay to add them to" className={`${field} min-w-0`}>
+                    <span id="add-staff-to" className="text-xs text-slate-500">Add to the staff of</span>
+                    <select name="workshopId" required defaultValue="" aria-labelledby="add-staff-to" className={`${field} min-w-0 max-w-full`}>
                         <option value="" disabled>Workshop or bay</option>
                         {staffed.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
