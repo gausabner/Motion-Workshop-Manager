@@ -1,3 +1,4 @@
+import { PLAN_NAMES } from "@/lib/plans/features";
 /**
  * What a help article is made of.
  *
@@ -88,8 +89,8 @@ export type Topic = {
 
 /** The line an article carries under its title when its feature is not in every plan. */
 export function planLine(plan: Topic["plan"]): string | null {
-    if (plan === "full") return "Included in the Full workshop plan and the Council and multi-site plan.";
-    if (plan === "council") return "Included in the Council and multi-site plan.";
+    if (plan === "full") return `Included in the ${PLAN_NAMES.full} plan and the ${PLAN_NAMES.council} plan.`;
+    if (plan === "council") return `Included in the ${PLAN_NAMES.council} plan.`;
     return null;
 }
 

@@ -18,8 +18,8 @@ export default async function HandoffSettingsPage({ params }: { params: Promise<
                 <h2 className="text-lg font-medium">{TERM.accountingIntegration}</h2>
                 <p className="text-sm text-slate-500">
                     Every night MOTION can write the day&rsquo;s journal into a folder for the accounting system to pick up. It sends the file out and
-                    nothing comes back in — no connection to configure, nothing listening — which is usually the only arrangement a council&rsquo;s
-                    network people will agree to.
+                    nothing comes back in — no connection to configure, nothing listening — which is usually the only arrangement an organisation&rsquo;s
+                    network team will agree to.
                 </p>
             </div>
             <div className="border-t border-slate-200" />

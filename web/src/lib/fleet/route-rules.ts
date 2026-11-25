@@ -198,7 +198,7 @@ export function signError(input: {
     const { stage, role, current } = input;
     if (!ROLES_AT[stage].includes(role)) return `${ROLE_LABEL[role]} does not sign at this stage.`;
     if (stage === "ISSUE") {
-        if (!input.required.includes(role)) return `Your council's job card does not ask for the ${ROLE_LABEL[role].toLowerCase()}'s signature.`;
+        if (!input.required.includes(role)) return `Your organisation's job card does not ask for the ${ROLE_LABEL[role].toLowerCase()}'s signature.`;
         const issue = input.signatures.filter((s) => s.stage === "ISSUE");
         if (issue.some((s) => s.role === role)) return "That box is already signed.";
         if (role !== "DRIVER" && issue.some((s) => s.role !== "DRIVER" && s.membershipId === input.signerId)) return "You have already signed this job card. Another person signs this box.";

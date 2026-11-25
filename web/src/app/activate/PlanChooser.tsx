@@ -86,7 +86,7 @@ export function PlanChooser({ plans, vatRate }: { plans: ChoosablePlan[]; vatRat
             </div>
 
             <p className="mt-6 text-[13px] leading-relaxed text-slate-500">
-                Running more than one workshop, or buying for a municipality? That is quoted per site —{" "}
+                Running more than one workshop, or a fleet of your own? That is quoted per site —{" "}
                 <Link href="/support" className="font-medium text-teal-700 hover:underline">
                     talk to us
                 </Link>{" "}

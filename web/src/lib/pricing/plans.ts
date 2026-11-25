@@ -106,14 +106,14 @@ export const PLANS: Plan[] = [
     },
     {
         id: "council",
-        name: "Council and multi-site",
+        name: "Fleet and multi-site",
         price: null,
         priceNote: "quoted per site",
-        who: "For municipalities, fleets and multi-site operators",
+        who: "For organisations that run their own fleet or more than one site",
         pitch: "For organisations that require installation on their own servers and audit reporting.",
         includes: [
             "Everything in Full workshop",
-            "The six reports a council audit requires, as PDFs with CSV copies",
+            "The six reports an auditor asks for, as PDFs with CSV copies",
             "A number-sequence report showing that no document is missing",
             "A nightly journal to your accounting system, sent outbound only",
             "Every table as CSV in a single archive, at any time",
