@@ -65,8 +65,8 @@ contact details in notifications.
 | 7 | Minimal content in notifications | **Met** | Job number, vehicle and names of staff only; no customer telephone, email or address |
 | 8 | Sign-offs attributable and unaltered | **Met** | `JobSignoff` and requisition approvals copy the name and pay number at the time, keep them when an appointment ends, and sit in the audit trail. Record the parties' agreement to this method in the terms (Electronic Transactions Act) |
 | 9 | Time records kept three years (BCEA s31) | **Met today, at risk later** | Nothing is swept. When the retention sweep is written, it must keep time entries for at least three years after the last entry |
-| 10 | Special personal information avoided | **Unknown** | Time off has a free-text reason, which invites "sick — flu". Change the label to steer away from health detail, or offer fixed reasons (leave, training, other) |
-| 11 | Data on a shared phone | **Partly met** | The offline queue holds only clock taps. The cached floor page survives sign-out; anyone opening the floor address offline on that phone sees the last jobs. Clear the floor cache and the queue on sign-out |
+| 10 | Special personal information avoided | **Met** (#63) | Time off keeps a free-text reason, now with a note under it: everyone who can see the diary sees it, so write the kind of leave, not medical details |
+| 11 | Data on a shared phone | **Met** (#63) | Signing out — from the office screens or from the new "Not Tobias? Sign out" at the foot of the floor — removes the floor page the phone kept for dead spots. Unsent clock taps are kept per person, so they are never sent under the next person's name; they wait until their owner signs in on that phone again |
 | 12 | Notifications kept no longer than needed | **Unknown** | No retention is set for `Notification` rows. Propose twelve months, then delete |
 | 13 | Procurement thresholds set per organisation | **Met** | The value limit, the over-limit approver and the quotations required at each value are settings (Settings → Requisition rules), so a municipality can enter its own policy. Effective-dated bands would let a requisition be judged by the rule on its own date; not built |
 | 14 | Split purchases visible | **Unknown** | The SCM regulations prohibit splitting a purchase to stay under a band. A report of requisitions to one supplier just under a band, close together, would help an auditor; not built |
@@ -83,7 +83,7 @@ contact details in notifications.
 | An information officer finds the privacy policy understates staff data | **High** | Requirement 2; the text is drafted in the legal review |
 | A procurement auditor cannot tie a purchase to the rule in force on its date | **Medium** | Record each requisition's band at submission; effective-dated settings later |
 | Health details typed into a time-off reason | **Medium** | Requirement 10 |
-| A shared phone shows the last mechanic's jobs after sign-out | **Low** | Requirement 11; the page holds plates and department names, not money or contact details |
+| A shared phone shows the last mechanic's jobs after sign-out | **Closed** (#63) | Requirement 11 |
 | Notifications kept forever | **Low** | Requirement 12 |
 | Namibia's bill passes with a short breach deadline or a registration duty | **Medium** | Write to the bill's direction now; watch the ICT ministry and Parliament; review within a month of passage |
 
@@ -92,8 +92,9 @@ contact details in notifications.
 1. **Draft the operator schedule and correct the privacy policy's staff list**
    (requirements 1–3, 5). These are text, not code, and they unblock the
    first contract with an organisation with its own fleet.
-2. **Two small product changes:** clear the floor app's cached page and queue
-   on sign-out; steer the time-off reason away from health detail.
+2. ~~Two small product changes~~ — done in #63: the floor page is cleared on
+   sign-out and unsent taps are kept per person; the time-off reason carries a
+   note against medical details.
 3. **Before South Africa:** counsel admitted there, the transfer clause, an
    Information Officer question (the Regulator's guidance expects one based in
    South Africa for a responsible party incorporated abroad; MOTION as an

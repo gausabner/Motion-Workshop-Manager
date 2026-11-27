@@ -23,8 +23,9 @@ export function TimeOffPanel({ tenant, mechanics, entries, canEdit }: { tenant: 
                     <SelectField label="Who" name="membershipId" errors={errors} allowEmpty="Choose…" options={mechanics.map((m) => ({ value: m.id, label: m.name }))} />
                     <TextField label="From" name="startsAt" type="datetime-local" errors={errors} />
                     <TextField label="Until" name="endsAt" type="datetime-local" errors={errors} />
-                    <TextField label="Reason" name="reason" errors={errors} placeholder="Annual leave, course…" />
+                    <TextField label="Reason" name="reason" errors={errors} placeholder="Annual leave, course…" maxLength={120} />
                     <Button type="submit" size="sm" className="h-8 w-full bg-teal-700 hover:bg-teal-800" disabled={saving}>{saving ? "Adding…" : "Add"}</Button>
+                    <p className="md:col-span-5 text-xs text-slate-600">The reason is optional, and everyone who can see the diary sees it. Write the kind of leave, not medical details.</p>
                     {state.message && <p className={`md:col-span-5 text-xs ${state.ok ? "text-teal-700" : "text-red-600"}`}>{state.message}</p>}
                 </form>
             )}

@@ -14,11 +14,20 @@ import type { ClockEvent } from "./queue";
  * corrupted value all present as "no queue", which is the right answer.
  */
 
-const KEY = "motion.clock.queue.v1";
+/**
+ * One queue per person on the phone. A workshop's phones are shared, and a tap
+ * is sent under whoever is signed in when the signal returns — so a queue that
+ * belonged to nobody would hand one mechanic's unsent time to the next person
+ * to sign in. Each person's taps wait under their own key until they sign in
+ * on this phone again.
+ */
+const keyFor = (owner: string) => `motion.clock.queue.v2.${owner}`;
+/** The queue before it had an owner. Taken over by the first person to open the floor after the update. */
+const LEGACY_KEY = "motion.clock.queue.v1";
 
-export function loadQueue(): ClockEvent[] {
+export function loadQueue(owner: string): ClockEvent[] {
     try {
-        const raw = window.localStorage.getItem(KEY);
+        const raw = window.localStorage.getItem(keyFor(owner));
         if (!raw) return [];
         const parsed: unknown = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
@@ -28,15 +37,34 @@ export function loadQueue(): ClockEvent[] {
     }
 }
 
-export function saveQueue(events: ClockEvent[]): void {
+export function saveQueue(owner: string, events: ClockEvent[]): void {
     try {
-        window.localStorage.setItem(KEY, JSON.stringify(events));
+        if (events.length === 0) window.localStorage.removeItem(keyFor(owner));
+        else window.localStorage.setItem(keyFor(owner), JSON.stringify(events));
     } catch {
         // A phone with no room left still has to work; the tap is applied on screen
         // and sent if the signal is there. Losing the queue is bad, pretending we
         // saved it would be worse.
     }
     notify();
+}
+
+/**
+ * Move taps kept before queues had owners into this person's queue, once. On
+ * a phone with one mechanic that is exactly where they belonged; it is the
+ * same behaviour the phone had before, for the last time.
+ */
+export function adoptUnownedQueue(owner: string): void {
+    try {
+        const raw = window.localStorage.getItem(LEGACY_KEY);
+        if (raw === null) return;
+        const parsed: unknown = JSON.parse(raw);
+        const legacy = Array.isArray(parsed) ? parsed.filter(isClockEvent) : [];
+        window.localStorage.removeItem(LEGACY_KEY);
+        if (legacy.length > 0) saveQueue(owner, [...loadQueue(owner), ...legacy]);
+    } catch {
+        // Unreadable is the same as empty.
+    }
 }
 
 /**
@@ -58,7 +86,7 @@ export function subscribeQueue(listener: () => void): () => void {
     };
 }
 
-export const queueCount = (): number => loadQueue().length;
+export const queueCount = (owner: string): number => loadQueue(owner).length;
 
 export function subscribeOnline(listener: () => void): () => void {
     window.addEventListener("online", listener);
@@ -72,17 +100,17 @@ export function subscribeOnline(listener: () => void): () => void {
 /** On the server there is no signal to speak of, so the page renders as if all is well. */
 export const isOnline = (): boolean => navigator.onLine;
 
-export function enqueue(event: ClockEvent): ClockEvent[] {
-    const next = [...loadQueue(), event];
-    saveQueue(next);
+export function enqueue(owner: string, event: ClockEvent): ClockEvent[] {
+    const next = [...loadQueue(owner), event];
+    saveQueue(owner, next);
     return next;
 }
 
 /** Drop the taps the server has taken, keeping anything added while the batch was in flight. */
-export function forget(refs: string[]): ClockEvent[] {
+export function forget(owner: string, refs: string[]): ClockEvent[] {
     const done = new Set(refs);
-    const next = loadQueue().filter((event) => !done.has(event.ref));
-    saveQueue(next);
+    const next = loadQueue(owner).filter((event) => !done.has(event.ref));
+    saveQueue(owner, next);
     return next;
 }
 
@@ -120,4 +148,23 @@ export function registerWorker(): void {
     navigator.serviceWorker.register("/sw.js").catch(() => {
         // An unregistered worker costs the mechanic nothing but the offline shell.
     });
+}
+
+/**
+ * What signing out removes from the phone: the last floor page the worker
+ * kept for a dead spot, which lists the jobs, plates and departments of
+ * whoever was signed in. Left behind, anyone opening the floor address on a
+ * shared phone with no signal would read the previous person's day.
+ *
+ * The clock queues stay. They hold job references and times, not names, and
+ * they are somebody's unpaid hours until that person signs in here again.
+ */
+export async function clearFloorPages(): Promise<void> {
+    try {
+        if (typeof caches === "undefined") return;
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((key) => key.startsWith("motion-") && key.endsWith("-pages")).map((key) => caches.delete(key)));
+    } catch {
+        // Nothing cached, or no access to the cache: either way there is nothing to leave behind.
+    }
 }
