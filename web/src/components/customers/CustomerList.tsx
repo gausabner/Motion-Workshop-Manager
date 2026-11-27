@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CustomerListControls } from "@/components/customers/CustomerListControls";
 import type { listCustomers } from "@/lib/customers/queries";
 import { DownloadIcon } from "@/components/exports/DownloadPair";
-import { whatsappLink } from "@/lib/format";
+import { fullName, whatsappLink } from "@/lib/format";
 import { Pager } from "@/components/ui/pager";
 import { ListHeader } from "@/components/layout/ListHeader";
 
@@ -19,13 +19,15 @@ const disabled = `${iconBtn} border-slate-200 text-slate-300 bg-slate-50 cursor-
 
 export function CustomerList({ tenant, data, q, archived }: { tenant: string; data: Data; q: string; archived: boolean }) {
     const base = `/${tenant}/dashboard/customers`;
-    const pageHref = (p: number) => {
+    const listHref = (p: number, customer?: string) => {
         const params = new URLSearchParams();
         if (q) params.set("q", q);
         if (archived) params.set("archived", "1");
         if (p > 1) params.set("page", String(p));
+        if (customer) params.set("customer", customer);
         return `${base}${params.size ? `?${params}` : ""}`;
     };
+    const pageHref = (p: number) => listHref(p);
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
             <Card className="rounded-none shadow-none border border-slate-200 gap-0 py-0">
@@ -63,7 +65,7 @@ export function CustomerList({ tenant, data, q, archived }: { tenant: string; da
                                 return (
                                     <TableRow key={c.id} className={`${i % 2 === 0 ? "bg-slate-50" : "bg-white"} hover:bg-slate-100 border-none transition-colors group`}>
                                         <TableCell data-mobile="primary" className="text-slate-700 py-2 pl-4 text-sm font-medium">
-                                            <Link href={`${base}/${c.id}`} className="hover:text-teal-700">{c.firstName} {c.lastName}</Link>
+                                            <Link href={listHref(data.page, c.id)} scroll={false} className="hover:text-teal-700">{fullName(c)}</Link>
                                             {c.isBusiness && <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-500 border border-slate-300 rounded px-1">Business</span>}
                                         </TableCell>
                                         <TableCell data-label="Mobile" className="text-slate-600 py-2 text-sm tabular-nums">{c.mobile}</TableCell>

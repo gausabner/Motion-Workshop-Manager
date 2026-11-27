@@ -6,9 +6,16 @@ export const PRICE_TYPES = ["RETAIL", "PRICE2", "PRICE3", "PRICE4"] as const;
 
 const opt = z.string().trim().max(255).optional();
 
+/**
+ * A person has a first and a last name. A business or fleet account has one
+ * name — a company, or a department such as "Water and sanitation" — kept in
+ * `lastName`, so lists sort by it, with `firstName` left empty. Asking an
+ * organisation to split "Water and sanitation" into a first and last name is
+ * what the form used to do.
+ */
 export const customerSchema = z.object({
-    firstName: z.string({ error: "Enter a first name." }).trim().min(1, "Enter a first name.").max(100),
-    lastName: z.string({ error: "Enter a last name." }).trim().min(1, "Enter a last name.").max(100),
+    firstName: z.string().trim().max(100).default(""),
+    lastName: z.string().trim().max(100).default(""),
     isBusiness: z.boolean().default(false),
     businessNumber: opt,
     vatNumber: opt,
@@ -41,6 +48,9 @@ export const customerSchema = z.object({
     vatExempt: z.boolean().default(false),
     customerSourceId: opt,
     note: z.string().trim().max(4000).optional(),
-});
+}).superRefine((value, ctx) => {
+    if (!value.isBusiness && !value.firstName) ctx.addIssue({ code: "custom", path: ["firstName"], message: "Enter a first name." });
+    if (!value.lastName) ctx.addIssue({ code: "custom", path: ["lastName"], message: value.isBusiness ? "Enter the business or department name." : "Enter a last name." });
+}).transform((value) => (value.isBusiness ? { ...value, firstName: "" } : value));
 
 export type CustomerInput = z.infer<typeof customerSchema>;

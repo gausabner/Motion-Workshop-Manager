@@ -9,6 +9,7 @@ import { mintShareLink, shareUrl } from "@/lib/sharing/links";
 import { portalSettings } from "@/lib/settings/schema";
 import { findAudience } from "@/lib/campaigns/queries";
 import { reachFor, type AudienceFilters, type CampaignInput } from "@/lib/campaigns/audience";
+import { greetingName } from "@/lib/format";
 
 /**
  * Bulk messages, sent one at a time.
@@ -95,7 +96,7 @@ export async function sendToRecipient(ctx: TenantContext, origin: string, recipi
     const body = renderTemplate(campaign.body, {
         ...workshopValues(tenant),
         customer_name: `${customer.firstName} ${customer.lastName}`.trim(),
-        customer_first_name: customer.firstName,
+        customer_first_name: greetingName(customer),
         customer_mobile: customer.mobile ?? "",
         vehicle: vehicle ? [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ") : "",
         plate: vehicle?.plate ?? "",

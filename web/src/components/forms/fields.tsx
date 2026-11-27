@@ -83,12 +83,13 @@ export function SelectField({ label, name, errors, defaultValue, options, allowE
     );
 }
 
-export function CheckField({ label, name, defaultChecked, hint }: { label: string; name: string; defaultChecked?: boolean; hint?: string }) {
+export function CheckField({ label, name, defaultChecked, hint, onCheckedChange }: { label: string; name: string; defaultChecked?: boolean; hint?: string; onCheckedChange?: (checked: boolean) => void }) {
     return (
         <Base className="flex items-start gap-2 text-sm text-slate-700">
             <Checkbox
                 name={name}
                 defaultChecked={defaultChecked}
+                onCheckedChange={onCheckedChange ? (checked) => onCheckedChange(checked === true) : undefined}
                 className="relative hit-area mt-0.5 grid size-4 shrink-0 place-items-center border border-[var(--motion-field-edge)] bg-white text-white transition-colors duration-150 data-checked:border-teal-700 data-checked:bg-teal-700"
             >
                 <CheckboxIndicator>

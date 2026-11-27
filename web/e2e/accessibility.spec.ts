@@ -32,7 +32,9 @@ test.describe("accessibility", () => {
     const screens = [
         "/dashboard",
         "/dashboard/customers",
+        "/dashboard/customers/new",
         "/dashboard/vehicles",
+        "/dashboard/vehicles/new",
         "/dashboard/jobs",
         "/dashboard/transactions",
         "/dashboard/payments",

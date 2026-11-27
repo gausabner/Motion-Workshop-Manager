@@ -13,7 +13,7 @@ import type { DocumentPdfInput, PdfLine } from "@/lib/pdf/documents";
 import type { ReceiptPdfInput } from "@/lib/pdf/receipt";
 import type { StatementPdfInput } from "@/lib/pdf/statement";
 import type { Letterhead } from "@/lib/pdf/letterhead";
-import { dateShort } from "@/lib/format";
+import { dateShort, greetingName } from "@/lib/format";
 
 /**
  * Turning rows into something a renderer can lay out.
@@ -203,7 +203,7 @@ export async function statementPdfInput(db: TenantDb, tenant: Tenant, customerId
     const values: MergeValues = {
         ...workshopValues(tenant),
         customer_name: `${statement.customer.firstName} ${statement.customer.lastName}`,
-        customer_first_name: statement.customer.firstName,
+        customer_first_name: greetingName(statement.customer),
         account_balance: money(statement.closing),
     };
 
