@@ -10,7 +10,7 @@ import { toInternational } from "@/lib/messaging/phone";
 import { DEFAULT_MESSAGES, PURPOSE_KIND, PURPOSE_LABELS, emailSubject, ensureLink, purposeForDocument, type MessagePurpose } from "@/lib/messaging/templates";
 import { renderTemplate, type MergeValues } from "@/lib/templates/merge";
 import { documentValues, documentTitle, workshopValues } from "@/lib/templates/values";
-import { dateShort, money } from "@/lib/format";
+import { dateShort, money, greetingName } from "@/lib/format";
 import { onlineBookingSettings, portalSettings } from "@/lib/settings/schema";
 import { toZoned } from "@/lib/diary/time";
 
@@ -77,7 +77,7 @@ async function loadReminderContext(db: TenantDb, tenant: Tenant, target: Extract
             values: {
                 ...workshopValues(tenant),
                 customer_name: `${vehicle.customer.firstName} ${vehicle.customer.lastName}`.trim(),
-                customer_first_name: vehicle.customer.firstName,
+                customer_first_name: greetingName(vehicle.customer),
                 vehicle: vehicleText(vehicle),
                 plate: vehicle.plate,
                 due_date: dateShort(date),
@@ -106,7 +106,7 @@ async function loadReminderContext(db: TenantDb, tenant: Tenant, target: Extract
     const values = {
         ...workshopValues(tenant),
         customer_name: `${doc.customer.firstName} ${doc.customer.lastName}`.trim(),
-        customer_first_name: doc.customer.firstName,
+        customer_first_name: greetingName(doc.customer),
         vehicle: vehicleText(doc.vehicle),
         plate: doc.vehicle?.plate ?? "",
         document_number: doc.number ?? doc.jobNumber ?? "",
@@ -181,7 +181,7 @@ async function loadContext(db: TenantDb, tenant: Tenant, target: SendTarget): Pr
             values: {
                 ...workshopValues(tenant),
                 customer_name: `${inspection.customer.firstName} ${inspection.customer.lastName}`.trim(),
-                customer_first_name: inspection.customer.firstName,
+                customer_first_name: greetingName(inspection.customer),
                 vehicle: inspection.vehicle ? [inspection.vehicle.year, inspection.vehicle.make, inspection.vehicle.model].filter(Boolean).join(" ") : "",
                 plate: inspection.vehicle?.plate ?? "",
                 document_title: "Inspection",
@@ -210,7 +210,7 @@ async function loadContext(db: TenantDb, tenant: Tenant, target: SendTarget): Pr
             values: {
                 ...workshopValues(tenant),
                 customer_name: `${payment.customer.firstName} ${payment.customer.lastName}`.trim(),
-                customer_first_name: payment.customer.firstName,
+                customer_first_name: greetingName(payment.customer),
                 document_title: title,
                 document_number: payment.number ?? "",
                 document_date: dateShort(payment.postDate),
@@ -247,7 +247,7 @@ async function loadContext(db: TenantDb, tenant: Tenant, target: SendTarget): Pr
         values: {
             ...workshopValues(tenant),
             customer_name: `${customer.firstName} ${customer.lastName}`.trim(),
-            customer_first_name: customer.firstName,
+            customer_first_name: greetingName(customer),
             document_title: "Statement",
             account_balance: money(account.netOwing, tenant.currency),
         },

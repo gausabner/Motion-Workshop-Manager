@@ -1,7 +1,7 @@
 import type { DocumentType, Tenant } from "@prisma/client";
 import { parseSettings } from "@/lib/settings/schema";
 import { round2 } from "@/lib/documents/totals";
-import { dateShort, money } from "@/lib/format";
+import { dateShort, money, greetingName } from "@/lib/format";
 import type { MergeValues } from "@/lib/templates/merge";
 
 /**
@@ -61,7 +61,7 @@ export function documentValues(tenant: Tenant, doc: DocumentForValues, amountPai
     return {
         ...workshopValues(tenant),
         customer_name: doc.customer ? `${doc.customer.firstName} ${doc.customer.lastName}`.trim() : "",
-        customer_first_name: doc.customer?.firstName ?? "",
+        customer_first_name: doc.customer ? greetingName(doc.customer) : "",
         customer_mobile: doc.customer?.mobile ?? "",
         vehicle: doc.vehicle ? [doc.vehicle.year, doc.vehicle.make, doc.vehicle.model].filter(Boolean).join(" ") : "",
         plate: doc.vehicle?.plate ?? "",

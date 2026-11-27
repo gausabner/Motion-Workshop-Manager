@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { Save, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveCustomer } from "@/lib/customers/actions";
 import { initialActionState } from "@/lib/forms";
 import type { CustomerRecord } from "@/lib/customers/queries";
+import { fullName } from "@/lib/format";
 
 const REGIONS = ["Khomas", "Erongo", "Oshana", "Otjozondjupa", "Hardap", "ǁKaras", "Kunene", "Omaheke", "Omusati", "Ohangwena", "Oshikoto", "Kavango East", "Kavango West", "Zambezi"];
 
@@ -24,6 +25,19 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
     const formRef = useRef<HTMLFormElement>(null);
     const c = customer;
     const errors = state.errors;
+    /*
+     * A person has a first and a last name; a business or fleet account has
+     * one, such as "Water and sanitation". Switching carries what was typed
+     * across rather than losing it with the fields that change.
+     */
+    const [business, setBusiness] = useState(!!c?.isBusiness);
+    const [names, setNames] = useState(() => ({ first: c?.firstName ?? "", last: c?.lastName ?? "", whole: c ? fullName(c) : "" }));
+    function switchKind(next: boolean) {
+        const field = (name: string) => ((formRef.current?.elements.namedItem(name) as HTMLInputElement | null)?.value ?? "").trim();
+        if (next) setNames((n) => ({ ...n, whole: [field("firstName"), field("lastName")].filter(Boolean).join(" ") }));
+        else setNames({ first: "", last: field("lastName"), whole: field("lastName") });
+        setBusiness(next);
+    }
 
     function copyStreetToPostal() {
         const f = formRef.current;
@@ -38,7 +52,8 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
     return (
         <form ref={formRef} action={formAction} style={{ paddingBottom: "calc(calc(57px + env(safe-area-inset-bottom, 0px)) + 5rem)" }} className="mx-auto max-w-7xl space-y-4 sm:!pb-12">
             <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">{c ? "Edit customer" : "New customer"}</p>
+                {/* The new form is the page, so it carries the page heading; editing sits under the customer's own. */}
+                {c ? <h2 className="text-sm text-slate-500">Edit customer</h2> : <h1 className="text-lg font-semibold text-slate-900">New customer</h1>}
                 {/* The message stays outside the block that hides on a phone. It
                     was inside it, which would have meant a failed save showing
                     nothing at all on the device most likely to have a flaky
@@ -54,14 +69,20 @@ export function CustomerForm({ tenant, customer, sources }: Props) {
             </div>
 
             <Section title="Customer">
-                <TextField label="First name" name="firstName" defaultValue={c?.firstName} errors={errors} required autoFocus={!c} />
-                <TextField label="Last name / company" name="lastName" defaultValue={c?.lastName} errors={errors} required />
-                <TextField label="Business registration no." name="businessNumber" defaultValue={c?.businessNumber} errors={errors} />
-                <TextField label="VAT number" name="vatNumber" defaultValue={c?.vatNumber} errors={errors} />
-                <div className="lg:col-span-4 flex flex-wrap gap-6 pt-1">
-                    <CheckField label="Business / fleet account" name="isBusiness" defaultChecked={c?.isBusiness} hint="Order numbers required on invoices" />
+                <div className="lg:col-span-4 flex flex-wrap gap-6">
+                    <CheckField label="Business or fleet account" name="isBusiness" defaultChecked={c?.isBusiness} hint="One name, such as a company or a department. Order numbers required on invoices" onCheckedChange={switchKind} />
                     <CheckField label="VAT exempt" name="vatExempt" defaultChecked={c?.vatExempt} />
                 </div>
+                {business ? (
+                    <TextField key="whole" label="Business or department name" name="lastName" defaultValue={names.whole} errors={errors} required autoFocus={!c} className="lg:col-span-2" />
+                ) : (
+                    <>
+                        <TextField key="first" label="First name" name="firstName" defaultValue={names.first} errors={errors} required autoFocus={!c} />
+                        <TextField key="last" label="Last name" name="lastName" defaultValue={names.last} errors={errors} required />
+                    </>
+                )}
+                <TextField label="Business registration no." name="businessNumber" defaultValue={c?.businessNumber} errors={errors} />
+                <TextField label="VAT number" name="vatNumber" defaultValue={c?.vatNumber} errors={errors} />
             </Section>
 
             <Section title="Contact">

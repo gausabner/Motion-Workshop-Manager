@@ -50,3 +50,12 @@ export function whatsappLink(mobile: string | null | undefined, country = "NA"):
 export function fullName(p: { firstName: string; lastName?: string | null }): string {
     return [p.firstName, p.lastName].filter(Boolean).join(" ");
 }
+
+/**
+ * The name a message greets a customer by. A person by their first name; a
+ * business or fleet account, which keeps its one name in `lastName` and no
+ * first name, by that name — "Hi Water and sanitation", never "Hi ,".
+ */
+export function greetingName(p: { firstName: string; lastName?: string | null }): string {
+    return p.firstName.trim() || (p.lastName ?? "").trim();
+}

@@ -34,7 +34,8 @@ export function VehicleForm({ tenant, vehicle, initialOwner }: Props) {
     return (
         <form action={formAction} style={{ paddingBottom: "calc(calc(57px + env(safe-area-inset-bottom, 0px)) + 5rem)" }} className="mx-auto max-w-7xl space-y-4 sm:!pb-12">
             <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">{v ? "Edit vehicle" : "New vehicle"}</p>
+                {/* The new form is the page, so it carries the page heading; editing sits under the vehicle's own. */}
+                {v ? <h2 className="text-sm text-slate-500">Edit vehicle</h2> : <h1 className="text-lg font-semibold text-slate-900">New vehicle</h1>}
                 {/* The message stays outside the block that hides on a phone. It
                     was inside it, which would have meant a failed save showing
                     nothing at all on the device most likely to have a flaky
