@@ -84,7 +84,7 @@ Merging to `main` builds the image and publishes it to `ghcr.io/gausabner/motion
 | [docs/launch-runbook.md](docs/launch-runbook.md) | Deploying and operating production |
 | [docs/implementation-pack.md](docs/implementation-pack.md), [docs/integration-guide.md](docs/integration-guide.md), [docs/public-api.md](docs/public-api.md) | A customer going live and connecting their systems |
 | [docs/security-whitepaper.md](docs/security-whitepaper.md), [docs/data-protection.md](docs/data-protection.md), [docs/continuity-and-recovery.md](docs/continuity-and-recovery.md) | Procurement, IT and data protection reviews |
-| [docs/compliance-check-2026-11.md](docs/compliance-check-2026-11.md), [docs/legal-review-2026-11.md](docs/legal-review-2026-11.md) | The November 2026 compliance check and terms review |
+| [docs/compliance-check-2026-11.md](docs/compliance-check-2026-11.md), [docs/legal-review-2026-11.md](docs/legal-review-2026-11.md), [docs/counsel-brief-2026-11.md](docs/counsel-brief-2026-11.md) | The November 2026 compliance check, terms review, and the proposed wording for counsel |
 | [docs/fleet-job-flow-plan.md](docs/fleet-job-flow-plan.md), [docs/requisitions-plan.md](docs/requisitions-plan.md) | The fleet route and requisitions, as planned and as built |
 | [docs/floor-app.pdf](docs/floor-app.pdf), [docs/floor-app-plan.pdf](docs/floor-app-plan.pdf) | The floor app as built, with real screens; and the plan it was built from |
 | [docs/brand/motion-brand-board.pdf](docs/brand/motion-brand-board.pdf) ([PNG](docs/brand/motion-brand-board.png)) | MOTION's brand on one board: mark, construction, colour, type, applications |

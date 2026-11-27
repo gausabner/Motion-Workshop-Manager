@@ -11,10 +11,13 @@ server.
 
 ## The honest position first
 
-MOTION now takes its own off-site backups: a nightly `pg_dump`, encrypted
-before it leaves the machine, uploaded to an S3-compatible bucket, pruned on a
-fixed schedule, and restored into a scratch database every week to prove it
-still works. `ops/backup/` holds it and `ops/backup/README.md` describes it.
+MOTION takes its own off-site backups: a nightly `pg_dump`, encrypted before
+it leaves the machine, uploaded to an S3-compatible bucket (Cloudflare R2 for
+the hosted service), and pruned on a fixed schedule. `ops/backup/` holds it and
+`ops/backup/README.md` describes it. The restore is proven in CI on every
+change and was performed at commissioning; **a scheduled restore drill of the
+hosted service's live backups is not yet running** (checked 27 November 2026),
+because the key that opens them is deliberately kept off the server.
 
 Two things are still true and are stated here rather than buried:
 
@@ -103,7 +106,7 @@ Nightly, at 02:10 in the workshop's own time:
    encrypts the dump; that passphrase is wrapped with an RSA public key. The
    server holds only the public half, so it can write backups it cannot itself
    read: a compromised server cannot decrypt its own history, and a leaked
-   bucket is noise. The private key is held by the owner, off the server.
+   bucket is noise. The private key is held off the server: by MOTION for the hosted service; on an installed site by MOTION or by the customer, as they choose.
 5. **Writes a plaintext manifest** — sizes, hashes, server version, table
    count — so bucket contents can be audited without the private key. It names
    no customer, vehicle or amount.
@@ -118,8 +121,8 @@ Nightly, at 02:10 in the workshop's own time:
 
 ### What proves it
 
-Four test suites run in CI on every change, and a weekly restore runs against
-the live backup.
+Four test suites run in CI on every change. A restore of the live backup is
+the fifth line below, and on the hosted service it is not yet scheduled.
 
 | | What it establishes |
 | --- | --- |
@@ -127,7 +130,7 @@ the live backup.
 | `rotate.test.sh` | The retention policy keeps what it claims. Pruning is the one part whose bugs are silent: it deletes what you were going to need and says nothing until you need it |
 | `crypt.test.sh` | The encryption round-trips, and refuses the wrong key, a single flipped byte, and a damaged envelope — rather than restoring something subtly wrong |
 | `e2e.test.sh` | The whole path against a real PostgreSQL: dump, seal, upload, list, prune, fetch, unseal, restore, and confirm the rows **and the row-level security** came back |
-| `motion-verify.sh` | Weekly, against the actual latest backup: restores it into a scratch database, checks the data is there and the policies survived, and reports how long it took |
+| `motion-verify.sh` | Against the actual latest backup: restores it into a scratch database, checks the data is there and the policies survived, and reports how long it took. Run at commissioning; it needs the private key, so it runs where the key is, not on the server. **The hosted service has no regular drill yet** |
 
 That last one is the one that matters. Everything above it can work perfectly
 and still leave you with nothing; a backup is a belief until it has been
@@ -135,13 +138,15 @@ restored.
 
 ## 4a. What each client should still have in place
 
-**Installed sites.** A bucket and a key pair, configured at commissioning —
-and the private key kept somewhere other than the server, in two places,
+**Installed sites.** A bucket and a key pair, configured at commissioning.
+The customer chooses who keeps the private key: MOTION, for them, or the
+customer. Either way it is kept somewhere other than the server, in two places,
 because one copy is not a copy. Losing it makes every backup unreadable; that
 is a property of the design rather than a flaw in it, and the alternative is a
 server that can decrypt its own off-site history.
 
-**Hosted service.** The above, plus MOTION's own full export as an independent
+**Hosted service.** MOTION holds the private key, off the server. The
+customer should also keep MOTION's own full export as an independent
 copy. The export is deliberately readable without MOTION, so it survives even
 the scenario where we do not.
 
@@ -150,8 +155,8 @@ the scenario where we do not.
 | | Position |
 | --- | --- |
 | **Recovery point objective** | **24 hours.** One backup a night. A workshop that loses its server loses at most that day's entries, which are re-entered from the paper the floor already works from |
-| **Recovery time objective** | **Under an hour**, for a site with a configured bucket. The application is a container image and starts in minutes; the restore itself is dominated by downloading the dump, not by PostgreSQL. A 300 KiB dump restores and verifies in two seconds on local hardware; at realistic sizes over a Namibian link the download is the whole of it. The weekly verification reports the real figure for each site, which is the number to quote rather than this one |
-| **Backups are tested** | **Yes, weekly**, by restoring them. This is the claim most backup policies cannot make |
+| **Recovery time objective** | **Under an hour**, for a site with a configured bucket. The application is a container image and starts in minutes; the restore itself is dominated by downloading the dump, not by PostgreSQL. A 300 KiB dump restores and verifies in two seconds on local hardware; at realistic sizes over a Namibian link the download is the whole of it. A restore drill reports the real figure for each site, which is the number to quote rather than this one |
+| **Backups are tested** | **The method is, on every change, in CI; the hosted backups themselves were restored at commissioning.** A regular restore drill of the live backups, from the machine that holds the key, is not yet scheduled. Until it is, do not claim a weekly restore |
 | **Backups are encrypted off-site** | **Yes**, and the server that writes them cannot read them |
 | **Point-in-time recovery** | **No.** Nightly granularity only. Sub-day recovery needs WAL archiving, which is not built |
 | **Uptime percentage** | **None published.** There is no monitoring in place to measure one, and a figure that cannot be measured is worse than no figure. The host is chosen; what is missing is an outside check that records when the service answers |

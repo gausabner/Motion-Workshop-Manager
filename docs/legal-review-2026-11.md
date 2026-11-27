@@ -285,9 +285,12 @@ of the return window, a higher data-protection cap in a signed agreement.
 
 ## Next steps
 
-1. Decide who holds the hosted backups' private key, and correct the backup
-   sentence to match.
-2. Name the backup bucket's provider.
+1. ~~Decide who holds the hosted backups' private key~~ — decided 27 November:
+   MOTION holds it; an installed site chooses MOTION or itself. Proposed
+   wording in [counsel-brief-2026-11.md](counsel-brief-2026-11.md), B1, which
+   also corrects the weekly-restore claim (no scheduled restore runs on the
+   hosted service).
+2. ~~Name the backup bucket's provider~~ — Cloudflare R2.
 3. Take this review, [compliance-check-2026-11.md](compliance-check-2026-11.md)
    and the operator schedule outline to counsel admitted in Namibia; and, before
    a South African customer, to counsel admitted there.

@@ -87,11 +87,11 @@ process cards and stores nothing that could be used to take money.
 | People told by a notification | Only the people the rules name for that event — the foreman, deputy and staff of the place a vehicle is sent to, the people assigned to a job, the next person to sign a requisition — never the person who acted. A notification carries the job number, the vehicle and staff names; never a customer's telephone, email or address. |
 | Anyone else | Nothing. |
 
-> **To decide.** A named subprocessor list, in the form a public body will ask for.
-> The parties are now known — Namecheap for the server and for Private Email,
-> which carries password-reset messages and so handles a name and an address;
-> Cloudflare for DNS and the edge; and whichever provider holds the backup
-> bucket — so this is drafting rather than deciding. Owed before any contract.
+> **Subprocessors**, to be published in the form a public body will ask for:
+> Namecheap (the server, and Private Email, which carries password-reset
+> messages and so handles a name and an address) and Cloudflare (DNS, the
+> edge, and R2, which stores the encrypted backups). Proposed wording is in
+> [counsel-brief-2026-11.md](counsel-brief-2026-11.md), B9.
 
 ## 5. How long it is kept
 
@@ -166,8 +166,10 @@ On the hosted service, your data is held **in Phoenix, Arizona, in the United
 States**, on a server rented from Namecheap. Traffic reaches it through
 Cloudflare, which terminates the encrypted connection at its nearest point of
 presence — for a Namibian user, Johannesburg or Cape Town — and carries it on.
-Backups are held in object storage and are encrypted before they leave the
-server, with a key the server does not hold.
+Backups are held in Cloudflare's object storage (R2) and are encrypted before
+they leave the server, with a key the server does not hold. MOTION holds that
+key for the hosted service. On an installed site the customer chooses whether
+MOTION keeps it for them or they keep it themselves.
 
 This is stated rather than buried because it is a real constraint: Namecheap
 confirmed their VPS estate is United States only, so the hosted service cannot
