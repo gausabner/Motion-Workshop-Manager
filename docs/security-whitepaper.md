@@ -143,7 +143,9 @@ notifications all ask:
 **The floor app** shows a mechanic their own jobs without prices or customer
 contact details. To work without a signal it keeps the last floor page and any
 unsent clock taps on the phone; no other screen is cached, because a balance
-served from yesterday is worse than an error.
+served from yesterday is worse than an error. Signing out removes the kept
+page, and unsent taps wait under the person who made them, so a shared phone
+neither shows the last person's jobs nor sends their time as someone else's.
 
 ## 4. What is recorded
 

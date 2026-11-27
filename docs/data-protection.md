@@ -54,8 +54,9 @@ fingerprints, no faces, no location.
 **On a mechanic's phone.** The floor app keeps two things on the device so it
 works without a signal: clock taps not yet sent, and the last floor page that
 loaded (that mechanic's jobs, with plates and departments; no prices, no
-customer contact details). Both are removed when the phone's browser data is
-cleared. *Clearing them on sign-out is planned.*
+customer contact details). Signing out removes the kept page. Unsent taps are
+kept per person and sent only when that person is signed in, so a shared
+phone never sends one mechanic's time under another's name.
 
 **About your customers.** Whatever you enter: typically a name, telephone
 number, email address, postal address, and the vehicles, jobs, documents and

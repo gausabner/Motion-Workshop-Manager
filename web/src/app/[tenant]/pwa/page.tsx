@@ -33,6 +33,7 @@ export default async function FloorPage({ params }: { params: Promise<{ tenant: 
         <>
         <MechanicFloor
             tenant={slug}
+            who={membership.id}
             name={user.firstName}
             minutesToday={floor.minutesToday}
             running={floor.running ? { startedAt: floor.running.startedAt.toISOString(), job: floor.running.job, priorMinutes: floor.running.priorMinutes } : null}

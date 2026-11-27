@@ -8,6 +8,7 @@ import { stopReasonAction, type StopReason } from "@/lib/time/floor-actions";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CloudOff, Pause, Play } from "lucide-react";
 import { JobSheet } from "@/components/pwa/JobSheet";
+import { FloorSignOut } from "@/components/pwa/FloorSignOut";
 import { JobStatusPill } from "@/components/documents/StatusPill";
 import type { JobStatus } from "@prisma/client";
 import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from "@ui-sdk/react/meter";
@@ -18,7 +19,7 @@ import { MotionMark } from "@/components/brand/MotionMark";
 import { clockOffAction, clockOnAction, undoClockAction } from "@/lib/time/actions";
 import { hoursLabel } from "@/lib/time/clock";
 import { minuteLabel } from "@/lib/diary/time";
-import { enqueue, forget, isOnline, loadQueue, newRef, queueCount, registerWorker, subscribeOnline, subscribeQueue } from "@/lib/offline/client";
+import { adoptUnownedQueue, enqueue, forget, isOnline, loadQueue, newRef, queueCount, registerWorker, subscribeOnline, subscribeQueue } from "@/lib/offline/client";
 import { syncClockQueue } from "@/lib/offline/actions";
 import { waitingLabel } from "@/lib/offline/queue";
 
@@ -81,6 +82,8 @@ function buzz() {
 
 type Props = {
     tenant: string;
+    /** The signed-in person's membership. Their clock taps wait on this phone under it, apart from anyone else's. */
+    who: string;
     name: string;
     minutesToday: number;
     running: { startedAt: string; job: Job; priorMinutes?: number } | null;
@@ -126,7 +129,7 @@ function Elapsed({ since }: { since: string }) {
  * One big button per job. Starting a job stops the one that was running,
  * because walking to the next car is what that means.
  */
-export function MechanicFloor({ tenant, name, minutesToday, running, mine, others, schedule, day, unread }: Props) {
+export function MechanicFloor({ tenant, who, name, minutesToday, running, mine, others, schedule, day, unread }: Props) {
     const [toaster] = useState(() => createToaster({ duration: 10_000 }));
     useEffect(() => () => toaster.dismiss(), [toaster]);
     // The job just stopped, while the mechanic may say why.
@@ -141,7 +144,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     const [error, setError] = useState<string>();
     // Both live outside React: the radio, and a queue another tab can also write to.
     const online = useSyncExternalStore(subscribeOnline, isOnline, () => true);
-    const waiting = useSyncExternalStore(subscribeQueue, queueCount, () => 0);
+    const waiting = useSyncExternalStore(subscribeQueue, () => queueCount(who), () => 0);
     /**
      * `undefined` means "the server's answer stands". Anything else is a tap
      * made down here with no signal, which the screen must honour immediately —
@@ -149,16 +152,19 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
      */
     const [queuedRunning, setQueuedRunning] = useState<Props["running"] | undefined>(undefined);
 
-    useEffect(registerWorker, []);
+    useEffect(() => {
+        adoptUnownedQueue(who);
+        registerWorker();
+    }, [who]);
 
     /** Hand over whatever is waiting, the moment there is a signal to hand it over on. */
     const sendQueue = useCallback(() => {
-        const queue = loadQueue();
+        const queue = loadQueue(who);
         if (queue.length === 0) return;
         start(async () => {
             try {
                 const result = await syncClockQueue(tenant, queue);
-                forget(queue.map((e) => e.ref));
+                forget(who, queue.map((e) => e.ref));
                 if (result.problems.length > 0) setError(result.problems[0].reason);
                 // The server is the truth again, so stop overriding it.
                 setQueuedRunning(undefined);
@@ -167,7 +173,7 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                 // Still no signal. The queue stays exactly where it is.
             }
         });
-    }, [tenant, router]);
+    }, [tenant, who, router]);
 
     useEffect(() => {
         if (online) sendQueue();
@@ -206,14 +212,14 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         const at = new Date().toISOString();
         const ref = newRef();
         keepForUndo({ ref, before: queuedRunning });
-        enqueue({ kind: "on", ref, at, documentId: job.id });
+        enqueue(who, { kind: "on", ref, at, documentId: job.id });
         setQueuedRunning({ startedAt: at, job });
     }
 
     function queueStop() {
         const ref = newRef();
         keepForUndo({ ref, before: queuedRunning });
-        enqueue({ kind: "off", ref, at: new Date().toISOString() });
+        enqueue(who, { kind: "off", ref, at: new Date().toISOString() });
         setQueuedRunning(null);
     }
 
@@ -222,8 +228,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
         buzz();
         setStopped(null);
         const kept = takeForUndo();
-        if (kept && loadQueue().some((e) => e.ref === kept.ref)) {
-            forget([kept.ref]);
+        if (kept && loadQueue(who).some((e) => e.ref === kept.ref)) {
+            forget(who, [kept.ref]);
             setQueuedRunning(kept.before);
             return;
         }
@@ -285,9 +291,9 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
     // Which job's Start is still waiting for a signal, and since when. Read again whenever the queue changes.
     const heldStart = useMemo(() => {
         const held = new Map<string, string>();
-        if (waiting > 0) for (const e of loadQueue()) if (e.kind === "on") held.set(e.documentId, e.at);
+        if (waiting > 0) for (const e of loadQueue(who)) if (e.kind === "on") held.set(e.documentId, e.at);
         return held;
-    }, [waiting]);
+    }, [waiting, who]);
 
     const card = (job: Job, mineToo: boolean) => {
         const isRunning = onTheClock?.job.id === job.id;
@@ -416,6 +422,8 @@ export function MechanicFloor({ tenant, name, minutesToday, running, mine, other
                         <ul className="space-y-3">{others.map((j) => card(j, false))}</ul>
                     </section>
                 )}
+
+                <FloorSignOut name={name} running={onTheClock ? (onTheClock.job.jobNumber ?? "this job") : null} waiting={waiting} />
             </div>
 
             {/* The clock is pinned to the bottom rather than sitting at the top of
