@@ -10,7 +10,7 @@ things are not — it says so under [What MOTION does not have yet](#what-motion
 rather than being left for you to discover. A security document that only
 lists strengths is telling you what it wants you to hear.
 
-Last reviewed 25 November 2026 against the shipped code (`main` 5413cad), including
+Last reviewed 27 November 2026 (backups and keys checked against the production server); code at `main` 5413cad, including
 the fleet route, requisitions, workshop staff, notifications and the floor app.
 
 ---
@@ -28,8 +28,9 @@ the fleet route, requisitions, workshop staff, notifications and the floor app.
 - An installed site sends **outbound only**. Nothing listens for an inbound
   connection, and no integration requires your network to open a door.
 - Your data is exportable in full, by you, at any time, without asking us.
-- Backups leave the building **encrypted with a key the server does not hold**,
-  and are restored every week to prove they work.
+- Backups leave the building **encrypted with a key the server does not hold**.
+  The restore is proven in CI on every change; a scheduled restore of the
+  hosted service's own backups is not yet running (see the list at the end).
 
 ---
 
@@ -217,15 +218,20 @@ Three properties are worth a procurement officer's attention:
 **The server cannot read its own backups.** Each backup is encrypted with a
 fresh random key, and that key is wrapped with an RSA public key. Only the
 public half is on the server. Someone who takes the server, or the bucket, or
-both, has ciphertext. The private half is held by the workshop or the organisation,
-not by MOTION, and not on the machine — which also means MOTION cannot read
-your backups either.
+both, has ciphertext. The private half is never on the machine. For the
+hosted service MOTION holds it. For an installed site the customer chooses:
+MOTION keeps it for them, or they keep it themselves, in which case MOTION
+cannot read their backups at all.
 
-**The backups are restored, not merely taken.** A scheduled job restores the
-latest backup into a scratch database every week, checks the data is present,
-checks the row-level security policies survived, and reports how long it took.
-That figure is the recovery time, measured rather than estimated. An untested
-backup is a belief, and most backup policies are exactly that.
+**The backups are restored, not merely taken — with one gap.**
+`motion-verify.sh` restores the latest backup into a scratch database, checks
+the data is present and the row-level security policies survived, and reports
+how long it took: the recovery time, measured rather than estimated. The whole
+path runs in CI on every change, and the hosted service's backups were
+restored this way at commissioning. Because the restore needs the private key,
+and the key is deliberately not on the server, it does not run on a timer
+there. A regular restore drill from the machine that holds the key is the
+owner's to schedule (see the list at the end).
 
 **A damaged backup is refused rather than half-restored.** The hash of the
 dump is recorded inside the encrypted envelope at the time it is taken. A
@@ -248,6 +254,7 @@ later is worse than being told now.
 | --- | --- |
 | **Multi-factor authentication** | Not implemented. Realistic to add, and the right first ask from a public body. |
 | **Single sign-on / Active Directory** | Not implemented. Understood to be a procurement requirement for public bodies and planned as one; no work has started. |
+| **A scheduled restore of the hosted backups** | Not running. Nightly backups run and succeed (checked 27 November 2026); the restore is proven in CI and was performed at commissioning, but no drill restores the live backups on a schedule, because the key that opens them is kept off the server. To be scheduled from the machine that holds the key. |
 | **Point-in-time recovery** | Not implemented. Backups are nightly, so the recovery point is up to 24 hours. Continuous WAL archiving would close this and is not built. See section 8. |
 | **Backups configured by default** | The scripts ship with the product; the bucket and key pair are set up per installation. A site that has not been commissioned has no off-site backup, which is why commissioning is not complete until a restore has been run and passed. |
 | **Encryption at rest for the live database** | Not configured. The hosted service runs PostgreSQL on a Namecheap VPS with NVMe storage; disk-level encryption is not enabled and is not something MOTION can currently attest to. Separate from the backups, which *are* encrypted before they leave the machine — see section 8. |

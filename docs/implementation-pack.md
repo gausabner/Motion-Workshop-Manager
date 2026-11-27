@@ -166,7 +166,9 @@ one and payments in the other.
       restores the night's backup into a scratch database and checks the data
       and the tenant policies came back. Note the time it reports: that is this
       site's recovery time, and it is the number to quote rather than a
-      generic one. The weekly timer then keeps proving it.
+      generic one. Then agree how often the drill is repeated, and by whom: it
+      needs the private key, so it runs where the key is kept, not on the
+      server.
 
 **The first week**
 - [ ] Someone from MOTION reachable at short notice each morning.

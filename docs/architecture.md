@@ -116,6 +116,6 @@
 
 **Context.** Margins must stay above 90%, so support and infrastructure must stay small; building images on a laptop twice filled its disk.
 
-**Decision.** GitHub Actions builds the image on every merge to `main`, proves it boots against an empty database, and publishes it. Production is one server running Docker Compose (app, Postgres, cloudflared). Deploys back up first, pull the image while the old app serves, then restart only the app; migrations run on start. Encrypted off-site backups run nightly and are restored in CI.
+**Decision.** GitHub Actions builds the image on every merge to `main`, proves it boots against an empty database, and publishes it. Production is one server running Docker Compose (app, Postgres, cloudflared). Deploys back up first, pull the image while the old app serves, then restart only the app; migrations run on start. Encrypted off-site backups run nightly; the restore is proven in CI, and the private key is held off the server (by MOTION for the hosted service).
 
 **Consequences.** Recovery is restore-and-start (see [continuity-and-recovery.md](continuity-and-recovery.md)). There is no staging site yet; [deploy-render.md](deploy-render.md) keeps the option.
